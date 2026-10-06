@@ -118,6 +118,33 @@ it('invalidates earlier pending invitations for the same email', function () {
     expect($invitations)->toHaveCount(1)->and($invitations->first()->role)->toBe('admin');
 });
 
+it('forbids an admin from replacing a pending owner invitation', function () {
+    Notification::fake();
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+
+    invite($this->owner, $this->organization, ['email' => 'a@example.com', 'role' => 'owner'])->assertCreated();
+
+    invite($admin, $this->organization, ['email' => 'A@example.com', 'role' => 'member'])
+        ->assertForbidden()
+        ->assertJsonPath('message', 'A pending invitation for this email has a role you cannot assign.');
+
+    $invitations = Invitation::query()->withoutGlobalScopes()->get();
+    expect($invitations)->toHaveCount(1)->and($invitations->first()->role)->toBe('owner');
+});
+
+it('lets an admin replace a pending invitation of a role they can assign', function () {
+    Notification::fake();
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+
+    invite($this->owner, $this->organization, ['email' => 'a@example.com', 'role' => 'admin'])->assertCreated();
+    invite($admin, $this->organization, ['email' => 'a@example.com', 'role' => 'member'])->assertCreated();
+
+    $invitations = Invitation::query()->withoutGlobalScopes()->get();
+    expect($invitations)->toHaveCount(1)->and($invitations->first()->role)->toBe('member');
+});
+
 it('accepts an invitation, creating the membership with the role', function () {
     $invitee = User::factory()->create(['email' => 'Invitee@Example.com']);
     Invitation::factory()->withPlainToken('plain')->create([

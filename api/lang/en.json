@@ -239,6 +239,7 @@
     "This user is already a member of the organization.": "This user is already a member of the organization.",
     "The invitation is invalid or has expired.": "The invitation is invalid or has expired.",
     "This invitation was issued for a different email address.": "This invitation was issued for a different email address.",
+    "A pending invitation for this email has a role you cannot assign.": "A pending invitation for this email has a role you cannot assign.",
     "A project with this key already exists in the organization.": "A project with this key already exists in the organization.",
     "owner": "owner",
     "admin": "admin",

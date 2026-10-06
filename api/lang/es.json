@@ -239,6 +239,7 @@
     "This user is already a member of the organization.": "Este usuario ya es miembro de la organización.",
     "The invitation is invalid or has expired.": "La invitación no es válida o ha vencido.",
     "This invitation was issued for a different email address.": "Esta invitación fue emitida para otro correo electrónico.",
+    "A pending invitation for this email has a role you cannot assign.": "Hay una invitación pendiente para este correo con un rol que no puedes asignar.",
     "A project with this key already exists in the organization.": "Ya existe un proyecto con esta clave en la organización.",
     "owner": "propietario",
     "admin": "administrador",

@@ -12,6 +12,7 @@ use App\Support\CurrentOrganization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 
 class InvitationController extends Controller
@@ -26,8 +27,19 @@ class InvitationController extends Controller
         $plainToken = Invitation::newPlainToken();
 
         $invitation = DB::transaction(function () use ($request, $email, $role, $locale, $plainToken) {
-            // A new invitation invalidates earlier pending ones for the same email.
-            Invitation::query()->pending()->where('email', $email)->delete();
+            // A new invitation invalidates earlier pending ones for the same email,
+            // unless one carries a role the inviter could not grant (an admin replacing an owner invite).
+            $pending = Invitation::query()->pending()->where('email', $email)->lockForUpdate()->get();
+
+            $outranksInviter = $pending->contains(
+                fn (Invitation $pendingInvitation) => Gate::denies('create', [Invitation::class, Role::tryFrom($pendingInvitation->role)]),
+            );
+
+            if ($outranksInviter) {
+                abort(403, __('A pending invitation for this email has a role you cannot assign.'));
+            }
+
+            Invitation::query()->whereKey($pending->modelKeys())->delete();
 
             return Invitation::create([
                 'email' => $email,
