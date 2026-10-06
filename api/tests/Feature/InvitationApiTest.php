@@ -149,6 +149,7 @@ it('accepts an invitation, creating the membership with the role', function () {
     $invitee = User::factory()->create(['email' => 'Invitee@Example.com']);
     Invitation::factory()->withPlainToken('plain')->create([
         'organization_id' => $this->organization->id,
+        'invited_by' => $this->owner->id,
         'email' => 'invitee@example.com',
         'role' => 'admin',
     ]);
@@ -169,6 +170,7 @@ it('does not accept a used invitation twice', function () {
     $invitee = User::factory()->create();
     Invitation::factory()->withPlainToken('plain')->create([
         'organization_id' => $this->organization->id,
+        'invited_by' => $this->owner->id,
         'email' => $invitee->email,
     ]);
     Sanctum::actingAs($invitee);
@@ -181,6 +183,7 @@ it('does not accept an expired invitation', function () {
     $invitee = User::factory()->create();
     Invitation::factory()->withPlainToken('plain')->create([
         'organization_id' => $this->organization->id,
+        'invited_by' => $this->owner->id,
         'email' => $invitee->email,
         'expires_at' => now()->subMinute(),
     ]);
@@ -199,6 +202,7 @@ it('does not accept an unknown token', function () {
 it('forbids accepting with a different account and leaves the invitation usable', function () {
     Invitation::factory()->withPlainToken('plain')->create([
         'organization_id' => $this->organization->id,
+        'invited_by' => $this->owner->id,
         'email' => 'someone@example.com',
     ]);
     $stranger = User::factory()->create();
@@ -212,4 +216,60 @@ it('forbids accepting with a different account and leaves the invitation usable'
 
 it('requires authentication to accept', function () {
     $this->postJson('/api/invitations/accept', ['token' => 'plain'])->assertUnauthorized();
+});
+
+function acceptRejectedInvitation(Organization $organization, User $inviter, string $role, ?Closure $beforeAccept = null): void
+{
+    $invitee = User::factory()->create();
+    Invitation::factory()->withPlainToken('plain')->create([
+        'organization_id' => $organization->id,
+        'email' => $invitee->email,
+        'role' => $role,
+        'invited_by' => $inviter->id,
+    ]);
+    $beforeAccept?->__invoke();
+    Sanctum::actingAs($invitee);
+
+    test()->postJson('/api/invitations/accept', ['token' => 'plain'])
+        ->assertUnprocessable()
+        ->assertJsonPath('message', __('The invitation is invalid or has expired.'));
+
+    expect($organization->users()->whereKey($invitee->id)->exists())->toBeFalse()
+        ->and(Invitation::query()->withoutGlobalScopes()->firstOrFail()->accepted_at)->toBeNull()
+        ->and(getPermissionsTeamId())->toBeNull();
+}
+
+it('rejects an invitation whose inviter was demoted below the invited role', function () {
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+
+    acceptRejectedInvitation($this->organization, $admin, 'member', function () use ($admin) {
+        setPermissionsTeamId($this->organization->id);
+        $admin->syncRoles([Role::Member]);
+        setPermissionsTeamId(null);
+    });
+});
+
+it('rejects an invitation whose inviter is no longer a member', function () {
+    $formerAdmin = User::factory()->create();
+    $this->organization->addMember($formerAdmin, [Role::Admin]);
+
+    acceptRejectedInvitation($this->organization, $formerAdmin, 'member', fn () => $this->organization->users()->detach($formerAdmin->id));
+});
+
+it('rejects an invitation whose inviter was deleted', function () {
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+
+    acceptRejectedInvitation($this->organization, $admin, 'member', function () use ($admin) {
+        $admin->delete();
+        expect(Invitation::query()->withoutGlobalScopes()->firstOrFail()->invited_by)->toBeNull();
+    });
+});
+
+it('rejects an owner invitation issued by an admin', function () {
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+
+    acceptRejectedInvitation($this->organization, $admin, 'owner');
 });

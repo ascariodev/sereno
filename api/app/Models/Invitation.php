@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Role;
 use App\Models\Concerns\BelongsToOrganization;
 use App\Models\Scopes\OrganizationScope;
 use Database\Factories\InvitationFactory;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
 #[Fillable(['email', 'role', 'token', 'locale', 'invited_by', 'expires_at', 'accepted_at'])]
@@ -61,6 +63,30 @@ class Invitation extends Model
     public function isUsable(): bool
     {
         return $this->accepted_at === null && $this->expires_at->isFuture();
+    }
+
+    /**
+     * The inviter must still be a member allowed to grant this role. Accepting has no active
+     * organization, so the permission team is set to the invitation's one only for the check.
+     */
+    public function inviterCanStillGrantRole(): bool
+    {
+        $inviter = $this->inviter;
+
+        if ($inviter === null || ! $this->organization->users()->whereKey($inviter->id)->exists()) {
+            return false;
+        }
+
+        $previousTeam = getPermissionsTeamId();
+        setPermissionsTeamId($this->organization_id);
+
+        try {
+            return Gate::forUser($inviter->unsetRelation('roles'))
+                ->allows('create', [self::class, Role::tryFrom($this->role)]);
+        } finally {
+            setPermissionsTeamId($previousTeam);
+            $inviter->unsetRelation('roles');
+        }
     }
 
     public function inviter(): BelongsTo

@@ -72,7 +72,7 @@ class InvitationController extends Controller
         $organizationId = DB::transaction(function () use ($plainToken, $user) {
             $invitation = Invitation::findByPlainToken($plainToken, lock: true);
 
-            if ($invitation === null || ! $invitation->isUsable()) {
+            if ($invitation === null || ! $invitation->isUsable() || ! $invitation->inviterCanStillGrantRole()) {
                 abort(422, __('The invitation is invalid or has expired.'));
             }
 
