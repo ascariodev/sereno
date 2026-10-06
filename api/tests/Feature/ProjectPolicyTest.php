@@ -82,12 +82,15 @@ it('assigns the active organization on create', function () {
     expect($project->organization_id)->toBe($this->organization->id);
 });
 
-it('rejects duplicate keys within an organization but not across organizations', function () {
+it('allows the same key in different organizations', function () {
     Project::factory()->for($this->other)->create(['key' => 'WEB']);
     Project::factory()->for($this->organization)->create(['key' => 'WEB']);
 
     expect(Project::query()->where('key', 'WEB')->count())->toBe(1);
+});
 
+it('rejects a duplicate key within the same organization', function () {
+    Project::factory()->for($this->organization)->create(['key' => 'WEB']);
     Project::factory()->for($this->organization)->create(['key' => 'WEB']);
 })->throws(QueryException::class);
 
