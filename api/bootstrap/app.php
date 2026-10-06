@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuthenticateLogSource;
 use App\Http\Middleware\ResolveOrganization;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Auth\AuthenticationException;
@@ -8,6 +9,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -22,10 +24,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'organization' => ResolveOrganization::class,
+            'log.source' => AuthenticateLogSource::class,
         ]);
         // Locale first so auth, organization and throttle errors are translated.
         $middleware->prependToPriorityList(AuthenticatesRequests::class, SetLocale::class);
         $middleware->appendToPriorityList(AuthenticatesRequests::class, ResolveOrganization::class);
+        // The log-ingest limiter keys on the source, so it must be resolved first.
+        $middleware->prependToPriorityList(ThrottleRequests::class, AuthenticateLogSource::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

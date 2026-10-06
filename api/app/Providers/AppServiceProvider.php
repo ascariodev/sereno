@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\AuthenticateLogSource;
 use App\Support\CurrentOrganization;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,8 @@ class AppServiceProvider extends ServiceProvider
     public const LOGIN_ATTEMPTS_PER_IP_PER_MINUTE = 20;
 
     public const REGISTER_ATTEMPTS_PER_MINUTE = 5;
+
+    public const LOG_INGEST_REQUESTS_PER_MINUTE = 600;
 
     /**
      * Register any application services.
@@ -54,6 +57,11 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('register', fn (Request $request) => Limit::perMinute(self::REGISTER_ATTEMPTS_PER_MINUTE)
             ->by($request->ip())
+            ->response($this->tooManyAttemptsResponse(...)));
+
+        // Per source, not per IP: many systems may share an egress IP and the key identifies the sender.
+        RateLimiter::for('log-ingest', fn (Request $request) => Limit::perMinute(self::LOG_INGEST_REQUESTS_PER_MINUTE)
+            ->by('log-source:'.AuthenticateLogSource::source($request)->getKey())
             ->response($this->tooManyAttemptsResponse(...)));
     }
 

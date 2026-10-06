@@ -22,7 +22,11 @@ class LogSource extends Model
 
     public const KEY_PREFIX = 'wsk_';
 
+    public const KEY_RANDOM_LENGTH = 40;
+
     public const DISPLAY_PREFIX_LENGTH = 12;
+
+    public const LAST_USED_RESOLUTION_SECONDS = 60;
 
     protected static function booted(): void
     {
@@ -55,7 +59,12 @@ class LogSource extends Model
 
     public static function newPlainKey(): string
     {
-        return self::KEY_PREFIX.Str::random(40);
+        return self::KEY_PREFIX.Str::random(self::KEY_RANDOM_LENGTH);
+    }
+
+    public static function isWellFormedPlainKey(string $plainKey): bool
+    {
+        return preg_match('/\A'.preg_quote(self::KEY_PREFIX, '/').'[A-Za-z0-9]{'.self::KEY_RANDOM_LENGTH.'}\z/', $plainKey) === 1;
     }
 
     public static function hashKey(string $plainKey): string
@@ -83,6 +92,28 @@ class LogSource extends Model
     public function isRevoked(): bool
     {
         return $this->revoked_at !== null;
+    }
+
+    /**
+     * At most one write per resolution window: the condition lives in the UPDATE so concurrent
+     * requests do not need a cache or a lock, and updated_at is left untouched.
+     */
+    public function markAsUsed(): void
+    {
+        $now = now();
+
+        $updated = static::query()
+            ->withoutGlobalScope(OrganizationScope::class)
+            ->whereKey($this->getKey())
+            ->where(fn ($query) => $query
+                ->whereNull('last_used_at')
+                ->orWhere('last_used_at', '<', $now->copy()->subSeconds(self::LAST_USED_RESOLUTION_SECONDS)))
+            ->toBase()
+            ->update(['last_used_at' => $now]);
+
+        if ($updated > 0) {
+            $this->forceFill(['last_used_at' => $now])->syncOriginalAttribute('last_used_at');
+        }
     }
 
     public function project(): BelongsTo
