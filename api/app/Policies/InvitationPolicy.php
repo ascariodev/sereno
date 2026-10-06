@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Policies;
+
+use App\Enums\Role;
+use App\Models\User;
+
+/**
+ * Roles are read from the active permission team, which ResolveOrganization sets.
+ * An admin may invite admins and members but never owners.
+ */
+class InvitationPolicy
+{
+    public function create(User $user, ?Role $role): bool
+    {
+        if ($user->hasRole(Role::Owner->value)) {
+            return true;
+        }
+
+        return $user->hasRole(Role::Admin->value) && $role !== Role::Owner;
+    }
+}

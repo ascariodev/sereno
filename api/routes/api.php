@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\OrganizationController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,4 +16,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('me/locale', [AuthController::class, 'updateLocale']);
     Route::get('organizations', [OrganizationController::class, 'index']);
     Route::post('organizations', [OrganizationController::class, 'store']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('invitations/accept', [InvitationController::class, 'accept']);
+    Route::post('invitations', [InvitationController::class, 'store'])->middleware('organization');
 });

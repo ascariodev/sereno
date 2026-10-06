@@ -231,5 +231,15 @@
     "Whoops!": "Whoops!",
     "Yes": "Yes",
     "You are receiving this email because we received a password reset request for your account.": "You are receiving this email because we received a password reset request for your account.",
-    "You do not belong to this organization.": "You do not belong to this organization."
+    "You do not belong to this organization.": "You do not belong to this organization.",
+    "You have been invited to :organization": "You have been invited to :organization",
+    "You have been invited to join :organization as :role.": "You have been invited to join :organization as :role.",
+    "Your invitation token is: :token": "Your invitation token is: :token",
+    "This invitation expires in :days days.": "This invitation expires in :days days.",
+    "This user is already a member of the organization.": "This user is already a member of the organization.",
+    "The invitation is invalid or has expired.": "The invitation is invalid or has expired.",
+    "This invitation was issued for a different email address.": "This invitation was issued for a different email address.",
+    "owner": "owner",
+    "admin": "admin",
+    "member": "member"
 }
