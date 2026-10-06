@@ -13,7 +13,7 @@ class LogPartitions
 
     private const LOCK_KEY = 'log_events_partitions';
 
-    private const NAME_PATTERN = '/^'.self::PARENT_TABLE.'_(\d{8})$/';
+    private const NAME_PATTERN = '/^'.self::PARENT_TABLE.'_(\d{8})\z/';
 
     public static function nameFor(CarbonInterface $day): string
     {

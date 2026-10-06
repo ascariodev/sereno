@@ -111,6 +111,13 @@ it('ignores tables that do not follow the partition naming', function () {
         ->and(partitionNames())->not->toContain('log_events_legacy');
 });
 
+it('rejects a partition name with a trailing newline', function () {
+    $assertValidName = new ReflectionMethod(LogPartitions::class, 'assertValidName');
+
+    expect(fn () => $assertValidName->invoke(null, "log_events_20260101\n"))->toThrow(LogicException::class);
+    $assertValidName->invoke(null, 'log_events_20260101');
+});
+
 it('schedules log maintenance and failed jobs pruning', function () {
     Artisan::call('schedule:list');
     $output = Artisan::output();
