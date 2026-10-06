@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToOrganization;
+use App\Models\Concerns\EnsuresProjectInOrganization;
 use App\Models\Scopes\OrganizationScope;
 use Database\Factories\LogSourceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -11,14 +12,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
-use InvalidArgumentException;
 
 #[Fillable(['name', 'key_hash', 'key_prefix'])]
 #[Hidden(['key_hash'])]
 class LogSource extends Model
 {
     /** @use HasFactory<LogSourceFactory> */
-    use BelongsToOrganization, HasFactory;
+    use BelongsToOrganization, EnsuresProjectInOrganization, HasFactory;
 
     public const KEY_PREFIX = 'wsk_';
 
@@ -27,27 +27,6 @@ class LogSource extends Model
     public const DISPLAY_PREFIX_LENGTH = 12;
 
     public const LAST_USED_RESOLUTION_SECONDS = 60;
-
-    protected static function booted(): void
-    {
-        $assertProjectInOrganization = function (self $source) {
-            if (! $source->isDirty(['organization_id', 'project_id'])) {
-                return;
-            }
-
-            $projectOrganizationId = Project::query()
-                ->withoutGlobalScope(OrganizationScope::class)
-                ->whereKey($source->project_id)
-                ->value('organization_id');
-
-            if ($projectOrganizationId === null || (int) $projectOrganizationId !== (int) $source->organization_id) {
-                throw new InvalidArgumentException('The project must belong to the log source organization.');
-            }
-        };
-
-        static::creating($assertProjectInOrganization);
-        static::updating($assertProjectInOrganization);
-    }
 
     protected function casts(): array
     {
