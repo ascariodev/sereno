@@ -16,7 +16,7 @@ class ResolveOrganization
 
     public function handle(Request $request, Closure $next): Response
     {
-        // Clear any organization left by a previous request in the same process (tests, Octane).
+        // Clear any organization left by a previous request in the same process (e.g. between tests).
         $this->currentOrganization->set(null);
 
         if ($request->user() === null) {

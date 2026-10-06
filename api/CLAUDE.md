@@ -22,12 +22,14 @@ docker compose exec api composer <comando>
 
 Los archivos del repo deben pertenecer al UID/GID 1000 (usuario `app` del contenedor). Si algo creado
 desde otro contenedor queda como root: `docker compose run --rm --no-deps --user root api chown -R 1000:1000 /var/www/api`.
+En Git Bash, anteponer `MSYS_NO_PATHCONV=1` para que no convierta `/var/www/api` en una ruta de Windows.
 
 ## Multi-tenant
 
 - `App\Support\CurrentOrganization` (binding `scoped` en `AppServiceProvider`) guarda la organización
   activa; su `set()` también fija el team de spatie con `setPermissionsTeamId()`.
-- El middleware `organization` lee `X-Organization-Id`, valida la membresía en `organization_user` y
+- El middleware `organization` empieza limpiando la organización activa (`set(null)`) y responde 401 si no hay
+  usuario autenticado. Luego lee `X-Organization-Id`, valida la membresía en `organization_user` y
   fija la organización activa: responde 400 si falta el header o no es numérico, y 403 si el usuario no
   pertenece. Va siempre después de `auth:sanctum` (prioridad fijada en `bootstrap/app.php`).
 - Toda tabla de negocio usa el trait `BelongsToOrganization`, que agrega su scope global y rellena
