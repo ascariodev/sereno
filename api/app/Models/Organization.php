@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Locale;
 use App\Enums\Role;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,9 +17,14 @@ class Organization extends Model
     /** @use HasFactory<OrganizationFactory> */
     use HasFactory;
 
-    protected $attributes = [
-        'settings' => '{"default_locale": "en"}',
-    ];
+    public function __construct(array $attributes = [])
+    {
+        $this->attributes = [
+            'settings' => json_encode(['default_locale' => Locale::default()->value]),
+        ];
+
+        parent::__construct($attributes);
+    }
 
     protected function casts(): array
     {
