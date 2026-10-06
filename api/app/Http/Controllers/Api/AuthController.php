@@ -27,6 +27,11 @@ class AuthController extends Controller
     {
         $user = User::where('email', $request->input('email'))->first();
 
+        if (! $user) {
+            // Same bcrypt cost as Hash::check, so response time does not reveal whether the email exists.
+            Hash::make($request->input('password'));
+        }
+
         if (! $user || ! Hash::check($request->input('password'), $user->password)) {
             throw ValidationException::withMessages([
                 'email' => __('The credentials are not valid.'),
