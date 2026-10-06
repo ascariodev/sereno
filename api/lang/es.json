@@ -241,6 +241,7 @@
     "This invitation was issued for a different email address.": "Esta invitación fue emitida para otro correo electrónico.",
     "A pending invitation for this email has a role you cannot assign.": "Hay una invitación pendiente para este correo con un rol que no puedes asignar.",
     "A project with this key already exists in the organization.": "Ya existe un proyecto con esta clave en la organización.",
+    "This project is archived and cannot have new log sources.": "Este proyecto está archivado y no admite nuevas fuentes de log.",
     "owner": "propietario",
     "admin": "administrador",
     "member": "miembro",

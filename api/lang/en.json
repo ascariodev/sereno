@@ -245,5 +245,6 @@
     "admin": "admin",
     "member": "member",
     "Too many attempts. Please try again in :seconds seconds.": "Too many attempts. Please try again in :seconds seconds.",
-    "Unauthenticated.": "Unauthenticated."
+    "Unauthenticated.": "Unauthenticated.",
+    "This project is archived and cannot have new log sources.": "This project is archived and cannot have new log sources."
 }

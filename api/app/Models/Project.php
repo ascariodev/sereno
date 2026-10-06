@@ -7,6 +7,7 @@ use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['name', 'key', 'description'])]
 class Project extends Model
@@ -24,5 +25,10 @@ class Project extends Model
     public function isArchived(): bool
     {
         return $this->archived_at !== null;
+    }
+
+    public function logSources(): HasMany
+    {
+        return $this->hasMany(LogSource::class);
     }
 }
