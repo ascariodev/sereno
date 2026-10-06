@@ -192,6 +192,7 @@
     "Tag": "Tag",
     "Tags": "Tags",
     "Temporary Redirect": "Temporary Redirect",
+    "The :header header is missing or invalid.": "The :header header is missing or invalid.",
     "The credentials are not valid.": "The credentials are not valid.",
     "The existing encrypted environment file is not in readable format. Use --force to overwrite it.": "The existing encrypted environment file is not in readable format. Use --force to overwrite it.",
     "The existing encryption key is required to update the encrypted environment file.": "The existing encryption key is required to update the encrypted environment file.",
@@ -229,5 +230,6 @@
     "Web Server is Down": "Web Server is Down",
     "Whoops!": "Whoops!",
     "Yes": "Yes",
-    "You are receiving this email because we received a password reset request for your account.": "You are receiving this email because we received a password reset request for your account."
+    "You are receiving this email because we received a password reset request for your account.": "You are receiving this email because we received a password reset request for your account.",
+    "You do not belong to this organization.": "You do not belong to this organization."
 }

@@ -22,13 +22,12 @@ desde otro contenedor queda como root: `docker compose run --rm --no-deps --user
 
 ## Multi-tenant
 
-> Se implementa en las fases 7 y 8 del plan `nucleo`; hasta entonces esto describe el diseño, no código existente.
-
-- `App\Support\CurrentOrganization` (binding `scoped`) guarda la organización activa. Su `set()` también
-  llama a `setPermissionsTeamId()`, así roles y tenant nunca se desincronizan.
+- `App\Support\CurrentOrganization` (binding `scoped` en `AppServiceProvider`) guarda la organización
+  activa. Que su `set()` también llame a `setPermissionsTeamId()` se implementa en la fase 8 del plan
+  `nucleo` (spatie aún no está instalado).
 - El middleware `organization` lee `X-Organization-Id`, valida la membresía en `organization_user` y
   fija la organización activa: responde 400 si falta el header o no es numérico, y 403 si el usuario no
-  pertenece. Va siempre después de `auth:sanctum`.
+  pertenece. Va siempre después de `auth:sanctum` (prioridad fijada en `bootstrap/app.php`).
 - Toda tabla de negocio usa el trait `BelongsToOrganization`, que agrega su scope global y rellena
   `organization_id` al crear. **Sin organización activa el scope no devuelve nada** (falla cerrado):
   no lo "arregles" quitando el filtro. Para consultas entre organizaciones (jobs, comandos, admin

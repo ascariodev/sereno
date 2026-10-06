@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Middleware\ResolveOrganization;
 use App\Http\Middleware\SetLocale;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [
             SetLocale::class,
         ]);
+        $middleware->alias([
+            'organization' => ResolveOrganization::class,
+        ]);
+        $middleware->appendToPriorityList(AuthenticatesRequests::class, ResolveOrganization::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
