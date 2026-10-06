@@ -39,6 +39,22 @@ it('uses the header when the user has no stored locale', function () {
         ->assertJsonPath('data.locale', null);
 });
 
+it('returns a translated 401 with Content-Language', function () {
+    $messages = [];
+
+    foreach (['en', 'es'] as $locale) {
+        $response = $this->getJson('/api/me', ['Accept-Language' => $locale])
+            ->assertUnauthorized()
+            ->assertHeader('Content-Language', $locale);
+
+        $messages[$locale] = $response->json('message');
+    }
+
+    expect($messages['en'])->toBe(__('Unauthenticated.', [], 'en'))
+        ->and($messages['es'])->toBe(__('Unauthenticated.', [], 'es'))
+        ->and($messages['es'])->not->toBe($messages['en']);
+});
+
 it('updates the locale through PATCH /me/locale', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);

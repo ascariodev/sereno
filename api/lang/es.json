@@ -243,5 +243,6 @@
     "owner": "propietario",
     "admin": "administrador",
     "member": "miembro",
-    "Too many attempts. Please try again in :seconds seconds.": "Demasiados intentos. Inténtalo de nuevo en :seconds segundos."
+    "Too many attempts. Please try again in :seconds seconds.": "Demasiados intentos. Inténtalo de nuevo en :seconds segundos.",
+    "Unauthenticated.": "No autenticado."
 }
