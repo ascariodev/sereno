@@ -46,3 +46,7 @@ desde otro contenedor queda como root: `docker compose run --rm --no-deps --user
 - Código, BD y dominio en inglés. La API nunca devuelve textos fijos: todo mensaje pasa por claves de
   traducción (`en` por defecto, `es`).
 - Respuestas con API Resources; validación con Form Requests; policies en cada recurso.
+- Textos traducibles: usa `__('Frase en inglés.')` y agrega la clave a `lang/en.json` y `lang/es.json`
+  (un test falla si falta en español). `lang/es/*.php` lo genera `lang:add`/`lang:update` (paquete
+  `laravel-lang/common`, solo dev): no se edita a mano. `lang:update` conserva las claves propias de `lang/*.json`
+  (verificado) y deja `lang/en/` y `lang/es/` sin formatear: correr pint después.

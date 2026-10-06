@@ -3,15 +3,11 @@
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 
-beforeEach(function () {
-    app('translator')->addLines(['validation.required' => 'El campo :attribute es obligatorio.'], 'es');
-});
-
 it('returns a 422 in Spanish with Accept-Language es', function () {
     $this->postJson('/api/auth/login', [], ['Accept-Language' => 'es'])
         ->assertUnprocessable()
         ->assertHeader('Content-Language', 'es')
-        ->assertJsonPath('errors.email.0', 'El campo email es obligatorio.');
+        ->assertJsonPath('errors.email.0', 'El campo correo electrónico es obligatorio.');
 });
 
 it('defaults to en without Accept-Language', function () {
