@@ -8,12 +8,29 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use InvalidArgumentException;
 
 #[Fillable(['name', 'key', 'description'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
     use BelongsToOrganization, HasFactory;
+
+    protected static function booted(): void
+    {
+        static::updating(function (Project $project) {
+            if (! $project->isDirty('organization_id')) {
+                return;
+            }
+
+            $hasSources = LogSource::query()->withoutGlobalScopes()->where('project_id', $project->getKey())->exists();
+            $hasGroups = LogGroup::query()->withoutGlobalScopes()->where('project_id', $project->getKey())->exists();
+
+            if ($hasSources || $hasGroups) {
+                throw new InvalidArgumentException('A project with log sources or groups cannot change organization.');
+            }
+        });
+    }
 
     protected function casts(): array
     {
