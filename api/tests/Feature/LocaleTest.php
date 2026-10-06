@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Middleware\SetLocale;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Laravel\Sanctum\Sanctum;
 
 it('returns a 422 in Spanish with Accept-Language es', function () {
@@ -73,4 +75,16 @@ it('rejects an unsupported locale and requires auth', function () {
     $this->patchJson('/api/me/locale', ['locale' => 'fr'])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['locale']);
+});
+
+it('adds Vary Accept-Language without overriding an existing Vary', function () {
+    $this->postJson('/api/auth/login', [])->assertHeader('Vary', 'Accept-Language');
+
+    $middleware = new SetLocale;
+    $response = $middleware->handle(
+        Request::create('/x'),
+        fn () => response('ok', 200, ['Vary' => 'Origin']),
+    );
+
+    expect($response->headers->all('Vary'))->toBe(['Origin', 'Accept-Language']);
 });
