@@ -3,27 +3,25 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Project\ListProjectsRequest;
 use App\Http\Requests\Project\ProjectRequest;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
 
 class ProjectController extends Controller
 {
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(ListProjectsRequest $request): AnonymousResourceCollection
     {
-        Gate::authorize('viewAny', Project::class);
-
-        $includeArchived = $request->boolean('include_archived');
-
         return ProjectResource::collection(
             Project::query()
-                ->when(! $includeArchived, fn ($query) => $query->whereNull('archived_at'))
+                ->when(! $request->includeArchived(), fn ($query) => $query->whereNull('archived_at'))
                 ->orderBy('name')
-                ->get(),
+                ->orderBy('id')
+                ->paginate($request->perPage())
+                ->withQueryString(),
         );
     }
 

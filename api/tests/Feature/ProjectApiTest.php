@@ -168,3 +168,55 @@ it('requires authentication and the organization header', function () {
     Sanctum::actingAs($this->users['owner']);
     $this->getJson('/api/projects')->assertStatus(400);
 });
+
+it('paginates the project list with data, links and meta', function () {
+    Project::factory()->for($this->organization)->count(30)->sequence(fn ($sequence) => [
+        'name' => sprintf('Project %02d', $sequence->index),
+        'key' => sprintf('P%02d', $sequence->index),
+    ])->create();
+    $member = $this->users['member'];
+
+    asUser($member, $this->organization)->getJson('/api/projects')
+        ->assertOk()
+        ->assertJsonStructure(['data', 'links' => ['first', 'last', 'prev', 'next'], 'meta' => ['current_page', 'per_page', 'total', 'last_page']])
+        ->assertJsonCount(25, 'data')
+        ->assertJsonPath('meta.per_page', 25)
+        ->assertJsonPath('meta.total', 30)
+        ->assertJsonPath('data.0.name', 'Project 00');
+
+    asUser($member, $this->organization)->getJson('/api/projects?per_page=10&page=3')
+        ->assertOk()
+        ->assertJsonCount(10, 'data')
+        ->assertJsonPath('meta.per_page', 10)
+        ->assertJsonPath('meta.current_page', 3)
+        ->assertJsonPath('data.0.name', 'Project 20');
+
+    asUser($member, $this->organization)->getJson('/api/projects?per_page=100')
+        ->assertOk()->assertJsonCount(30, 'data');
+});
+
+it('rejects an invalid per_page with 422', function (string $query) {
+    asUser($this->users['member'], $this->organization)->getJson("/api/projects?{$query}")
+        ->assertUnprocessable()->assertJsonValidationErrors('per_page');
+})->with([
+    'over the maximum' => 'per_page=101',
+    'zero' => 'per_page=0',
+    'text' => 'per_page=abc',
+    'array' => 'per_page[]=10',
+]);
+
+it('keeps include_archived in the pagination links and counts archived projects', function () {
+    Project::factory()->for($this->organization)->count(3)->sequence(
+        ['key' => 'AAA', 'archived_at' => now()],
+        ['key' => 'BBB', 'archived_at' => now()],
+        ['key' => 'CCC'],
+    )->create();
+    $member = $this->users['member'];
+
+    asUser($member, $this->organization)->getJson('/api/projects?per_page=1')
+        ->assertJsonPath('meta.total', 1);
+
+    asUser($member, $this->organization)->getJson('/api/projects?include_archived=1&per_page=1')
+        ->assertJsonPath('meta.total', 3)
+        ->assertJsonPath('links.next', fn ($url) => str_contains($url, 'include_archived=1') && str_contains($url, 'per_page=1'));
+});
