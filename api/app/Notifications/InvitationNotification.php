@@ -3,11 +3,16 @@
 namespace App\Notifications;
 
 use App\Models\Invitation;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class InvitationNotification extends Notification
+class InvitationNotification extends Notification implements ShouldBeEncrypted, ShouldQueue
 {
+    use Queueable;
+
     public function __construct(
         public readonly string $organizationName,
         public readonly string $role,

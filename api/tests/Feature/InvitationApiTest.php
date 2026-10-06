@@ -6,8 +6,10 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\InvitationNotification;
 use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -272,4 +274,16 @@ it('rejects an owner invitation issued by an admin', function () {
     $this->organization->addMember($admin, [Role::Admin]);
 
     acceptRejectedInvitation($this->organization, $admin, 'owner');
+});
+
+it('queues the invitation email keeping the invitation locale', function () {
+    Queue::fake();
+
+    invite($this->owner, $this->organization, ['email' => 'q@example.com', 'role' => 'member'])->assertCreated();
+
+    Queue::assertPushed(SendQueuedNotifications::class, function (SendQueuedNotifications $job) {
+        return $job->notification instanceof InvitationNotification
+            && $job->notification->locale === 'es'
+            && $job->shouldBeEncrypted === true;
+    });
 });
