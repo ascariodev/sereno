@@ -7,11 +7,14 @@ use App\Enums\Locale;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password', 'locale'])]
@@ -38,5 +41,27 @@ class User extends Authenticatable
     public function organizations(): BelongsToMany
     {
         return $this->belongsToMany(Organization::class)->withTimestamps();
+    }
+
+    /**
+     * Roles in every organization, without the active-team filter that roles() applies.
+     */
+    public function rolesInOrganizations(): MorphToMany
+    {
+        return $this->morphToMany(Role::class, 'model', 'model_has_roles', 'model_id', 'role_id')
+            ->withPivot('organization_id');
+    }
+
+    /**
+     * @return Collection<int, Organization>
+     */
+    public function organizationsWithRoles(): Collection
+    {
+        $this->loadMissing(['organizations', 'rolesInOrganizations']);
+
+        return $this->organizations->each(fn (Organization $organization) => $organization->setRelation(
+            'roles',
+            $this->rolesInOrganizations->where('pivot.organization_id', $organization->id)->values(),
+        ));
     }
 }
