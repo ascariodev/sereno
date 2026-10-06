@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 #[Fillable(['name', 'slug', 'settings'])]
@@ -43,6 +45,26 @@ class Organization extends Model
         }
 
         return $slug;
+    }
+
+    /**
+     * Retries on a concurrent slug collision. Each attempt runs in its own nested transaction so a failed
+     * insert only rolls back to its savepoint and leaves the caller's Postgres transaction usable.
+     */
+    public static function createWithUniqueSlug(string $name, int $attempts = 3): static
+    {
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return DB::transaction(fn () => static::create([
+                    'name' => $name,
+                    'slug' => static::uniqueSlugFor($name),
+                ]));
+            } catch (UniqueConstraintViolationException $exception) {
+                if ($attempt >= $attempts) {
+                    throw $exception;
+                }
+            }
+        }
     }
 
     public function users(): BelongsToMany

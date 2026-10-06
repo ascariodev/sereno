@@ -24,10 +24,7 @@ class OrganizationController extends Controller
         $user = $request->user();
 
         $organization = DB::transaction(function () use ($request, $user) {
-            $organization = Organization::create([
-                'name' => $request->validated('name'),
-                'slug' => Organization::uniqueSlugFor($request->validated('name')),
-            ]);
+            $organization = Organization::createWithUniqueSlug($request->validated('name'));
 
             $organization->addMember($user, [Role::Owner]);
 

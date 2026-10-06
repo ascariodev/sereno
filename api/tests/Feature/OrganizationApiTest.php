@@ -4,6 +4,7 @@ use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -32,6 +33,36 @@ it('resolves slug collisions', function () {
         ->assertJsonPath('data.slug', 'acme-2');
     $this->postJson('/api/organizations', ['name' => 'Acme'])
         ->assertJsonPath('data.slug', 'acme-3');
+});
+
+it('retries when a concurrent request takes the slug between check and insert', function () {
+    config(['database.connections.concurrent' => config('database.connections.pgsql')]);
+    $concurrent = DB::connection('concurrent');
+    $collided = false;
+
+    Organization::creating(function () use (&$collided, $concurrent) {
+        if (! $collided) {
+            $collided = true;
+            $concurrent->table('organizations')->insert([
+                'name' => 'Acme',
+                'slug' => 'acme',
+                'settings' => '{}',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    });
+
+    try {
+        $this->postJson('/api/organizations', ['name' => 'Acme'])
+            ->assertCreated()
+            ->assertJsonPath('data.slug', 'acme-2');
+
+        expect($collided)->toBeTrue();
+    } finally {
+        $concurrent->table('organizations')->where('slug', 'acme')->delete();
+        $concurrent->disconnect();
+    }
 });
 
 it('requires a name', function () {
