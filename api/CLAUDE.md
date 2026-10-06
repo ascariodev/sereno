@@ -24,6 +24,9 @@ Los archivos del repo deben pertenecer al UID/GID 1000 (usuario `app` del conten
 desde otro contenedor queda como root: `docker compose run --rm --no-deps --user root api chown -R 1000:1000 /var/www/api`.
 En Git Bash, anteponer `MSYS_NO_PATHCONV=1` para que no convierta `/var/www/api` en una ruta de Windows.
 
+`docker/php/uploads.ini` fija `post_max_size`/`upload_max_filesize` en 6M (la ingesta admite 5 MB) y es solo
+desarrollo: al desplegar hay que fijar lo mismo en el proxy (`client_max_body_size`) y en el `php.ini` del servidor.
+
 ## Multi-tenant
 
 - `App\Support\CurrentOrganization` (binding `scoped` en `AppServiceProvider`) guarda la organización

@@ -5,6 +5,7 @@ RUN apk add --no-cache git unzip icu-dev libzip-dev postgresql-dev linux-headers
     && apk del linux-headers
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
 
 ARG UID=1000
 ARG GID=1000
