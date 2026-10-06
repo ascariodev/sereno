@@ -13,7 +13,7 @@ class OrganizationScope implements Scope
     {
         $organizationId = app(CurrentOrganization::class)->id();
 
-        // Sin organización activa no se devuelve nada: un olvido debe fallar cerrado, no exponer datos de otro tenant.
+        // Without an active organization nothing is returned: a missed scope must fail closed, not expose another tenant's data.
         if ($organizationId === null) {
             $builder->whereRaw('1 = 0');
 
