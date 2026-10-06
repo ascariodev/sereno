@@ -17,6 +17,9 @@ docker compose exec api php artisan <comando>
 docker compose exec api composer <comando>
 ```
 
+`docker/postgres/init.sql` solo corre al crear el volumen: si falta `workspace_test`, recrea el volumen
+(`docker compose down -v` **borra los datos de desarrollo**) o crea la base a mano.
+
 Los archivos del repo deben pertenecer al UID/GID 1000 (usuario `app` del contenedor). Si algo creado
 desde otro contenedor queda como root: `docker compose run --rm --no-deps --user root api chown -R 1000:1000 /var/www/api`.
 
