@@ -46,7 +46,7 @@ it('cascades deletion of an organization to its dependent rows', function () {
 
     foreach ([$doomed, $kept] as $organization) {
         $organization->users()->attach($user);
-        Invitation::factory()->create(['organization_id' => $organization->id]);
+        Invitation::factory()->create(['organization_id' => $organization->id, 'invited_by' => $user->id]);
         Project::factory()->create(['organization_id' => $organization->id]);
         app(CurrentOrganization::class)->set($organization);
         $user->unsetRelation('roles')->assignRole(Role::Admin->value);
