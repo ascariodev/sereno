@@ -38,6 +38,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::post('projects/{project}/log-sources', [LogSourceController::class, 'store']);
     Route::get('projects/{project}/log-groups', [LogGroupController::class, 'index']);
     Route::get('projects/{project}/log-groups/{group}', [LogGroupController::class, 'show']);
+    Route::patch('projects/{project}/log-groups/{group}', [LogGroupController::class, 'update']);
     Route::delete('projects/{project}/log-sources/{source}', [LogSourceController::class, 'destroy']);
 });
 

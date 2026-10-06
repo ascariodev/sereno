@@ -172,3 +172,35 @@ it('handles a huge message', function () {
         ->and(LogFingerprint::normalize($message))->toStartWith('Order <n> failed <uuid> ')
         ->and(strlen(LogFingerprint::normalize($message)))->toBeLessThanOrEqual(LogFingerprint::MESSAGE_MAX_BYTES);
 });
+
+it('reopens a resolved group on a new event and keeps counting', function () {
+    $event = recordLog($this->source, 'Order failed');
+    $group = LogGroup::withoutGlobalScopes()->find($event->log_group_id);
+    $group->update(['status' => LogGroupStatus::Resolved]);
+
+    recordLog($this->source, 'Order failed');
+
+    $group->refresh();
+    expect($group->status)->toBe(LogGroupStatus::Open)
+        ->and($group->events_count)->toBe(2);
+});
+
+it('keeps an ignored group ignored while counting new events', function () {
+    $event = recordLog($this->source, 'Order failed');
+    $group = LogGroup::withoutGlobalScopes()->find($event->log_group_id);
+    $group->update(['status' => LogGroupStatus::Ignored]);
+
+    recordLog($this->source, 'Order failed');
+
+    $group->refresh();
+    expect($group->status)->toBe(LogGroupStatus::Ignored)
+        ->and($group->events_count)->toBe(2);
+});
+
+it('keeps an open group open on a new event', function () {
+    $event = recordLog($this->source, 'Order failed');
+    recordLog($this->source, 'Order failed');
+
+    $group = LogGroup::withoutGlobalScopes()->find($event->log_group_id);
+    expect($group->status)->toBe(LogGroupStatus::Open)->and($group->events_count)->toBe(2);
+});

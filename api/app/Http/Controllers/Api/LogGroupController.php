@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\LogLevel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LogGroup\ListLogGroupsRequest;
+use App\Http\Requests\LogGroup\UpdateLogGroupRequest;
 use App\Http\Resources\LogGroupResource;
 use App\Models\LogEvent;
 use App\Models\LogGroup;
@@ -44,6 +45,15 @@ class LogGroupController extends Controller
             ->orderByDesc('id')
             ->limit(self::DETAIL_EVENTS_LIMIT)
             ->get());
+
+        return new LogGroupResource($group);
+    }
+
+    public function update(UpdateLogGroupRequest $request, Project $project, LogGroup $group): LogGroupResource
+    {
+        abort_unless($group->project_id === $project->id, 404);
+
+        $group->update(['status' => $request->validated('status')]);
 
         return new LogGroupResource($group);
     }

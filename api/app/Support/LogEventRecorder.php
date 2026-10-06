@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\LogGroupStatus;
 use App\Enums\LogLevel;
 use App\Models\LogEvent;
 use App\Models\LogGroup;
@@ -107,6 +108,7 @@ class LogEventRecorder
             'events_count = log_groups.events_count + 1',
             'last_seen_at = GREATEST(log_groups.last_seen_at, EXCLUDED.last_seen_at)',
             "level = CASE WHEN {$incomingSeverity} > {$severity} THEN EXCLUDED.level ELSE log_groups.level END",
+            "status = CASE WHEN log_groups.status = '".LogGroupStatus::Resolved->value."' THEN '".LogGroupStatus::Open->value."' ELSE log_groups.status END",
             'updated_at = EXCLUDED.updated_at',
         ];
     }

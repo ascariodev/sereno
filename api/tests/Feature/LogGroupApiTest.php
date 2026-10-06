@@ -208,3 +208,60 @@ it('isolates groups between organizations', function () {
         ->getJson("/api/projects/{$this->project->id}/log-groups/{$group->id}")
         ->assertForbidden();
 });
+
+it('lets every role change the status through all transitions', function () {
+    foreach (Role::cases() as $role) {
+        $group = LogGroup::factory()->for($this->project)->create();
+
+        foreach (['resolved', 'ignored', 'open'] as $status) {
+            asGroupReader($this->users[$role->value], $this->organization)
+                ->patchJson("/api/projects/{$this->project->id}/log-groups/{$group->id}", ['status' => $status])
+                ->assertOk()
+                ->assertJsonPath('data.id', $group->id)
+                ->assertJsonPath('data.status', $status);
+
+            expect($group->fresh()->status)->toBe(LogGroupStatus::from($status));
+        }
+    }
+});
+
+it('changes the status of a group of an archived project', function () {
+    $group = LogGroup::factory()->for($this->project)->create();
+    $this->project->forceFill(['archived_at' => now()])->save();
+
+    asGroupReader($this->users['member'], $this->organization)
+        ->patchJson("/api/projects/{$this->project->id}/log-groups/{$group->id}", ['status' => 'resolved'])
+        ->assertOk();
+});
+
+it('rejects an invalid or missing status', function () {
+    $group = LogGroup::factory()->for($this->project)->create();
+
+    foreach ([['status' => 'closed'], ['status' => null], []] as $payload) {
+        asGroupReader($this->users['owner'], $this->organization)
+            ->patchJson("/api/projects/{$this->project->id}/log-groups/{$group->id}", $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
+    }
+
+    expect($group->fresh()->status)->toBe(LogGroupStatus::Open);
+});
+
+it('returns 404 when updating a group of another project', function () {
+    $group = LogGroup::factory()->for(Project::factory()->for($this->organization))->create();
+
+    asGroupReader($this->users['owner'], $this->organization)
+        ->patchJson("/api/projects/{$this->project->id}/log-groups/{$group->id}", ['status' => 'resolved'])
+        ->assertNotFound();
+});
+
+it('isolates status changes between organizations and authorizes before validating', function () {
+    $group = LogGroup::factory()->for($this->project)->create();
+    $url = "/api/projects/{$this->project->id}/log-groups/{$group->id}";
+
+    asGroupReader($this->outsider, $this->other)->patchJson($url, ['status' => 'resolved'])->assertNotFound();
+    asGroupReader($this->outsider, $this->organization)->patchJson($url, ['status' => 'resolved'])->assertForbidden();
+    asGroupReader($this->outsider, $this->organization)->patchJson($url, ['status' => 'bogus'])->assertForbidden();
+
+    expect($group->fresh()->status)->toBe(LogGroupStatus::Open);
+});

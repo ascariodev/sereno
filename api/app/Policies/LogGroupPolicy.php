@@ -24,6 +24,11 @@ class LogGroupPolicy
         return $group->organization_id === $this->activeOrganizationId() && $this->viewAny($user);
     }
 
+    public function update(User $user, LogGroup $group): bool
+    {
+        return $this->view($user, $group);
+    }
+
     private function activeOrganizationId(): ?int
     {
         return app(CurrentOrganization::class)->id();
