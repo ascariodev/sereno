@@ -3,6 +3,7 @@
 use App\Http\Middleware\SetLocale;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
 it('returns a 422 in Spanish with Accept-Language es', function () {
@@ -87,4 +88,31 @@ it('adds Vary Accept-Language without overriding an existing Vary', function () 
     );
 
     expect($response->headers->all('Vary'))->toBe(['Origin', 'Accept-Language']);
+});
+
+it('does not query personal_access_tokens for an ingest API key bearer', function () {
+    $tokenQueries = function (string $bearer): int {
+        $count = 0;
+        DB::listen(function ($query) use (&$count) {
+            if (str_contains($query->sql, 'personal_access_tokens')) {
+                $count++;
+            }
+        });
+
+        test()->postJson('/api/auth/login', [], ['Authorization' => 'Bearer '.$bearer, 'Accept-Language' => 'es'])
+            ->assertHeader('Content-Language', 'es');
+
+        return $count;
+    };
+
+    expect($tokenQueries('wsk_abc123'))->toBe(0)
+        ->and($tokenQueries('1|plain'))->toBeGreaterThan(0);
+});
+
+it('keeps using the user locale with a real Sanctum bearer token', function () {
+    $token = User::factory()->create(['locale' => 'es'])->createToken('t')->plainTextToken;
+
+    $this->getJson('/api/me', ['Authorization' => 'Bearer '.$token, 'Accept-Language' => 'en'])
+        ->assertOk()
+        ->assertHeader('Content-Language', 'es');
 });

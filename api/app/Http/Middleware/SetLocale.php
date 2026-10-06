@@ -37,7 +37,9 @@ class SetLocale
 
     private function resolve(Request $request): Locale
     {
-        $preferred = $request->user('sanctum')?->locale;
+        $preferred = str_starts_with((string) $request->bearerToken(), 'wsk_')
+            ? null
+            : $request->user('sanctum')?->locale;
 
         if ($preferred instanceof Locale) {
             return $preferred;
