@@ -13,6 +13,8 @@ class LogPartitions
 
     private const LOCK_KEY = 'log_events_partitions';
 
+    private const NAME_PATTERN = '/^'.self::PARENT_TABLE.'_(\d{8})$/';
+
     public static function nameFor(CarbonInterface $day): string
     {
         return self::PARENT_TABLE.'_'.self::startOfDay($day)->format('Ymd');
@@ -40,9 +42,7 @@ class LogPartitions
         $from = self::startOfDay($day);
         $to = $from->addDay();
 
-        if (preg_match('/^'.self::PARENT_TABLE.'_\d{8}$/', $name) !== 1) {
-            throw new LogicException('Invalid log partition name.');
-        }
+        self::assertValidName($name);
 
         DB::transaction(function () use ($name, $from, $to) {
             DB::statement('SELECT pg_advisory_xact_lock(hashtext(?))', [self::LOCK_KEY]);
@@ -57,6 +57,103 @@ class LogPartitions
         });
 
         return $name;
+    }
+
+    /**
+     * Creates the partitions for $from and the following $days days.
+     *
+     * @return list<string> names of the partitions that were missing
+     */
+    public static function ensureRange(CarbonInterface $from, int $days): array
+    {
+        $created = [];
+
+        foreach (range(0, $days) as $offset) {
+            $day = self::startOfDay($from)->addDays($offset);
+
+            if (! self::exists($day)) {
+                $created[] = self::ensure($day);
+            }
+        }
+
+        return $created;
+    }
+
+    /**
+     * Lists the attached daily partitions read from the catalog, keyed by name.
+     * Tables whose name does not match the daily pattern are ignored.
+     *
+     * @return array<string, CarbonImmutable> partition name => UTC day it holds
+     */
+    public static function all(): array
+    {
+        $names = DB::table('pg_inherits')
+            ->join('pg_class as child', 'child.oid', '=', 'pg_inherits.inhrelid')
+            ->join('pg_class as parent', 'parent.oid', '=', 'pg_inherits.inhparent')
+            ->join('pg_namespace as parent_namespace', 'parent_namespace.oid', '=', 'parent.relnamespace')
+            ->where('parent.relname', self::PARENT_TABLE)
+            ->whereRaw('parent_namespace.nspname = current_schema()')
+            ->orderBy('child.relname')
+            ->pluck('child.relname');
+
+        $partitions = [];
+
+        foreach ($names as $name) {
+            $day = self::dayFromName($name);
+
+            if ($day !== null) {
+                $partitions[$name] = $day;
+            }
+        }
+
+        return $partitions;
+    }
+
+    /**
+     * Drops the partitions whose whole range ends on or before $cutoff (start of its UTC day).
+     *
+     * @return list<string> names of the dropped partitions
+     */
+    public static function dropBefore(CarbonInterface $cutoff): array
+    {
+        $cutoffDay = self::startOfDay($cutoff);
+        $dropped = [];
+
+        foreach (self::all() as $name => $day) {
+            if ($day->addDay()->greaterThan($cutoffDay)) {
+                continue;
+            }
+
+            self::assertValidName($name);
+
+            DB::transaction(function () use ($name) {
+                DB::statement("SET LOCAL lock_timeout = '10s'");
+                DB::statement('SELECT pg_advisory_xact_lock(hashtext(?))', [self::LOCK_KEY]);
+                DB::statement(sprintf('DROP TABLE IF EXISTS %s', $name));
+            });
+
+            $dropped[] = $name;
+        }
+
+        return $dropped;
+    }
+
+    private static function dayFromName(string $name): ?CarbonImmutable
+    {
+        if (preg_match(self::NAME_PATTERN, $name, $matches) !== 1) {
+            return null;
+        }
+
+        $day = CarbonImmutable::createFromFormat('!Ymd', $matches[1], 'UTC');
+
+        return $day !== false && $day->format('Ymd') === $matches[1] ? $day : null;
+    }
+
+    private static function assertValidName(string $name): void
+    {
+        if (preg_match(self::NAME_PATTERN, $name) !== 1) {
+            throw new LogicException('Invalid log partition name.');
+        }
     }
 
     private static function startOfDay(CarbonInterface $day): CarbonImmutable
