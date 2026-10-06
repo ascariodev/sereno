@@ -242,5 +242,6 @@
     "A project with this key already exists in the organization.": "Ya existe un proyecto con esta clave en la organización.",
     "owner": "propietario",
     "admin": "administrador",
-    "member": "miembro"
+    "member": "miembro",
+    "Too many attempts. Please try again in :seconds seconds.": "Demasiados intentos. Inténtalo de nuevo en :seconds segundos."
 }

@@ -22,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'organization' => ResolveOrganization::class,
         ]);
+        // Locale first so auth, organization and throttle errors are translated.
+        $middleware->prependToPriorityList(AuthenticatesRequests::class, SetLocale::class);
         $middleware->appendToPriorityList(AuthenticatesRequests::class, ResolveOrganization::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

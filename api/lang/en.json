@@ -242,5 +242,6 @@
     "A project with this key already exists in the organization.": "A project with this key already exists in the organization.",
     "owner": "owner",
     "admin": "admin",
-    "member": "member"
+    "member": "member",
+    "Too many attempts. Please try again in :seconds seconds.": "Too many attempts. Please try again in :seconds seconds."
 }
