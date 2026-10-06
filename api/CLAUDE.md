@@ -53,6 +53,7 @@ desde otro contenedor queda como root: `docker compose run --rm --no-deps --user
   traducción (`en` por defecto, `es`).
 - Respuestas con API Resources; validación con Form Requests; policies en cada recurso.
 - Textos traducibles: usa `__('Frase en inglés.')` y agrega la clave a `lang/en.json` y `lang/es.json`
-  (un test falla si falta en español). `lang/es/*.php` lo genera `lang:add`/`lang:update` (paquete
-  `laravel-lang/common`, solo dev): no se edita a mano. `lang:update` conserva las claves propias de `lang/*.json`
+  (un test falla si falta en español). `lang/en/*.php` y `lang/es/*.php` los genera `lang:add`/`lang:update`
+  (paquete `laravel-lang/common`, solo dev): no se editan a mano; los textos propios van solo en
+  `lang/en.json` y `lang/es.json`. `lang:update` conserva las claves propias de `lang/*.json`
   (verificado) y deja `lang/en/` y `lang/es/` sin formatear: correr pint después.

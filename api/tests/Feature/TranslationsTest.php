@@ -22,7 +22,7 @@ it('has every framework and app php key in Spanish', function () {
     $english = array_merge($frameworkKeys, translationKeys(lang_path('en')));
     $spanish = translationKeys(lang_path('es'));
 
-    // Son placeholders de ejemplo del framework, no textos traducibles.
+    // Framework example placeholders, not translatable texts.
     $missing = array_diff($english, $spanish, ['validation.custom.attribute-name.rule-name', 'validation.attributes']);
 
     expect($missing)->toBeEmpty();
