@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable(['name', 'key', 'description', 'archived_at'])]
+#[Fillable(['name', 'key', 'description'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
