@@ -246,5 +246,9 @@
     "admin": "administrador",
     "member": "miembro",
     "Too many attempts. Please try again in :seconds seconds.": "Demasiados intentos. Inténtalo de nuevo en :seconds segundos.",
-    "Unauthenticated.": "No autenticado."
+    "Unauthenticated.": "No autenticado.",
+    "The request body is too large.": "El cuerpo de la petición es demasiado grande.",
+    "The :attribute is nested too deeply.": "El campo :attribute tiene un anidado demasiado profundo.",
+    "The :attribute must not exceed :max KB when serialized.": "El campo :attribute no debe superar :max KB al serializarse.",
+    "The :attribute must not contain null characters.": "El campo :attribute no puede contener caracteres nulos."
 }

@@ -246,5 +246,9 @@
     "member": "member",
     "Too many attempts. Please try again in :seconds seconds.": "Too many attempts. Please try again in :seconds seconds.",
     "Unauthenticated.": "Unauthenticated.",
-    "This project is archived and cannot have new log sources.": "This project is archived and cannot have new log sources."
+    "This project is archived and cannot have new log sources.": "This project is archived and cannot have new log sources.",
+    "The request body is too large.": "The request body is too large.",
+    "The :attribute is nested too deeply.": "The :attribute is nested too deeply.",
+    "The :attribute must not exceed :max KB when serialized.": "The :attribute must not exceed :max KB when serialized.",
+    "The :attribute must not contain null characters.": "The :attribute must not contain null characters."
 }

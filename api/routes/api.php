@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\InvitationController;
+use App\Http\Controllers\Api\LogIngestController;
 use App\Http\Controllers\Api\LogSourceController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ProjectController;
@@ -35,4 +36,8 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::get('projects/{project}/log-sources', [LogSourceController::class, 'index']);
     Route::post('projects/{project}/log-sources', [LogSourceController::class, 'store']);
     Route::delete('projects/{project}/log-sources/{source}', [LogSourceController::class, 'destroy']);
+});
+
+Route::middleware(['log.source', 'throttle:log-ingest'])->group(function () {
+    Route::post('ingest/events', [LogIngestController::class, 'store']);
 });
