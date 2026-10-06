@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Support\CurrentOrganization;
 use Closure;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,6 +18,10 @@ class ResolveOrganization
     {
         // Clear any organization left by a previous request in the same process (tests, Octane).
         $this->currentOrganization->set(null);
+
+        if ($request->user() === null) {
+            throw new AuthenticationException;
+        }
 
         $organizationId = $request->header(self::HEADER);
 

@@ -84,3 +84,16 @@ it('fills organization_id from the active organization on create', function () {
     expect($record->organization_id)->toBe($this->own->id)
         ->and(TenantTestRecord::pluck('name')->all())->toEqualCanonicalizing(['own', 'new']);
 });
+
+it('responds 401 and clears the active organization when the route has no auth middleware', function () {
+    Route::middleware(['api', 'organization'])->get('/api/tenant-test-guest', fn () => ['data' => []]);
+    app('auth')->forgetGuards();
+    app(CurrentOrganization::class)->set($this->own);
+
+    $this->withHeader('X-Organization-Id', (string) $this->own->id)
+        ->getJson('/api/tenant-test-guest')
+        ->assertUnauthorized()
+        ->assertJsonPath('message', __('Unauthenticated.'));
+
+    expect(app(CurrentOrganization::class)->get())->toBeNull();
+});
