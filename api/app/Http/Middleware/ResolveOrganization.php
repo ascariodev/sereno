@@ -15,6 +15,9 @@ class ResolveOrganization
 
     public function handle(Request $request, Closure $next): Response
     {
+        // Clear any organization left by a previous request in the same process (tests, Octane).
+        $this->currentOrganization->set(null);
+
         $organizationId = $request->header(self::HEADER);
 
         if (! is_string($organizationId) || ! ctype_digit($organizationId)) {
@@ -28,6 +31,7 @@ class ResolveOrganization
         }
 
         $this->currentOrganization->set($organization);
+        $request->user()->unsetRelation('roles');
 
         return $next($request);
     }

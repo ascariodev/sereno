@@ -23,8 +23,7 @@ desde otro contenedor queda como root: `docker compose run --rm --no-deps --user
 ## Multi-tenant
 
 - `App\Support\CurrentOrganization` (binding `scoped` en `AppServiceProvider`) guarda la organización
-  activa. Que su `set()` también llame a `setPermissionsTeamId()` se implementa en la fase 8 del plan
-  `nucleo` (spatie aún no está instalado).
+  activa; su `set()` también fija el team de spatie con `setPermissionsTeamId()`.
 - El middleware `organization` lee `X-Organization-Id`, valida la membresía en `organization_user` y
   fija la organización activa: responde 400 si falta el header o no es numérico, y 403 si el usuario no
   pertenece. Va siempre después de `auth:sanctum` (prioridad fijada en `bootstrap/app.php`).
@@ -37,8 +36,13 @@ desde otro contenedor queda como root: `docker compose run --rm --no-deps --user
 
 ## Roles
 
-- Roles por organización `owner`, `admin`, `member` con spatie/laravel-permission en modo teams
-  (team = organización). `organization_user` es solo membresía.
+- Roles globales `owner`, `admin`, `member` (enum `App\Enums\Role`, sembrados por `RoleSeeder`) con
+  `organization_id` null en `roles`; spatie/laravel-permission en modo teams (team = organización), así
+  que la asignación es por organización en `model_has_roles.organization_id`.
+- `organization_user` es solo membresía, sin columna de rol.
+- `$user->roles` solo ve los roles del team activo y queda cacheado en la relación: tras cambiar de
+  organización hay que `unsetRelation('roles')` (el middleware `organization` ya lo hace).
+- Los tests siembran `RoleSeeder` en cada test (`$seed`/`$seeder` en `tests/TestCase.php`).
 
 ## Convenciones
 
