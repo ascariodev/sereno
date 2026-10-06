@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\UpdateLocaleRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -44,6 +45,13 @@ class AuthController extends Controller
 
     public function me(Request $request): UserResource
     {
+        return new UserResource($request->user());
+    }
+
+    public function updateLocale(UpdateLocaleRequest $request): UserResource
+    {
+        $request->user()->update(['locale' => $request->validated('locale')]);
+
         return new UserResource($request->user());
     }
 
