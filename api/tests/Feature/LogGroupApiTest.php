@@ -182,6 +182,15 @@ it('omits events older than the retention window', function () {
         ->assertJsonPath('data.events.0.message', 'recent');
 });
 
+it('shows a group without events as an empty list', function () {
+    $group = LogGroup::factory()->for($this->project)->create();
+
+    asGroupReader($this->users['member'], $this->organization)
+        ->getJson("/api/projects/{$this->project->id}/log-groups/{$group->id}")
+        ->assertOk()
+        ->assertJsonPath('data.events', []);
+});
+
 it('returns 404 for a group of another project', function () {
     $otherProject = Project::factory()->for($this->organization)->create();
     $group = LogGroup::factory()->for($otherProject)->create();

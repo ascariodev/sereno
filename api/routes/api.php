@@ -36,10 +36,10 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::delete('projects/{project}/archive', [ProjectController::class, 'unarchive']);
     Route::get('projects/{project}/log-sources', [LogSourceController::class, 'index']);
     Route::post('projects/{project}/log-sources', [LogSourceController::class, 'store']);
+    Route::delete('projects/{project}/log-sources/{source}', [LogSourceController::class, 'destroy']);
     Route::get('projects/{project}/log-groups', [LogGroupController::class, 'index']);
     Route::get('projects/{project}/log-groups/{group}', [LogGroupController::class, 'show']);
     Route::patch('projects/{project}/log-groups/{group}', [LogGroupController::class, 'update']);
-    Route::delete('projects/{project}/log-sources/{source}', [LogSourceController::class, 'destroy']);
 });
 
 Route::middleware(['log.source', 'throttle:log-ingest'])->group(function () {
