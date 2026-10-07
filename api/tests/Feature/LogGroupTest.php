@@ -32,6 +32,10 @@ it('rejects a duplicate fingerprint in the same project', function () {
     LogGroup::factory()->for($this->project)->create(['fingerprint' => 'abc']);
 })->throws(QueryException::class);
 
+it('rejects a group without a project', function () {
+    LogGroup::factory()->create(['project_id' => null]);
+})->throws(QueryException::class, 'not-null constraint');
+
 it('allows the same fingerprint in another project', function () {
     $otherProject = Project::factory()->for($this->organization)->create();
     LogGroup::factory()->for($this->project)->create(['fingerprint' => 'abc']);

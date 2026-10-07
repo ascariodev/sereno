@@ -75,6 +75,10 @@ it('rejects a project from another organization', function () {
     LogSource::factory()->for($foreign)->create(['organization_id' => $this->organization->id]);
 })->throws(InvalidArgumentException::class);
 
+it('rejects a source without a project', function () {
+    LogSource::factory()->create(['project_id' => null]);
+})->throws(QueryException::class, 'not-null constraint');
+
 it('rejects a duplicate key hash', function () {
     LogSource::factory()->for($this->project)->withPlainKey('wsk_same')->create();
     LogSource::factory()->for($this->project)->withPlainKey('wsk_same')->create();
