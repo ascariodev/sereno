@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Message } from '../api/types'
 import { config } from '../config'
+import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import {
   createAuthorizer,
   disconnectRealtime,
@@ -10,11 +11,10 @@ import {
   setRealtimeTokenProvider,
   subscribeToChannel,
 } from './echo'
-import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 
 describe('realtime', () => {
   afterEach(() => {
-    setRealtimeClientFactory(null)
+    setRealtimeClientFactory(() => null)
     setRealtimeTokenProvider(() => null)
   })
 
