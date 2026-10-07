@@ -56,10 +56,10 @@ watch(() => organization.activeId, reload, { immediate: true })
 <template>
   <section class="projects">
     <h1>{{ t('projects.title') }}</h1>
-    <p v-if="loading">{{ t('organization.loading') }}</p>
+    <p v-if="loading">{{ t('projects.loading') }}</p>
     <p v-else-if="failed" role="alert">
       {{ t('projects.loadFailed') }}
-      <button type="button" name="retry" @click="reload">{{ t('organization.retry') }}</button>
+      <button type="button" name="retry" @click="reload">{{ t('projects.retry') }}</button>
     </p>
     <p v-else-if="projects.length === 0" class="projects__empty">{{ t('projects.empty') }}</p>
     <ul v-else class="projects__list">

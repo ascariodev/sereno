@@ -32,7 +32,9 @@
   "projects": {
     "title": "Proyectos",
     "loadFailed": "No se pudieron cargar los proyectos.",
-    "empty": "Aún no hay proyectos."
+    "empty": "Aún no hay proyectos.",
+    "loading": "Cargando...",
+    "retry": "Reintentar"
   },
   "channel": {
     "title": "Canal",
