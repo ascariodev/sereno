@@ -257,3 +257,50 @@ it('backfills channels for existing projects idempotently', function () {
         ->and($channels->firstWhere('project_id', $a->id)->organization_id)->toBe($this->organization->id)
         ->and($channels->firstWhere('project_id', $b->id)->name)->toBe('custom');
 });
+
+it('archives and unarchives the project channel with the project', function () {
+    $project = Project::factory()->for($this->organization)->create();
+    $channel = Channel::factory()->for($project)->create();
+    $owner = $this->users['owner'];
+
+    asUser($owner, $this->organization)->postJson("/api/projects/{$project->id}/archive")->assertOk();
+
+    $archivedAt = $channel->fresh()->archived_at;
+    expect($archivedAt)->not->toBeNull()
+        ->and($archivedAt->equalTo($project->fresh()->archived_at))->toBeTrue();
+    asUser($owner, $this->organization)->getJson('/api/channels')->assertJsonCount(0, 'data');
+    asUser($owner, $this->organization)
+        ->postJson("/api/channels/{$channel->id}/messages", ['body' => 'hi'])
+        ->assertUnprocessable()->assertJsonValidationErrors('channel');
+
+    $this->travel(5)->minutes();
+    asUser($owner, $this->organization)->postJson("/api/projects/{$project->id}/archive")->assertOk();
+    expect($channel->fresh()->archived_at->equalTo($archivedAt))->toBeTrue();
+
+    asUser($owner, $this->organization)->deleteJson("/api/projects/{$project->id}/archive")->assertOk();
+
+    expect($channel->fresh()->archived_at)->toBeNull();
+    asUser($owner, $this->organization)->getJson('/api/channels')->assertJsonCount(1, 'data');
+    asUser($owner, $this->organization)
+        ->postJson("/api/channels/{$channel->id}/messages", ['body' => 'hi'])
+        ->assertCreated();
+});
+
+it('syncs the channel archived_at with its archived project idempotently', function () {
+    $archivedAt = now()->subDay()->startOfSecond();
+    $archived = Project::factory()->for($this->organization)->create(['archived_at' => $archivedAt]);
+    $active = Project::factory()->for($this->organization)->create();
+    $already = Project::factory()->for($this->organization)->create(['archived_at' => now()]);
+    $custom = now()->subWeek()->startOfSecond();
+    $channelArchived = Channel::factory()->for($archived)->create();
+    $channelActive = Channel::factory()->for($active)->create();
+    $channelAlready = Channel::factory()->for($already)->create(['archived_at' => $custom]);
+
+    $migration = require database_path('migrations/2026_10_07_130000_sync_project_channels_archived_at.php');
+    $migration->up();
+    $migration->up();
+
+    expect($channelArchived->fresh()->archived_at->equalTo($archivedAt))->toBeTrue()
+        ->and($channelActive->fresh()->archived_at)->toBeNull()
+        ->and($channelAlready->fresh()->archived_at->equalTo($custom))->toBeTrue();
+});

@@ -56,7 +56,10 @@ class ProjectController extends Controller
     {
         Gate::authorize('archive', $project);
 
-        $project->forceFill(['archived_at' => $project->archived_at ?? now()])->save();
+        DB::transaction(function () use ($project) {
+            $project->forceFill(['archived_at' => $project->archived_at ?? now()])->save();
+            $project->channel()->update(['archived_at' => $project->archived_at]);
+        });
 
         return new ProjectResource($project);
     }
@@ -65,7 +68,10 @@ class ProjectController extends Controller
     {
         Gate::authorize('archive', $project);
 
-        $project->forceFill(['archived_at' => null])->save();
+        DB::transaction(function () use ($project) {
+            $project->forceFill(['archived_at' => null])->save();
+            $project->channel()->update(['archived_at' => $project->archived_at]);
+        });
 
         return new ProjectResource($project);
     }
