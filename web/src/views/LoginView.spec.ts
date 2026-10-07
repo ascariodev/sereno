@@ -60,6 +60,21 @@ describe('LoginView', () => {
     expect(router.currentRoute.value.name).toBe('login')
   })
 
+  it('marks only inputs with errors as invalid and links them to the error', async () => {
+    vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'invalid', { email: ['Bad credentials'] }))
+    const { wrapper } = await mountLogin()
+    const email = wrapper.find('input[name=email]')
+    const password = wrapper.find('input[name=password]')
+    expect(email.attributes('aria-invalid')).toBeUndefined()
+    expect(email.attributes('aria-describedby')).toBeUndefined()
+    await submit(wrapper)
+    const errorId = wrapper.find('[data-test=error-email]').attributes('id')
+    expect(email.attributes('aria-invalid')).toBe('true')
+    expect(email.attributes('aria-describedby')).toBe(errorId)
+    expect(password.attributes('aria-invalid')).toBeUndefined()
+    expect(password.attributes('aria-describedby')).toBeUndefined()
+  })
+
   it('shows a generic message on a 422 without email or password errors', async () => {
     const post = vi.spyOn(api, 'post')
     post.mockRejectedValueOnce(new ApiError(422, 'invalid', { other: ['x'] }))

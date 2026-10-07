@@ -17,6 +17,15 @@ const submitting = ref(false)
 const fieldErrors = ref<Record<string, string[]>>({})
 const formError = ref<string | null>(null)
 
+function errorIds(field: 'email' | 'password'): string[] {
+  return (fieldErrors.value[field] ?? []).map((_, index) => `login-${field}-error-${index}`)
+}
+
+function describedBy(field: 'email' | 'password'): string | undefined {
+  const ids = errorIds(field)
+  return ids.length ? ids.join(' ') : undefined
+}
+
 async function submit(): Promise<void> {
   if (submitting.value) return
   submitting.value = true
@@ -58,8 +67,16 @@ async function submit(): Promise<void> {
         name="email"
         autocomplete="username"
         required
+        :aria-invalid="describedBy('email') ? 'true' : undefined"
+        :aria-describedby="describedBy('email')"
       />
-      <p v-for="message in fieldErrors.email" :key="message" class="login__error" data-test="error-email">
+      <p
+        v-for="(message, index) in fieldErrors.email"
+        :id="`login-email-error-${index}`"
+        :key="message"
+        class="login__error"
+        data-test="error-email"
+      >
         {{ message }}
       </p>
 
@@ -71,9 +88,12 @@ async function submit(): Promise<void> {
         name="password"
         autocomplete="current-password"
         required
+        :aria-invalid="describedBy('password') ? 'true' : undefined"
+        :aria-describedby="describedBy('password')"
       />
       <p
-        v-for="message in fieldErrors.password"
+        v-for="(message, index) in fieldErrors.password"
+        :id="`login-password-error-${index}`"
         :key="message"
         class="login__error"
         data-test="error-password"
