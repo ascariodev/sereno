@@ -251,5 +251,6 @@
     "The request body is too large.": "The request body is too large.",
     "The :attribute is nested too deeply.": "The :attribute is nested too deeply.",
     "The :attribute must not exceed :max KB when serialized.": "The :attribute must not exceed :max KB when serialized.",
-    "The :attribute must not contain null characters.": "The :attribute must not contain null characters."
+    "The :attribute must not contain null characters.": "The :attribute must not contain null characters.",
+    "The cursor is invalid.": "The cursor is invalid."
 }

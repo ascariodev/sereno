@@ -120,6 +120,38 @@ it('validates per_page', function () {
         ->assertJsonValidationErrors('per_page');
 });
 
+it('rejects a malformed cursor', function () {
+    Message::factory()->for($this->channel)->create();
+
+    asChannelReader($this->users['member'], $this->organization)
+        ->getJson("/api/channels/{$this->channel->id}/messages?cursor=not-a-cursor")
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('cursor');
+});
+
+it('rejects a decodable cursor without the id parameter', function () {
+    Message::factory()->for($this->channel)->create();
+    $cursor = rtrim(strtr(base64_encode(json_encode(['created_at' => 5, '_pointsToNextItems' => true])), '+/', '-_'), '=');
+
+    asChannelReader($this->users['member'], $this->organization)
+        ->getJson("/api/channels/{$this->channel->id}/messages?cursor={$cursor}")
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('cursor');
+});
+
+it('translates the invalid cursor error', function () {
+    asChannelReader($this->users['member'], $this->organization)
+        ->getJson("/api/channels/{$this->channel->id}/messages?cursor=not-a-cursor", ['Accept-Language' => 'es'])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.cursor.0', 'El cursor no es válido.');
+});
+
+it('authorizes before validating the cursor', function () {
+    asChannelReader($this->outsider, $this->organization)
+        ->getJson("/api/channels/{$this->channel->id}/messages?cursor=not-a-cursor")
+        ->assertForbidden();
+});
+
 it('hides messages of a channel from another organization', function () {
     Message::factory()->for($this->channel)->create();
 
