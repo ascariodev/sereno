@@ -139,6 +139,22 @@ it('rejects a decodable cursor without the id parameter', function () {
         ->assertJsonValidationErrors('cursor');
 });
 
+it('rejects an encoded cursor whose id is not a positive bigint', function (string $json) {
+    Message::factory()->for($this->channel)->create();
+    $cursor = rtrim(strtr(base64_encode($json), '+/', '-_'), '=');
+
+    asChannelReader($this->users['member'], $this->organization)
+        ->getJson("/api/channels/{$this->channel->id}/messages?cursor={$cursor}")
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('cursor');
+})->with([
+    'out of bigint' => '{"id":99999999999999999999,"_pointsToNextItems":true}',
+    'negative' => '{"id":-5,"_pointsToNextItems":true}',
+    'zero' => '{"id":0,"_pointsToNextItems":true}',
+    'float' => '{"id":1.5,"_pointsToNextItems":true}',
+    'numeric string' => '{"id":"5","_pointsToNextItems":true}',
+]);
+
 it('translates the invalid cursor error', function () {
     asChannelReader($this->users['member'], $this->organization)
         ->getJson("/api/channels/{$this->channel->id}/messages?cursor=not-a-cursor", ['Accept-Language' => 'es'])
