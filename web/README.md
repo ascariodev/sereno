@@ -1,5 +1,6 @@
-# Vue 3 + TypeScript + Vite
+# workspace-web
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+SPA Vue 3 + TypeScript + Vite del Workspace (login, proyectos, canal). Consume `workspace-api`.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+Desde la raíz del workspace: `npm --prefix workspace-web install`, `run dev`, `run typecheck`, `run test -- --run`, `run build`.
+Configuración en `src/config.ts` (`VITE_API_URL`, `VITE_REVERB_*`).
