@@ -26,5 +26,13 @@
     "title": "Projects",
     "loadFailed": "Could not load the projects.",
     "empty": "No projects yet."
+  },
+  "channel": {
+    "title": "Channel",
+    "empty": "No messages yet.",
+    "loadOlder": "Load older messages",
+    "systemNotice": "System notice",
+    "notFound": "This channel does not exist or you cannot access it.",
+    "loadFailed": "Could not load the messages."
   }
 }
