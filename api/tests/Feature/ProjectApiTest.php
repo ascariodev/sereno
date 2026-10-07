@@ -237,10 +237,20 @@ it('creates the project channel named after the key', function () {
 it('creates no project nor channel when the channel fails', function () {
     Channel::creating(fn () => throw new RuntimeException('boom'));
 
-    asUser($this->users['admin'], $this->organization)
-        ->withoutExceptionHandling()
-        ->postJson('/api/projects', ['name' => 'Posven', 'key' => 'pos1']);
-})->throws(RuntimeException::class);
+    $thrown = null;
+
+    try {
+        asUser($this->users['admin'], $this->organization)
+            ->withoutExceptionHandling()
+            ->postJson('/api/projects', ['name' => 'Posven', 'key' => 'pos1']);
+    } catch (RuntimeException $e) {
+        $thrown = $e;
+    }
+
+    expect($thrown)->toBeInstanceOf(RuntimeException::class)
+        ->and(Project::withoutGlobalScopes()->count())->toBe(0)
+        ->and(Channel::withoutGlobalScopes()->count())->toBe(0);
+});
 
 it('backfills channels for existing projects idempotently', function () {
     $a = Project::factory()->create(['organization_id' => $this->organization->id, 'key' => 'AAA']);
