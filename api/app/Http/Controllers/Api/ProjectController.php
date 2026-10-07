@@ -9,6 +9,7 @@ use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class ProjectController extends Controller
@@ -27,7 +28,12 @@ class ProjectController extends Controller
 
     public function store(ProjectRequest $request): JsonResponse
     {
-        $project = Project::create($request->validated());
+        $project = DB::transaction(function () use ($request) {
+            $project = Project::create($request->validated());
+            $project->channel()->create(['name' => $project->key]);
+
+            return $project;
+        });
 
         return (new ProjectResource($project))->response()->setStatusCode(201);
     }

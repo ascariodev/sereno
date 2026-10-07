@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Models\Channel;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
@@ -219,4 +220,40 @@ it('keeps include_archived in the pagination links and counts archived projects'
     asUser($member, $this->organization)->getJson('/api/projects?include_archived=1&per_page=1')
         ->assertJsonPath('meta.total', 3)
         ->assertJsonPath('links.next', fn ($url) => str_contains($url, 'include_archived=1') && str_contains($url, 'per_page=1'));
+});
+
+it('creates the project channel named after the key', function () {
+    asUser($this->users['admin'], $this->organization)
+        ->postJson('/api/projects', ['name' => 'Posven', 'key' => 'pos1'])
+        ->assertCreated();
+
+    $project = Project::withoutGlobalScopes()->where('organization_id', $this->organization->id)->firstOrFail();
+    $channel = $project->channel()->withoutGlobalScopes()->firstOrFail();
+
+    expect($channel->name)->toBe('POS1')
+        ->and($channel->organization_id)->toBe($this->organization->id);
+});
+
+it('creates no project nor channel when the channel fails', function () {
+    Channel::creating(fn () => throw new RuntimeException('boom'));
+
+    asUser($this->users['admin'], $this->organization)
+        ->withoutExceptionHandling()
+        ->postJson('/api/projects', ['name' => 'Posven', 'key' => 'pos1']);
+})->throws(RuntimeException::class);
+
+it('backfills channels for existing projects idempotently', function () {
+    $a = Project::factory()->create(['organization_id' => $this->organization->id, 'key' => 'AAA']);
+    $b = Project::factory()->create(['organization_id' => $this->other->id, 'key' => 'BBB']);
+    Channel::factory()->create(['project_id' => $b->id, 'name' => 'custom']);
+
+    $migration = require database_path('migrations/2026_10_07_110000_backfill_project_channels.php');
+    $migration->up();
+    $migration->up();
+
+    $channels = Channel::withoutGlobalScopes()->orderBy('project_id')->get();
+    expect($channels)->toHaveCount(2)
+        ->and($channels->firstWhere('project_id', $a->id)->name)->toBe('AAA')
+        ->and($channels->firstWhere('project_id', $a->id)->organization_id)->toBe($this->organization->id)
+        ->and($channels->firstWhere('project_id', $b->id)->name)->toBe('custom');
 });

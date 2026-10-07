@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use InvalidArgumentException;
 
 #[Fillable(['name', 'key', 'description'])]
@@ -42,6 +43,11 @@ class Project extends Model
     public function isArchived(): bool
     {
         return $this->archived_at !== null;
+    }
+
+    public function channel(): HasOne
+    {
+        return $this->hasOne(Channel::class);
     }
 
     public function logSources(): HasMany
