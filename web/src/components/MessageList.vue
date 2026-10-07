@@ -3,7 +3,7 @@ import { useI18n } from 'vue-i18n'
 import type { Message } from '../api/types'
 import SystemNotice from './SystemNotice.vue'
 
-defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean }>()
+defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number }>()
 defineEmits<{ loadOlder: [] }>()
 
 const { t, locale } = useI18n()
@@ -21,7 +21,7 @@ function time(value: string): string {
     <p v-if="messages.length === 0" class="message-list__empty">{{ t('channel.empty') }}</p>
     <ul v-else class="message-list__items">
       <li v-for="message in messages" :key="message.id" :class="['message', `message--${message.kind}`]">
-        <SystemNotice v-if="message.kind === 'system'" :message="message" />
+        <SystemNotice v-if="message.kind === 'system'" :message="message" :project-id="projectId" />
         <template v-else>
           <p class="message__meta">
             <strong>{{ message.user?.name }}</strong>

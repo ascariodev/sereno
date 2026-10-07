@@ -48,6 +48,12 @@
     "groupReopened": "Grupo de logs reabierto ({level}): {title} ({events})",
     "events": "{count} evento | {count} eventos",
     "statusChanged": "{actor} marcó el grupo de logs como {status}",
+    "actions": {
+      "resolve": "Resolver",
+      "ignore": "Ignorar",
+      "forbidden": "No tienes permiso para cambiar este grupo de logs.",
+      "failed": "No se pudo actualizar el grupo de logs."
+    },
     "unknownActor": "Alguien",
     "level": {
       "debug": "depuración",

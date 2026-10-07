@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { api, ApiError } from '../api/client'
 import type { Message, MessagePayload } from '../api/types'
 import { i18n } from '../i18n'
 import SystemNotice from './SystemNotice.vue'
@@ -22,6 +23,7 @@ function textIn(locale: 'en' | 'es', msg: Message): string {
 
 describe('SystemNotice', () => {
   afterEach(() => {
+    vi.restoreAllMocks()
     i18n.global.locale.value = 'en'
   })
 
@@ -54,5 +56,64 @@ describe('SystemNotice', () => {
   it('falls back to the generic notice for an unknown or missing type', () => {
     expect(textIn('en', message({ type: 'something.new' }))).toBe('System notice')
     expect(textIn('es', message(null))).toBe('Aviso del sistema')
+  })
+
+  describe('actions', () => {
+    const mountActions = (payload: unknown, props: { projectId?: number } = { projectId: 3 }) =>
+      mount(SystemNotice, { props: { message: message(payload), ...props }, global: { plugins: [i18n] } })
+
+    it('shows the buttons only for opened and reopened groups with a project', () => {
+      expect(mountActions(opened).find('button[name=resolve]').exists()).toBe(true)
+      expect(mountActions(reopened).find('button[name=ignore]').exists()).toBe(true)
+      expect(mountActions(changed).find('button').exists()).toBe(false)
+      expect(mountActions({ type: 'something.new' }).find('button').exists()).toBe(false)
+      expect(mountActions(opened, {}).find('button').exists()).toBe(false)
+    })
+
+    it('calls the PATCH of the log group with the chosen status', async () => {
+      const patch = vi.spyOn(api, 'patch').mockResolvedValue({})
+      const wrapper = mountActions(opened)
+      await wrapper.find('button[name=resolve]').trigger('click')
+      expect(patch).toHaveBeenLastCalledWith('/api/projects/3/log-groups/5', { status: 'resolved' })
+      await wrapper.find('button[name=ignore]').trigger('click')
+      expect(patch).toHaveBeenLastCalledWith('/api/projects/3/log-groups/5', { status: 'ignored' })
+    })
+
+    it('disables the buttons while waiting and sends once', async () => {
+      let finish: (value: unknown) => void = () => {}
+      const patch = vi.spyOn(api, 'patch').mockReturnValue(new Promise((resolve) => (finish = resolve)))
+      const wrapper = mountActions(opened)
+      await wrapper.find('button[name=resolve]').trigger('click')
+      expect(wrapper.find('button[name=resolve]').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('button[name=ignore]').attributes('disabled')).toBeDefined()
+      await wrapper.find('button[name=resolve]').trigger('click')
+      expect(patch).toHaveBeenCalledTimes(1)
+      finish({})
+      await vi.waitFor(() => expect(wrapper.find('button[name=resolve]').attributes('disabled')).toBeUndefined())
+    })
+
+    it('shows a 403 as a permission error', async () => {
+      vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(403, 'This action is unauthorized.'))
+      const wrapper = mountActions(opened)
+      await wrapper.find('button[name=resolve]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.find('[role=alert]').text()).toBe('You are not allowed to change this log group.'))
+    })
+
+    it('shows the 422 message from the API', async () => {
+      vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(422, 'Invalid.', { status: ['The selected status is invalid.'] }))
+      const wrapper = mountActions(opened)
+      await wrapper.find('button[name=ignore]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.find('[role=alert]').text()).toBe('The selected status is invalid.'))
+    })
+
+    it('shows a generic error for other failures and clears it on retry', async () => {
+      const patch = vi.spyOn(api, 'patch').mockRejectedValueOnce(new ApiError(0, 'network'))
+      const wrapper = mountActions(opened)
+      await wrapper.find('button[name=resolve]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.find('[role=alert]').text()).toBe('Could not update the log group.'))
+      patch.mockResolvedValue({})
+      await wrapper.find('button[name=resolve]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.find('[role=alert]').exists()).toBe(false))
+    })
   })
 })

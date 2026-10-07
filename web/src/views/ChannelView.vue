@@ -80,6 +80,7 @@ onUnmounted(() => {
         :messages="messages.messages"
         :has-more="messages.nextCursor !== null"
         :loading-more="messages.loadingMore"
+        :project-id="channel?.project_id"
         @load-older="messages.loadOlder()"
       />
       <p v-if="channel?.archived_at" class="channel__archived">{{ t('channel.archived') }}</p>
