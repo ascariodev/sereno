@@ -7,10 +7,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LogGroup\ListLogGroupsRequest;
 use App\Http\Requests\LogGroup\UpdateLogGroupRequest;
 use App\Http\Resources\LogGroupResource;
+use App\Models\Channel;
 use App\Models\LogEvent;
 use App\Models\LogGroup;
+use App\Models\Message;
 use App\Models\Project;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class LogGroupController extends Controller
@@ -53,9 +56,45 @@ class LogGroupController extends Controller
     {
         abort_unless($group->project_id === $project->id, 404);
 
-        $group->update(['status' => $request->validated('status')]);
+        $previousStatus = $group->status;
+        $group->status = $request->validated('status');
+
+        if ($group->isDirty('status')) {
+            DB::transaction(function () use ($group, $project, $previousStatus, $request) {
+                $group->save();
+                $this->postStatusNotice($project, $group, $previousStatus->value, $request->user()->id);
+            });
+        }
 
         return new LogGroupResource($group);
+    }
+
+    private function postStatusNotice(Project $project, LogGroup $group, string $previousStatus, int $userId): void
+    {
+        $channel = Channel::query()
+            ->where('project_id', $project->id)
+            ->whereNull('archived_at')
+            ->first();
+
+        if ($channel === null) {
+            return;
+        }
+
+        $message = new Message([
+            'kind' => Message::KIND_SYSTEM,
+            'payload' => [
+                'type' => 'log.group_status_changed',
+                'log_group_id' => $group->id,
+                'status' => $group->status->value,
+                'previous_status' => $previousStatus,
+            ],
+        ]);
+        $message->forceFill([
+            'organization_id' => $group->organization_id,
+            'channel_id' => $channel->id,
+            'user_id' => $userId,
+            'log_group_id' => $group->id,
+        ])->save();
     }
 
     /** @return list<string> */

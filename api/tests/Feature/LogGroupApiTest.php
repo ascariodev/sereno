@@ -3,8 +3,10 @@
 use App\Enums\LogGroupStatus;
 use App\Enums\LogLevel;
 use App\Enums\Role;
+use App\Models\Channel;
 use App\Models\LogEvent;
 use App\Models\LogGroup;
+use App\Models\Message;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
@@ -273,4 +275,43 @@ it('isolates status changes between organizations and authorizes before validati
     asGroupReader($this->outsider, $this->organization)->patchJson($url, ['status' => 'bogus'])->assertForbidden();
 
     expect($group->fresh()->status)->toBe(LogGroupStatus::Open);
+});
+
+it('posts a status change notice in the project channel with the actor', function () {
+    $channel = Channel::factory()->for($this->project)->create();
+    $group = LogGroup::factory()->for($this->project)->create();
+
+    asGroupReader($this->users['member'], $this->organization)
+        ->patchJson("/api/projects/{$this->project->id}/log-groups/{$group->id}", ['status' => 'resolved'])
+        ->assertOk();
+
+    $message = Message::withoutGlobalScopes()->where('channel_id', $channel->id)->sole();
+    expect($message->kind)->toBe(Message::KIND_SYSTEM)
+        ->and($message->body)->toBeNull()
+        ->and($message->user_id)->toBe($this->users['member']->id)
+        ->and($message->organization_id)->toBe($this->organization->id)
+        ->and($message->log_group_id)->toBe($group->id)
+        ->and($message->payload)->toEqual([
+            'type' => 'log.group_status_changed',
+            'log_group_id' => $group->id,
+            'status' => 'resolved',
+            'previous_status' => 'open',
+        ]);
+});
+
+it('posts no notice when the status does not change or the channel is missing or archived', function () {
+    $group = LogGroup::factory()->for($this->project)->create();
+    $url = "/api/projects/{$this->project->id}/log-groups/{$group->id}";
+
+    asGroupReader($this->users['member'], $this->organization)->patchJson($url, ['status' => 'resolved'])->assertOk();
+    expect(Message::withoutGlobalScopes()->count())->toBe(0);
+
+    $channel = Channel::factory()->for($this->project)->create();
+    asGroupReader($this->users['member'], $this->organization)->patchJson($url, ['status' => 'resolved'])->assertOk();
+    expect(Message::withoutGlobalScopes()->count())->toBe(0);
+
+    $channel->forceFill(['archived_at' => now()])->save();
+    asGroupReader($this->users['member'], $this->organization)->patchJson($url, ['status' => 'ignored'])->assertOk();
+    expect(Message::withoutGlobalScopes()->count())->toBe(0)
+        ->and($group->fresh()->status)->toBe(LogGroupStatus::Ignored);
 });
