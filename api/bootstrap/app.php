@@ -36,10 +36,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(ThrottleRequests::class, AuthenticateLogSource::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*', 'broadcasting/*') || $request->expectsJson(),
-        );
-        $exceptions->render(fn (AuthenticationException $e, Request $request) => $request->is('api/*', 'broadcasting/*') || $request->expectsJson()
+        $wantsJson = fn (Request $request): bool => $request->is('api/*', 'broadcasting/*') || $request->expectsJson();
+
+        $exceptions->shouldRenderJsonWhen($wantsJson);
+        $exceptions->render(fn (AuthenticationException $e, Request $request) => $wantsJson($request)
             ? response()->json(['message' => __('Unauthenticated.')], 401)
             : null);
     })->create();
