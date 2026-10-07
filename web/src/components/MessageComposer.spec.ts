@@ -40,6 +40,24 @@ describe('MessageComposer', () => {
     expect((wrapper.find('textarea').element as HTMLTextAreaElement).value).toBe('')
   })
 
+  it('keeps text typed while the send is pending and clears when unchanged', async () => {
+    let resolvePost: (value: unknown) => void = () => {}
+    vi.spyOn(api, 'post').mockReturnValue(new Promise((resolve) => (resolvePost = resolve)) as never)
+    const { wrapper } = mountComposer()
+    const field = () => wrapper.find('textarea').element as HTMLTextAreaElement
+    await wrapper.find('textarea').setValue('hola')
+    await wrapper.find('form').trigger('submit')
+    await wrapper.find('textarea').setValue('hola de nuevo')
+    resolvePost({ data: created })
+    await flushPromises()
+    expect(field().value).toBe('hola de nuevo')
+
+    vi.spyOn(api, 'post').mockResolvedValue({ data: created } as never)
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+    expect(field().value).toBe('')
+  })
+
   it('does not send with Shift+Enter', async () => {
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: created } as never)
     const { wrapper } = mountComposer()

@@ -19,9 +19,10 @@ async function submit(): Promise<void> {
   if (!canSend.value) return
   sending.value = true
   errorText.value = null
+  const sentBody = body.value
   try {
-    await messages.send(body.value)
-    body.value = ''
+    await messages.send(sentBody)
+    if (body.value === sentBody) body.value = ''
   } catch (caught) {
     if (caught instanceof ApiError && caught.status === 422) {
       errorText.value = caught.errors?.body?.[0] ?? caught.message
