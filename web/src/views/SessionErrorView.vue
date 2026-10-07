@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import { redirectToLogin } from '../router/redirectToLogin'
+import { safeRedirect } from '../router/safeRedirect'
 import { useAuthStore } from '../stores/auth'
 
 const { t } = useI18n()
@@ -14,21 +15,13 @@ const route = useRoute()
 const retrying = ref(false)
 const failed = ref(false)
 
-function redirectTarget(): string {
-  const redirect = route.query.redirect
-  if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')) {
-    return redirect
-  }
-  return '/'
-}
-
 async function retry(): Promise<void> {
   if (retrying.value) return
   retrying.value = true
   failed.value = false
   try {
     await auth.fetchMe()
-    await router.push(redirectTarget())
+    await router.push(safeRedirect(route.query.redirect) ?? '/')
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
     if (auth.isAuthenticated) {

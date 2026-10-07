@@ -1,4 +1,9 @@
-import { createRouter, createWebHistory, type RouterHistory } from 'vue-router'
+import {
+  createRouter,
+  createWebHistory,
+  type RouteLocationNormalized,
+  type RouterHistory,
+} from 'vue-router'
 import { ApiError } from '../api/client'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
@@ -6,6 +11,12 @@ import ChannelView from '../views/ChannelView.vue'
 import LoginView from '../views/LoginView.vue'
 import ProjectsView from '../views/ProjectsView.vue'
 import SessionErrorView from '../views/SessionErrorView.vue'
+import { safeRedirect } from './safeRedirect'
+
+function redirectQuery(to: RouteLocationNormalized) {
+  const redirect = safeRedirect(to.name === 'session-error' ? to.query.redirect : to.fullPath)
+  return redirect && redirect !== '/' ? { redirect } : {}
+}
 
 export function createAppRouter(history: RouterHistory = createWebHistory()) {
   const router = createRouter({
@@ -29,7 +40,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
 
     if (!auth.isAuthenticated) {
       if (to.meta.public) return true
-      return { name: 'login', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } }
+      return { name: 'login', query: redirectQuery(to) }
     }
 
     if (to.name === 'session-error') return true
@@ -43,12 +54,12 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         if (!(error instanceof ApiError)) throw error
       }
       if (!auth.isAuthenticated) {
-        return { name: 'login', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } }
+        return { name: 'login', query: redirectQuery(to) }
       }
       if (!auth.user) {
         return {
           name: 'session-error',
-          query: to.fullPath === '/' ? {} : { redirect: to.fullPath },
+          query: redirectQuery(to),
         }
       }
     }

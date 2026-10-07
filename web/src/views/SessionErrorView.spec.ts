@@ -5,7 +5,7 @@ import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { i18n } from '../i18n'
 import { createAppRouter } from '../router'
-import { TOKEN_STORAGE_KEY } from '../stores/auth'
+import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 
 const user = { id: 1, name: 'Test', email: 't@e.com', locale: 'en' }
 
@@ -50,5 +50,17 @@ describe('SessionErrorView', () => {
     await flushPromises()
     expect(wrapper.find('[data-test=error-retry]').text()).toBe(i18n.global.t('sessionError.failed'))
     expect(router.currentRoute.value.name).toBe('session-error')
+  })
+
+  it('retry with 401 ends at login keeping the original redirect', async () => {
+    const { wrapper, router } = await mountError('/session-error?redirect=/channels/3')
+    vi.spyOn(api, 'get').mockImplementation(async () => {
+      useAuthStore().clearSession()
+      throw new ApiError(401, 'Unauthenticated')
+    })
+    await wrapper.find('[data-test=retry]').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBe('/channels/3')
   })
 })

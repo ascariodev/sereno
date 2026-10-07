@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
+import { safeRedirect } from '../router/safeRedirect'
 import { useAuthStore } from '../stores/auth'
 
 const { t } = useI18n()
@@ -16,14 +17,6 @@ const submitting = ref(false)
 const fieldErrors = ref<Record<string, string[]>>({})
 const formError = ref<string | null>(null)
 
-function redirectTarget(): string {
-  const redirect = route.query.redirect
-  if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')) {
-    return redirect
-  }
-  return '/'
-}
-
 async function submit(): Promise<void> {
   if (submitting.value) return
   submitting.value = true
@@ -31,7 +24,7 @@ async function submit(): Promise<void> {
   formError.value = null
   try {
     await auth.login(email.value, password.value)
-    await router.push(redirectTarget())
+    await router.push(safeRedirect(route.query.redirect) ?? '/')
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
     if (error.status === 422) {

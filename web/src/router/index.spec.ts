@@ -25,6 +25,39 @@ describe('router guard', () => {
     expect(router.currentRoute.value.name).toBe('login')
   })
 
+  it('from the root without token goes to login without redirect', async () => {
+    const router = setup()
+    await router.push('/')
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBeUndefined()
+  })
+
+  it('from the root with an invalid token (401) goes to login without redirect', async () => {
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+    vi.spyOn(api, 'get').mockImplementation(async () => {
+      useAuthStore().clearSession()
+      throw new ApiError(401, 'Unauthenticated')
+    })
+    const router = setup()
+    await router.push('/')
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBeUndefined()
+  })
+
+  it('session-error without token goes to login with its redirect, never to itself', async () => {
+    const router = setup()
+    await router.push('/session-error?redirect=/x')
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBe('/x')
+  })
+
+  it('session-error without token and with a root redirect adds none', async () => {
+    const router = setup()
+    await router.push('/session-error?redirect=/')
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBeUndefined()
+  })
+
   it('with token loads the user and enters', async () => {
     localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
     const get = vi.spyOn(api, 'get').mockResolvedValue({ data: user })
