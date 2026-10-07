@@ -151,4 +151,36 @@ describe('api client', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect(error).toMatchObject({ status: 0, message: 'Failed to fetch' })
   })
+
+  it('rethrows an AbortError as is instead of wrapping it in ApiError', async () => {
+    const abortError = new DOMException('Aborted', 'AbortError')
+    const fetchMock = vi.fn(async () => {
+      throw abortError
+    })
+    const client = createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as never })
+
+    const error = await client.get('/api/me').catch((e) => e)
+
+    expect(error).toBe(abortError)
+    expect(error).not.toBeInstanceOf(ApiError)
+  })
+
+  it('passes the abort signal to fetch', async () => {
+    const { client, fetchMock } = setup(json({}))
+    const controller = new AbortController()
+
+    await client.get('/api/me', { signal: controller.signal })
+
+    expect(call(fetchMock).init.signal).toBe(controller.signal)
+  })
+
+  it('serializes query values in the URL and omits undefined and null', async () => {
+    const { client, fetchMock } = setup(json({}))
+
+    await client.get('/api/events', {
+      query: { page: 2, search: 'a b&c', empty: '', zero: 0, skip: undefined, none: null },
+    })
+
+    expect(call(fetchMock).url).toBe('http://api.test/api/events?page=2&search=a+b%26c&empty=&zero=0')
+  })
 })
