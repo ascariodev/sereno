@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import type { Message } from '../api/types'
-import { useMessagesStore } from './messages'
+import { CATCH_UP_MAX_PAGES, useMessagesStore } from './messages'
 
 const message = (id: number, channel_id = 5): Message => ({
   id,
@@ -91,5 +91,137 @@ describe('messages store', () => {
     resolve({ data: message(3) })
     await reopened
     expect(store.messages.map((m) => m.id)).toEqual([1])
+  })
+
+  describe('catchUp', () => {
+    it('inserts new messages from a single page', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([2, 1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      get.mockResolvedValueOnce(page([4, 3, 2], 'c1') as never)
+      await store.catchUp()
+      expect(get).toHaveBeenCalledTimes(2)
+      expect(store.messages.map((m) => m.id)).toEqual([1, 2, 3, 4])
+    })
+
+    it('follows the cursor until it joins the loaded messages', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([2, 1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      get.mockResolvedValueOnce(page([8, 7, 6], 'c1') as never)
+        .mockResolvedValueOnce(page([5, 4, 3], 'c2') as never)
+        .mockResolvedValueOnce(page([2, 1], null) as never)
+      await store.catchUp()
+      expect(get).toHaveBeenCalledTimes(4)
+      expect(get).toHaveBeenLastCalledWith('/api/channels/5/messages', { query: { per_page: 50, cursor: 'c2' } })
+      expect(store.messages.map((m) => m.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+    })
+
+    it('resets to the newest page when the cap is reached without joining', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([2, 1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      get.mockResolvedValueOnce(page([120, 119], 'newest') as never)
+      get.mockResolvedValue(page([100], 'more') as never)
+      await store.catchUp()
+      expect(get).toHaveBeenCalledTimes(1 + CATCH_UP_MAX_PAGES)
+      expect(store.messages.map((m) => m.id)).toEqual([119, 120])
+      expect(store.nextCursor).toBe('newest')
+    })
+
+    it('keeps the reset list when a pending loadOlder resolves afterwards', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([4, 3], 'old') as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      let resolve: (value: unknown) => void = () => {}
+      get.mockReturnValueOnce(new Promise((r) => (resolve = r)) as never)
+      const older = store.loadOlder()
+      get.mockResolvedValueOnce(page([120, 119], 'newest') as never)
+      get.mockResolvedValue(page([100], 'more') as never)
+      await store.catchUp()
+      expect(store.loadingMore).toBe(false)
+      resolve(page([2, 1], null))
+      await older
+      expect(store.messages.map((m) => m.id)).toEqual([119, 120])
+      expect(store.nextCursor).toBe('newest')
+      expect(store.loadingMore).toBe(false)
+    })
+
+    it('keeps a realtime message newer than the newest page on reset', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([2, 1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      let resolve: (value: unknown) => void = () => {}
+      get.mockReturnValueOnce(new Promise((r) => (resolve = r)) as never)
+      const pending = store.catchUp()
+      store.insert(message(130))
+      get.mockResolvedValue(page([120, 119], 'newest') as never)
+      resolve(page([120, 119], 'newest'))
+      await pending
+      expect(store.messages.map((m) => m.id)).toEqual([119, 120, 130])
+    })
+
+    it('does not duplicate a message that arrives in realtime during catchUp', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([2, 1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      let resolve: (value: unknown) => void = () => {}
+      get.mockReturnValueOnce(new Promise((r) => (resolve = r)) as never)
+      const pending = store.catchUp()
+      store.insert(message(3))
+      resolve(page([4, 3, 2], null))
+      await pending
+      expect(store.messages.map((m) => m.id)).toEqual([1, 2, 3, 4])
+    })
+
+    it('discards a pending catchUp when the same channel is reopened', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([2, 1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      let resolve: (value: unknown) => void = () => {}
+      get.mockReturnValueOnce(new Promise((r) => (resolve = r)) as never)
+      const pending = store.catchUp()
+      get.mockResolvedValueOnce(page([2, 1], null) as never)
+      await store.open(5)
+      resolve(page([9, 8], null))
+      await pending
+      expect(store.messages.map((m) => m.id)).toEqual([1, 2])
+    })
+
+    it('does nothing when there are no new messages', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([2, 1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      get.mockResolvedValueOnce(page([2, 1], null) as never)
+      await store.catchUp()
+      expect(store.messages.map((m) => m.id)).toEqual([1, 2])
+    })
+
+    it('discards the result after clear or a channel change', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([2, 1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+
+      let resolve: (value: unknown) => void = () => {}
+      get.mockReturnValueOnce(new Promise((r) => (resolve = r)) as never)
+      const cleared = store.catchUp()
+      store.clear()
+      resolve(page([4, 3], 'c1'))
+      await cleared
+      expect(store.messages).toEqual([])
+      expect(get).toHaveBeenCalledTimes(2)
+
+      get.mockResolvedValueOnce(page([2, 1], null) as never)
+      await store.open(5)
+      get.mockReturnValueOnce(new Promise((r) => (resolve = r)) as never)
+      const switched = store.catchUp()
+      get.mockResolvedValueOnce({ data: [message(9, 6)], meta: { next_cursor: null } } as never)
+      await store.open(6)
+      resolve(page([4, 3], 'c1'))
+      await switched
+      expect(store.channelId).toBe(6)
+      expect(store.messages.map((m) => m.id)).toEqual([9])
+      expect(get).toHaveBeenCalledTimes(5)
+    })
   })
 })
