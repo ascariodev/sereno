@@ -104,6 +104,15 @@ describe('api client', () => {
     expect(error).toMatchObject({ status: 500, message: 'Server Error', errors: {} })
   })
 
+  it('normalizes a 2xx response with an invalid JSON body as ApiError', async () => {
+    const { client } = setup(new Response('<html>', { status: 200 }))
+
+    const error = await client.get('/api/me').catch((e) => e)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({ status: 200, errors: {} })
+  })
+
   it('notifies the unauthorized handler on 401 and still throws', async () => {
     const { client } = setup(json({ message: 'Unauthenticated.' }, 401))
     const handler = vi.fn()
