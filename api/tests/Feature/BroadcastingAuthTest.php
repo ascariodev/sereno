@@ -88,6 +88,8 @@ it('rejects ids that do not fit in a bigint', function (string $channelName) {
     'organization' => 'organizations.99999999999999999999.channels.{channel}',
     'channel' => 'organizations.{organization}.channels.99999999999999999999',
     'zero' => 'organizations.{organization}.channels.0',
+    'leading zeros' => 'organizations.{organization}.channels.0{channel}',
+    'bigint overflow' => 'organizations.{organization}.channels.9223372036854775808',
 ]);
 
 it('requires a token', function () {
