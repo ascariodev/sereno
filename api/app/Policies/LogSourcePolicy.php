@@ -33,6 +33,11 @@ class LogSourcePolicy
         return $this->belongsToActiveOrganization($source) && $this->canManage($user);
     }
 
+    public function rotateKey(User $user, LogSource $source): bool
+    {
+        return $this->belongsToActiveOrganization($source) && $this->canManage($user);
+    }
+
     private function canManage(User $user): bool
     {
         return $this->hasActiveOrganization()

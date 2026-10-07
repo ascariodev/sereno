@@ -145,3 +145,106 @@ it('rejects creating sources in an archived project with a translated message', 
     asSourceUser($this->users['member'], $this->organization)->postJson($url, ['name' => 'x'])->assertForbidden();
     expect(LogSource::withoutGlobalScopes()->count())->toBe(0);
 });
+
+function rotateKeyUrl(Project $project, LogSource $source): string
+{
+    return "/api/projects/{$project->id}/log-sources/{$source->id}/rotate-key";
+}
+
+function ingestWith(string $plainKey)
+{
+    return test()->withToken($plainKey)->postJson('/api/ingest/events', ['events' => [['level' => 'error', 'message' => 'Boom']]]);
+}
+
+it('rotates the key so only the new one authenticates and it is shown only once', function () {
+    Queue::fake();
+    $oldKey = LogSource::newPlainKey();
+    $source = LogSource::factory()->for($this->project)->withPlainKey($oldKey)->create(['name' => 'posveapi']);
+
+    $response = asSourceUser($this->users['admin'], $this->organization)
+        ->postJson(rotateKeyUrl($this->project, $source))
+        ->assertOk()
+        ->assertJsonPath('data.id', $source->id)
+        ->assertJsonPath('data.name', 'posveapi')
+        ->assertJsonMissingPath('data.key_hash');
+
+    $newKey = $response->json('data.key');
+    expect($newKey)->toStartWith('wsk_')->not->toBe($oldKey)
+        ->and($response->json('data.key_prefix'))->toBe(substr($newKey, 0, 12))
+        ->and($source->fresh()->key_hash)->toBe(LogSource::hashKey($newKey))
+        ->and(LogSource::withoutGlobalScopes()->count())->toBe(1);
+
+    $list = asSourceUser($this->users['member'], $this->organization)
+        ->getJson("/api/projects/{$this->project->id}/log-sources")
+        ->assertOk()
+        ->assertJsonMissingPath('data.0.key');
+    expect($list->getContent())->not->toContain($newKey)->not->toContain('key_hash');
+
+    ingestWith($oldKey)->assertUnauthorized();
+    ingestWith($newKey)->assertStatus(202);
+});
+
+it('lets owners rotate and forbids members', function () {
+    $source = LogSource::factory()->for($this->project)->create();
+    $hash = $source->key_hash;
+
+    asSourceUser($this->users['member'], $this->organization)
+        ->postJson(rotateKeyUrl($this->project, $source))
+        ->assertForbidden();
+    expect($source->fresh()->key_hash)->toBe($hash);
+
+    asSourceUser($this->users['owner'], $this->organization)
+        ->postJson(rotateKeyUrl($this->project, $source))
+        ->assertOk();
+    expect($source->fresh()->key_hash)->not->toBe($hash);
+});
+
+it('does not rotate keys across organizations or projects', function () {
+    $foreignProject = Project::factory()->for($this->other)->create();
+    $foreignSource = LogSource::factory()->for($foreignProject)->create();
+    $otherProject = Project::factory()->for($this->organization)->create();
+    $siblingSource = LogSource::factory()->for($otherProject)->create();
+    $owner = $this->users['owner'];
+
+    asSourceUser($owner, $this->organization)->postJson(rotateKeyUrl($foreignProject, $foreignSource))->assertNotFound();
+    asSourceUser($owner, $this->organization)->postJson(rotateKeyUrl($this->project, $foreignSource))->assertNotFound();
+    asSourceUser($owner, $this->organization)->postJson(rotateKeyUrl($this->project, $siblingSource))->assertNotFound();
+    asSourceUser($this->outsider, $this->organization)->postJson(rotateKeyUrl($this->project, $siblingSource))->assertForbidden();
+
+    expect($foreignSource->fresh()->key_hash)->toBe($foreignSource->key_hash)
+        ->and($siblingSource->fresh()->key_hash)->toBe($siblingSource->key_hash);
+});
+
+it('rejects rotating the key of a revoked source without changing it', function () {
+    $source = LogSource::factory()->for($this->project)->revoked()->create();
+    $key = 'This log source is revoked and its key cannot be rotated.';
+
+    asSourceUser($this->users['owner'], $this->organization)
+        ->withHeader('Accept-Language', 'es')
+        ->postJson(rotateKeyUrl($this->project, $source))
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.source.0', __($key, [], 'es'))
+        ->assertJsonMissingPath('data');
+
+    expect($source->fresh()->key_hash)->toBe($source->key_hash);
+});
+
+it('rejects rotating keys in an archived project without changing them', function () {
+    $source = LogSource::factory()->for($this->project)->create();
+    $this->project->forceFill(['archived_at' => now()])->save();
+    $key = 'This project is archived and its log source keys cannot be rotated.';
+
+    asSourceUser($this->users['owner'], $this->organization)
+        ->postJson(rotateKeyUrl($this->project, $source))
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.project.0', $key)
+        ->assertJsonMissingPath('errors.source');
+
+    asSourceUser($this->users['owner'], $this->organization)
+        ->withHeader('Accept-Language', 'es')
+        ->postJson(rotateKeyUrl($this->project, $source))
+        ->assertJsonPath('errors.project.0', __($key, [], 'es'));
+
+    asSourceUser($this->users['member'], $this->organization)->postJson(rotateKeyUrl($this->project, $source))->assertForbidden();
+    expect($source->fresh()->key_hash)->toBe($source->key_hash);
+});

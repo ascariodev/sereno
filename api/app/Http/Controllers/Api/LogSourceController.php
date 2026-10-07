@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LogSource\RotateLogSourceKeyRequest;
 use App\Http\Requests\LogSource\StoreLogSourceRequest;
 use App\Http\Resources\LogSourceResource;
 use App\Models\LogSource;
@@ -29,6 +30,15 @@ class LogSourceController extends Controller
         return response()->json([
             'data' => [...(new LogSourceResource($source))->resolve(), 'key' => $plainKey],
         ], 201);
+    }
+
+    public function rotateKey(RotateLogSourceKeyRequest $request, Project $project, LogSource $source): JsonResponse
+    {
+        $plainKey = $source->rotateKey();
+
+        return response()->json([
+            'data' => [...(new LogSourceResource($source))->resolve(), 'key' => $plainKey],
+        ]);
     }
 
     public function destroy(Project $project, LogSource $source): LogSourceResource

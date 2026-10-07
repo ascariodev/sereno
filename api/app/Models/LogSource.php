@@ -61,15 +61,30 @@ class LogSource extends Model
     {
         $plainKey = static::newPlainKey();
 
-        $source = $project->logSources()->make([
-            'name' => $name,
-            'key_hash' => static::hashKey($plainKey),
-            'key_prefix' => static::displayPrefix($plainKey),
-        ]);
+        $source = $project->logSources()->make(['name' => $name, ...static::keyAttributes($plainKey)]);
         $source->organization_id = $project->organization_id;
         $source->save();
 
         return [$source, $plainKey];
+    }
+
+    /** Replaces the key in place: the previous one stops authenticating as soon as this is saved. */
+    public function rotateKey(): string
+    {
+        $plainKey = static::newPlainKey();
+
+        $this->fill(static::keyAttributes($plainKey))->save();
+
+        return $plainKey;
+    }
+
+    /** @return array{key_hash: string, key_prefix: string} */
+    private static function keyAttributes(string $plainKey): array
+    {
+        return [
+            'key_hash' => static::hashKey($plainKey),
+            'key_prefix' => static::displayPrefix($plainKey),
+        ];
     }
 
     /**
