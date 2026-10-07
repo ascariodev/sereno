@@ -39,21 +39,48 @@ export interface Channel {
 
 export type LogGroupStatus = 'open' | 'resolved' | 'ignored'
 
-export type MessagePayload =
-  | {
-      type: 'log.group_opened' | 'log.group_reopened'
-      log_group_id: number
-      level: string
-      title: string
-      events_count: number
-    }
-  | {
-      type: 'log.group_status_changed'
-      log_group_id: number
-      status: LogGroupStatus
-      previous_status: LogGroupStatus
-    }
-  | { type: string; [key: string]: unknown }
+export interface LogGroupOpenedPayload {
+  type: 'log.group_opened' | 'log.group_reopened'
+  log_group_id: number
+  level: string
+  title: string
+  events_count: number
+}
+
+export interface LogGroupStatusChangedPayload {
+  type: 'log.group_status_changed'
+  log_group_id: number
+  status: LogGroupStatus
+  previous_status: LogGroupStatus
+}
+
+export interface UnknownPayload {
+  type: string
+  [key: string]: unknown
+}
+
+export type MessagePayload = LogGroupOpenedPayload | LogGroupStatusChangedPayload | UnknownPayload
+
+export function isLogGroupOpenedPayload(payload: MessagePayload | null): payload is LogGroupOpenedPayload {
+  return (
+    (payload?.type === 'log.group_opened' || payload?.type === 'log.group_reopened') &&
+    typeof payload.log_group_id === 'number' &&
+    typeof payload.title === 'string' &&
+    typeof payload.level === 'string' &&
+    typeof payload.events_count === 'number'
+  )
+}
+
+export function isLogGroupStatusChangedPayload(
+  payload: MessagePayload | null,
+): payload is LogGroupStatusChangedPayload {
+  return (
+    payload?.type === 'log.group_status_changed' &&
+    typeof payload.log_group_id === 'number' &&
+    typeof payload.status === 'string' &&
+    typeof payload.previous_status === 'string'
+  )
+}
 
 export interface Message {
   id: number

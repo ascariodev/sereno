@@ -58,6 +58,12 @@ describe('SystemNotice', () => {
     expect(textIn('es', message(null))).toBe('Aviso del sistema')
   })
 
+  it('falls back to the generic notice when a known type lacks fields', () => {
+    expect(textIn('en', message({ type: 'log.group_opened', log_group_id: 5 }))).toBe('System notice')
+    expect(textIn('en', message({ ...opened, events_count: '1' }))).toBe('System notice')
+    expect(textIn('en', message({ type: 'log.group_status_changed', log_group_id: 5 }, ana))).toBe('System notice')
+  })
+
   describe('actions', () => {
     const mountActions = (payload: unknown, props: { projectId?: number } = { projectId: 3 }) =>
       mount(SystemNotice, { props: { message: message(payload), ...props }, global: { plugins: [i18n] } })
@@ -68,6 +74,11 @@ describe('SystemNotice', () => {
       expect(mountActions(changed).find('button').exists()).toBe(false)
       expect(mountActions({ type: 'something.new' }).find('button').exists()).toBe(false)
       expect(mountActions(opened, {}).find('button').exists()).toBe(false)
+    })
+
+    it('hides the buttons for an incomplete opened payload', () => {
+      expect(mountActions({ type: 'log.group_opened', log_group_id: 5 }).find('button').exists()).toBe(false)
+      expect(mountActions({ ...opened, log_group_id: undefined }).find('button').exists()).toBe(false)
     })
 
     it('calls the PATCH of the log group with the chosen status', async () => {
