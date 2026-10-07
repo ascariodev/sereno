@@ -254,6 +254,7 @@
     "The :attribute must not contain null characters.": "The :attribute must not contain null characters.",
     "The cursor is invalid.": "The cursor is invalid.",
     "Project :project not found.": "Project :project not found.",
+    "Project :project not found in organization :organization.": "Project :project not found in organization :organization.",
     "Several projects match :project; pass --organization with the organization slug.": "Several projects match :project; pass --organization with the organization slug.",
     "Log source created. Copy the key now, it will not be shown again.": "Log source created. Copy the key now, it will not be shown again."
 }

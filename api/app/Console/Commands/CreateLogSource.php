@@ -43,7 +43,10 @@ class CreateLogSource extends Command
             ->get();
 
         if ($projects->isEmpty()) {
-            $this->components->error(__('Project :project not found.', ['project' => $key]));
+            $slug = $this->option('organization');
+            $this->components->error($slug
+                ? __('Project :project not found in organization :organization.', ['project' => $key, 'organization' => $slug])
+                : __('Project :project not found.', ['project' => $key]));
 
             return self::FAILURE;
         }

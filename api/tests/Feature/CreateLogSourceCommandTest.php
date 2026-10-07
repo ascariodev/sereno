@@ -61,6 +61,7 @@ it('rejects an invalid name without creating anything', function (string $name) 
 
 it('fails for an unknown organization slug without creating anything', function () {
     expect(Artisan::call('log:source-create', ['project' => 'DEMO', 'name' => 'posveapi', '--organization' => 'ghost']))->toBe(1);
+    expect(Artisan::output())->toContain('ghost');
 
     expect(LogSource::query()->withoutGlobalScopes()->count())->toBe(0)
         ->and(createdKey())->toBe('');
