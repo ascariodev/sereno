@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import en from './en.json'
 import es from './es.json'
 import { getLocale, resolveLocale, setLocale } from './index'
@@ -34,6 +34,10 @@ describe('resolveLocale', () => {
 })
 
 describe('setLocale', () => {
+  afterEach(() => {
+    setLocale('en')
+  })
+
   it('updates the active locale', () => {
     expect(setLocale('es')).toBe('es')
     expect(getLocale()).toBe('es')
