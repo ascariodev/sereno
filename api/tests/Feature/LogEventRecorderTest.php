@@ -2,6 +2,8 @@
 
 use App\Enums\LogGroupStatus;
 use App\Enums\LogLevel;
+use App\Events\LogGroupOpened;
+use App\Events\LogGroupReopened;
 use App\Models\LogEvent;
 use App\Models\LogGroup;
 use App\Models\LogSource;
@@ -12,6 +14,7 @@ use App\Support\LogEventRecorder;
 use App\Support\LogFingerprint;
 use App\Support\LogPartitions;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
@@ -203,4 +206,69 @@ it('keeps an open group open on a new event', function () {
 
     $group = LogGroup::withoutGlobalScopes()->find($event->log_group_id);
     expect($group->status)->toBe(LogGroupStatus::Open)->and($group->events_count)->toBe(2);
+});
+
+it('dispatches LogGroupOpened with the group data when a group is created', function () {
+    Event::fake([LogGroupOpened::class, LogGroupReopened::class]);
+
+    $event = recordLog($this->source, "Order 42 failed\nstack trace", ['level' => 'critical']);
+
+    Event::assertDispatchedTimes(LogGroupOpened::class, 1);
+    Event::assertDispatched(LogGroupOpened::class, fn (LogGroupOpened $opened) => $opened->organizationId === $this->organization->id
+        && $opened->projectId === $this->project->id
+        && $opened->logGroupId === $event->log_group_id
+        && $opened->level === 'critical'
+        && $opened->title === 'Order 42 failed'
+        && $opened->eventsCount === 1);
+    Event::assertNotDispatched(LogGroupReopened::class);
+});
+
+it('dispatches nothing for a new event in an open group', function () {
+    recordLog($this->source, 'Order failed');
+    Event::fake([LogGroupOpened::class, LogGroupReopened::class]);
+
+    recordLog($this->source, 'Order failed');
+
+    Event::assertNotDispatched(LogGroupOpened::class);
+    Event::assertNotDispatched(LogGroupReopened::class);
+});
+
+it('dispatches LogGroupReopened when a new event reopens a resolved group', function () {
+    $event = recordLog($this->source, 'Order failed', ['level' => 'warning']);
+    LogGroup::withoutGlobalScopes()->find($event->log_group_id)->update(['status' => LogGroupStatus::Resolved]);
+    Event::fake([LogGroupOpened::class, LogGroupReopened::class]);
+
+    recordLog($this->source, 'Order failed', ['level' => 'error']);
+
+    Event::assertDispatchedTimes(LogGroupReopened::class, 1);
+    Event::assertDispatched(LogGroupReopened::class, fn (LogGroupReopened $reopened) => $reopened->organizationId === $this->organization->id
+        && $reopened->projectId === $this->project->id
+        && $reopened->logGroupId === $event->log_group_id
+        && $reopened->level === 'error'
+        && $reopened->title === 'Order failed'
+        && $reopened->eventsCount === 2);
+    Event::assertNotDispatched(LogGroupOpened::class);
+});
+
+it('dispatches nothing for a new event in an ignored group', function () {
+    $event = recordLog($this->source, 'Order failed');
+    LogGroup::withoutGlobalScopes()->find($event->log_group_id)->update(['status' => LogGroupStatus::Ignored]);
+    Event::fake([LogGroupOpened::class, LogGroupReopened::class]);
+
+    recordLog($this->source, 'Order failed');
+
+    Event::assertNotDispatched(LogGroupOpened::class);
+    Event::assertNotDispatched(LogGroupReopened::class);
+});
+
+it('waits for the commit before dispatching the group events', function () {
+    Event::fake([LogGroupOpened::class, LogGroupReopened::class]);
+
+    expect(fn () => DB::transaction(function () {
+        recordLog($this->source, 'Order failed');
+
+        throw new RuntimeException('rollback');
+    }))->toThrow(RuntimeException::class);
+
+    Event::assertNotDispatched(LogGroupOpened::class);
 });
