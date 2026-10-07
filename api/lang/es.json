@@ -245,6 +245,7 @@
     "owner": "propietario",
     "admin": "administrador",
     "member": "miembro",
+    "The channel is archived.": "El canal está archivado.",
     "Too many attempts. Please try again in :seconds seconds.": "Demasiados intentos. Inténtalo de nuevo en :seconds segundos.",
     "Unauthenticated.": "No autenticado.",
     "The request body is too large.": "El cuerpo de la petición es demasiado grande.",

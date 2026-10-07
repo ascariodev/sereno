@@ -44,6 +44,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::patch('projects/{project}/log-groups/{group}', [LogGroupController::class, 'update']);
     Route::get('channels', [ChannelController::class, 'index']);
     Route::get('channels/{channel}/messages', [MessageController::class, 'index']);
+    Route::post('channels/{channel}/messages', [MessageController::class, 'store'])->middleware('throttle:channel-messages');
 });
 
 Route::middleware(['log.source', 'throttle:log-ingest'])->group(function () {

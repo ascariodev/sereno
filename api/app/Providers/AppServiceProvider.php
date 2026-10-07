@@ -21,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
 
     public const LOG_INGEST_REQUESTS_PER_MINUTE = 600;
 
+    public const CHANNEL_MESSAGES_PER_MINUTE = 30;
+
     /**
      * Register any application services.
      */
@@ -62,6 +64,10 @@ class AppServiceProvider extends ServiceProvider
         // Per source, not per IP: many systems may share an egress IP and the key identifies the sender.
         RateLimiter::for('log-ingest', fn (Request $request) => Limit::perMinute(self::LOG_INGEST_REQUESTS_PER_MINUTE)
             ->by('log-source:'.AuthenticateLogSource::source($request)->getKey())
+            ->response($this->tooManyAttemptsResponse(...)));
+
+        RateLimiter::for('channel-messages', fn (Request $request) => Limit::perMinute(self::CHANNEL_MESSAGES_PER_MINUTE)
+            ->by('user:'.$request->user()->getKey())
             ->response($this->tooManyAttemptsResponse(...)));
     }
 
