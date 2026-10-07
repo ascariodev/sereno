@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import type { Message } from '../api/types'
+import SystemNotice from './SystemNotice.vue'
 
 defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean }>()
 defineEmits<{ loadOlder: [] }>()
@@ -20,7 +21,7 @@ function time(value: string): string {
     <p v-if="messages.length === 0" class="message-list__empty">{{ t('channel.empty') }}</p>
     <ul v-else class="message-list__items">
       <li v-for="message in messages" :key="message.id" :class="['message', `message--${message.kind}`]">
-        <p v-if="message.kind === 'system'" class="message__notice">{{ t('channel.systemNotice') }}</p>
+        <SystemNotice v-if="message.kind === 'system'" :message="message" />
         <template v-else>
           <p class="message__meta">
             <strong>{{ message.user?.name }}</strong>
@@ -42,8 +43,7 @@ function time(value: string): string {
 }
 
 .message__meta,
-.message__body,
-.message__notice {
+.message__body {
   margin: 0;
 }
 
@@ -56,10 +56,5 @@ function time(value: string): string {
 .message__body {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-
-.message__notice {
-  opacity: 0.7;
-  font-style: italic;
 }
 </style>

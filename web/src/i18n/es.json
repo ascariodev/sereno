@@ -34,5 +34,27 @@
     "systemNotice": "Aviso del sistema",
     "notFound": "Este canal no existe o no tienes acceso.",
     "loadFailed": "No se pudieron cargar los mensajes."
+  },
+  "notice": {
+    "groupOpened": "Nuevo grupo de logs ({level}): {title} ({events})",
+    "groupReopened": "Grupo de logs reabierto ({level}): {title} ({events})",
+    "events": "{count} evento | {count} eventos",
+    "statusChanged": "{actor} marcó el grupo de logs como {status}",
+    "unknownActor": "Alguien",
+    "level": {
+      "debug": "depuración",
+      "info": "información",
+      "notice": "aviso",
+      "warning": "advertencia",
+      "error": "error",
+      "critical": "crítico",
+      "alert": "alerta",
+      "emergency": "emergencia"
+    },
+    "status": {
+      "open": "abierto",
+      "resolved": "resuelto",
+      "ignored": "ignorado"
+    }
   }
 }
