@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { api, ApiError } from '../api/client'
 import type { LoginResponse, User } from '../api/types'
 import { setLocale } from '../i18n'
+import { useOrganizationStore } from './organization'
 
 export const TOKEN_STORAGE_KEY = 'workspace.token'
 
@@ -16,6 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     localStorage.removeItem(TOKEN_STORAGE_KEY)
     setLocale(null)
+    useOrganizationStore().clear()
   }
 
   async function login(email: string, password: string): Promise<void> {

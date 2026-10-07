@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouterHistory } from 'vue-router'
 import { ApiError } from '../api/client'
+import AppLayout from '../layouts/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
 import LoginView from '../views/LoginView.vue'
 import ProjectsView from '../views/ProjectsView.vue'
@@ -9,7 +10,11 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
     history,
     routes: [
       { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
-      { path: '/', name: 'projects', component: ProjectsView },
+      {
+        path: '/',
+        component: AppLayout,
+        children: [{ path: '', name: 'projects', component: ProjectsView }],
+      },
     ],
   })
 

@@ -11,5 +11,15 @@
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "network": "Could not reach the server.",
     "failed": "Could not sign in. Try again."
+  },
+  "organization": {
+    "label": "Organization",
+    "none": "You do not belong to any organization yet.",
+    "loading": "Loading...",
+    "loadFailed": "Could not load your organizations.",
+    "retry": "Retry"
+  },
+  "layout": {
+    "logout": "Sign out"
   }
 }

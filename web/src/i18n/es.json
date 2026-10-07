@@ -11,5 +11,15 @@
     "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
     "network": "No se pudo conectar con el servidor.",
     "failed": "No se pudo iniciar sesión. Inténtalo de nuevo."
+  },
+  "organization": {
+    "label": "Organización",
+    "none": "Aún no perteneces a ninguna organización.",
+    "loading": "Cargando...",
+    "loadFailed": "No se pudieron cargar tus organizaciones.",
+    "retry": "Reintentar"
+  },
+  "layout": {
+    "logout": "Cerrar sesión"
   }
 }

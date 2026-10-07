@@ -5,12 +5,14 @@ import App from './App.vue'
 import { i18n, installI18nOnApi } from './i18n'
 import { createAppRouter } from './router'
 import { installAuthOnApi } from './stores/auth'
+import { installOrganizationOnApi } from './stores/organization'
 
 const app = createApp(App)
 app.use(createPinia())
 
 const router = createAppRouter()
 installI18nOnApi()
+installOrganizationOnApi()
 installAuthOnApi(() => {
   if (router.currentRoute.value.name !== 'login') void router.push({ name: 'login' })
 })
