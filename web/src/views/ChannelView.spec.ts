@@ -101,6 +101,52 @@ describe('ChannelView', () => {
     expect(wrapper.find('ul').exists()).toBe(false)
   })
 
+  it('shows a hint when the channel details fail to load but keeps the history', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') throw new ApiError(500, 'Server error')
+      return { data: [message(1)], meta: { next_cursor: null } } as never
+    })
+    const wrapper = await mountView()
+    expect(wrapper.text()).toContain('Could not load the channel details.')
+    expect(wrapper.findAll('li')).toHaveLength(1)
+  })
+
+  it('ignores a stale channel request that fails after the organization changed', async () => {
+    let rejectStale: (error: unknown) => void = () => {}
+    let channelCalls = 0
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') {
+        channelCalls++
+        if (channelCalls === 1) return new Promise((_, reject) => (rejectStale = reject)) as never
+        return channels as never
+      }
+      return { data: [message(1)], meta: { next_cursor: null } } as never
+    })
+    const wrapper = await mountView()
+    useOrganizationStore().$patch({ activeId: 2 })
+    await flushPromises()
+    rejectStale(new ApiError(500, 'Server error'))
+    await flushPromises()
+    expect(channelCalls).toBe(2)
+    expect(wrapper.find('h1').text()).toContain('DEMO')
+    expect(wrapper.text()).not.toContain('channel details')
+  })
+
+  it('does not show the details hint on a 404', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async () => {
+      throw new ApiError(404, 'Not found')
+    })
+    const wrapper = await mountView()
+    expect(wrapper.text()).toContain('does not exist')
+    expect(wrapper.text()).not.toContain('channel details')
+  })
+
+  it('does not show the details hint when loading succeeds', async () => {
+    mockApi(() => ({ data: [message(1)], meta: { next_cursor: null } }))
+    const wrapper = await mountView()
+    expect(wrapper.text()).not.toContain('channel details')
+  })
+
   it('reloads when the organization changes', async () => {
     const get = mockApi(() => ({ data: [message(1)], meta: { next_cursor: null } }))
     await mountView()

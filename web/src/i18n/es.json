@@ -41,6 +41,8 @@
     "empty": "Aún no hay mensajes.",
     "loadOlder": "Cargar mensajes anteriores",
     "systemNotice": "Aviso del sistema",
+    "unknownUser": "Usuario desconocido",
+    "detailsFailed": "No se pudieron cargar los datos del canal.",
     "notFound": "Este canal no existe o no tienes acceso.",
     "loadFailed": "No se pudieron cargar los mensajes.",
     "archived": "Este canal está archivado; no se puede escribir en él.",

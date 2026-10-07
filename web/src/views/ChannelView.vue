@@ -15,6 +15,7 @@ const route = useRoute()
 const organization = useOrganizationStore()
 const messages = useMessagesStore()
 const channel = ref<Channel | null>(null)
+const channelLoadFailed = ref(false)
 let generation = 0
 let unsubscribe: (() => void) | null = null
 
@@ -28,7 +29,10 @@ async function loadChannel(id: number, current: number): Promise<void> {
     if (current !== generation) return
     channel.value = response.data.find((item) => item.id === id) ?? null
   } catch {
-    if (current === generation) channel.value = null
+    if (current === generation) {
+      channel.value = null
+      channelLoadFailed.value = true
+    }
   }
 }
 
@@ -40,6 +44,7 @@ function leaveRealtime(): void {
 function reload(): void {
   const current = ++generation
   channel.value = null
+  channelLoadFailed.value = false
   leaveRealtime()
   if (!Number.isInteger(channelId.value) || channelId.value < 1) {
     messages.clear()
@@ -68,6 +73,7 @@ onUnmounted(() => {
       <small class="channel__project">{{ channel.project.name }}</small>
     </h1>
     <h1 v-else>{{ t('channel.title') }}</h1>
+    <p v-if="channelLoadFailed && !notFound" role="status">{{ t('channel.detailsFailed') }}</p>
     <p v-if="notFound" role="alert">{{ t('channel.notFound') }}</p>
     <p v-else-if="messages.loading">{{ t('organization.loading') }}</p>
     <p v-else-if="firstLoadFailed" role="alert">

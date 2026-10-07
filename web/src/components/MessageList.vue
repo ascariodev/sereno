@@ -24,7 +24,7 @@ function time(value: string): string {
         <SystemNotice v-if="message.kind === 'system'" :message="message" :project-id="projectId" />
         <template v-else>
           <p class="message__meta">
-            <strong>{{ message.user?.name }}</strong>
+            <strong>{{ message.user?.name ?? t('channel.unknownUser') }}</strong>
             <time :datetime="message.created_at">{{ time(message.created_at) }}</time>
           </p>
           <p class="message__body">{{ message.body }}</p>
