@@ -48,6 +48,18 @@ it('rejects an unknown kind', function () {
     Message::factory()->for($this->channel)->create(['kind' => 'bot']);
 })->throws(QueryException::class);
 
+it('rejects a system message with body', function () {
+    Message::factory()->for($this->channel)->system()->create(['body' => 'hola']);
+})->throws(QueryException::class, 'messages_body_payload_check');
+
+it('rejects a system message without payload', function () {
+    Message::factory()->for($this->channel)->system()->create(['payload' => null]);
+})->throws(QueryException::class, 'messages_body_payload_check');
+
+it('rejects a person message without body', function () {
+    Message::factory()->for($this->channel)->create(['body' => null]);
+})->throws(QueryException::class, 'messages_body_payload_check');
+
 it('keeps the message when the user is deleted', function () {
     $user = User::factory()->create();
     $message = Message::factory()->for($this->channel)->create(['user_id' => $user->id]);
