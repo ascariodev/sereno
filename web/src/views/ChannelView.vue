@@ -79,10 +79,10 @@ onUnmounted(() => {
     <h1 v-else>{{ t('channel.title') }}</h1>
     <p v-if="channelLoadFailed && !notFound" role="status">{{ t('channel.detailsFailed') }}</p>
     <p v-if="notFound" role="alert">{{ t('channel.notFound') }}</p>
-    <p v-else-if="messages.loading">{{ t('organization.loading') }}</p>
+    <p v-else-if="messages.loading">{{ t('common.loading') }}</p>
     <p v-else-if="firstLoadFailed" role="alert">
       {{ t('channel.loadFailed') }}
-      <button type="button" name="retry" @click="reload">{{ t('organization.retry') }}</button>
+      <button type="button" name="retry" @click="reload">{{ t('common.retry') }}</button>
     </p>
     <template v-else>
       <p v-if="messages.error" role="alert">{{ t('channel.loadFailed') }}</p>

@@ -57,10 +57,10 @@ onMounted(() => {
       <button type="button" name="logout" @click="logout">{{ t('layout.logout') }}</button>
     </header>
     <main class="app-layout__main">
-      <p v-if="loading">{{ t('organization.loading') }}</p>
+      <p v-if="loading">{{ t('common.loading') }}</p>
       <p v-else-if="failed" role="alert">
         {{ t('organization.loadFailed') }}
-        <button type="button" name="retry" @click="loadOrganizations">{{ t('organization.retry') }}</button>
+        <button type="button" name="retry" @click="loadOrganizations">{{ t('common.retry') }}</button>
       </p>
       <p v-else-if="organization.loaded && organization.activeId === null" class="app-layout__empty">
         {{ t('organization.none') }}

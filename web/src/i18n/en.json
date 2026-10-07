@@ -1,4 +1,8 @@
 {
+  "common": {
+    "loading": "Loading...",
+    "retry": "Retry"
+  },
   "app": {
     "name": "Workspace"
   },
@@ -22,9 +26,7 @@
   "organization": {
     "label": "Organization",
     "none": "You do not belong to any organization yet.",
-    "loading": "Loading...",
-    "loadFailed": "Could not load your organizations.",
-    "retry": "Retry"
+    "loadFailed": "Could not load your organizations."
   },
   "layout": {
     "logout": "Sign out"
@@ -32,9 +34,7 @@
   "projects": {
     "title": "Projects",
     "loadFailed": "Could not load the projects.",
-    "empty": "No projects yet.",
-    "loading": "Loading...",
-    "retry": "Retry"
+    "empty": "No projects yet."
   },
   "channel": {
     "title": "Channel",

@@ -16,7 +16,7 @@ function time(value: string): string {
 <template>
   <div class="message-list">
     <button v-if="hasMore" type="button" name="load-older" :disabled="loadingMore" @click="$emit('loadOlder')">
-      {{ loadingMore ? t('organization.loading') : t('channel.loadOlder') }}
+      {{ loadingMore ? t('common.loading') : t('channel.loadOlder') }}
     </button>
     <p v-if="messages.length === 0" class="message-list__empty">{{ t('channel.empty') }}</p>
     <ul v-else class="message-list__items">
