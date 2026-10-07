@@ -16,9 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
-        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
+    ->withBroadcasting(__DIR__.'/../routes/channels.php', ['middleware' => ['auth:sanctum']])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(append: [
             SetLocale::class,
@@ -27,6 +27,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'organization' => ResolveOrganization::class,
             'log.source' => AuthenticateLogSource::class,
         ]);
+        // Broadcast clients do not send Accept: application/json and there is no login route to redirect to.
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('broadcasting/*') ? null : route('login'));
         // Locale first so auth, organization and throttle errors are translated.
         $middleware->prependToPriorityList(AuthenticatesRequests::class, SetLocale::class);
         $middleware->appendToPriorityList(AuthenticatesRequests::class, ResolveOrganization::class);
@@ -35,9 +37,9 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+            fn (Request $request) => $request->is('api/*', 'broadcasting/*') || $request->expectsJson(),
         );
-        $exceptions->render(fn (AuthenticationException $e, Request $request) => $request->is('api/*') || $request->expectsJson()
+        $exceptions->render(fn (AuthenticationException $e, Request $request) => $request->is('api/*', 'broadcasting/*') || $request->expectsJson()
             ? response()->json(['message' => __('Unauthenticated.')], 401)
             : null);
     })->create();
