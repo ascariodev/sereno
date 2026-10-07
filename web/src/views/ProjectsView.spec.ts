@@ -42,7 +42,7 @@ describe('ProjectsView', () => {
   it('lists unarchived projects linked to their channel', async () => {
     const get = vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
       path === '/api/projects'
-        ? ({ data: [project(1, 'Alpha'), project(2, 'Old', '2026-01-01')], meta: { last_page: 1 } } as never)
+        ? ({ data: [project(1, 'Alpha'), project(2, 'Old', '2026-01-01')], meta: { current_page: 1, last_page: 1, per_page: 100, total: 2 } } as never)
         : ({ data: [channel(7, 1)] } as never),
     )
     const wrapper = await mountView()
@@ -55,7 +55,7 @@ describe('ProjectsView', () => {
   it('reloads when the active organization changes', async () => {
     const get = vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
       path === '/api/projects'
-        ? ({ data: [project(get.mock.calls.length, `P${get.mock.calls.length}`)], meta: { last_page: 1 } } as never)
+        ? ({ data: [project(get.mock.calls.length, `P${get.mock.calls.length}`)], meta: { current_page: 1, last_page: 1, per_page: 100, total: 2 } } as never)
         : ({ data: [] } as never),
     )
     const wrapper = await mountView()
@@ -73,12 +73,12 @@ describe('ProjectsView', () => {
       if (path !== '/api/projects') return Promise.resolve({ data: [] } as never)
       projectCalls++
       if (projectCalls === 1) return new Promise((resolve) => (resolveFirst = resolve)) as never
-      return Promise.resolve({ data: [project(2, 'Fresh')], meta: { last_page: 1 } } as never)
+      return Promise.resolve({ data: [project(2, 'Fresh')], meta: { current_page: 1, last_page: 1, per_page: 100, total: 2 } } as never)
     })
     const wrapper = await mountView()
     useOrganizationStore().$patch({ activeId: 2 })
     await flushPromises()
-    resolveFirst({ data: [project(1, 'Stale')], meta: { last_page: 1 } })
+    resolveFirst({ data: [project(1, 'Stale')], meta: { current_page: 1, last_page: 1, per_page: 100, total: 2 } })
     await flushPromises()
     expect(wrapper.text()).toContain('Fresh')
     expect(wrapper.text()).not.toContain('Stale')

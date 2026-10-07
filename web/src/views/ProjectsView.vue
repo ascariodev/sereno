@@ -22,7 +22,7 @@ async function fetchProjects(): Promise<Project[]> {
   do {
     const response = await api.get<Paginated<Project>>('/api/projects', { query: { per_page: PER_PAGE, page } })
     all.push(...response.data)
-    lastPage = Number(response.meta?.last_page ?? 1)
+    lastPage = response.meta.last_page
     page++
   } while (page <= lastPage)
   return all
