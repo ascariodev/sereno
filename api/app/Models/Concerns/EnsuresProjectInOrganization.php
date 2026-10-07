@@ -12,7 +12,7 @@ trait EnsuresProjectInOrganization
     protected static function bootEnsuresProjectInOrganization(): void
     {
         $assertProjectInOrganization = function (Model $model) {
-            if (! $model->isDirty(['organization_id', 'project_id'])) {
+            if (! $model->isDirty(['organization_id', 'project_id']) || $model->project_id === null) {
                 return;
             }
 
