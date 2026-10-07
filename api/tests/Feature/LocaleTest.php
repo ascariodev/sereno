@@ -58,6 +58,13 @@ it('returns a translated 401 with Content-Language', function () {
         ->and($messages['es'])->not->toBe($messages['en']);
 });
 
+it('returns a translated JSON 401 on api routes without Accept: application/json', function () {
+    $this->withHeaders(['Accept' => '*/*', 'Accept-Language' => 'es'])
+        ->get('/api/me')
+        ->assertUnauthorized()
+        ->assertJsonPath('message', __('Unauthenticated.', [], 'es'));
+});
+
 it('updates the locale through PATCH /me/locale', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);

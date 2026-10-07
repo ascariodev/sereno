@@ -27,8 +27,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'organization' => ResolveOrganization::class,
             'log.source' => AuthenticateLogSource::class,
         ]);
-        // Broadcast clients do not send Accept: application/json and there is no login route to redirect to.
-        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('broadcasting/*') ? null : route('login'));
+        // There is no login route to redirect to: guests always get the JSON 401 rendered in withExceptions.
+        $middleware->redirectGuestsTo(fn () => null);
         // Locale first so auth, organization and throttle errors are translated.
         $middleware->prependToPriorityList(AuthenticatesRequests::class, SetLocale::class);
         $middleware->appendToPriorityList(AuthenticatesRequests::class, ResolveOrganization::class);
