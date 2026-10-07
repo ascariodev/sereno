@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\MessageCreated;
 use App\Models\Concerns\BelongsToOrganization;
 use Database\Factories\MessageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -20,6 +21,10 @@ class Message extends Model
     public const KIND_USER = 'user';
 
     public const KIND_SYSTEM = 'system';
+
+    protected $dispatchesEvents = [
+        'created' => MessageCreated::class,
+    ];
 
     protected function casts(): array
     {
