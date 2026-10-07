@@ -70,4 +70,26 @@ describe('messages store', () => {
     expect(store.messages).toEqual([])
     expect(store.channelId).toBeNull()
   })
+
+  it('discards a pending send when the store is cleared or reopened', async () => {
+    const store = useMessagesStore()
+    vi.spyOn(api, 'get').mockResolvedValue(page([1], null) as never)
+    await store.open(5)
+
+    let resolve: (value: unknown) => void = () => {}
+    vi.spyOn(api, 'post').mockReturnValueOnce(new Promise((r) => (resolve = r)) as never)
+    const cleared = store.send('hi')
+    store.clear()
+    resolve({ data: message(2) })
+    await cleared
+    expect(store.messages).toEqual([])
+
+    await store.open(5)
+    vi.spyOn(api, 'post').mockReturnValueOnce(new Promise((r) => (resolve = r)) as never)
+    const reopened = store.send('hi')
+    await store.open(5)
+    resolve({ data: message(3) })
+    await reopened
+    expect(store.messages.map((m) => m.id)).toEqual([1])
+  })
 })

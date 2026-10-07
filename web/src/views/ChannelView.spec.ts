@@ -89,4 +89,23 @@ describe('ChannelView', () => {
     await flushPromises()
     expect(get.mock.calls.length).toBe(before + 2)
   })
+
+  it('shows the composer for an active channel and requests archived channels too', async () => {
+    const get = mockApi(() => ({ data: [message(1)], meta: { next_cursor: null } }))
+    const wrapper = await mountView()
+    expect(wrapper.find('textarea[name="body"]').exists()).toBe(true)
+    expect(get).toHaveBeenCalledWith('/api/channels', { query: { include_archived: 1 } })
+  })
+
+  it('hides the composer in an archived channel', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') {
+        return { data: [{ ...channels.data[0], archived_at: '2026-01-01T00:00:00Z' }] } as never
+      }
+      return { data: [message(1)], meta: { next_cursor: null } } as never
+    })
+    const wrapper = await mountView()
+    expect(wrapper.find('textarea').exists()).toBe(false)
+    expect(wrapper.text()).toContain('archived')
+  })
 })

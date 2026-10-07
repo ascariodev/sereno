@@ -76,5 +76,14 @@ export const useMessagesStore = defineStore('messages', () => {
     }
   }
 
-  return { channelId, messages, nextCursor, loading, loadingMore, error, open, loadOlder, insert, clear }
+  async function send(body: string): Promise<void> {
+    if (channelId.value === null) return
+    const current = generation
+    const id = channelId.value
+    const response = await api.post<{ data: Message }>(`/api/channels/${id}/messages`, { body })
+    if (current !== generation) return
+    insert(response.data)
+  }
+
+  return { channelId, messages, nextCursor, loading, loadingMore, error, open, loadOlder, insert, send, clear }
 })

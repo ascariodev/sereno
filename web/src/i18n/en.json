@@ -33,7 +33,15 @@
     "loadOlder": "Load older messages",
     "systemNotice": "System notice",
     "notFound": "This channel does not exist or you cannot access it.",
-    "loadFailed": "Could not load the messages."
+    "loadFailed": "Could not load the messages.",
+    "archived": "This channel is archived; you cannot write in it.",
+    "composer": {
+      "placeholder": "Write a message (Enter to send, Shift+Enter for a new line)",
+      "send": "Send",
+      "tooLong": "The message cannot exceed {max} characters.",
+      "rateLimited": "You are sending messages too fast. Try again in a moment.",
+      "sendFailed": "Could not send the message."
+    }
   },
   "notice": {
     "groupOpened": "New log group ({level}): {title} ({events})",

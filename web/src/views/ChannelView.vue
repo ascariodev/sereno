@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { api } from '../api/client'
 import type { Channel } from '../api/types'
+import MessageComposer from '../components/MessageComposer.vue'
 import MessageList from '../components/MessageList.vue'
 import { useMessagesStore } from '../stores/messages'
 import { useOrganizationStore } from '../stores/organization'
@@ -21,7 +22,7 @@ const firstLoadFailed = computed(() => messages.error !== null && !notFound.valu
 
 async function loadChannel(id: number, current: number): Promise<void> {
   try {
-    const response = await api.get<{ data: Channel[] }>('/api/channels')
+    const response = await api.get<{ data: Channel[] }>('/api/channels', { query: { include_archived: 1 } })
     if (current !== generation) return
     channel.value = response.data.find((item) => item.id === id) ?? null
   } catch {
@@ -69,6 +70,8 @@ onUnmounted(() => {
         :loading-more="messages.loadingMore"
         @load-older="messages.loadOlder()"
       />
+      <p v-if="channel?.archived_at" class="channel__archived">{{ t('channel.archived') }}</p>
+      <MessageComposer v-else-if="channel" />
     </template>
   </section>
 </template>
