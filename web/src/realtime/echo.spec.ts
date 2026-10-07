@@ -5,38 +5,12 @@ import {
   createAuthorizer,
   disconnectRealtime,
   MESSAGE_CREATED_EVENT,
-  type ConnectionStatus,
   onReconnect,
-  type RealtimeClient,
   setRealtimeClientFactory,
   setRealtimeTokenProvider,
   subscribeToChannel,
 } from './echo'
-
-function fakeClient() {
-  const listeners = new Map<string, (data: { message: Message }) => void>()
-  let status: ConnectionStatus = 'connecting'
-  const statusListeners = new Set<(next: ConnectionStatus) => void>()
-  const client = {
-    private: vi.fn((name: string) => ({
-      listen: vi.fn((event: string, callback: (data: { message: Message }) => void) => {
-        listeners.set(`${name}|${event}`, callback)
-      }),
-    })),
-    leave: vi.fn(),
-    disconnect: vi.fn(),
-    connectionStatus: vi.fn((): ConnectionStatus => status),
-    onConnectionChange: vi.fn((callback: (next: ConnectionStatus) => void) => {
-      statusListeners.add(callback)
-      return () => statusListeners.delete(callback)
-    }),
-  } satisfies RealtimeClient
-  const setStatus = (next: ConnectionStatus) => {
-    status = next
-    statusListeners.forEach((listener) => listener(next))
-  }
-  return { client, listeners, setStatus, statusListeners }
-}
+import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 
 describe('realtime', () => {
   afterEach(() => {
@@ -45,7 +19,7 @@ describe('realtime', () => {
   })
 
   it('subscribes to the private channel and forwards message.created', () => {
-    const { client, listeners } = fakeClient()
+    const { client, listeners } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
     const received: Message[] = []
     const leave = subscribeToChannel(3, 7, (message) => received.push(message))
@@ -59,7 +33,7 @@ describe('realtime', () => {
   })
 
   it('reuses one client and creates a new one after disconnect', () => {
-    const factory = vi.fn(() => fakeClient().client)
+    const factory = vi.fn(() => createFakeRealtimeClient().client)
     setRealtimeClientFactory(factory)
     subscribeToChannel(1, 1, () => {})
     subscribeToChannel(1, 2, () => {})
@@ -73,7 +47,7 @@ describe('realtime', () => {
   })
 
   it('calls back only when connected again after a drop, not on the initial connection', () => {
-    const { client, setStatus, statusListeners } = fakeClient()
+    const { client, setStatus, statusListeners } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
     const callback = vi.fn()
     const off = onReconnect(callback)
@@ -93,7 +67,7 @@ describe('realtime', () => {
   })
 
   it('does not call back when the connection never came up before failing', () => {
-    const { client, setStatus } = fakeClient()
+    const { client, setStatus } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
     const callback = vi.fn()
     onReconnect(callback)

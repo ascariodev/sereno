@@ -5,10 +5,11 @@ import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import type { Message } from '../api/types'
 import { i18n } from '../i18n'
-import { type ConnectionStatus, type RealtimeClient, setRealtimeClientFactory } from '../realtime/echo'
+import { setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import ChannelView from './ChannelView.vue'
 
 const message = (id: number, kind: Message['kind'] = 'user'): Message => ({
@@ -45,29 +46,9 @@ function mockApi(messages: (cursor?: unknown) => unknown) {
 }
 
 function fakeRealtime() {
-  const listeners = new Map<string, (data: { message: Message }) => void>()
-  let status: ConnectionStatus = 'connecting'
-  const statusListeners = new Set<(next: ConnectionStatus) => void>()
-  const client = {
-    private: vi.fn((name: string) => ({
-      listen: vi.fn((event: string, callback: (data: { message: Message }) => void) => {
-        listeners.set(`${name}|${event}`, callback)
-      }),
-    })),
-    leave: vi.fn(),
-    disconnect: vi.fn(),
-    connectionStatus: vi.fn((): ConnectionStatus => status),
-    onConnectionChange: vi.fn((callback: (next: ConnectionStatus) => void) => {
-      statusListeners.add(callback)
-      return () => statusListeners.delete(callback)
-    }),
-  } satisfies RealtimeClient
+  const { client, listeners, setStatus, statusListeners } = createFakeRealtimeClient()
   setRealtimeClientFactory(() => client)
   const emit = (name: string, payload: Message) => listeners.get(`${name}|.message.created`)?.({ message: payload })
-  const setStatus = (next: ConnectionStatus) => {
-    status = next
-    statusListeners.forEach((listener) => listener(next))
-  }
   return { client, emit, setStatus, statusListeners }
 }
 
