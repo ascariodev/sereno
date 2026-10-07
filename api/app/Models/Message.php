@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\BelongsToOrganization;
+use Database\Factories\MessageFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+#[Fillable(['kind', 'body', 'payload'])]
+class Message extends Model
+{
+    /** @use HasFactory<MessageFactory> */
+    use BelongsToOrganization, HasFactory;
+
+    public const UPDATED_AT = null;
+
+    public const KIND_USER = 'user';
+
+    public const KIND_SYSTEM = 'system';
+
+    protected function casts(): array
+    {
+        return [
+            'payload' => 'array',
+        ];
+    }
+
+    public function channel(): BelongsTo
+    {
+        return $this->belongsTo(Channel::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function logGroup(): BelongsTo
+    {
+        return $this->belongsTo(LogGroup::class);
+    }
+}
