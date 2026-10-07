@@ -109,3 +109,16 @@ it('translates the 401 on /broadcasting/auth with Accept-Language', function () 
 
     expect(__('Unauthenticated.', [], 'es'))->not->toBe(__('Unauthenticated.', [], 'en'));
 });
+
+it('uses the user locale on a 403 from /broadcasting/auth without Accept-Language', function () {
+    $this->outsider->update(['locale' => 'es']);
+    $token = $this->outsider->createToken('test')->plainTextToken;
+
+    $this->withToken($token)
+        ->post('/broadcasting/auth', [
+            'socket_id' => '1234.5678',
+            'channel_name' => 'private-'.channelName($this->organization, $this->channel),
+        ])
+        ->assertForbidden()
+        ->assertHeader('Content-Language', 'es');
+});
