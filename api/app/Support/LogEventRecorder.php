@@ -42,13 +42,12 @@ class LogEventRecorder
                 self::titleFrom($message),
                 $receivedAt,
             );
-            $groupId = (int) $group->id;
 
             $logEvent = new LogEvent;
             $logEvent->forceFill([
                 'organization_id' => $source->organization_id,
                 'project_id' => $source->project_id,
-                'log_group_id' => $groupId,
+                'log_group_id' => $group->id,
                 'log_source_id' => $source->id,
                 'level' => $level,
                 'message' => $message,
@@ -75,7 +74,7 @@ class LogEventRecorder
      * workers with the same new fingerprint end up in one group with both events counted.
      * `old.*` (PostgreSQL 18) is null when the row was inserted and holds the pre-update row otherwise.
      */
-    private function upsertGroup(LogSource $source, string $fingerprint, LogLevel $level, string $title, CarbonInterface $seenAt): object
+    private function upsertGroup(LogSource $source, string $fingerprint, LogLevel $level, string $title, CarbonInterface $seenAt): UpsertedLogGroup
     {
         $timestamp = $seenAt->format('Y-m-d H:i:s');
 
@@ -86,7 +85,7 @@ class LogEventRecorder
             RETURNING new.id, new.level, new.title, new.events_count, new.status, old.status AS previous_status
             SQL, implode(', ', $this->conflictAssignments()));
 
-        return DB::selectOne($sql, [
+        return UpsertedLogGroup::fromRow(DB::selectOne($sql, [
             $source->organization_id,
             $source->project_id,
             $fingerprint,
@@ -96,18 +95,18 @@ class LogEventRecorder
             $timestamp,
             $timestamp,
             $timestamp,
-        ]);
+        ]));
     }
 
     /**
      * Dispatched inside the transaction; the events wait for the commit, so a rolled back
      * event announces nothing.
      */
-    private function dispatchStatusEvent(LogSource $source, object $group): void
+    private function dispatchStatusEvent(LogSource $source, UpsertedLogGroup $group): void
     {
         $event = match (true) {
-            $group->previous_status === null => LogGroupOpened::class,
-            $group->previous_status === LogGroupStatus::Resolved->value
+            $group->previousStatus === null => LogGroupOpened::class,
+            $group->previousStatus === LogGroupStatus::Resolved->value
                 && $group->status === LogGroupStatus::Open->value => LogGroupReopened::class,
             default => null,
         };
@@ -119,10 +118,10 @@ class LogEventRecorder
         $event::dispatch(
             $source->organization_id,
             $source->project_id,
-            (int) $group->id,
+            $group->id,
             $group->level,
             $group->title,
-            (int) $group->events_count,
+            $group->eventsCount,
         );
     }
 
