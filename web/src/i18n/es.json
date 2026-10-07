@@ -1,5 +1,15 @@
 {
   "app": {
     "name": "Workspace"
+  },
+  "login": {
+    "title": "Iniciar sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "submit": "Iniciar sesión",
+    "submitting": "Iniciando sesión...",
+    "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo iniciar sesión. Inténtalo de nuevo."
   }
 }
