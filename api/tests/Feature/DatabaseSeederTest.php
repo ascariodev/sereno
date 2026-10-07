@@ -16,6 +16,7 @@ it('seeds development data idempotently', function () {
     $organization = Organization::where('slug', 'demo')->firstOrFail();
 
     expect(User::where('email', 'test@example.com')->count())->toBe(1)
+        ->and($user->email_verified_at)->not->toBeNull()
         ->and(Organization::count())->toBe(1)
         ->and($organization->users()->whereKey($user->id)->exists())->toBeTrue()
         ->and(Project::withoutGlobalScopes()->count())->toBe(1)

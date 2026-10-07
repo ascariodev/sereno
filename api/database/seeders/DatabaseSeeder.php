@@ -26,6 +26,9 @@ class DatabaseSeeder extends Seeder
             ['email' => 'test@example.com'],
             User::factory()->make(['email' => 'test@example.com', 'name' => 'Test User'])->getAttributes(),
         );
+        if ($user->email_verified_at === null) {
+            $user->forceFill(['email_verified_at' => now()])->save();
+        }
 
         $organization = Organization::firstOrCreate(
             ['slug' => 'demo'],
