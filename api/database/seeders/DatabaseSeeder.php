@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\LogGroupStatus;
 use App\Enums\LogLevel;
 use App\Enums\Role;
 use App\Models\Channel;
@@ -70,6 +71,7 @@ class DatabaseSeeder extends Seeder
             'level' => LogLevel::Error,
             'title' => 'Call to undefined method on null',
             'events_count' => 3,
+            'status' => LogGroupStatus::Resolved,
         ]);
 
         foreach (['Welcome to the demo channel.', 'Log alerts for this project show up here.'] as $body) {

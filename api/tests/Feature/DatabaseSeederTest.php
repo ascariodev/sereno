@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\LogGroupStatus;
 use App\Models\Channel;
 use App\Models\LogGroup;
 use App\Models\Message;
@@ -24,5 +25,6 @@ it('seeds development data idempotently', function () {
         ->and(LogGroup::withoutGlobalScopes()->count())->toBe(1)
         ->and(Message::withoutGlobalScopes()->count())->toBe(4)
         ->and(Message::withoutGlobalScopes()->where('kind', 'user')->count())->toBe(2)
-        ->and(Message::withoutGlobalScopes()->where('kind', 'system')->count())->toBe(2);
+        ->and(Message::withoutGlobalScopes()->where('kind', 'system')->count())->toBe(2)
+        ->and(LogGroup::withoutGlobalScopes()->firstOrFail()->status)->toBe(LogGroupStatus::Resolved);
 });
