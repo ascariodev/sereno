@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouterHistory } from 'vue-router'
 import { ApiError } from '../api/client'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
+import ChannelView from '../views/ChannelView.vue'
 import LoginView from '../views/LoginView.vue'
 import ProjectsView from '../views/ProjectsView.vue'
 
@@ -13,7 +14,10 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
       {
         path: '/',
         component: AppLayout,
-        children: [{ path: '', name: 'projects', component: ProjectsView }],
+        children: [
+          { path: '', name: 'projects', component: ProjectsView },
+          { path: 'channels/:id', name: 'channel', component: ChannelView },
+        ],
       },
     ],
   })

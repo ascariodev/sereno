@@ -21,5 +21,10 @@
   },
   "layout": {
     "logout": "Sign out"
+  },
+  "projects": {
+    "title": "Projects",
+    "loadFailed": "Could not load the projects.",
+    "empty": "No projects yet."
   }
 }

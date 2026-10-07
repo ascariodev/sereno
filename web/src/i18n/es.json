@@ -21,5 +21,10 @@
   },
   "layout": {
     "logout": "Cerrar sesión"
+  },
+  "projects": {
+    "title": "Proyectos",
+    "loadFailed": "No se pudieron cargar los proyectos.",
+    "empty": "Aún no hay proyectos."
   }
 }
