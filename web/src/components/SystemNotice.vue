@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { updateLogGroupStatus } from '../api/logGroups'
-import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
+import { isLogGroupOpenedPayload, isLogGroupStatus, isLogGroupStatusChangedPayload } from '../api/types'
 import type { LogGroupStatus, Message } from '../api/types'
 
 const props = defineProps<{ message: Message; projectId?: number }>()
@@ -12,15 +12,16 @@ const { t, te } = useI18n()
 
 const pending = ref(false)
 const errorText = ref<string | null>(null)
-const doneStatus = ref<string | null>(null)
+const doneStatus = ref<LogGroupStatus | null>(null)
 
 const payload = computed(() => props.message.payload)
 const groupId = computed(() => (isLogGroupOpenedPayload(payload.value) ? payload.value.log_group_id : null))
 const canAct = computed(() => props.projectId !== undefined && groupId.value !== null)
 
-function statusFrom(response: unknown): string | null {
+function statusFrom(response: unknown): LogGroupStatus | null {
   const body = response as { data?: { status?: unknown } } | null
-  return typeof body?.data?.status === 'string' ? body.data.status : null
+  const status = body?.data?.status
+  return isLogGroupStatus(status) ? status : null
 }
 
 async function act(status: LogGroupStatus): Promise<void> {

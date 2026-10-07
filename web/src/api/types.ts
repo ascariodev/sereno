@@ -39,6 +39,10 @@ export interface Channel {
 
 export type LogGroupStatus = 'open' | 'resolved' | 'ignored'
 
+export function isLogGroupStatus(value: unknown): value is LogGroupStatus {
+  return value === 'open' || value === 'resolved' || value === 'ignored'
+}
+
 export interface LogGroupOpenedPayload {
   type: 'log.group_opened' | 'log.group_reopened'
   log_group_id: number

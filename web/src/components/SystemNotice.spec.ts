@@ -118,7 +118,15 @@ describe('SystemNotice', () => {
       await vi.waitFor(() => expect(wrapper.find('[role=alert]').text()).toBe('The selected status is invalid.'))
     })
 
-    it('shows a local confirmation and hides the buttons after success', async () => {
+    it('falls back to the requested status when the response status is unknown', async () => {
+      vi.spyOn(api, 'patch').mockResolvedValue({ data: { status: 'archived' } })
+      const wrapper = mountActions(opened)
+      await wrapper.find('button[name=resolve]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Marked as resolved'))
+      expect(wrapper.text()).not.toContain('archived')
+    })
+
+    it('shows the status from the response over the requested one in the confirmation', async () => {
       vi.spyOn(api, 'patch').mockResolvedValue({ data: { status: 'ignored' } })
       const wrapper = mountActions(opened)
       await wrapper.find('button[name=resolve]').trigger('click')
