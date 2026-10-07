@@ -13,9 +13,9 @@ use App\Models\Organization;
 use App\Models\Project;
 use App\Support\CurrentOrganization;
 use App\Support\LogEventRecorder;
-use Illuminate\Events\CallQueuedListener;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
@@ -83,18 +83,26 @@ it('posts a reopened notice on regression and not for ignored groups', function 
         ->and($messages[1]->log_group_id)->toBe($group->id);
 });
 
-it('runs queued without an active organization and broadcasts the message', function () {
-    Queue::fake();
-    app(CurrentOrganization::class)->set(null);
-    ingestNotice($this->source);
-    Queue::assertPushed(CallQueuedListener::class, fn ($job) => $job->class === PostLogGroupNotice::class);
-
+it('runs through the real queue worker without an active organization and broadcasts the message', function () {
+    config(['queue.default' => 'database']);
     Event::fake([MessageCreated::class]);
-    $event = new LogGroupOpened($this->organization->id, $this->project->id, LogGroup::withoutGlobalScopes()->firstOrFail()->id, 'error', 'T', 1);
-    app(PostLogGroupNotice::class)->handle($event);
+    app(CurrentOrganization::class)->set(null);
 
+    ingestNotice($this->source);
+
+    expect(DB::table('jobs')->count())->toBe(1)
+        ->and(noticeMessages())->toBeEmpty();
+
+    Artisan::call('queue:work', ['--once' => true, '--stop-when-empty' => true]);
+
+    $messages = noticeMessages();
+
+    expect($messages)->toHaveCount(1)
+        ->and($messages[0]->kind)->toBe('system')
+        ->and($messages[0]->channel_id)->toBe($this->channel->id)
+        ->and(DB::table('failed_jobs')->count())->toBe(0)
+        ->and(DB::table('jobs')->count())->toBe(0);
     Event::assertDispatchedTimes(MessageCreated::class, 1);
-    expect(app(PostLogGroupNotice::class)->tries)->toBe(1);
 });
 
 it('does not cross tenants or projects and skips missing or archived channels', function () {
