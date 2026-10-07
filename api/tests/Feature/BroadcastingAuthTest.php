@@ -97,3 +97,15 @@ it('requires a token', function () {
         ->assertUnauthorized()
         ->assertJsonPath('message', 'Unauthenticated.');
 });
+
+it('translates the 401 on /broadcasting/auth with Accept-Language', function () {
+    $this->post('/broadcasting/auth', [
+        'socket_id' => '1234.5678',
+        'channel_name' => 'private-'.channelName($this->organization, $this->channel),
+    ], ['Accept-Language' => 'es'])
+        ->assertUnauthorized()
+        ->assertHeader('Content-Language', 'es')
+        ->assertExactJson(['message' => __('Unauthenticated.', [], 'es')]);
+
+    expect(__('Unauthenticated.', [], 'es'))->not->toBe(__('Unauthenticated.', [], 'en'));
+});
