@@ -70,6 +70,20 @@ it('rejects malformed channel parameters', function () {
     authorizeChannel("organizations.{$this->organization->id}.channels.abc")->assertForbidden();
 });
 
+it('rejects ids that do not fit in a bigint', function (string $channelName) {
+    Sanctum::actingAs($this->member);
+
+    authorizeChannel(str_replace(
+        ['{organization}', '{channel}'],
+        [$this->organization->id, $this->channel->id],
+        $channelName,
+    ))->assertForbidden();
+})->with([
+    'organization' => 'organizations.99999999999999999999.channels.{channel}',
+    'channel' => 'organizations.{organization}.channels.99999999999999999999',
+    'zero' => 'organizations.{organization}.channels.0',
+]);
+
 it('requires a token', function () {
     authorizeChannel(channelName($this->organization, $this->channel))
         ->assertUnauthorized()

@@ -13,14 +13,28 @@ class ChannelChannel
 {
     public function join(User $user, string $organization, string $channel): bool
     {
-        if (! ctype_digit($organization) || ! ctype_digit($channel)) {
+        $organizationId = self::positiveId($organization);
+        $channelId = self::positiveId($channel);
+
+        if ($organizationId === null || $channelId === null) {
             return false;
         }
 
-        return $user->organizations()->whereKey($organization)->exists()
+        return $user->organizations()->whereKey($organizationId)->exists()
             && Channel::withoutGlobalScope(OrganizationScope::class)
-                ->whereKey($channel)
-                ->where('organization_id', $organization)
+                ->whereKey($channelId)
+                ->where('organization_id', $organizationId)
                 ->exists();
+    }
+
+    private static function positiveId(string $value): ?int
+    {
+        if (! ctype_digit($value)) {
+            return null;
+        }
+
+        $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        return $id === false ? null : $id;
     }
 }
