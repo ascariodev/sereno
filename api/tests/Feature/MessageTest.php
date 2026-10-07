@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
@@ -55,6 +56,31 @@ it('rejects a system message with body', function () {
 it('rejects a system message without payload', function () {
     Message::factory()->for($this->channel)->system()->create(['payload' => null]);
 })->throws(QueryException::class, 'messages_body_payload_check');
+
+function insertSystemMessage(Channel $channel, string $payload): void
+{
+    DB::table('messages')->insert([
+        'organization_id' => $channel->organization_id,
+        'channel_id' => $channel->id,
+        'kind' => 'system',
+        'payload' => $payload,
+    ]);
+}
+
+it('rejects a system message whose payload is not a JSON object', function (string $payload) {
+    insertSystemMessage($this->channel, $payload);
+})->with([
+    'json null' => 'null',
+    'array' => '[1, 2]',
+    'string' => '"text"',
+    'number' => '42',
+])->throws(QueryException::class, 'messages_body_payload_check');
+
+it('accepts a system message whose payload is a JSON object', function () {
+    insertSystemMessage($this->channel, '{"type": "log.group_opened"}');
+
+    expect(Message::where('kind', 'system')->count())->toBe(1);
+});
 
 it('rejects a person message without body', function () {
     Message::factory()->for($this->channel)->create(['body' => null]);
