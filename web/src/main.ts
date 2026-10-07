@@ -4,6 +4,7 @@ import './style.css'
 import App from './App.vue'
 import { i18n, installI18nOnApi } from './i18n'
 import { createAppRouter } from './router'
+import { redirectToLogin } from './router/redirectToLogin'
 import { installAuthOnApi } from './stores/auth'
 import { installOrganizationOnApi } from './stores/organization'
 
@@ -13,8 +14,6 @@ app.use(createPinia())
 const router = createAppRouter()
 installI18nOnApi()
 installOrganizationOnApi()
-installAuthOnApi(() => {
-  if (router.currentRoute.value.name !== 'login') void router.push({ name: 'login' })
-})
+installAuthOnApi(() => redirectToLogin(router))
 
 app.use(i18n).use(router).mount('#app')

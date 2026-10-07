@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
+import { redirectToLogin } from '../router/redirectToLogin'
 import { useAuthStore } from '../stores/auth'
 
 const { t } = useI18n()
@@ -33,7 +34,7 @@ async function retry(): Promise<void> {
     if (auth.isAuthenticated) {
       failed.value = true
     } else {
-      await router.push({ name: 'login' })
+      redirectToLogin(router)
     }
   } finally {
     retrying.value = false

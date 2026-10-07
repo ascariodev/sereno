@@ -4,6 +4,7 @@ import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 import { createAppRouter } from './index'
+import { redirectToLogin } from './redirectToLogin'
 
 const user = { id: 1, name: 'Test', email: 't@e.com', locale: 'en' }
 
@@ -52,6 +53,55 @@ describe('router guard', () => {
     })
     await router.push('/')
     expect(router.currentRoute.value.name).toBe('login')
+  })
+
+  describe('redirectToLogin', () => {
+    async function routerAt(path: Parameters<ReturnType<typeof setup>['push']>[0]) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+      vi.spyOn(api, 'get').mockResolvedValue({ data: user })
+      const router = setup()
+      await router.push(path)
+      useAuthStore().clearSession()
+      return router
+    }
+
+    it('keeps the current route as redirect', async () => {
+      const router = await routerAt('/channels/3')
+      redirectToLogin(router)
+      await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('login'))
+      expect(router.currentRoute.value.query.redirect).toBe('/channels/3')
+    })
+
+    it('adds no redirect from the root', async () => {
+      const router = await routerAt('/')
+      redirectToLogin(router)
+      await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('login'))
+      expect(router.currentRoute.value.query.redirect).toBeUndefined()
+    })
+
+    it('from session-error reuses its redirect, never redirects to session-error', async () => {
+      const router = await routerAt({ name: 'session-error', query: { redirect: '/channels/3' } })
+      redirectToLogin(router)
+      await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('login'))
+      expect(router.currentRoute.value.query.redirect).toBe('/channels/3')
+    })
+
+    it('from session-error without redirect adds none', async () => {
+      const router = await routerAt({ name: 'session-error' })
+      redirectToLogin(router)
+      await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('login'))
+      expect(router.currentRoute.value.query.redirect).toBeUndefined()
+    })
+
+    it('does nothing when already on login', async () => {
+      const router = await routerAt('/channels/3')
+      redirectToLogin(router)
+      await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('login'))
+      const push = vi.spyOn(router, 'push')
+      redirectToLogin(router)
+      expect(push).not.toHaveBeenCalled()
+      expect(router.currentRoute.value.query.redirect).toBe('/channels/3')
+    })
   })
 
   it.each([

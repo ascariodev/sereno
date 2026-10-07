@@ -42,7 +42,9 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
       } catch (error) {
         if (!(error instanceof ApiError)) throw error
       }
-      if (!auth.isAuthenticated) return { name: 'login' }
+      if (!auth.isAuthenticated) {
+        return { name: 'login', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } }
+      }
       if (!auth.user) {
         return {
           name: 'session-error',
