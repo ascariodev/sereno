@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { api, ApiError } from '../api/client'
 import type { LoginResponse, User } from '../api/types'
 import { setLocale } from '../i18n'
+import { disconnectRealtime, setRealtimeTokenProvider } from '../realtime/echo'
 import { useOrganizationStore } from './organization'
 
 export const TOKEN_STORAGE_KEY = 'workspace.token'
@@ -17,6 +18,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     localStorage.removeItem(TOKEN_STORAGE_KEY)
     setLocale(null)
+    disconnectRealtime()
     useOrganizationStore().clear()
   }
 
@@ -50,6 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
 export function installAuthOnApi(onSessionExpired?: () => void): void {
   const auth = useAuthStore()
   api.setTokenProvider(() => auth.token)
+  setRealtimeTokenProvider(() => auth.token)
   api.setUnauthorizedHandler(() => {
     auth.clearSession()
     onSessionExpired?.()

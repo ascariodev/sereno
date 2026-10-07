@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import type { Message } from '../api/types'
 import { i18n } from '../i18n'
+import { type RealtimeClient, setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
@@ -43,8 +44,27 @@ function mockApi(messages: (cursor?: unknown) => unknown) {
   })
 }
 
+function fakeRealtime() {
+  const listeners = new Map<string, (data: { message: Message }) => void>()
+  const client = {
+    private: vi.fn((name: string) => ({
+      listen: vi.fn((event: string, callback: (data: { message: Message }) => void) => {
+        listeners.set(`${name}|${event}`, callback)
+      }),
+    })),
+    leave: vi.fn(),
+    disconnect: vi.fn(),
+  } satisfies RealtimeClient
+  setRealtimeClientFactory(() => client)
+  const emit = (name: string, payload: Message) => listeners.get(`${name}|.message.created`)?.({ message: payload })
+  return { client, emit }
+}
+
 describe('ChannelView', () => {
-  beforeEach(() => vi.restoreAllMocks())
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    setRealtimeClientFactory(() => null)
+  })
 
   it('shows messages oldest first and a generic notice for system messages', async () => {
     mockApi(() => ({ data: [message(3), message(2, 'system'), message(1)], meta: { next_cursor: null } }))
@@ -107,5 +127,56 @@ describe('ChannelView', () => {
     const wrapper = await mountView()
     expect(wrapper.find('textarea').exists()).toBe(false)
     expect(wrapper.text()).toContain('archived')
+  })
+
+  it('subscribes to the channel and appends live messages without duplicates', async () => {
+    const realtime = fakeRealtime()
+    mockApi(() => ({ data: [message(2), message(1)], meta: { next_cursor: null } }))
+    const wrapper = await mountView()
+    expect(realtime.client.private).toHaveBeenCalledWith('organizations.1.channels.7')
+
+    realtime.emit('organizations.1.channels.7', message(3))
+    realtime.emit('organizations.1.channels.7', message(3))
+    realtime.emit('organizations.1.channels.7', message(2))
+    realtime.emit('organizations.1.channels.7', { ...message(4), channel_id: 8 })
+    await flushPromises()
+    expect(wrapper.findAll('li').map((li) => li.text())).toEqual([
+      expect.stringContaining('body 1'),
+      expect.stringContaining('body 2'),
+      expect.stringContaining('body 3'),
+    ])
+  })
+
+  it('keeps a live message that arrives while the history is loading', async () => {
+    const realtime = fakeRealtime()
+    let resolvePage: (value: unknown) => void = () => {}
+    mockApi(() => new Promise((resolve) => (resolvePage = resolve)))
+    const wrapper = await mountView()
+    realtime.emit('organizations.1.channels.7', message(5))
+    resolvePage({ data: [message(4)], meta: { next_cursor: null } })
+    await flushPromises()
+    expect(wrapper.findAll('li')).toHaveLength(2)
+  })
+
+  it('leaves the channel on unmount and when the organization changes', async () => {
+    const realtime = fakeRealtime()
+    mockApi(() => ({ data: [message(1)], meta: { next_cursor: null } }))
+    const wrapper = await mountView()
+
+    useOrganizationStore().$patch({ activeId: 2 })
+    await flushPromises()
+    expect(realtime.client.leave).toHaveBeenCalledWith('organizations.1.channels.7')
+    expect(realtime.client.private).toHaveBeenLastCalledWith('organizations.2.channels.7')
+
+    wrapper.unmount()
+    expect(realtime.client.leave).toHaveBeenLastCalledWith('organizations.2.channels.7')
+  })
+
+  it('disconnects realtime on logout', async () => {
+    const realtime = fakeRealtime()
+    mockApi(() => ({ data: [message(1)], meta: { next_cursor: null } }))
+    await mountView()
+    useAuthStore().clearSession()
+    expect(realtime.client.disconnect).toHaveBeenCalledOnce()
   })
 })

@@ -43,7 +43,9 @@ export const useMessagesStore = defineStore('messages', () => {
         query: { per_page: MESSAGES_PER_PAGE },
       })
       if (current !== generation) return
-      messages.value = [...page.data].sort((a, b) => a.id - b.id)
+      const loaded = new Set(page.data.map((message) => message.id))
+      const live = messages.value.filter((message) => !loaded.has(message.id))
+      messages.value = [...page.data, ...live].sort((a, b) => a.id - b.id)
       nextCursor.value = page.meta.next_cursor
     } catch (caught) {
       if (current !== generation) return

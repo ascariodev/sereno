@@ -6,6 +6,7 @@ import { api } from '../api/client'
 import type { Channel } from '../api/types'
 import MessageComposer from '../components/MessageComposer.vue'
 import MessageList from '../components/MessageList.vue'
+import { subscribeToChannel } from '../realtime/echo'
 import { useMessagesStore } from '../stores/messages'
 import { useOrganizationStore } from '../stores/organization'
 
@@ -15,6 +16,7 @@ const organization = useOrganizationStore()
 const messages = useMessagesStore()
 const channel = ref<Channel | null>(null)
 let generation = 0
+let unsubscribe: (() => void) | null = null
 
 const channelId = computed(() => Number(route.params.id))
 const notFound = computed(() => messages.error?.status === 404)
@@ -30,21 +32,31 @@ async function loadChannel(id: number, current: number): Promise<void> {
   }
 }
 
+function leaveRealtime(): void {
+  unsubscribe?.()
+  unsubscribe = null
+}
+
 function reload(): void {
   const current = ++generation
   channel.value = null
+  leaveRealtime()
   if (!Number.isInteger(channelId.value) || channelId.value < 1) {
     messages.clear()
     return
   }
   void loadChannel(channelId.value, current)
   void messages.open(channelId.value)
+  if (organization.activeId !== null) {
+    unsubscribe = subscribeToChannel(organization.activeId, channelId.value, messages.insert)
+  }
 }
 
 watch(() => [organization.activeId, route.params.id], reload, { immediate: true })
 
 onUnmounted(() => {
   generation++
+  leaveRealtime()
   messages.clear()
 })
 </script>
