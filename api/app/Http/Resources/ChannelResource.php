@@ -17,7 +17,11 @@ class ChannelResource extends JsonResource
             'name' => $this->name,
             'archived_at' => $this->archived_at,
             'created_at' => $this->created_at,
-            'project' => new ProjectResource($this->whenLoaded('project')),
+            'project' => $this->whenLoaded('project', fn () => [
+                'id' => $this->project->id,
+                'name' => $this->project->name,
+                'key' => $this->project->key,
+            ]),
         ];
     }
 }

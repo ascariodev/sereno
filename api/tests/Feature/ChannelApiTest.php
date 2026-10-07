@@ -44,7 +44,17 @@ it('lists non archived channels with their project, readable by every role', fun
             ->assertJsonPath('data.0.id', $this->channel->id)
             ->assertJsonPath('data.0.name', $this->channel->name)
             ->assertJsonPath('data.0.project.key', $this->project->key)
-            ->assertJsonStructure(['data' => [['id', 'project_id', 'name', 'archived_at', 'created_at', 'project' => ['id', 'key']]]]);
+            ->assertJsonStructure(['data' => [['id', 'project_id', 'name', 'archived_at', 'created_at']]])
+            ->assertExactJson([
+                'data' => [[
+                    'id' => $this->channel->id,
+                    'project_id' => $this->project->id,
+                    'name' => $this->channel->name,
+                    'archived_at' => null,
+                    'created_at' => $this->channel->created_at->toJSON(),
+                    'project' => ['id' => $this->project->id, 'name' => $this->project->name, 'key' => $this->project->key],
+                ]],
+            ]);
     }
 });
 

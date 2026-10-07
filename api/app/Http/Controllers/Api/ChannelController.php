@@ -16,7 +16,7 @@ class ChannelController extends Controller
             Channel::query()
                 ->whereNull('archived_at')
                 ->whereNotNull('project_id')
-                ->with('project')
+                ->with('project:id,name,key')
                 ->orderBy('name')
                 ->orderBy('id')
                 ->get(),
