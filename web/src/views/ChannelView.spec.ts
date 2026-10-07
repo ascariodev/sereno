@@ -5,7 +5,7 @@ import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import type { Message } from '../api/types'
 import { i18n } from '../i18n'
-import { type RealtimeClient, setRealtimeClientFactory } from '../realtime/echo'
+import { type ConnectionStatus, type RealtimeClient, setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
@@ -46,6 +46,8 @@ function mockApi(messages: (cursor?: unknown) => unknown) {
 
 function fakeRealtime() {
   const listeners = new Map<string, (data: { message: Message }) => void>()
+  let status: ConnectionStatus = 'connecting'
+  const statusListeners = new Set<(next: ConnectionStatus) => void>()
   const client = {
     private: vi.fn((name: string) => ({
       listen: vi.fn((event: string, callback: (data: { message: Message }) => void) => {
@@ -54,10 +56,19 @@ function fakeRealtime() {
     })),
     leave: vi.fn(),
     disconnect: vi.fn(),
+    connectionStatus: vi.fn((): ConnectionStatus => status),
+    onConnectionChange: vi.fn((callback: (next: ConnectionStatus) => void) => {
+      statusListeners.add(callback)
+      return () => statusListeners.delete(callback)
+    }),
   } satisfies RealtimeClient
   setRealtimeClientFactory(() => client)
   const emit = (name: string, payload: Message) => listeners.get(`${name}|.message.created`)?.({ message: payload })
-  return { client, emit }
+  const setStatus = (next: ConnectionStatus) => {
+    status = next
+    statusListeners.forEach((listener) => listener(next))
+  }
+  return { client, emit, setStatus, statusListeners }
 }
 
 describe('ChannelView', () => {
@@ -216,6 +227,61 @@ describe('ChannelView', () => {
 
     wrapper.unmount()
     expect(realtime.client.leave).toHaveBeenLastCalledWith('organizations.2.channels.7')
+  })
+
+  it('catches up missed messages after a reconnection, not on the initial connection', async () => {
+    const realtime = fakeRealtime()
+    let calls = 0
+    const spy = mockApi(() => {
+      calls++
+      return calls === 1
+        ? { data: [message(2), message(1)], meta: { next_cursor: null } }
+        : { data: [message(4), message(3), message(2)], meta: { next_cursor: null } }
+    })
+    const wrapper = await mountView()
+    realtime.setStatus('connected')
+    await flushPromises()
+    expect(spy.mock.calls.filter(([path]) => path !== '/api/channels')).toHaveLength(1)
+
+    realtime.setStatus('connecting')
+    realtime.setStatus('connected')
+    await flushPromises()
+    expect(spy.mock.calls.filter(([path]) => path !== '/api/channels')).toHaveLength(2)
+    expect(wrapper.findAll('li').map((li) => li.text())).toEqual([
+      expect.stringContaining('body 1'),
+      expect.stringContaining('body 2'),
+      expect.stringContaining('body 3'),
+      expect.stringContaining('body 4'),
+    ])
+  })
+
+  it('discards a catch-up response that arrives after the organization changed', async () => {
+    const realtime = fakeRealtime()
+    let calls = 0
+    let resolveCatchUp: (value: unknown) => void = () => {}
+    mockApi(() => {
+      calls++
+      if (calls === 2) return new Promise((resolve) => (resolveCatchUp = resolve))
+      return { data: [message(1)], meta: { next_cursor: null } }
+    })
+    const wrapper = await mountView()
+    realtime.setStatus('connected')
+    realtime.setStatus('failed')
+    realtime.setStatus('connected')
+    useOrganizationStore().$patch({ activeId: 2 })
+    await flushPromises()
+    resolveCatchUp({ data: [message(9)], meta: { next_cursor: null } })
+    await flushPromises()
+    expect(wrapper.findAll('li').map((li) => li.text())).toEqual([expect.stringContaining('body 1')])
+  })
+
+  it('stops listening for reconnections on unmount', async () => {
+    const realtime = fakeRealtime()
+    mockApi(() => ({ data: [message(1)], meta: { next_cursor: null } }))
+    const wrapper = await mountView()
+    expect(realtime.statusListeners.size).toBe(1)
+    wrapper.unmount()
+    expect(realtime.statusListeners.size).toBe(0)
   })
 
   it('disconnects realtime on logout', async () => {

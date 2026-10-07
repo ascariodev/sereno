@@ -5,6 +5,8 @@ import {
   createAuthorizer,
   disconnectRealtime,
   MESSAGE_CREATED_EVENT,
+  type ConnectionStatus,
+  onReconnect,
   type RealtimeClient,
   setRealtimeClientFactory,
   setRealtimeTokenProvider,
@@ -13,6 +15,8 @@ import {
 
 function fakeClient() {
   const listeners = new Map<string, (data: { message: Message }) => void>()
+  let status: ConnectionStatus = 'connecting'
+  const statusListeners = new Set<(next: ConnectionStatus) => void>()
   const client = {
     private: vi.fn((name: string) => ({
       listen: vi.fn((event: string, callback: (data: { message: Message }) => void) => {
@@ -21,8 +25,17 @@ function fakeClient() {
     })),
     leave: vi.fn(),
     disconnect: vi.fn(),
+    connectionStatus: vi.fn((): ConnectionStatus => status),
+    onConnectionChange: vi.fn((callback: (next: ConnectionStatus) => void) => {
+      statusListeners.add(callback)
+      return () => statusListeners.delete(callback)
+    }),
   } satisfies RealtimeClient
-  return { client, listeners }
+  const setStatus = (next: ConnectionStatus) => {
+    status = next
+    statusListeners.forEach((listener) => listener(next))
+  }
+  return { client, listeners, setStatus, statusListeners }
 }
 
 describe('realtime', () => {
@@ -57,6 +70,36 @@ describe('realtime', () => {
     expect(first.disconnect).toHaveBeenCalledOnce()
     subscribeToChannel(1, 1, () => {})
     expect(factory).toHaveBeenCalledTimes(2)
+  })
+
+  it('calls back only when connected again after a drop, not on the initial connection', () => {
+    const { client, setStatus, statusListeners } = fakeClient()
+    setRealtimeClientFactory(() => client)
+    const callback = vi.fn()
+    const off = onReconnect(callback)
+
+    setStatus('connected')
+    expect(callback).not.toHaveBeenCalled()
+    setStatus('connecting')
+    setStatus('connected')
+    expect(callback).toHaveBeenCalledTimes(1)
+    setStatus('failed')
+    setStatus('failed')
+    setStatus('connected')
+    expect(callback).toHaveBeenCalledTimes(2)
+
+    off()
+    expect(statusListeners.size).toBe(0)
+  })
+
+  it('does not call back when the connection never came up before failing', () => {
+    const { client, setStatus } = fakeClient()
+    setRealtimeClientFactory(() => client)
+    const callback = vi.fn()
+    onReconnect(callback)
+    setStatus('failed')
+    setStatus('connected')
+    expect(callback).not.toHaveBeenCalled()
   })
 
   it('does nothing without a client (no Reverb key)', () => {

@@ -6,7 +6,7 @@ import { api } from '../api/client'
 import type { Channel } from '../api/types'
 import MessageComposer from '../components/MessageComposer.vue'
 import MessageList from '../components/MessageList.vue'
-import { subscribeToChannel } from '../realtime/echo'
+import { onReconnect, subscribeToChannel } from '../realtime/echo'
 import { useMessagesStore } from '../stores/messages'
 import { useOrganizationStore } from '../stores/organization'
 
@@ -18,6 +18,7 @@ const channel = ref<Channel | null>(null)
 const channelLoadFailed = ref(false)
 let generation = 0
 let unsubscribe: (() => void) | null = null
+let unsubscribeReconnect: (() => void) | null = null
 
 const channelId = computed(() => Number(route.params.id))
 const notFound = computed(() => messages.error?.status === 404)
@@ -39,6 +40,8 @@ async function loadChannel(id: number, current: number): Promise<void> {
 function leaveRealtime(): void {
   unsubscribe?.()
   unsubscribe = null
+  unsubscribeReconnect?.()
+  unsubscribeReconnect = null
 }
 
 function reload(): void {
@@ -54,6 +57,7 @@ function reload(): void {
   void messages.open(channelId.value)
   if (organization.activeId !== null) {
     unsubscribe = subscribeToChannel(organization.activeId, channelId.value, messages.insert)
+    unsubscribeReconnect = onReconnect(() => void messages.catchUp())
   }
 }
 

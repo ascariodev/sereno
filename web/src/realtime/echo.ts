@@ -9,7 +9,11 @@ export interface RealtimeClient {
   private(name: string): { listen(event: string, callback: (data: { message: Message }) => void): unknown }
   leave(name: string): void
   disconnect(): void
+  connectionStatus(): ConnectionStatus
+  onConnectionChange(callback: (status: ConnectionStatus) => void): () => void
 }
+
+export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'reconnecting' | 'failed'
 
 type Fetch = typeof fetch
 
@@ -45,6 +49,23 @@ export function subscribeToChannel(
   return () => current.leave(name)
 }
 
+export function onReconnect(callback: () => void): () => void {
+  client ??= factory()
+  const current = client
+  if (current === null) return () => {}
+  let wasConnected = current.connectionStatus() === 'connected'
+  let dropped = false
+  return current.onConnectionChange((status) => {
+    if (status !== 'connected') {
+      dropped = wasConnected
+      return
+    }
+    if (dropped) callback()
+    wasConnected = true
+    dropped = false
+  })
+}
+
 export function disconnectRealtime(): void {
   const current = client
   client = null
@@ -75,7 +96,7 @@ export function createAuthorizer(fetchImpl: Fetch = (...args) => globalThis.fetc
 function createEchoClient(): RealtimeClient | null {
   const { key, host, port, scheme } = config.reverb
   if (!key) return null
-  return new Echo({
+  const echo = new Echo({
     broadcaster: 'reverb',
     key,
     Pusher,
@@ -87,4 +108,11 @@ function createEchoClient(): RealtimeClient | null {
     withoutInterceptors: true,
     channelAuthorization: { customHandler: createAuthorizer() },
   })
+  return {
+    private: (name) => echo.private(name),
+    leave: (name) => echo.leave(name),
+    disconnect: () => echo.disconnect(),
+    connectionStatus: () => echo.connectionStatus(),
+    onConnectionChange: (callback) => echo.connector.onConnectionChange(callback),
+  }
 }

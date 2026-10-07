@@ -55,6 +55,21 @@ export const useMessagesStore = defineStore('messages', () => {
     }
   }
 
+  async function catchUp(): Promise<void> {
+    if (channelId.value === null) return
+    const current = generation
+    const id = channelId.value
+    try {
+      const page = await api.get<CursorPage<Message>>(`/api/channels/${id}/messages`, {
+        query: { per_page: MESSAGES_PER_PAGE },
+      })
+      if (current !== generation) return
+      page.data.forEach(insert)
+    } catch {
+      return
+    }
+  }
+
   async function loadOlder(): Promise<void> {
     if (channelId.value === null || nextCursor.value === null || loading.value || loadingMore.value) return
     const current = generation
@@ -87,5 +102,5 @@ export const useMessagesStore = defineStore('messages', () => {
     insert(response.data)
   }
 
-  return { channelId, messages, nextCursor, loading, loadingMore, error, open, loadOlder, insert, send, clear }
+  return { channelId, messages, nextCursor, loading, loadingMore, error, open, loadOlder, insert, catchUp, send, clear }
 })
