@@ -46,6 +46,14 @@ it('rejects a project from another organization', function () {
     $channel->save();
 })->throws(InvalidArgumentException::class);
 
+it('rejects creating a channel with a project from another organization', function () {
+    $foreign = Project::factory()->for($this->other)->create();
+
+    $channel = new Channel(['name' => 'X']);
+    $channel->project_id = $foreign->id;
+    $channel->save();
+})->throws(InvalidArgumentException::class);
+
 it('allows a channel with no project', function () {
     $channel = Channel::query()->create(['name' => 'general']);
 
