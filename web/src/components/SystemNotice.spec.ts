@@ -86,7 +86,8 @@ describe('SystemNotice', () => {
       const wrapper = mountActions(opened)
       await wrapper.find('button[name=resolve]').trigger('click')
       expect(patch).toHaveBeenLastCalledWith('/api/projects/3/log-groups/5', { status: 'resolved' })
-      await wrapper.find('button[name=ignore]').trigger('click')
+      const other = mountActions(opened)
+      await other.find('button[name=ignore]').trigger('click')
       expect(patch).toHaveBeenLastCalledWith('/api/projects/3/log-groups/5', { status: 'ignored' })
     })
 
@@ -100,7 +101,7 @@ describe('SystemNotice', () => {
       await wrapper.find('button[name=resolve]').trigger('click')
       expect(patch).toHaveBeenCalledTimes(1)
       finish({})
-      await vi.waitFor(() => expect(wrapper.find('button[name=resolve]').attributes('disabled')).toBeUndefined())
+      await vi.waitFor(() => expect(wrapper.find('button').exists()).toBe(false))
     })
 
     it('shows a 403 as a permission error', async () => {
@@ -115,6 +116,32 @@ describe('SystemNotice', () => {
       const wrapper = mountActions(opened)
       await wrapper.find('button[name=ignore]').trigger('click')
       await vi.waitFor(() => expect(wrapper.find('[role=alert]').text()).toBe('The selected status is invalid.'))
+    })
+
+    it('shows a local confirmation and hides the buttons after success', async () => {
+      vi.spyOn(api, 'patch').mockResolvedValue({ data: { status: 'ignored' } })
+      const wrapper = mountActions(opened)
+      await wrapper.find('button[name=resolve]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.find('button').exists()).toBe(false))
+      expect(wrapper.text()).toContain('Marked as ignored')
+      i18n.global.locale.value = 'es'
+      await wrapper.vm.$nextTick()
+      expect(wrapper.text()).toContain('Marcado como ignorado')
+    })
+
+    it('falls back to the requested status when the response has none', async () => {
+      vi.spyOn(api, 'patch').mockResolvedValue({})
+      const wrapper = mountActions(opened)
+      await wrapper.find('button[name=resolve]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Marked as resolved'))
+    })
+
+    it('shows the generic error for a 404', async () => {
+      vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(404, 'Not found.'))
+      const wrapper = mountActions(opened)
+      await wrapper.find('button[name=resolve]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.find('[role=alert]').text()).toBe('Could not update the log group.'))
+      expect(wrapper.find('button[name=resolve]').exists()).toBe(true)
     })
 
     it('shows a generic error for other failures and clears it on retry', async () => {

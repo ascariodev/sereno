@@ -63,7 +63,8 @@
       "resolve": "Resolve",
       "ignore": "Ignore",
       "forbidden": "You are not allowed to change this log group.",
-      "failed": "Could not update the log group."
+      "failed": "Could not update the log group.",
+      "marked": "Marked as {status}"
     },
     "unknownActor": "Someone",
     "level": {

@@ -63,7 +63,8 @@
       "resolve": "Resolver",
       "ignore": "Ignorar",
       "forbidden": "No tienes permiso para cambiar este grupo de logs.",
-      "failed": "No se pudo actualizar el grupo de logs."
+      "failed": "No se pudo actualizar el grupo de logs.",
+      "marked": "Marcado como {status}"
     },
     "unknownActor": "Alguien",
     "level": {

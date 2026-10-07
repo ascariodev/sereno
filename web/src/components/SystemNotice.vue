@@ -12,17 +12,24 @@ const { t, te } = useI18n()
 
 const pending = ref(false)
 const errorText = ref<string | null>(null)
+const doneStatus = ref<string | null>(null)
 
 const payload = computed(() => props.message.payload)
 const groupId = computed(() => (isLogGroupOpenedPayload(payload.value) ? payload.value.log_group_id : null))
 const canAct = computed(() => props.projectId !== undefined && groupId.value !== null)
+
+function statusFrom(response: unknown): string | null {
+  const body = response as { data?: { status?: unknown } } | null
+  return typeof body?.data?.status === 'string' ? body.data.status : null
+}
 
 async function act(status: LogGroupStatus): Promise<void> {
   if (pending.value || !canAct.value) return
   pending.value = true
   errorText.value = null
   try {
-    await updateLogGroupStatus(props.projectId as number, groupId.value as number, status)
+    const response = await updateLogGroupStatus(props.projectId as number, groupId.value as number, status)
+    doneStatus.value = statusFrom(response) ?? status
   } catch (caught) {
     if (caught instanceof ApiError && caught.status === 403) {
       errorText.value = t('notice.actions.forbidden')
@@ -62,7 +69,10 @@ const text = computed(() => {
 <template>
   <div>
     <p class="system-notice">{{ text }}</p>
-    <p v-if="canAct" class="system-notice__actions">
+    <p v-if="doneStatus" class="system-notice__done">
+      {{ t('notice.actions.marked', { status: known('notice.status', doneStatus) }) }}
+    </p>
+    <p v-else-if="canAct" class="system-notice__actions">
       <button type="button" name="resolve" :disabled="pending" @click="act('resolved')">
         {{ t('notice.actions.resolve') }}
       </button>
@@ -70,7 +80,7 @@ const text = computed(() => {
         {{ t('notice.actions.ignore') }}
       </button>
     </p>
-    <p v-if="errorText" role="alert">{{ errorText }}</p>
+    <p v-if="errorText" role="alert" class="system-notice__error">{{ errorText }}</p>
   </div>
 </template>
 
@@ -85,5 +95,15 @@ const text = computed(() => {
   display: flex;
   gap: 0.5rem;
   margin: 0.25rem 0 0;
+}
+.system-notice__done {
+  margin: 0.25rem 0 0;
+  font-size: 0.875em;
+  opacity: 0.7;
+}
+.system-notice__error {
+  margin: 0.25rem 0 0;
+  font-size: 0.875em;
+  color: #b00020;
 }
 </style>
