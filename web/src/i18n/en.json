@@ -12,6 +12,13 @@
     "network": "Could not reach the server.",
     "failed": "Could not sign in. Try again."
   },
+  "sessionError": {
+    "title": "Could not load your session.",
+    "message": "The server did not respond correctly. Your session is kept; try again.",
+    "retry": "Retry",
+    "retrying": "Retrying...",
+    "failed": "Still failing. Try again in a moment."
+  },
   "organization": {
     "label": "Organization",
     "none": "You do not belong to any organization yet.",

@@ -53,4 +53,18 @@ describe('router guard', () => {
     await router.push('/')
     expect(router.currentRoute.value.name).toBe('login')
   })
+
+  it.each([
+    ['5xx', new ApiError(503, 'Unavailable')],
+    ['no network', new ApiError(0, 'Network')],
+  ])('fetchMe failing with %s goes to session-error and keeps the token', async (_label, error) => {
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+    vi.spyOn(api, 'get').mockRejectedValue(error)
+    const router = setup()
+    await router.push('/channels/3')
+    expect(router.currentRoute.value.name).toBe('session-error')
+    expect(router.currentRoute.value.query.redirect).toBe('/channels/3')
+    expect(useAuthStore().token).toBe('abc')
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('abc')
+  })
 })

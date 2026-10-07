@@ -12,6 +12,13 @@
     "network": "No se pudo conectar con el servidor.",
     "failed": "No se pudo iniciar sesión. Inténtalo de nuevo."
   },
+  "sessionError": {
+    "title": "No se pudo cargar tu sesión.",
+    "message": "El servidor no respondió correctamente. Tu sesión se conserva; inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "retrying": "Reintentando...",
+    "failed": "Sigue fallando. Inténtalo de nuevo en un momento."
+  },
   "organization": {
     "label": "Organización",
     "none": "Aún no perteneces a ninguna organización.",
