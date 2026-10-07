@@ -43,16 +43,20 @@ it('rejects a project from another organization', function () {
 
     $channel = Channel::query()->create(['name' => 'X']);
     $channel->project_id = $foreign->id;
-    $channel->save();
-})->throws(InvalidArgumentException::class);
+
+    expect(fn () => $channel->save())->toThrow(InvalidArgumentException::class, 'The project must belong to the model organization.')
+        ->and(Channel::query()->withoutGlobalScopes()->find($channel->id)->project_id)->toBeNull();
+});
 
 it('rejects creating a channel with a project from another organization', function () {
     $foreign = Project::factory()->for($this->other)->create();
 
     $channel = new Channel(['name' => 'X']);
     $channel->project_id = $foreign->id;
-    $channel->save();
-})->throws(InvalidArgumentException::class);
+
+    expect(fn () => $channel->save())->toThrow(InvalidArgumentException::class, 'The project must belong to the model organization.')
+        ->and(Channel::query()->withoutGlobalScopes()->count())->toBe(0);
+});
 
 it('allows a channel with no project', function () {
     $channel = Channel::query()->create(['name' => 'general']);
