@@ -17,4 +17,9 @@ class ListChannelsRequest extends FormRequest
     {
         return [];
     }
+
+    public function includeArchived(): bool
+    {
+        return $this->boolean('include_archived');
+    }
 }

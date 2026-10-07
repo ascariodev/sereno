@@ -14,7 +14,7 @@ class ChannelController extends Controller
     {
         return ChannelResource::collection(
             Channel::query()
-                ->whereNull('archived_at')
+                ->when(! $request->includeArchived(), fn ($query) => $query->whereNull('archived_at'))
                 ->whereNotNull('project_id')
                 ->with('project:id,name,key')
                 ->orderBy('name')

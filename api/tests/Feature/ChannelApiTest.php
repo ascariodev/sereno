@@ -58,6 +58,22 @@ it('lists non archived channels with their project, readable by every role', fun
     }
 });
 
+it('lists archived channels only with include_archived', function () {
+    $archived = Channel::factory()->for(Project::factory()->for($this->organization))->archived()->create();
+    Channel::factory()->for(Project::factory()->for($this->other))->archived()->create();
+    $reader = $this->users['member'];
+
+    asChannelReader($reader, $this->organization)->getJson('/api/channels?include_archived=1')
+        ->assertOk()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonFragment(['id' => $archived->id]);
+
+    asChannelReader($reader, $this->organization)->getJson('/api/channels?include_archived=0')
+        ->assertJsonCount(1, 'data');
+    asChannelReader($reader, $this->organization)->getJson('/api/channels')
+        ->assertJsonCount(1, 'data');
+});
+
 it('rejects listing channels for a non member or without a token', function () {
     asChannelReader($this->outsider, $this->organization)->getJson('/api/channels')->assertForbidden();
 });
