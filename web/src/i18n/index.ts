@@ -37,12 +37,19 @@ export function getLocale(): Locale {
   return i18n.global.locale.value as Locale
 }
 
+function syncDocumentLang(locale: Locale): void {
+  if (typeof document !== 'undefined') document.documentElement.lang = locale
+}
+
+syncDocumentLang(getLocale())
+
 export function setLocale(userLocale?: string | null): Locale {
   const locale = resolveLocale(
     userLocale,
     typeof navigator === 'undefined' ? [] : navigator.languages,
   )
   i18n.global.locale.value = locale
+  syncDocumentLang(locale)
   return locale
 }
 

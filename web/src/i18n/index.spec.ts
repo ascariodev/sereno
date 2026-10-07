@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import en from './en.json'
 import es from './es.json'
 import { getLocale, resolveLocale, setLocale } from './index'
@@ -43,6 +43,28 @@ describe('setLocale', () => {
     expect(getLocale()).toBe('es')
     setLocale('en')
     expect(getLocale()).toBe('en')
+  })
+
+  it('keeps document lang in sync', () => {
+    setLocale('es')
+    expect(document.documentElement.lang).toBe('es')
+    setLocale('en')
+    expect(document.documentElement.lang).toBe('en')
+  })
+})
+
+describe('startup', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.resetModules()
+    document.documentElement.lang = ''
+  })
+
+  it('sets document lang from the browser language on load', async () => {
+    vi.stubGlobal('navigator', { languages: ['es-MX'] })
+    vi.resetModules()
+    await import('./index')
+    expect(document.documentElement.lang).toBe('es')
   })
 })
 
