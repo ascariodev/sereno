@@ -272,3 +272,18 @@ it('waits for the commit before dispatching the group events', function () {
 
     Event::assertNotDispatched(LogGroupOpened::class);
 });
+
+it('does not dispatch LogGroupReopened when the transaction of a resolved group rolls back', function () {
+    $event = recordLog($this->source, 'Order failed');
+    LogGroup::withoutGlobalScopes()->find($event->log_group_id)->update(['status' => LogGroupStatus::Resolved]);
+    Event::fake([LogGroupOpened::class, LogGroupReopened::class]);
+
+    expect(fn () => DB::transaction(function () {
+        recordLog($this->source, 'Order failed');
+
+        throw new RuntimeException('rollback');
+    }))->toThrow(RuntimeException::class);
+
+    Event::assertNotDispatched(LogGroupReopened::class);
+    Event::assertNotDispatched(LogGroupOpened::class);
+});
