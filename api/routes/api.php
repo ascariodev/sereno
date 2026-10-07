@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ChannelController;
 use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\LogGroupController;
 use App\Http\Controllers\Api\LogIngestController;
 use App\Http\Controllers\Api\LogSourceController;
+use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ProjectController;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +42,8 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::get('projects/{project}/log-groups', [LogGroupController::class, 'index']);
     Route::get('projects/{project}/log-groups/{group}', [LogGroupController::class, 'show']);
     Route::patch('projects/{project}/log-groups/{group}', [LogGroupController::class, 'update']);
+    Route::get('channels', [ChannelController::class, 'index']);
+    Route::get('channels/{channel}/messages', [MessageController::class, 'index']);
 });
 
 Route::middleware(['log.source', 'throttle:log-ingest'])->group(function () {
