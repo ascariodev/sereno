@@ -29,8 +29,10 @@ class StoreLogSourceRequest extends FormRequest
             function (Validator $validator) {
                 $project = $this->route('project');
 
-                if ($project instanceof Project && $project->isArchived()) {
-                    $validator->errors()->add('project', __('This project is archived and cannot have new log sources.'));
+                $error = $project instanceof Project ? $project->logSourceCreationError() : null;
+
+                if ($error !== null) {
+                    $validator->errors()->add('project', $error);
                 }
             },
         ];

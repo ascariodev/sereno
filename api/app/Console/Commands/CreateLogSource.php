@@ -56,8 +56,8 @@ class CreateLogSource extends Command
 
         $project = $projects->first();
 
-        if ($project->isArchived()) {
-            $this->components->error(__('This project is archived and cannot have new log sources.'));
+        if ($error = $project->logSourceCreationError()) {
+            $this->components->error($error);
 
             return self::FAILURE;
         }

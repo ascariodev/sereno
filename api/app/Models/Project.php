@@ -45,6 +45,13 @@ class Project extends Model
         return $this->archived_at !== null;
     }
 
+    public function logSourceCreationError(): ?string
+    {
+        return $this->isArchived()
+            ? __('This project is archived and cannot have new log sources.')
+            : null;
+    }
+
     public function channel(): HasOne
     {
         return $this->hasOne(Channel::class);
