@@ -60,6 +60,18 @@ describe('LoginView', () => {
     expect(router.currentRoute.value.name).toBe('login')
   })
 
+  it('shows a generic message on a 422 without email or password errors', async () => {
+    const post = vi.spyOn(api, 'post')
+    post.mockRejectedValueOnce(new ApiError(422, 'invalid', { other: ['x'] }))
+    const { wrapper } = await mountLogin()
+    await submit(wrapper)
+    expect(wrapper.find('[data-test=error-form]').text()).toBe(i18n.global.t('login.failed'))
+
+    post.mockRejectedValueOnce(new ApiError(422, 'invalid', {}))
+    await submit(wrapper)
+    expect(wrapper.find('[data-test=error-form]').text()).toBe(i18n.global.t('login.failed'))
+  })
+
   it('shows a message on 429', async () => {
     vi.spyOn(api, 'post').mockRejectedValue(new ApiError(429, 'Too Many Attempts.'))
     const { wrapper } = await mountLogin()

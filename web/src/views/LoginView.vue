@@ -29,6 +29,9 @@ async function submit(): Promise<void> {
     if (!(error instanceof ApiError)) throw error
     if (error.status === 422) {
       fieldErrors.value = error.errors
+      if (!error.errors.email?.length && !error.errors.password?.length) {
+        formError.value = t('login.failed')
+      }
     } else if (error.status === 429) {
       formError.value = t('login.tooManyAttempts')
     } else if (error.status === 0) {
