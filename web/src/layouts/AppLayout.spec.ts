@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { i18n } from '../i18n'
+import AppLayout from './AppLayout.vue'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
@@ -61,6 +62,25 @@ describe('AppLayout', () => {
     })
     expect(wrapper.find('[role=alert]').exists()).toBe(true)
     expect(wrapper.text()).not.toContain('Projects')
+  })
+
+  it('only the latest overlapping load turns the loading state off', async () => {
+    const pending: Array<() => void> = []
+    const { wrapper } = await mountApp(
+      () => new Promise((resolve) => pending.push(() => resolve({ data: orgs }))),
+    )
+    expect(wrapper.find('.app-layout__main > p').text()).toBe('Loading...')
+    const layout = wrapper.findComponent(AppLayout)
+    void (layout.vm as unknown as { loadOrganizations: () => Promise<void> }).loadOrganizations()
+    await flushPromises()
+    expect(pending).toHaveLength(2)
+    pending[0]()
+    await flushPromises()
+    expect(wrapper.find('.app-layout__main > p').text()).toBe('Loading...')
+    pending[1]()
+    await flushPromises()
+    expect(wrapper.find('.app-layout__main > p').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Projects')
   })
 
   it('logout clears the session and goes to login', async () => {

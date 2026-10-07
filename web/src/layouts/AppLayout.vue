@@ -11,8 +11,10 @@ const auth = useAuthStore()
 const organization = useOrganizationStore()
 const loading = ref(false)
 const failed = ref(false)
+let latestLoad = 0
 
 async function loadOrganizations(): Promise<void> {
+  const current = ++latestLoad
   loading.value = true
   failed.value = false
   try {
@@ -20,7 +22,7 @@ async function loadOrganizations(): Promise<void> {
   } catch {
     failed.value = true
   } finally {
-    loading.value = false
+    if (current === latestLoad) loading.value = false
   }
 }
 
