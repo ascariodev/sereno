@@ -64,6 +64,12 @@ it('rejects a channel that belongs to another organization', function () {
     authorizeChannel(channelName($this->organization, $foreign))->assertForbidden();
 });
 
+it('rejects a nonexistent channel of the member organization', function () {
+    Sanctum::actingAs($this->member);
+
+    authorizeChannel("organizations.{$this->organization->id}.channels.".($this->channel->id + 1000))->assertForbidden();
+});
+
 it('rejects malformed channel parameters', function () {
     Sanctum::actingAs($this->member);
 
