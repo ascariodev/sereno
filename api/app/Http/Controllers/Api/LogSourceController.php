@@ -24,13 +24,7 @@ class LogSourceController extends Controller
 
     public function store(StoreLogSourceRequest $request, Project $project): JsonResponse
     {
-        $plainKey = LogSource::newPlainKey();
-
-        $source = $project->logSources()->create([
-            'name' => $request->validated('name'),
-            'key_hash' => LogSource::hashKey($plainKey),
-            'key_prefix' => LogSource::displayPrefix($plainKey),
-        ]);
+        [$source, $plainKey] = LogSource::issueFor($project, $request->validated('name'));
 
         return response()->json([
             'data' => [...(new LogSourceResource($source))->resolve(), 'key' => $plainKey],

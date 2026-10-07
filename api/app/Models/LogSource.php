@@ -56,6 +56,22 @@ class LogSource extends Model
         return substr($plainKey, 0, self::DISPLAY_PREFIX_LENGTH);
     }
 
+    /** @return array{0: self, 1: string} the source and its plain key, which is never stored. */
+    public static function issueFor(Project $project, string $name): array
+    {
+        $plainKey = static::newPlainKey();
+
+        $source = $project->logSources()->make([
+            'name' => $name,
+            'key_hash' => static::hashKey($plainKey),
+            'key_prefix' => static::displayPrefix($plainKey),
+        ]);
+        $source->organization_id = $project->organization_id;
+        $source->save();
+
+        return [$source, $plainKey];
+    }
+
     /**
      * Lookup by plain key across organizations: ingestion has no active organization, it comes from
      * the source. The key hash is the only key; the caller must check revocation and the project.
