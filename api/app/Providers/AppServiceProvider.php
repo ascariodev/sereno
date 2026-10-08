@@ -23,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
 
     public const CHANNEL_MESSAGES_PER_MINUTE = 30;
 
+    public const INVITATION_PREVIEWS_PER_MINUTE = 30;
+
     /**
      * Register any application services.
      */
@@ -68,6 +70,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('channel-messages', fn (Request $request) => Limit::perMinute(self::CHANNEL_MESSAGES_PER_MINUTE)
             ->by('user:'.$request->user()->getKey())
+            ->response($this->tooManyAttemptsResponse(...)));
+
+        RateLimiter::for('invitation-preview', fn (Request $request) => Limit::perMinute(self::INVITATION_PREVIEWS_PER_MINUTE)
+            ->by('ip:'.$request->ip())
             ->response($this->tooManyAttemptsResponse(...)));
     }
 

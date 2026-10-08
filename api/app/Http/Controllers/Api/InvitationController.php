@@ -64,6 +64,26 @@ class InvitationController extends Controller
         ]], 201);
     }
 
+    /**
+     * Public preview for the invitation link. Every unusable case answers the same 404 so the
+     * endpoint does not reveal whether a token existed, was used or expired.
+     */
+    public function show(string $token): JsonResponse
+    {
+        $invitation = Invitation::findByPlainToken($token);
+
+        if ($invitation === null || ! $invitation->isUsable() || ! $invitation->inviterCanStillGrantRole()) {
+            abort(404, __('The invitation is invalid or has expired.'));
+        }
+
+        return response()->json(['data' => [
+            'organization' => ['name' => $invitation->organization->name],
+            'email' => $invitation->email,
+            'role' => $invitation->role,
+            'expires_at' => $invitation->expires_at,
+        ]]);
+    }
+
     public function accept(Request $request): JsonResponse
     {
         $plainToken = $request->validate(['token' => ['required', 'string']])['token'];

@@ -5,6 +5,7 @@ use App\Models\Invitation;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\InvitationNotification;
+use App\Providers\AppServiceProvider;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\App;
@@ -296,4 +297,89 @@ it('links the invitation email to the frontend and no longer shows the token', f
     expect($mail->actionUrl)->toBe('https://app.example.com/invite/tok123')
         ->and($mail->actionText)->toBe('Accept invitation')
         ->and(implode(' ', $mail->introLines))->not->toContain('tok123');
+});
+
+function createPreviewInvitation(Organization $organization, User $inviter, array $attributes = []): Invitation
+{
+    return Invitation::factory()->withPlainToken('plain')->create([
+        'organization_id' => $organization->id,
+        'invited_by' => $inviter->id,
+        'email' => 'invitee@example.com',
+        'role' => 'admin',
+        ...$attributes,
+    ]);
+}
+
+function assertInvitationPreviewNotFound(string $token = 'plain'): void
+{
+    test()->withHeader('Accept-Language', 'es')->getJson("/api/invitations/{$token}")
+        ->assertNotFound()
+        ->assertJsonPath('message', __('The invitation is invalid or has expired.', [], 'es'));
+
+    expect(getPermissionsTeamId())->toBeNull();
+}
+
+it('previews a usable invitation without authentication', function () {
+    $invitation = createPreviewInvitation($this->organization, $this->owner);
+
+    $this->getJson('/api/invitations/plain')
+        ->assertOk()
+        ->assertExactJson(['data' => [
+            'organization' => ['name' => $this->organization->name],
+            'email' => 'invitee@example.com',
+            'role' => 'admin',
+            'expires_at' => $invitation->expires_at->toJSON(),
+        ]]);
+
+    expect(getPermissionsTeamId())->toBeNull();
+});
+
+it('answers 404 for an expired invitation preview', function () {
+    createPreviewInvitation($this->organization, $this->owner, ['expires_at' => now()->subMinute()]);
+
+    assertInvitationPreviewNotFound();
+});
+
+it('answers 404 for an accepted invitation preview', function () {
+    createPreviewInvitation($this->organization, $this->owner, ['accepted_at' => now()]);
+
+    assertInvitationPreviewNotFound();
+});
+
+it('answers 404 for an unknown invitation token preview', function () {
+    createPreviewInvitation($this->organization, $this->owner);
+
+    assertInvitationPreviewNotFound('plainx');
+});
+
+it('answers 404 for a preview whose inviter can no longer grant the role', function () {
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+    createPreviewInvitation($this->organization, $admin, ['role' => 'member']);
+
+    setPermissionsTeamId($this->organization->id);
+    $admin->syncRoles([Role::Member]);
+    setPermissionsTeamId(null);
+
+    assertInvitationPreviewNotFound();
+});
+
+it('answers 404 for a preview whose inviter left the organization', function () {
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+    createPreviewInvitation($this->organization, $admin, ['role' => 'member']);
+    $this->organization->users()->detach($admin->id);
+
+    assertInvitationPreviewNotFound();
+});
+
+it('throttles invitation previews per ip with a translated 429', function () {
+    foreach (range(1, AppServiceProvider::INVITATION_PREVIEWS_PER_MINUTE) as $attempt) {
+        $this->getJson('/api/invitations/nope')->assertNotFound();
+    }
+
+    $this->withHeader('Accept-Language', 'es')->getJson('/api/invitations/nope')
+        ->assertTooManyRequests()
+        ->assertHeader('Retry-After')
+        ->assertJsonPath('message', __('Too many attempts. Please try again in :seconds seconds.', ['seconds' => 60], 'es'));
 });

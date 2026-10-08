@@ -24,6 +24,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('organizations', [OrganizationController::class, 'store']);
 });
 
+Route::get('invitations/{token}', [InvitationController::class, 'show'])->middleware('throttle:invitation-preview');
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('invitations/accept', [InvitationController::class, 'accept']);
     Route::post('invitations', [InvitationController::class, 'store'])->middleware('organization');

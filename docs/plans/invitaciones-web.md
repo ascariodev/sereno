@@ -1,7 +1,7 @@
 # Plan: invitaciones-web
 
 **Objetivo:** que un owner o admin invite desde la web, que la persona invitada llegue por un enlace del correo, se registre o inicie sesión y acepte, y que el owner o admin vea y revoque las invitaciones pendientes.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -21,7 +21,7 @@
 - **Terminado cuando:** un test comprueba que el `toMail` tiene la acción con la URL del frontend y el token; pint y los tests de invitaciones pasan.
 - **Límite:** 5 archivos. Si el stack de producción del API declara sus variables una a una, agregar `FRONTEND_URL` ahí sería el sexto: anotarlo en Notas y hacerlo en el deploy.
 
-### [ ] Fase 2 — Vista previa pública de una invitación [riesgo]
+### [x] Fase 2 — Vista previa pública de una invitación [riesgo]
 - **Alcance:** `GET /api/invitations/{token}` sin autenticación y con throttle: si la invitación es usable, responde nombre de la organización, email, rol y vencimiento; si no, 404 con mensaje traducido (no distingue usada, vencida o inexistente).
 - **Archivos:** `api/routes/api.php`, `api/app/Http/Controllers/Api/InvitationController.php`, `api/lang/en.json`, `api/lang/es.json`, tests en `InvitationApiTest.php`.
 - **Terminado cuando:** tests de usable, vencida, aceptada, inexistente, invitador sin permiso y throttle pasan.
@@ -69,11 +69,15 @@
 - 2026-10-08 — Registro y aceptación desde la web se encadenan (register y luego accept) en vez de que `register` acepte un token: no toca la autenticación del API. Si accept falla, la cuenta queda creada sin organización y la vista lo informa.
 - 2026-10-08 — Volver a invitar el mismo email ya reemplaza la invitación pendiente: no hace falta un endpoint de reenvío.
 - 2026-10-08 — Fase 1: la clave "Your invitation token is: :token" se reemplazó por "Accept invitation" (botón). La URL usa `rtrim(frontend_url, '/')`. Producción lee el `.env` del servidor (no declara variables una a una en `docker-compose.prod.yml`): `FRONTEND_URL` se agrega en ese `.env` al desplegar.
+- 2026-10-08 — Fase 2: `GET /api/invitations/{token}` responde `{data:{organization:{name}, email, role, expires_at}}` (organization es objeto anidado: tiparlo así en la fase 5). Throttle con limitador con nombre `invitation-preview` (30/min por IP) en `AppServiceProvider`, en vez de tocar `lang/*.json`: el 404 reutiliza "The invitation is invalid or has expired.".
 
 ## Notas para la próxima sesión
-- Fase 1 hecha. Sigue la fase 2 (riesgo, opus).
+- Fases 1 y 2 hechas. Sigue la fase 3.
+- Fases 3 y 4: la ruta pública `GET invitations/{token}` está fuera del grupo `auth:sanctum`; al agregar `GET /invitations` y `DELETE /invitations/{invitation}` cuidar el orden para que no se pisen.
+- Con `APP_DEBUG` los 404 traen la traza: los tests revisan `message` con `assertJsonPath`, no `assertExactJson`.
 - Pendiente del usuario: agregar `FRONTEND_URL=http://localhost:5174` a `api/.env.example` (una regla de permisos impide al agente leerlo o editarlo) y al `.env` de producción al desplegar.
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): gestión de miembros (listar, cambiar rol, quitar), que hoy no existe en el API.
 - [ ] M-2 (media, sonnet): componentes `AppInput` y `AppButton` para no copiar los estilos de `LoginView` en cada formulario.
+- [ ] M-3 (baja, haiku): `InvitationController::show` carga `organization` con una consulta aparte; usar `load('organization')` o equivalente.
