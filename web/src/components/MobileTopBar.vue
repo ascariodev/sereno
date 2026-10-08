@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Menu, Search } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
+import BrandMark from './ui/BrandMark.vue'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ toggle: []; search: [] }>()
@@ -21,7 +22,10 @@ const { t } = useI18n()
     >
       <Menu :size="20" aria-hidden="true" />
     </button>
-    <strong class="mobile-top-bar__brand">{{ t('app.name') }}</strong>
+    <strong class="mobile-top-bar__brand">
+      <BrandMark :size="24" />
+      {{ t('app.name') }}
+    </strong>
     <button
       type="button"
       name="search"
@@ -73,6 +77,9 @@ const { t } = useI18n()
 }
 
 .mobile-top-bar__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 17px;
 }
 

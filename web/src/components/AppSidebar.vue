@@ -11,6 +11,7 @@ import { useProjectsStore } from '../stores/projects'
 import OrgSwitcher from './OrgSwitcher.vue'
 import UserMenu from './UserMenu.vue'
 import AppTooltip from './ui/AppTooltip.vue'
+import BrandMark from './ui/BrandMark.vue'
 import ProjectKey from './ui/ProjectKey.vue'
 
 const props = defineProps<{ collapsed?: boolean; collapsible?: boolean }>()
@@ -56,7 +57,10 @@ function currentFor(projectId: number): 'page' | undefined {
 <template>
   <nav :class="['app-sidebar', { 'app-sidebar--collapsed': collapsed }]" :aria-label="t('sidebar.label')">
     <div class="app-sidebar__top">
-      <strong v-if="!collapsed" class="app-sidebar__brand">{{ t('app.name') }}</strong>
+      <strong v-if="!collapsed" class="app-sidebar__brand">
+        <BrandMark :size="24" />
+        {{ t('app.name') }}
+      </strong>
       <AppTooltip
         v-if="collapsible"
         :text="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
@@ -217,7 +221,10 @@ function currentFor(projectId: number): 'page' | undefined {
 }
 
 .app-sidebar__brand {
-  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
   font-size: 15px;
 }
 

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import AppSegmented from '../components/ui/AppSegmented.vue'
+import BrandMark from '../components/ui/BrandMark.vue'
 import { toast } from '../components/ui/toast'
 import { chooseLocale, LOCALE_LABELS, type Locale } from '../i18n'
 import { safeRedirect } from '../router/safeRedirect'
@@ -77,10 +78,8 @@ async function submit(): Promise<void> {
     <section class="login__main">
       <header class="login__top">
         <div class="login__brand">
-          <span class="login__logo" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><path d="M14 17.5h7M17.5 14v7" /></svg>
-          </span>
-          <span class="login__brand-name">Workspace</span>
+          <BrandMark :size="30" />
+          <span class="login__brand-name">{{ t('app.name') }}</span>
         </div>
         <AppSegmented
           :model-value="locale"
@@ -188,15 +187,6 @@ async function submit(): Promise<void> {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-.login__logo {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: var(--accent);
-  color: var(--on-accent);
 }
 .login__brand-name {
   font-size: 16px;
