@@ -16,13 +16,11 @@ const router = useRouter()
 const auth = useAuthStore()
 const organization = useOrganizationStore()
 
-const canInvite = computed(() => !!organization.active?.roles.some((role) => role === 'owner' || role === 'admin'))
-
 const THEME_PREFIX = 'theme:'
 const LOCALE_PREFIX = 'locale:'
 
 const items = computed(() => [
-  ...(canInvite.value ? [{ value: 'invitations', label: t('userMenu.invitations'), icon: Mail }] : []),
+  ...(organization.canManageInvitations ? [{ value: 'invitations', label: t('userMenu.invitations'), icon: Mail }] : []),
   { value: `${THEME_PREFIX}system`, label: t('userMenu.theme.system'), icon: Monitor, checked: theme.value === 'system' },
   { value: `${THEME_PREFIX}light`, label: t('userMenu.theme.light'), icon: Sun, checked: theme.value === 'light' },
   { value: `${THEME_PREFIX}dark`, label: t('userMenu.theme.dark'), icon: Moon, checked: theme.value === 'dark' },

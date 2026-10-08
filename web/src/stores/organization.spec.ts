@@ -118,4 +118,20 @@ describe('organization store', () => {
     await store.load()
     expect(setProvider.mock.calls[0][0]?.()).toBe(1)
   })
+
+  it('derives owner and invitation management from the active roles', async () => {
+    const store = setup([
+      { id: 1, name: 'One', slug: 'one', settings: null, roles: ['owner'] },
+      { id: 2, name: 'Two', slug: 'two', settings: null, roles: ['admin'] },
+      { id: 3, name: 'Three', slug: 'three', settings: null, roles: ['member'] },
+    ])
+    expect(store.isOwner).toBe(false)
+    expect(store.canManageInvitations).toBe(false)
+    await store.load()
+    expect([store.isOwner, store.canManageInvitations]).toEqual([true, true])
+    store.select(2)
+    expect([store.isOwner, store.canManageInvitations]).toEqual([false, true])
+    store.select(3)
+    expect([store.isOwner, store.canManageInvitations]).toEqual([false, false])
+  })
 })

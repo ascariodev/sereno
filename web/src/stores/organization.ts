@@ -20,6 +20,9 @@ export const useOrganizationStore = defineStore('organization', () => {
 
   const active = computed(() => organizations.value.find((o) => o.id === activeId.value) ?? null)
 
+  const isOwner = computed(() => !!active.value?.roles.includes('owner'))
+  const canManageInvitations = computed(() => isOwner.value || !!active.value?.roles.includes('admin'))
+
   function setActive(id: number | null): void {
     if (id === activeId.value) return
     activeId.value = id
@@ -50,7 +53,7 @@ export const useOrganizationStore = defineStore('organization', () => {
     setActive(null)
   }
 
-  return { organizations, activeId, active, loaded, version, load, select, clear }
+  return { organizations, activeId, active, isOwner, canManageInvitations, loaded, version, load, select, clear }
 })
 
 export function installOrganizationOnApi(): void {

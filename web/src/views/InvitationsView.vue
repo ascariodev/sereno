@@ -23,9 +23,6 @@ const inviteOpen = ref(false)
 let generation = 0
 let controller: AbortController | null = null
 
-const roles = computed(() => organization.active?.roles ?? [])
-const isOwner = computed(() => roles.value.includes('owner'))
-const canManage = computed(() => isOwner.value || roles.value.includes('admin'))
 
 const confirmOpen = computed({
   get: () => pending.value !== null,
@@ -35,7 +32,7 @@ const confirmOpen = computed({
 })
 
 function canRevoke(invitation: Invitation): boolean {
-  return isOwner.value || invitation.role !== 'owner'
+  return organization.isOwner || invitation.role !== 'owner'
 }
 
 function formatDate(value: string): string {
@@ -65,7 +62,7 @@ async function load(): Promise<void> {
 }
 
 watch(
-  () => [organization.activeId, canManage.value] as const,
+  () => [organization.activeId, organization.canManageInvitations] as const,
   ([, allowed]) => {
     if (allowed) {
       void load()
@@ -118,7 +115,7 @@ async function confirmRevoke(): Promise<void> {
 </script>
 
 <template>
-  <section v-if="canManage" class="invitations">
+  <section v-if="organization.canManageInvitations" class="invitations">
     <header class="invitations__header">
       <h1 class="invitations__title">{{ t('invitations.title') }}</h1>
       <button type="button" class="invitations__invite" data-test="invite" @click="inviteOpen = true">
@@ -162,7 +159,7 @@ async function confirmRevoke(): Promise<void> {
       </li>
     </ul>
 
-    <InviteDialog v-model:open="inviteOpen" :is-owner="isOwner" @created="onCreated" />
+    <InviteDialog v-model:open="inviteOpen" :is-owner="organization.isOwner" @created="onCreated" />
 
     <AppDialog v-model:open="confirmOpen" :title="t('invitations.revokeTitle')" :close-label="t('invitations.cancel')">
       <p v-if="pending" data-test="confirm-text">{{ t('invitations.revokeConfirm', { email: pending.email }) }}</p>

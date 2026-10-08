@@ -95,7 +95,7 @@
 - [ ] M-8 (baja, haiku): `InviteView.spec` lee `loadError` desde `vm` de la vista desmontada; afirmar por el DOM o por una señal pública para no depender del acceso a `script setup`.
 - [x] M-9 (baja, haiku): en InviteView, un 422 de register en `email` (ya registrado) muestra solo el mensaje del API; agregar un texto que lleve a "Iniciar sesión".
 - [x] M-10 (baja, haiku): unificar `role="alert"`/`role="status"` en los avisos de "cuenta creada" de InviteView, y usar una key con índice en los `v-for` de errores.
-- [ ] M-11 (baja, haiku): mover `canManageInvitations` a `organizationStore` para quitar el duplicado entre UserMenu e InvitationsView.
+- [x] M-11 (baja, haiku): mover `canManageInvitations` a `organizationStore` para quitar el duplicado entre UserMenu e InvitationsView.
 - [ ] M-12 (baja, haiku): en InvitationsView, el 404 al revocar (ya no existe) muestra un toast informativo, no de error; y limpiar `pending` en la rama que redirige a projects.
 - [ ] M-13 (baja, haiku): deshabilitar el botón Invitar mientras la lista carga, para que `load` no pise una invitación recién creada.
 - [ ] M-14 (baja, haiku): estilo destructivo (rojo) en el botón "Revocar invitación" del diálogo de confirmación.
