@@ -201,6 +201,26 @@ describe('projects store', () => {
       expect(projectCalls(get)).toBeGreaterThan(0)
     })
 
+    it('re-arms the refresh while a reload is pending instead of losing it', async () => {
+      const pending: ((value: unknown) => void)[] = []
+      const { store, get } = await loaded(() => new Promise((resolve) => pending.push(resolve)))
+      const reloading = store.reload()
+      expect(store.loading).toBe(true)
+      expect(pending).toHaveLength(1)
+      store.refreshCounts()
+      await vi.advanceTimersByTimeAsync(900)
+      expect(pending).toHaveLength(1)
+      pending[0]({ data: [counted(1, 'Alpha', 0, null), counted(2, 'Beta', 1, 'warning')], meta: meta() })
+      await reloading
+      expect(store.loading).toBe(false)
+      const before = projectCalls(get)
+      await vi.advanceTimersByTimeAsync(300)
+      expect(projectCalls(get)).toBe(before + 1)
+      pending[1]({ data: [counted(1, 'Alpha', 6, 'critical'), counted(2, 'Beta', 1, 'warning')], meta: meta() })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(store.projects.map((p) => p.open_groups_count)).toEqual([6, 1])
+    })
+
     it('keeps the previous counts when the refresh fails', async () => {
       const { store } = await loaded(() => Promise.reject(new ApiError(500, 'boom')))
       store.refreshCounts()
