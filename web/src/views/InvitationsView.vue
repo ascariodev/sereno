@@ -309,9 +309,9 @@ async function confirmRevoke(): Promise<void> {
 }
 
 .invitations__confirm {
-  border-color: transparent;
-  background: var(--ink);
-  color: var(--surface);
+  border-color: var(--level-error-fg);
+  background: var(--level-error-bg);
+  color: var(--level-error-fg);
 }
 
 .invitations__confirm:disabled,
