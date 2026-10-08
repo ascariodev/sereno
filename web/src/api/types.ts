@@ -130,6 +130,30 @@ export interface Message {
   created_at: string
 }
 
+export type InvitationRole = 'owner' | 'admin' | 'member'
+
+export interface Invitation {
+  id: number
+  email: string
+  role: InvitationRole
+  locale: string
+  /** Null when the inviter was deleted. */
+  invited_by: { id: number; name: string } | null
+  expires_at: string
+  created_at: string
+}
+
+export interface InvitationPreview {
+  organization: { name: string }
+  email: string
+  role: InvitationRole
+  expires_at: string
+}
+
+export interface AcceptedInvitation {
+  organization_id: number
+}
+
 export interface DataEnvelope<T> {
   data: T
 }

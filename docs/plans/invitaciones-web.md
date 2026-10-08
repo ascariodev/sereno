@@ -1,7 +1,7 @@
 # Plan: invitaciones-web
 
 **Objetivo:** que un owner o admin invite desde la web, que la persona invitada llegue por un enlace del correo, se registre o inicie sesión y acepte, y que el owner o admin vea y revoque las invitaciones pendientes.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -37,7 +37,7 @@
 - **Archivos:** `api/routes/api.php`, `InvitationController.php`, `InvitationPolicy.php`, tests.
 - **Terminado cuando:** tests de revocar, 403 por rol, 404 de otra organización, y que el token revocado ya no se acepta, pasan.
 
-### [ ] Fase 5 — Cliente web de invitaciones
+### [x] Fase 5 — Cliente web de invitaciones
 - **Alcance:** `web/src/api/invitations.ts` con `previewInvitation`, `acceptInvitation`, `listInvitations`, `createInvitation`, `revokeInvitation`; tipos en `api/types.ts`.
 - **Archivos:** `web/src/api/invitations.ts` (nuevo), `web/src/api/types.ts`, spec.
 - **Terminado cuando:** el spec cubre rutas, cuerpos y errores; typecheck limpio.
@@ -72,9 +72,10 @@
 - 2026-10-08 — Fase 2: `GET /api/invitations/{token}` responde `{data:{organization:{name}, email, role, expires_at}}` (organization es objeto anidado: tiparlo así en la fase 5). Throttle con limitador con nombre `invitation-preview` (30/min por IP) en `AppServiceProvider`, en vez de tocar `lang/*.json`: el 404 reutiliza "The invitation is invalid or has expired.".
 - 2026-10-08 — Fase 3: `InvitationResource` = `{id, email, role, locale, invited_by: {id, name} | null, expires_at, created_at}` (envuelto en `data`; nunca el token). `invited_by` es null si el invitador fue borrado. `GET /api/invitations` sin paginar, ordenado por `created_at` e `id` desc. `store` responde 201 con el mismo resource.
 - 2026-10-08 — Fase 4: `DELETE /api/invitations/{invitation}` responde 204 sin cuerpo y borra la fila (`revokeInvitation` no espera JSON). Aceptada o vencida: 404 con "The invitation is invalid or has expired.". Otra organización: 404 por el binding con scope. `InvitationPolicy::delete` delega en `create` con el rol de la invitación.
+- 2026-10-08 — Fase 5: `web/src/api/invitations.ts` exporta `previewInvitation(token, signal?)`, `acceptInvitation(token)` (→ `{organization_id}`), `listInvitations(signal?)`, `createInvitation(email, role)`, `revokeInvitation(id)` (void), todas con `data` desenvuelto. Tipos `InvitationRole`, `Invitation`, `InvitationPreview`, `AcceptedInvitation` en `api/types.ts`. Errores del API: preview 404 si no es usable; accept 422 si inválida/vencida/invitador sin permiso y 403 si el email no coincide.
 
 ## Notas para la próxima sesión
-- Fases 1 a 4 hechas (API completa). Sigue la fase 5 (web): tipos según las Decisiones de las fases 2 a 4 (L-09).
+- Fases 1 a 5 hechas. Sigue la fase 6 (riesgo, opus): InviteView trata los errores de accept según la decisión de la fase 5.
 - Con `APP_DEBUG` los 404 traen la traza: los tests revisan `message` con `assertJsonPath`, no `assertExactJson`.
 - Pendiente del usuario: agregar `FRONTEND_URL=http://localhost:5174` a `api/.env.example` (una regla de permisos impide al agente leerlo o editarlo) y al `.env` de producción al desplegar.
 
