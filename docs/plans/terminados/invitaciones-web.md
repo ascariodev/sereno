@@ -1,7 +1,7 @@
 # Plan: invitaciones-web
 
 **Objetivo:** que un owner o admin invite desde la web, que la persona invitada llegue por un enlace del correo, se registre o inicie sesión y acepte, y que el owner o admin vea y revoque las invitaciones pendientes.
-**Estado:** en curso · Fase actual: 9
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
