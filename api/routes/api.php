@@ -41,6 +41,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::delete('projects/{project}/log-sources/{source}', [LogSourceController::class, 'destroy']);
     Route::post('projects/{project}/log-sources/{source}/rotate-key', [LogSourceController::class, 'rotateKey']);
     Route::get('projects/{project}/log-groups', [LogGroupController::class, 'index']);
+    Route::get('projects/{project}/log-groups/hourly', [LogGroupController::class, 'hourly']);
     Route::get('projects/{project}/log-groups/{group}', [LogGroupController::class, 'show']);
     Route::patch('projects/{project}/log-groups/{group}', [LogGroupController::class, 'update']);
     Route::get('channels', [ChannelController::class, 'index']);

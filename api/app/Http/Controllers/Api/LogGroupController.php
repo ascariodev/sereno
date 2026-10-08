@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\LogLevel;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LogGroup\HourlyLogGroupsRequest;
 use App\Http\Requests\LogGroup\ListLogGroupsRequest;
 use App\Http\Requests\LogGroup\UpdateLogGroupRequest;
 use App\Http\Resources\LogGroupResource;
@@ -12,7 +13,9 @@ use App\Models\LogEvent;
 use App\Models\LogGroup;
 use App\Models\Message;
 use App\Models\Project;
+use App\Support\LogGroupHourlyCounts;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -34,6 +37,17 @@ class LogGroupController extends Controller
                 ->paginate($request->perPage())
                 ->withQueryString(),
         );
+    }
+
+    public function hourly(HourlyLogGroupsRequest $request, Project $project): JsonResource
+    {
+        $hourly = LogGroupHourlyCounts::for($project, $request->ids(), now());
+
+        return JsonResource::make([
+            'from' => $hourly['from']->toJSON(),
+            'hours' => $hourly['hours'],
+            'counts' => (object) $hourly['counts'],
+        ]);
     }
 
     public function show(Project $project, LogGroup $group): LogGroupResource
