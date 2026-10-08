@@ -116,6 +116,7 @@ describe('AppLayout', () => {
   it('shows a message without organizations and no page', async () => {
     const { wrapper } = await mountApp(async () => ({ data: [] }))
     expect(wrapper.text()).toContain('You do not belong to any organization yet.')
+    expect(wrapper.find('.app-layout__empty').text()).toContain('Ask an owner or admin')
     expect(wrapper.text()).not.toContain('Projects')
     expect(wrapper.find('button[name=organization]').exists()).toBe(false)
   })

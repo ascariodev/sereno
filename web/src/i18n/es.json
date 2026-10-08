@@ -79,6 +79,7 @@
   "organization": {
     "label": "Organización",
     "none": "Aún no perteneces a ninguna organización.",
+    "noneHint": "Pide a un propietario o administrador de tu equipo que te envíe una invitación.",
     "loadFailed": "No se pudieron cargar tus organizaciones."
   },
   "sidebar": {

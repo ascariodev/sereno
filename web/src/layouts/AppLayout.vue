@@ -119,7 +119,8 @@ onBeforeUnmount(() => {
         <button type="button" name="retry" @click="loadOrganizations">{{ t('common.retry') }}</button>
       </p>
       <p v-else-if="organization.loaded && organization.activeId === null" class="app-layout__empty">
-        {{ t('organization.none') }}
+        <strong>{{ t('organization.none') }}</strong>
+        <span>{{ t('organization.noneHint') }}</span>
       </p>
       <RouterView v-else-if="organization.activeId !== null" />
     </main>
@@ -156,6 +157,23 @@ onBeforeUnmount(() => {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
+}
+
+.app-layout__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 40px 16px;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-panel);
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.app-layout__empty strong {
+  color: var(--ink-2);
 }
 
 .app-layout--fixed {

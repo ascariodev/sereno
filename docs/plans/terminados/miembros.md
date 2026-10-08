@@ -86,4 +86,4 @@
 - [x] M-9 (baja, sonnet): si `organization.load()` falla tras cambiar el propio rol, no restaurar el select ni mostrar `roleFailed`: separar el `load()` en su propio try.
 - [x] M-10 (baja, sonnet): spec de L-10/L-32 para el cambio de rol: cambiar de organización con la petición en vuelo no aplica la respuesta.
 - [x] M-11 (baja, sonnet): spec de `organization.load()` fallido tras salir (toast `leftReloadFailed`) y del reset de `leaving` cuando `router.replace` no navega.
-- [ ] M-12 (media, sonnet): dar estilo al estado vacío de `AppLayout` sin organizaciones (hoy texto plano).
+- [x] M-12 (media, sonnet): dar estilo al estado vacío de `AppLayout` sin organizaciones (hoy texto plano).
