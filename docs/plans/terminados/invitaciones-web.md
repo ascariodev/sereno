@@ -97,6 +97,6 @@
 - [x] M-10 (baja, haiku): unificar `role="alert"`/`role="status"` en los avisos de "cuenta creada" de InviteView, y usar una key con índice en los `v-for` de errores.
 - [x] M-11 (baja, haiku): mover `canManageInvitations` a `organizationStore` para quitar el duplicado entre UserMenu e InvitationsView.
 - [x] M-12 (baja, haiku): en InvitationsView, el 404 al revocar (ya no existe) muestra un toast informativo, no de error; y limpiar `pending` en la rama que redirige a projects.
-- [ ] M-13 (baja, haiku): deshabilitar el botón Invitar mientras la lista carga, para que `load` no pise una invitación recién creada.
+- [x] M-13 (baja, haiku): deshabilitar el botón Invitar mientras la lista carga, para que `load` no pise una invitación recién creada.
 - [ ] M-14 (baja, haiku): estilo destructivo (rojo) en el botón "Revocar invitación" del diálogo de confirmación.
 - [ ] M-15 (baja, haiku): `LoginView.vue` usa `:key="message"` en los `v-for` de errores; pasar a `${index}-${message}` como InviteView.

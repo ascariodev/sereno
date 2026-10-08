@@ -118,7 +118,7 @@ async function confirmRevoke(): Promise<void> {
   <section v-if="organization.canManageInvitations" class="invitations">
     <header class="invitations__header">
       <h1 class="invitations__title">{{ t('invitations.title') }}</h1>
-      <button type="button" class="invitations__invite" data-test="invite" @click="inviteOpen = true">
+      <button type="button" class="invitations__invite" data-test="invite" :disabled="loading" @click="inviteOpen = true">
         {{ t('invitations.invite') }}
       </button>
     </header>

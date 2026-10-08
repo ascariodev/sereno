@@ -245,4 +245,22 @@ describe('InvitationsView', () => {
     expect(router.currentRoute.value.name).toBe('projects')
     expect(get).not.toHaveBeenCalledWith('/api/invitations', expect.anything())
   })
+
+  it('disables the invite button while the list loads and enables it afterwards', async () => {
+    let release: (value: unknown) => void = () => undefined
+    const gate = new Promise((resolve) => (release = resolve))
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/invitations') {
+        await gate
+        return { data: [] }
+      }
+      return { data: [] }
+    })
+    await mountDirect(['owner'])
+    const button = () => wrapper!.find('[data-test=invite]')
+    expect(button().attributes('disabled')).toBeDefined()
+    release(undefined)
+    await flushPromises()
+    expect(button().attributes('disabled')).toBeUndefined()
+  })
 })
