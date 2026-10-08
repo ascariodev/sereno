@@ -24,6 +24,30 @@ describe('auth store', () => {
     expect(getLocale()).toBe('es')
   })
 
+  it('register posts the confirmation and stores token, user and locale', async () => {
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ token: 'new', user })
+    const auth = useAuthStore()
+    await auth.register('Test', 'test@example.com', 'secret-pass-1', 'secret-pass-1')
+    expect(post).toHaveBeenCalledWith('/api/auth/register', {
+      name: 'Test',
+      email: 'test@example.com',
+      password: 'secret-pass-1',
+      password_confirmation: 'secret-pass-1',
+    })
+    expect(auth.token).toBe('new')
+    expect(auth.user).toEqual(user)
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('new')
+    expect(getLocale()).toBe('es')
+  })
+
+  it('a failed register leaves no session', async () => {
+    vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'bad', { email: ['x'] }))
+    const auth = useAuthStore()
+    await expect(auth.register('a', 'b', 'c', 'd')).rejects.toBeInstanceOf(ApiError)
+    expect(auth.isAuthenticated).toBe(false)
+    expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
+  })
+
   it('a failed login leaves no session', async () => {
     vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'bad', { email: ['x'] }))
     const auth = useAuthStore()

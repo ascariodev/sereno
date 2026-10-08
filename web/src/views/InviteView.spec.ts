@@ -239,4 +239,178 @@ describe('InviteView', () => {
 
     expect(wrapper.find('h1').text()).toBe('You were invited to Acme')
   })
+
+  describe('creating an account from the invitation', () => {
+    const registered = { token: 'new-token', user: { ...user, email: 't@e.com' } }
+
+    async function fill(wrapper: Awaited<ReturnType<typeof mountInvite>>['wrapper']) {
+      await wrapper.find('#invite-name').setValue('New Person')
+      await wrapper.find('#invite-password').setValue('secret-pass-1')
+      await wrapper.find('#invite-password-confirmation').setValue('secret-pass-1')
+      await wrapper.find('[data-test=register-form]').trigger('submit')
+      await flushPromises()
+    }
+
+    it('shows the form with the fixed email and a link to sign in that returns here', async () => {
+      mockGet()
+      const { wrapper, router } = await mountInvite()
+
+      expect((wrapper.find('#invite-email').element as HTMLInputElement).value).toBe('t@e.com')
+      expect(wrapper.find('#invite-email').attributes('readonly')).toBeDefined()
+      expect(wrapper.find('[data-test=sign-in-instead]').attributes('href')).toBe(
+        router.resolve({ name: 'login', query: { redirect: '/invite/tok' } }).href,
+      )
+    })
+
+    it('registers and then accepts, selects the organization and goes to projects', async () => {
+      mockGet()
+      const post = vi.spyOn(api, 'post').mockImplementation(async (path: string) => {
+        if (path === '/api/auth/register') return registered
+        return { data: { organization_id: 7 } }
+      })
+      const { wrapper, router } = await mountInvite()
+
+      await fill(wrapper)
+
+      expect(post.mock.calls).toEqual([
+        [
+          '/api/auth/register',
+          { name: 'New Person', email: 't@e.com', password: 'secret-pass-1', password_confirmation: 'secret-pass-1' },
+        ],
+        ['/api/invitations/accept', { token: 'tok' }],
+      ])
+      expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe('new-token')
+      expect(useOrganizationStore().activeId).toBe(7)
+      expect(router.currentRoute.value.name).toBe('projects')
+      expect(toasts.value.map((item) => item.message)).toContain('You joined Acme.')
+    })
+
+    it('shows 422 errors per field and does not accept', async () => {
+      mockGet()
+      const post = vi
+        .spyOn(api, 'post')
+        .mockRejectedValue(
+          new ApiError(422, 'invalid', { name: ['Name is required'], password: ['Too short'], email: ['Taken'] }),
+        )
+      const { wrapper } = await mountInvite()
+
+      await fill(wrapper)
+
+      expect(post).toHaveBeenCalledTimes(1)
+      expect(wrapper.find('[data-test=error-name]').text()).toBe('Name is required')
+      expect(wrapper.find('[data-test=error-password]').text()).toBe('Too short')
+      expect(wrapper.find('[data-test=error-email]').text()).toBe('Taken')
+      expect(wrapper.find('#invite-name').attributes('aria-invalid')).toBe('true')
+      expect(wrapper.find('#invite-password').attributes('aria-describedby')).toBe('invite-password-error-0')
+      expect(useAuthStore().isAuthenticated).toBe(false)
+    })
+
+    it('clears both passwords after a 422 on the password', async () => {
+      mockGet()
+      vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'invalid', { password: ['Too short'] }))
+      const { wrapper } = await mountInvite()
+
+      await fill(wrapper)
+
+      expect((wrapper.find('#invite-password').element as HTMLInputElement).value).toBe('')
+      expect((wrapper.find('#invite-password-confirmation').element as HTMLInputElement).value).toBe('')
+      expect((wrapper.find('#invite-name').element as HTMLInputElement).value).toBe('New Person')
+    })
+
+    it('does not accept when unmounted while registering', async () => {
+      mockGet()
+      let resolveRegister: (value: unknown) => void = () => {}
+      const post = vi.spyOn(api, 'post').mockImplementation(async (path: string) => {
+        if (path === '/api/auth/register') return new Promise((resolve) => (resolveRegister = resolve))
+        return { data: { organization_id: 7 } }
+      })
+      const { wrapper } = await mountInvite()
+      const inviteView = wrapper.findComponent({ name: 'InviteView' })
+
+      await fill(wrapper)
+      wrapper.unmount()
+      resolveRegister(registered)
+      await flushPromises()
+
+      expect(post).toHaveBeenCalledTimes(1)
+      expect((inviteView.vm as unknown as { registered: boolean }).registered).toBe(false)
+      expect(useOrganizationStore().activeId).toBeNull()
+    })
+
+    it('does not accept the new token when the token changes while registering', async () => {
+      mockGet({ '/api/invitations/other': () => ({ data: { ...preview, organization: { name: 'Other' } } }) })
+      let resolveRegister: (value: unknown) => void = () => {}
+      const post = vi.spyOn(api, 'post').mockImplementation(async (path: string) => {
+        if (path === '/api/auth/register') return new Promise((resolve) => (resolveRegister = resolve))
+        return { data: { organization_id: 7 } }
+      })
+      const { wrapper, router } = await mountInvite()
+      const inviteView = wrapper.findComponent({ name: 'InviteView' })
+
+      await fill(wrapper)
+      await router.push('/invite/other')
+      await flushPromises()
+      resolveRegister(registered)
+      await flushPromises()
+
+      expect(post).toHaveBeenCalledTimes(1)
+      expect((inviteView.vm as unknown as { registered: boolean }).registered).toBe(false)
+      expect(router.currentRoute.value.name).not.toBe('projects')
+    })
+
+    it('shows a message on throttling', async () => {
+      mockGet()
+      vi.spyOn(api, 'post').mockRejectedValue(new ApiError(429, 'Too Many Attempts.'))
+      const { wrapper } = await mountInvite()
+
+      await fill(wrapper)
+
+      expect(wrapper.find('[data-test=error-form]').text()).toBe('Too many attempts. Try again in a minute.')
+    })
+
+    it('reports the created account and allows retrying when accepting fails', async () => {
+      mockGet()
+      let acceptFails = true
+      const post = vi.spyOn(api, 'post').mockImplementation(async (path: string) => {
+        if (path === '/api/auth/register') return registered
+        if (acceptFails) {
+          acceptFails = false
+          throw new ApiError(503, 'Unavailable')
+        }
+        return { data: { organization_id: 7 } }
+      })
+      const { wrapper, router } = await mountInvite()
+
+      await fill(wrapper)
+
+      expect(useAuthStore().isAuthenticated).toBe(true)
+      expect(wrapper.find('[data-test=registered-not-joined]').text()).toBe(
+        'Your account was created, but you have not joined the organization yet.',
+      )
+      expect(wrapper.find('[data-test=accept-error]').exists()).toBe(true)
+      expect(wrapper.find('[data-test=register-form]').exists()).toBe(false)
+
+      await wrapper.find('[data-test=accept]').trigger('click')
+      await flushPromises()
+
+      expect(post).toHaveBeenCalledTimes(3)
+      expect(router.currentRoute.value.name).toBe('projects')
+    })
+
+    it('reports the created account when the invitation turns out not usable', async () => {
+      mockGet()
+      vi.spyOn(api, 'post').mockImplementation(async (path: string) => {
+        if (path === '/api/auth/register') return registered
+        throw new ApiError(422, 'The invitation is invalid or has expired.')
+      })
+      const { wrapper } = await mountInvite()
+
+      await fill(wrapper)
+
+      expect(wrapper.find('[data-test=unusable]').exists()).toBe(true)
+      expect(wrapper.find('[data-test=registered-unusable]').text()).toBe(
+        'Your account was created, but the invitation could not be accepted.',
+      )
+    })
+  })
 })

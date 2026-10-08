@@ -53,6 +53,19 @@ export const useAuthStore = defineStore('auth', () => {
     return saved
   }
 
+  async function register(name: string, email: string, password: string, passwordConfirmation: string): Promise<void> {
+    const response = await api.post<LoginResponse>('/api/auth/register', {
+      name,
+      email,
+      password,
+      password_confirmation: passwordConfirmation,
+    })
+    token.value = response.token
+    user.value = response.user
+    localStorage.setItem(TOKEN_STORAGE_KEY, response.token)
+    setLocale(response.user.locale)
+  }
+
   async function fetchMe(): Promise<void> {
     const response = await api.get<{ data: User }>('/api/me')
     user.value = response.data
@@ -69,7 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { token, user, isAuthenticated, login, chooseAndSaveLocale, fetchMe, logout, clearSession }
+  return { token, user, isAuthenticated, login, register, chooseAndSaveLocale, fetchMe, logout, clearSession }
 })
 
 export function installAuthOnApi(onSessionExpired?: () => void): void {

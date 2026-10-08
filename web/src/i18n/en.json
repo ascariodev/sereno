@@ -61,7 +61,19 @@
     "loadFailed": "Could not load the invitation.",
     "home": "Go to the home page",
     "sessionExpired": "Your session expired. Sign in again to accept the invitation.",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "createTitle": "Create your account",
+    "name": "Name",
+    "password": "Password",
+    "passwordConfirmation": "Confirm password",
+    "createAccount": "Create account and join",
+    "creating": "Creating account...",
+    "haveAccount": "Already have an account?",
+    "signInInstead": "Sign in to accept",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "registerFailed": "Could not create the account. Try again.",
+    "accountCreatedNotJoined": "Your account was created, but you have not joined the organization yet.",
+    "accountCreatedUnusable": "Your account was created, but the invitation could not be accepted."
   },
   "organization": {
     "label": "Organization",

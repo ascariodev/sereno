@@ -91,6 +91,13 @@ describe('LoginView', () => {
     expect(external.router.currentRoute.value.name).toBe('projects')
   })
 
+  it('goes back to the invitation after signing in', async () => {
+    vi.spyOn(api, 'post').mockResolvedValue({ token: 'abc', user })
+    const { wrapper, router } = await mountLogin('/login?redirect=/invite/tok')
+    await submit(wrapper)
+    expect(router.currentRoute.value.fullPath).toBe('/invite/tok')
+  })
+
   it('shows the email error from a 422', async () => {
     vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'invalid', { email: ['Bad credentials'] }))
     const { wrapper, router } = await mountLogin()

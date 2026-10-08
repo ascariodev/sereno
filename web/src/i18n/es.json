@@ -61,7 +61,19 @@
     "loadFailed": "No se pudo cargar la invitación.",
     "home": "Ir al inicio",
     "sessionExpired": "Tu sesión venció. Inicia sesión de nuevo para aceptar la invitación.",
-    "signIn": "Iniciar sesión"
+    "signIn": "Iniciar sesión",
+    "createTitle": "Crea tu cuenta",
+    "name": "Nombre",
+    "password": "Contraseña",
+    "passwordConfirmation": "Confirmar contraseña",
+    "createAccount": "Crear cuenta y unirme",
+    "creating": "Creando cuenta...",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "signInInstead": "Inicia sesión para aceptar",
+    "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
+    "registerFailed": "No se pudo crear la cuenta. Inténtalo de nuevo.",
+    "accountCreatedNotJoined": "Tu cuenta se creó, pero aún no te uniste a la organización.",
+    "accountCreatedUnusable": "Tu cuenta se creó, pero no se pudo aceptar la invitación."
   },
   "organization": {
     "label": "Organización",

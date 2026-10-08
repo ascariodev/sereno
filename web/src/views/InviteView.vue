@@ -26,6 +26,14 @@ const accepting = ref(false)
 const signingOut = ref(false)
 const acceptError = ref<string | null>(null)
 const sessionExpired = ref(false)
+const registered = ref(false)
+const registering = ref(false)
+const name = ref('')
+const password = ref('')
+const passwordConfirmation = ref('')
+const fieldErrors = ref<Record<string, string[]>>({})
+const formError = ref<string | null>(null)
+type RegisterField = 'name' | 'password'
 let generation = 0
 let controller: AbortController | null = null
 
@@ -47,6 +55,9 @@ async function load(): Promise<void> {
   loadError.value = null
   acceptError.value = null
   sessionExpired.value = false
+  registered.value = false
+  formError.value = null
+  fieldErrors.value = {}
   loading.value = true
   try {
     const result = await previewInvitation(token.value, controller.signal)
@@ -110,6 +121,50 @@ async function accept(): Promise<void> {
   }
 }
 
+function errorIds(field: RegisterField): string[] {
+  return (fieldErrors.value[field] ?? []).map((_, index) => `invite-${field}-error-${index}`)
+}
+
+function describedBy(field: RegisterField): string | undefined {
+  const ids = errorIds(field)
+  return ids.length ? ids.join(' ') : undefined
+}
+
+async function register(): Promise<void> {
+  if (registering.value || accepting.value || !preview.value) return
+  const current = generation
+  const invitedEmail = preview.value.email
+  registering.value = true
+  fieldErrors.value = {}
+  formError.value = null
+  try {
+    await auth.register(name.value, invitedEmail, password.value, passwordConfirmation.value)
+    if (current !== generation) return
+    registered.value = true
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error
+    if (current !== generation) return
+    if (error.status === 422) {
+      fieldErrors.value = error.errors
+      if (error.errors.password?.length) {
+        password.value = ''
+        passwordConfirmation.value = ''
+      }
+      if (!Object.values(error.errors).some((messages) => messages.length)) formError.value = t('invite.registerFailed')
+    } else if (error.status === 429) {
+      formError.value = t('invite.tooManyAttempts')
+    } else if (error.status === 0) {
+      formError.value = t('invite.network')
+    } else {
+      formError.value = t('invite.registerFailed')
+    }
+    return
+  } finally {
+    registering.value = false
+  }
+  await accept()
+}
+
 async function signOut(): Promise<void> {
   if (signingOut.value) return
   signingOut.value = true
@@ -134,6 +189,7 @@ async function signOut(): Promise<void> {
       <template v-else-if="loadError === 'unusable'">
         <h1>{{ t('invite.unusableTitle') }}</h1>
         <p role="alert" data-test="unusable">{{ t('invite.unusable') }}</p>
+        <p v-if="registered" role="alert" data-test="registered-unusable">{{ t('invite.accountCreatedUnusable') }}</p>
         <RouterLink to="/" class="invite__link" data-test="home">{{ t('invite.home') }}</RouterLink>
       </template>
 
@@ -175,6 +231,9 @@ async function signOut(): Promise<void> {
 
         <template v-else-if="auth.isAuthenticated && auth.user">
           <template v-if="emailMatches">
+            <p v-if="registered" role="status" data-test="registered-not-joined">
+              {{ t('invite.accountCreatedNotJoined') }}
+            </p>
             <button
               type="button"
               class="invite__button"
@@ -201,6 +260,93 @@ async function signOut(): Promise<void> {
           </template>
           <p v-if="acceptError" class="invite__error" role="alert" data-test="accept-error">{{ acceptError }}</p>
         </template>
+
+        <form v-else class="invite__form" novalidate data-test="register-form" @submit.prevent="register">
+          <h2>{{ t('invite.createTitle') }}</h2>
+
+          <div class="invite__field">
+            <label for="invite-name">{{ t('invite.name') }}</label>
+            <input
+              id="invite-name"
+              v-model="name"
+              type="text"
+              name="name"
+              autocomplete="name"
+              required
+              :aria-invalid="describedBy('name') ? 'true' : undefined"
+              :aria-describedby="describedBy('name')"
+            />
+            <p
+              v-for="(message, index) in fieldErrors.name"
+              :id="`invite-name-error-${index}`"
+              :key="message"
+              class="invite__error"
+              data-test="error-name"
+            >
+              {{ message }}
+            </p>
+          </div>
+
+          <div class="invite__field">
+            <label for="invite-email">{{ t('invite.email') }}</label>
+            <input id="invite-email" type="email" name="email" autocomplete="username" readonly :value="preview.email" />
+            <p v-for="message in fieldErrors.email" :key="message" class="invite__error" data-test="error-email">
+              {{ message }}
+            </p>
+          </div>
+
+          <div class="invite__field">
+            <label for="invite-password">{{ t('invite.password') }}</label>
+            <input
+              id="invite-password"
+              v-model="password"
+              type="password"
+              name="password"
+              autocomplete="new-password"
+              required
+              :aria-invalid="describedBy('password') ? 'true' : undefined"
+              :aria-describedby="describedBy('password')"
+            />
+            <p
+              v-for="(message, index) in fieldErrors.password"
+              :id="`invite-password-error-${index}`"
+              :key="message"
+              class="invite__error"
+              data-test="error-password"
+            >
+              {{ message }}
+            </p>
+          </div>
+
+          <div class="invite__field">
+            <label for="invite-password-confirmation">{{ t('invite.passwordConfirmation') }}</label>
+            <input
+              id="invite-password-confirmation"
+              v-model="passwordConfirmation"
+              type="password"
+              name="password_confirmation"
+              autocomplete="new-password"
+              required
+            />
+          </div>
+
+          <p v-if="formError" class="invite__error" role="alert" data-test="error-form">{{ formError }}</p>
+
+          <button type="submit" class="invite__button" data-test="register" :disabled="registering || accepting">
+            {{ registering || accepting ? t('invite.creating') : t('invite.createAccount') }}
+          </button>
+
+          <p class="invite__alt">
+            {{ t('invite.haveAccount') }}
+            <RouterLink
+              :to="{ name: 'login', query: { redirect: route.fullPath } }"
+              class="invite__link"
+              data-test="sign-in-instead"
+            >
+              {{ t('invite.signInInstead') }}
+            </RouterLink>
+          </p>
+        </form>
       </template>
     </section>
   </main>
@@ -290,6 +436,43 @@ async function signOut(): Promise<void> {
 .invite__link {
   color: var(--accent);
   font-weight: 600;
+}
+.invite__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.invite__form h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.invite__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.invite__field label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.invite__field input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.invite__field input[readonly] {
+  color: var(--ink-3);
+}
+.invite__field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.invite__card .invite__alt {
+  font-size: 13px;
+  text-align: center;
 }
 .invite__card .invite__error {
   color: var(--level-error-fg);
