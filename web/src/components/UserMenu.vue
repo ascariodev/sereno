@@ -3,7 +3,7 @@ import { LogOut, Monitor, Moon, Sun } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { readThemePreference, saveThemePreference, themePreference as theme, type ThemePreference } from '../theme/theme'
+import { saveThemePreference, themePreference as theme, type ThemePreference } from '../theme/theme'
 import { useAuthStore } from '../stores/auth'
 import AppAvatar from './ui/AppAvatar.vue'
 import AppMenu from './ui/AppMenu.vue'
@@ -13,7 +13,6 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const THEME_PREFIX = 'theme:'
-theme.value = readThemePreference()
 
 const items = computed(() => [
   { value: `${THEME_PREFIX}system`, label: t('userMenu.theme.system'), icon: Monitor, checked: theme.value === 'system' },

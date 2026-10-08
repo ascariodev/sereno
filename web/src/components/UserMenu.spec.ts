@@ -6,13 +6,14 @@ import { createMemoryHistory } from 'vue-router'
 import { i18n } from '../i18n'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
-import { saveThemePreference, THEME_STORAGE_KEY } from '../theme/theme'
+import { initTheme, saveThemePreference, THEME_STORAGE_KEY } from '../theme/theme'
 import UserMenu from './UserMenu.vue'
 
 let wrapper: VueWrapper | undefined
 
 beforeEach(() => {
   localStorage.clear()
+  initTheme()
   setActivePinia(createPinia())
   useAuthStore().user = { id: 1, name: 'Ada', email: 'a@e.com', locale: 'en' }
 })
@@ -55,6 +56,15 @@ function checkedLabels(): string[] {
 describe('UserMenu', () => {
   it('checks the stored theme when opened', async () => {
     localStorage.setItem(THEME_STORAGE_KEY, 'dark')
+    initTheme()
+    mountMenu()
+    await open()
+    expect(checkedLabels()).toEqual([i18n.global.t('userMenu.theme.dark')])
+  })
+
+  it('does not overwrite the session theme on mount', async () => {
+    saveThemePreference('dark')
+    localStorage.clear()
     mountMenu()
     await open()
     expect(checkedLabels()).toEqual([i18n.global.t('userMenu.theme.dark')])

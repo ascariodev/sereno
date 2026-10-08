@@ -5,7 +5,7 @@ import { defineComponent, nextTick, ref } from 'vue'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { i18n } from '../i18n'
 import { useProjectsStore } from '../stores/projects'
-import { THEME_STORAGE_KEY } from '../theme/theme'
+import { THEME_STORAGE_KEY, themePreference } from '../theme/theme'
 import CommandPalette from './CommandPalette.vue'
 
 const project = (id: number, name: string, key: string) => ({
@@ -187,5 +187,6 @@ describe('CommandPalette', () => {
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
+    expect(themePreference.value).toBe('dark')
   })
 })
