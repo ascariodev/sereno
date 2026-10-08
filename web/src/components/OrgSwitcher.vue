@@ -14,11 +14,12 @@ const items = computed(() =>
 const activeName = computed(
   () => organization.organizations.find((item) => item.id === organization.activeId)?.name ?? '',
 )
+const label = computed(() => (activeName.value ? `${t('organization.label')}: ${activeName.value}` : t('organization.label')))
 </script>
 
 <template>
   <AppMenu v-if="organization.organizations.length > 0" :items="items" @select="organization.select(Number($event))">
-    <button type="button" name="organization" class="org-switcher" :aria-label="`${t('organization.label')}: ${activeName}`">
+    <button type="button" name="organization" class="org-switcher" :aria-label="label">
       <span class="org-switcher__name">{{ activeName }}</span>
       <ChevronsUpDown :size="15" aria-hidden="true" />
     </button>

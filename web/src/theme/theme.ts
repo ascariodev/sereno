@@ -1,3 +1,5 @@
+import { ref } from 'vue'
+
 export type ThemePreference = 'system' | 'light' | 'dark'
 
 export const THEME_STORAGE_KEY = 'workspace.theme'
@@ -17,6 +19,8 @@ export function readThemePreference(): ThemePreference {
   }
 }
 
+export const themePreference = ref<ThemePreference>(readThemePreference())
+
 export function applyTheme(preference: ThemePreference): void {
   const root = document.documentElement
   if (preference === 'system') {
@@ -32,11 +36,13 @@ export function saveThemePreference(preference: ThemePreference): void {
   } catch {
     // storage unavailable: the preference only applies to this session
   }
+  themePreference.value = preference
   applyTheme(preference)
 }
 
 export function initTheme(): ThemePreference {
   const preference = readThemePreference()
+  themePreference.value = preference
   applyTheme(preference)
   return preference
 }

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { LogOut, Monitor, Moon, Sun } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { readThemePreference, saveThemePreference, type ThemePreference } from '../theme/theme'
+import { readThemePreference, saveThemePreference, themePreference as theme, type ThemePreference } from '../theme/theme'
 import { useAuthStore } from '../stores/auth'
 import AppAvatar from './ui/AppAvatar.vue'
 import AppMenu from './ui/AppMenu.vue'
@@ -13,7 +13,7 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const THEME_PREFIX = 'theme:'
-const theme = ref<ThemePreference>(readThemePreference())
+theme.value = readThemePreference()
 
 const items = computed(() => [
   { value: `${THEME_PREFIX}system`, label: t('userMenu.theme.system'), icon: Monitor, checked: theme.value === 'system' },
@@ -24,8 +24,7 @@ const items = computed(() => [
 
 async function onSelect(value: string): Promise<void> {
   if (value.startsWith(THEME_PREFIX)) {
-    theme.value = value.slice(THEME_PREFIX.length) as ThemePreference
-    saveThemePreference(theme.value)
+    saveThemePreference(value.slice(THEME_PREFIX.length) as ThemePreference)
     return
   }
   await auth.logout()
