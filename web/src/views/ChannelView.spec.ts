@@ -10,6 +10,7 @@ import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
+import { toast, toasts } from '../components/ui/toast'
 import ChannelView from './ChannelView.vue'
 
 const message = (id: number, kind: Message['kind'] = 'user'): Message => ({
@@ -60,6 +61,7 @@ function fakeRealtime() {
 describe('ChannelView', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    toast.clear()
     setRealtimeClientFactory(() => null)
   })
 
@@ -228,10 +230,12 @@ describe('ChannelView', () => {
     realtime.setStatus('connected')
     await flushPromises()
     expect(viewCalls(spy).filter(([path]) => path !== '/api/channels')).toHaveLength(1)
+    expect(toasts.value).toHaveLength(0)
 
     realtime.setStatus('connecting')
     realtime.setStatus('connected')
     await flushPromises()
+    expect(toasts.value.map((item) => [item.kind, item.message])).toEqual([['success', 'Reconnected']])
     expect(viewCalls(spy).filter(([path]) => path !== '/api/channels')).toHaveLength(2)
     expect(wrapper.findAll('li.message').map((li) => li.text())).toEqual([
       expect.stringContaining('body 1'),

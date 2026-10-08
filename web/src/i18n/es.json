@@ -73,6 +73,7 @@
     "title": "Canal",
     "empty": "Aún no hay mensajes.",
     "today": "Hoy",
+    "reconnected": "Reconectado",
     "loadOlder": "Cargar mensajes anteriores",
     "systemNotice": "Aviso del sistema",
     "unknownUser": "Usuario desconocido",

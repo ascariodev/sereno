@@ -73,6 +73,7 @@
     "title": "Channel",
     "empty": "No messages yet.",
     "today": "Today",
+    "reconnected": "Reconnected",
     "loadOlder": "Load older messages",
     "systemNotice": "System notice",
     "unknownUser": "Unknown user",

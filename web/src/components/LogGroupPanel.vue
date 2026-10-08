@@ -6,6 +6,7 @@ import { ApiError } from '../api/client'
 import { getLogGroup, updateLogGroupStatus } from '../api/logGroups'
 import { isLogGroupStatus } from '../api/types'
 import type { LogGroup, LogGroupStatus } from '../api/types'
+import { toast } from './ui/toast'
 import LevelPill from './ui/LevelPill.vue'
 import StatusPill from './ui/StatusPill.vue'
 
@@ -18,7 +19,6 @@ const group = ref<LogGroup | null>(null)
 const loading = ref(false)
 const loadError = ref<'failed' | 'notFound' | null>(null)
 const pending = ref(false)
-const actionError = ref<string | null>(null)
 let generation = 0
 let controller: AbortController | null = null
 
@@ -31,7 +31,6 @@ async function load(reset: boolean): Promise<void> {
     loading.value = true
   }
   loadError.value = null
-  actionError.value = null
   try {
     const loaded = await getLogGroup(props.projectId, props.groupId, controller.signal)
     if (current !== generation) return
@@ -69,18 +68,19 @@ async function act(status: LogGroupStatus): Promise<void> {
   if (pending.value || !group.value) return
   const current = generation
   pending.value = true
-  actionError.value = null
   try {
     const response = await updateLogGroupStatus(props.projectId, props.groupId, status)
-    if (current === generation && group.value) group.value = { ...group.value, status: statusFrom(response) ?? status }
+    const applied = statusFrom(response) ?? status
+    if (current === generation && group.value) group.value = { ...group.value, status: applied }
+    toast.success(t('notice.actions.marked', { status: t(`notice.status.${applied}`) }))
   } catch (caught) {
     if (current !== generation) return
     if (caught instanceof ApiError && caught.status === 403) {
-      actionError.value = t('notice.actions.forbidden')
+      toast.error(t('notice.actions.forbidden'))
     } else if (caught instanceof ApiError && caught.status === 422) {
-      actionError.value = caught.errors?.status?.[0] ?? caught.message
+      toast.error(caught.errors?.status?.[0] ?? caught.message)
     } else {
-      actionError.value = t('notice.actions.failed')
+      toast.error(t('notice.actions.failed'))
     }
   } finally {
     pending.value = false
@@ -169,7 +169,6 @@ const eventText = computed(() => {
           <EyeOff :size="15" :stroke-width="1.8" aria-hidden="true" />
           {{ t('notice.actions.ignore') }}
         </button>
-        <p v-if="actionError" role="alert" class="log-group-panel__error" data-test="error-action">{{ actionError }}</p>
       </div>
     </template>
   </aside>

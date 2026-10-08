@@ -9,6 +9,7 @@ import LogGroupAside from '../components/LogGroupAside.vue'
 import MessageComposer from '../components/MessageComposer.vue'
 import MessageList from '../components/MessageList.vue'
 import ProjectHeader from '../components/ProjectHeader.vue'
+import { toast } from '../components/ui/toast'
 import { onReconnect, subscribeToChannel } from '../realtime/echo'
 import { useMessagesStore } from '../stores/messages'
 import { useOrganizationStore } from '../stores/organization'
@@ -111,7 +112,10 @@ function reload(): void {
   void messages.open(channelId.value)
   if (organization.activeId !== null) {
     unsubscribe = subscribeToChannel(organization.activeId, channelId.value, messages.insert)
-    unsubscribeReconnect = onReconnect(() => void messages.catchUp())
+    unsubscribeReconnect = onReconnect(() => {
+      toast.success(t('channel.reconnected'))
+      void messages.catchUp()
+    })
   }
 }
 

@@ -4,6 +4,7 @@ import { api, ApiError } from '../api/client'
 import type { LogGroup } from '../api/types'
 import { i18n } from '../i18n'
 import LogGroupPanel from './LogGroupPanel.vue'
+import { toast, toasts } from './ui/toast'
 
 const group = (overrides: Partial<LogGroup> = {}): LogGroup => ({
   id: 5,
@@ -26,7 +27,10 @@ function mountPanel(props: { groupId?: number; refreshToken?: number } = {}) {
 }
 
 describe('LogGroupPanel', () => {
-  beforeEach(() => vi.restoreAllMocks())
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    toast.clear()
+  })
 
   it('loads the group and shows pills, count and the latest event with its context', async () => {
     const get = vi.spyOn(api, 'get').mockResolvedValue({ data: group() } as never)
@@ -75,6 +79,17 @@ describe('LogGroupPanel', () => {
     expect(wrapper.find('[data-status="resolved"]').exists()).toBe(true)
     expect(wrapper.find('button[name="resolve"]').exists()).toBe(false)
     expect(wrapper.find('button[name="ignore"]').exists()).toBe(true)
+    expect(toasts.value.map((item) => [item.kind, item.message])).toEqual([['success', 'Marked as resolved']])
+  })
+
+  it('shows a confirmation toast when ignoring', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: group() } as never)
+    vi.spyOn(api, 'patch').mockResolvedValue({ data: group({ status: 'ignored' }) } as never)
+    const wrapper = mountPanel()
+    await flushPromises()
+    await wrapper.find('button[name="ignore"]').trigger('click')
+    await flushPromises()
+    expect(toasts.value.map((item) => [item.kind, item.message])).toEqual([['success', 'Marked as ignored']])
   })
 
   it('shows a forbidden message when the action is rejected', async () => {
@@ -84,7 +99,10 @@ describe('LogGroupPanel', () => {
     await flushPromises()
     await wrapper.find('button[name="ignore"]').trigger('click')
     await flushPromises()
-    expect(wrapper.find('[data-test="error-action"]').text()).toContain('not allowed')
+    expect(toasts.value).toHaveLength(1)
+    expect(toasts.value[0]).toMatchObject({ kind: 'error' })
+    expect(toasts.value[0].message).toContain('not allowed')
+    expect(wrapper.find('[data-test="error-action"]').exists()).toBe(false)
     expect(wrapper.find('[data-status="open"]').exists()).toBe(true)
   })
 
