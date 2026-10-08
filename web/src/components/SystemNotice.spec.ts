@@ -1,7 +1,8 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import type { LogGroup, Message, MessagePayload } from '../api/types'
+import { resetHourlyCounts } from '../composables/useHourlyCounts'
 import { resetGroupStatuses, setGroupStatus } from '../composables/useLogGroupStatuses'
 import { i18n } from '../i18n'
 import SystemNotice from './SystemNotice.vue'
@@ -37,10 +38,13 @@ function textIn(locale: 'en' | 'es', msg: Message): string {
 describe('SystemNotice', () => {
   beforeEach(() => {
     resetGroupStatuses()
+    resetHourlyCounts()
+    vi.spyOn(api, 'get').mockRejectedValue(new ApiError(0, 'network'))
   })
 
   afterEach(() => {
     resetGroupStatuses()
+    resetHourlyCounts()
     vi.restoreAllMocks()
     i18n.global.locale.value = 'en'
   })
@@ -71,6 +75,16 @@ describe('SystemNotice', () => {
     const es = textIn('es', message(opened))
     expect(es).toContain('Nuevo grupo de logs')
     expect(es).toContain('1 evento')
+  })
+
+  it('shows the 24 h sparkline of its group in the level color', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { from: '', hours: 24, counts: { '5': [0, 2, 1] } } })
+    const wrapper = mount(SystemNotice, { props: { message: message(reopened), projectId: 3 }, global: { plugins: [i18n] } })
+    expect(wrapper.find('.sparkline').exists()).toBe(false)
+    await flushPromises()
+    expect(api.get).toHaveBeenCalledWith('/api/projects/3/log-groups/hourly', expect.objectContaining({ query: { ids: '5' } }))
+    expect(wrapper.get('.sparkline').attributes('data-level')).toBe('critical')
+    expect(wrapper.get('.sparkline').text()).toContain('3')
   })
 
   it('names the card by its kind label without repeating the level', () => {

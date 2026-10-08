@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import { api, ApiError } from '../api/client'
 import type { CursorPage, Message } from '../api/types'
+import { resetHourlyCounts } from '../composables/useHourlyCounts'
 import { observeStatusMessage, resetGroupStatuses } from '../composables/useLogGroupStatuses'
 
 export const MESSAGES_PER_PAGE = 50
@@ -62,6 +63,7 @@ export const useMessagesStore = defineStore('messages', () => {
   function clear(): void {
     generation++
     resetGroupStatuses()
+    resetHourlyCounts()
     pending = new Map()
     flushScheduled = false
     channelId.value = null

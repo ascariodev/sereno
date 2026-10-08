@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { Check, EyeOff, Info, OctagonAlert, RotateCcw, TriangleAlert } from '@lucide/vue'
-import { computed, ref, useId } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { statusFrom, updateLogGroupStatus } from '../api/logGroups'
 import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
 import type { LogGroupStatus, Message } from '../api/types'
 import { LOG_LEVELS } from '../api/logLevels'
+import { hourlyCountsOf, requestHourlyCounts } from '../composables/useHourlyCounts'
 import { setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
 import LevelPill from './ui/LevelPill.vue'
+import Sparkline from './ui/Sparkline.vue'
 
 const STRONG_LEVELS = ['critical', 'alert', 'emergency']
 const STATUSES = ['open', 'resolved', 'ignored']
@@ -29,6 +31,15 @@ const groupId = computed(() => opened.value?.log_group_id ?? null)
 const sharedStatus = computed(() => statusOfGroup(groupId.value))
 const doneStatus = computed(() => (sharedStatus.value && sharedStatus.value !== 'open' ? sharedStatus.value : null))
 const canAct = computed(() => props.projectId !== undefined && groupId.value !== null)
+const hourly = computed(() => (props.projectId === undefined ? null : hourlyCountsOf(groupId.value)))
+
+watch(
+  () => [props.projectId, groupId.value, props.message.id] as const,
+  ([projectId, id, messageId]) => {
+    if (projectId !== undefined && id !== null) requestHourlyCounts(projectId, id, messageId)
+  },
+  { immediate: true },
+)
 
 async function act(status: LogGroupStatus): Promise<void> {
   if (pending.value || !canAct.value) return
@@ -90,9 +101,12 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
       <p class="system-notice__title">
         <a :href="`?group=${opened.log_group_id}`" @click.prevent="emit('select', opened.log_group_id)">{{ opened.title }}</a>
       </p>
-      <p class="system-notice__stats">
-        <b>{{ opened.events_count }}</b> {{ eventsWord }}
-      </p>
+      <div class="system-notice__activity">
+        <p class="system-notice__stats">
+          <b>{{ opened.events_count }}</b> {{ eventsWord }}
+        </p>
+        <Sparkline v-if="hourly" :counts="hourly" :level="levelTone" />
+      </div>
       <p v-if="doneStatus" class="system-notice__done">
         {{ t('notice.actions.marked', { status: known('notice.status', doneStatus) }) }}
       </p>
@@ -195,6 +209,14 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
 }
 .system-notice__title a:hover {
   text-decoration: underline;
+}
+.system-notice__activity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+  justify-content: space-between;
+  gap: var(--space-2);
 }
 .system-notice__stats {
   margin: 0;
