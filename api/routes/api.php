@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\LogGroupController;
 use App\Http\Controllers\Api\LogIngestController;
 use App\Http\Controllers\Api\LogSourceController;
+use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ProjectController;
@@ -48,6 +49,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::get('projects/{project}/log-groups/hourly', [LogGroupController::class, 'hourly']);
     Route::get('projects/{project}/log-groups/{group}', [LogGroupController::class, 'show']);
     Route::patch('projects/{project}/log-groups/{group}', [LogGroupController::class, 'update']);
+    Route::get('members', [MemberController::class, 'index']);
     Route::get('channels', [ChannelController::class, 'index']);
     Route::get('channels/{channel}/messages', [MessageController::class, 'index']);
     Route::post('channels/{channel}/messages', [MessageController::class, 'store'])->middleware('throttle:channel-messages');

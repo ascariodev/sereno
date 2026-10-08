@@ -1,7 +1,7 @@
 # Plan: miembros
 
 **Objetivo:** que cualquier miembro vea quién está en la organización, que owner y admin cambien roles y quiten miembros según su rango, y que cualquiera pueda salir de la organización, sin que la organización se quede nunca sin owner.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -14,7 +14,7 @@
 
 ## Fases
 
-### [ ] Fase 1 — Listar miembros
+### [x] Fase 1 — Listar miembros
 - **Alcance:** `GET /api/members` (grupo `organization`) con los miembros de la organización activa: `{id, name, email, role, joined_at}`, ordenados por nombre. Cualquier miembro puede listar. Decidir aquí dónde viven las reglas de miembros (policy propia o `Gate::define`) y anotarlo en Decisiones.
 - **Archivos:** `api/routes/api.php`, `api/app/Http/Controllers/Api/MemberController.php` (nuevo), `api/app/Http/Resources/MemberResource.php` (nuevo), `api/app/Policies/MemberPolicy.php` (nuevo, o el registro de Gates), tests en `api/tests/Feature/MemberApiTest.php` (nuevo).
 - **Terminado cuando:** tests de listado (solo miembros de la organización activa, rol correcto por organización, sin N+1, 403 de organización ajena, 401 sin sesión) pasan.
@@ -61,11 +61,14 @@
 - 2026-10-08 — Cualquier miembro puede listar miembros (lo necesitarán las menciones del chat); cambiar roles y quitar sigue el rango de `InvitationPolicy`.
 - 2026-10-08 — Un miembro tiene un solo rol por organización: cambiar el rol reemplaza el anterior.
 - 2026-10-08 — Salir de la organización es el mismo `DELETE` sobre uno mismo; el último owner no puede salir ni degradarse.
+- 2026-10-08 — Las reglas de miembros viven en `MemberPolicy`, registrada con `Gate::policy(User::class, ...)` (el objetivo es un `User`; no existe `UserPolicy`). Hoy solo `viewAny` (cualquier rol de la organización activa); las fases 3 y 4 añaden `updateRole(actor, target, Role)` y `remove(actor, target)`. `MemberResource` toma el rol de `roles->first()?->name` (el eager load ya filtra por team) y `joined_at` de `pivot->created_at`.
 - 2026-10-08 — No se cortan las suscripciones Reverb ya autorizadas del miembro quitado (queda como mejora).
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1. Leer `docs/lecciones.md` antes.
+- Fase 1 hecha. Empezar por la fase 2 (riesgo: lock sobre membresías). Leer `docs/lecciones.md` antes. Policy en `api/app/Policies/MemberPolicy.php`.
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): cortar en vivo las suscripciones Reverb de un miembro quitado (requiere un canal privado por usuario u organización).
 - [ ] M-2 (media, sonnet): transferir la propiedad (owner) en un paso, sin pasar por dos owners.
+- [ ] M-3 (baja, sonnet): fijar `joined_at` con `toIso8601String()` en `MemberResource` y probar el formato.
+- [ ] M-4 (baja, sonnet): test de que `MemberPolicy::viewAny` no concede sin team activo.
