@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Message } from '../api/types'
 import MessageItem from './MessageItem.vue'
@@ -48,8 +48,23 @@ function dayKey(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
 }
 
+const now = ref(new Date())
+let midnightTimer: ReturnType<typeof setTimeout> | undefined
+
+function scheduleMidnightRefresh(): void {
+  const current = new Date()
+  const nextMidnight = new Date(current.getFullYear(), current.getMonth(), current.getDate() + 1)
+  midnightTimer = setTimeout(() => {
+    now.value = new Date()
+    scheduleMidnightRefresh()
+  }, nextMidnight.getTime() - current.getTime())
+}
+
+onMounted(scheduleMidnightRefresh)
+onUnmounted(() => clearTimeout(midnightTimer))
+
 const rows = computed<Row[]>(() => {
-  const today = dayKey(new Date())
+  const today = dayKey(now.value)
   const result: Row[] = []
   let previous = ''
   for (const message of props.messages) {

@@ -170,5 +170,31 @@ describe('MessageList', () => {
       expect(time.text()).toMatch(/9:12/)
       expect(time.attributes('datetime')).toBe('2026-03-10T09:12:00Z')
     })
+
+    describe('midnight rollover', () => {
+      beforeAll(() => {
+        process.env.TZ = 'America/Bogota'
+      })
+      afterAll(() => {
+        process.env.TZ = 'UTC'
+      })
+
+      it('relabels Today after local midnight in a non-UTC zone', async () => {
+        vi.setSystemTime(new Date('2026-03-10T03:00:00Z'))
+        const wrapper = mountMessages([at(1, '2026-03-10T03:30:00Z')])
+        expect(wrapper.find('.message-list__day').text()).toBe('Today')
+
+        await vi.advanceTimersByTimeAsync(2 * 3600 * 1000 + 1000)
+        expect(wrapper.find('.message-list__day').text()).toBe('March 9, 2026')
+        wrapper.unmount()
+      })
+
+      it('clears the timer on unmount', () => {
+        const wrapper = mountMessages([at(1, '2026-03-10T09:12:00Z')])
+        expect(vi.getTimerCount()).toBe(1)
+        wrapper.unmount()
+        expect(vi.getTimerCount()).toBe(0)
+      })
+    })
   })
 })
