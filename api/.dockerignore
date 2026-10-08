@@ -1,0 +1,4 @@
+# Solo lo que los Dockerfile copian. Si se añade otro COPY, permitirlo aquí.
+*
+!docker/php/uploads.ini
+!docker/php-fpm/opcache.ini

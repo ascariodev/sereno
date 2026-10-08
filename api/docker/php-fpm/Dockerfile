@@ -1,0 +1,20 @@
+FROM php:8.4-fpm-alpine
+
+RUN apk add --no-cache icu-libs libzip libpq git unzip \
+    && apk add --no-cache --virtual .build-deps icu-dev libzip-dev postgresql-dev linux-headers \
+    && docker-php-ext-install pdo_pgsql pgsql intl zip bcmath pcntl opcache \
+    && apk del .build-deps
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
+COPY docker/php-fpm/opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
+
+ARG UID=1000
+ARG GID=1000
+RUN addgroup -g ${GID} app && adduser -D -u ${UID} -G app app
+
+WORKDIR /var/www/api
+USER app
+
+EXPOSE 9000
+CMD ["php-fpm"]
