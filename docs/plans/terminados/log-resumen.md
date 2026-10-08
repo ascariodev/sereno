@@ -103,4 +103,5 @@
 - [ ] M-19 (media, sonnet): verificación visual en el navegador (L-22) de lo que jsdom no cubre: columna de LogView, panel (ancho y hoja), fila de actividad de `SystemNotice` (móvil), píldora de la barra lateral y línea de salud de `ProjectCard`, en ambos temas.
 - [x] M-20 (baja, sonnet): test en `useHourlyCounts.spec.ts` del reintento tras fallo: `getHourlyCounts` rechaza y un `requestHourlyCounts` con el mismo `messageId` vuelve a pedir los datos (viene de M-12).
 - [x] M-21 (baja, sonnet): test con fake timers en `stores/projects.spec.ts` del re-armado de `refreshCounts` durante un `reload()` pendiente (viene de M-17).
-- [ ] M-22 (baja, sonnet): tests en `ChannelView.spec.ts` y `LogView.spec.ts` de que `onReconnect` refresca los conteos de proyectos (viene de M-18).
+- [x] M-22 (baja, sonnet): tests en `ChannelView.spec.ts` y `LogView.spec.ts` de que `onReconnect` refresca los conteos de proyectos (viene de M-18).
+- [ ] M-23 (baja, sonnet): estabilizar el test intermitente "refreshes the counts once, after 300 ms, for log notices but not for people messages" de `ChannelView.spec.ts` (falla también sin cambios); causa probable: toma `before` tras `mountView()` sin `flushPromises()`, y la carga inicial pendiente cae dentro de `advanceTimersByTimeAsync` (viene de M-22).

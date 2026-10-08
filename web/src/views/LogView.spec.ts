@@ -475,6 +475,20 @@ describe('LogView', () => {
       expect(projectCalls(spy)).toBe(before + 1)
     })
 
+    it('refreshes the project counts after a reconnection', async () => {
+      const realtime = fakeRealtime()
+      const spy = mockApi(() => page([group(1)]))
+      await mountView()
+      realtime.setStatus('connected')
+      await flushPromises()
+      const before = projectCalls(spy)
+      vi.useFakeTimers()
+      realtime.setStatus('disconnected')
+      realtime.setStatus('connected')
+      await vi.advanceTimersByTimeAsync(300)
+      expect(projectCalls(spy)).toBe(before + 1)
+    })
+
     it('leaves the channel and drops a pending reload on unmount', async () => {
       const realtime = fakeRealtime()
       const spy = mockApi(() => page([group(1)]))

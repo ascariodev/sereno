@@ -517,6 +517,20 @@ describe('ChannelView group panel', () => {
       expect(projectCalls(spy)).toBe(before + 2)
     })
 
+    it('refreshes the counts after a reconnection, not on the initial connection', async () => {
+      const realtime = fakeRealtime()
+      const spy = mockGroups([opened(1, 5)])
+      await mountView()
+      realtime.setStatus('connected')
+      await flushPromises()
+      const before = projectCalls(spy)
+      vi.useFakeTimers()
+      realtime.setStatus('disconnected')
+      realtime.setStatus('connected')
+      await vi.advanceTimersByTimeAsync(300)
+      expect(projectCalls(spy)).toBe(before + 1)
+    })
+
     it('refreshes the counts after a status change from the panel', async () => {
       const spy = mockGroups([opened(1, 5)])
       const wrapper = await mountView('/channels/7?group=5')
