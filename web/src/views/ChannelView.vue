@@ -66,7 +66,7 @@ function selectGroup(id: number | null): void {
 }
 
 function markMessagesSeen(): void {
-  seenMessageId = messages.messages.reduce((max, message) => Math.max(max, message.id), 0)
+  seenMessageId = messages.messages.at(-1)?.id ?? 0
 }
 
 watch(

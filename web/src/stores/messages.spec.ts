@@ -121,6 +121,55 @@ describe('messages store', () => {
     expect(store.messages.map((m) => m.id)).toEqual([1])
   })
 
+  it('does not duplicate a queued id that also arrives in the open page', async () => {
+    const store = useMessagesStore()
+    let resolve: (value: unknown) => void = () => {}
+    vi.spyOn(api, 'get').mockReturnValueOnce(new Promise((r) => (resolve = r)) as never)
+    const opening = store.open(5)
+    expect(store.insert(message(3))).toBe(true)
+    expect(store.messages).toEqual([])
+    resolve(page([3, 2, 1], null))
+    await opening
+    expect(store.messages.map((m) => m.id)).toEqual([1, 2, 3])
+  })
+
+  it('does not duplicate a queued id that also arrives in the loadOlder page', async () => {
+    const store = useMessagesStore()
+    vi.spyOn(api, 'get').mockResolvedValueOnce(page([5, 4], 'c1') as never)
+    await store.open(5)
+    let resolve: (value: unknown) => void = () => {}
+    vi.spyOn(api, 'get').mockReturnValueOnce(new Promise((r) => (resolve = r)) as never)
+    const older = store.loadOlder()
+    expect(store.insert(message(3))).toBe(true)
+    expect(store.messages.map((m) => m.id)).toEqual([4, 5])
+    resolve(page([3, 2], null))
+    await older
+    expect(store.messages.map((m) => m.id)).toEqual([2, 3, 4, 5])
+  })
+
+  it('does not duplicate a queued id that also arrives in the send response', async () => {
+    const store = useMessagesStore()
+    vi.spyOn(api, 'get').mockResolvedValueOnce(page([1], null) as never)
+    await store.open(5)
+    vi.spyOn(api, 'post').mockResolvedValueOnce({ data: message(2) } as never)
+    expect(store.insert(message(2))).toBe(true)
+    expect(store.messages.map((m) => m.id)).toEqual([1])
+    await store.send('hi')
+    expect(store.messages.map((m) => m.id)).toEqual([1, 2])
+  })
+
+  it('schedules a new flush after clear with an insert still queued', async () => {
+    const store = useMessagesStore()
+    vi.spyOn(api, 'get').mockResolvedValue(page([1], null) as never)
+    await store.open(5)
+    expect(store.insert(message(2))).toBe(true)
+    store.clear()
+    await store.open(5)
+    expect(store.insert(message(3))).toBe(true)
+    await nextTick()
+    expect(store.messages.map((m) => m.id)).toEqual([1, 3])
+  })
+
   describe('catchUp', () => {
     it('inserts new messages from a single page', async () => {
       const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([2, 1], null) as never)

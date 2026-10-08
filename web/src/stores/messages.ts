@@ -57,6 +57,7 @@ export const useMessagesStore = defineStore('messages', () => {
   function clear(): void {
     generation++
     pending = new Map()
+    flushScheduled = false
     channelId.value = null
     messages.value = []
     nextCursor.value = null
