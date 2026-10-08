@@ -43,6 +43,27 @@ export function isLogGroupStatus(value: unknown): value is LogGroupStatus {
   return value === 'open' || value === 'resolved' || value === 'ignored'
 }
 
+export interface LogEvent {
+  id: number
+  level: string
+  message: string
+  context: Record<string, unknown> | unknown[] | null
+  occurred_at: string
+  received_at: string
+}
+
+export interface LogGroup {
+  id: number
+  project_id: number
+  level: string
+  title: string
+  status: LogGroupStatus
+  events_count: number
+  first_seen_at: string
+  last_seen_at: string
+  events?: LogEvent[]
+}
+
 export interface LogGroupOpenedPayload {
   type: 'log.group_opened' | 'log.group_reopened'
   log_group_id: number
