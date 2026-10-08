@@ -9,9 +9,10 @@ import {
 } from 'reka-ui'
 import type { FunctionalComponent } from 'vue'
 
-withDefaults(defineProps<{ text: string; side?: 'top' | 'right' | 'bottom' | 'left'; delay?: number }>(), {
+withDefaults(defineProps<{ text: string; side?: 'top' | 'right' | 'bottom' | 'left'; delay?: number; disabled?: boolean }>(), {
   side: 'top',
   delay: 400,
+  disabled: false,
 })
 
 const hasProvider = injectTooltipProviderContext(null) !== null
@@ -20,7 +21,7 @@ const Passthrough: FunctionalComponent = (_, { slots }) => slots.default?.()
 
 <template>
   <component :is="hasProvider ? Passthrough : TooltipProvider">
-    <TooltipRoot :delay-duration="delay">
+    <TooltipRoot :delay-duration="delay" :disabled="disabled">
       <TooltipTrigger as-child>
         <slot />
       </TooltipTrigger>

@@ -14,6 +14,27 @@ const route = useRoute()
 const drawerOpen = ref(false)
 const paletteOpen = ref(false)
 
+const SIDEBAR_STORAGE_KEY = 'workspace.sidebar'
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'collapsed'
+  } catch {
+    return false
+  }
+}
+
+const sidebarCollapsed = ref(readCollapsed())
+
+function toggleSidebar(): void {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+  try {
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, sidebarCollapsed.value ? 'collapsed' : 'expanded')
+  } catch {
+    // storage unavailable: the choice lasts for this session
+  }
+}
+
 watch(paletteOpen, (open) => {
   if (open) drawerOpen.value = false
 })
@@ -63,7 +84,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div :class="['app-layout', { 'app-layout--fixed': route.name === 'channel' }]">
+  <div
+    :class="[
+      'app-layout',
+      { 'app-layout--fixed': route.name === 'channel', 'app-layout--collapsed': sidebarCollapsed },
+    ]"
+  >
     <MobileTopBar class="app-layout__top-bar" :open="drawerOpen" @toggle="drawerOpen = !drawerOpen" />
     <AppDialog
       v-model:open="drawerOpen"
@@ -76,7 +102,13 @@ onBeforeUnmount(() => {
         <AppSidebar @search="paletteOpen = true" />
       </div>
     </AppDialog>
-    <AppSidebar class="app-layout__sidebar" @search="paletteOpen = true" />
+    <AppSidebar
+      class="app-layout__sidebar"
+      collapsible
+      :collapsed="sidebarCollapsed"
+      @search="paletteOpen = true"
+      @toggle="toggleSidebar"
+    />
     <CommandPalette v-model:open="paletteOpen" />
     <main class="app-layout__main">
       <p v-if="loading">{{ t('common.loading') }}</p>
@@ -105,6 +137,10 @@ onBeforeUnmount(() => {
 .app-layout__sidebar {
   flex: 1 1 248px;
   min-width: 0;
+}
+
+.app-layout--collapsed .app-layout__sidebar {
+  flex: 0 0 64px;
 }
 
 .app-layout__top-bar {

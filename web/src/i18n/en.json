@@ -41,7 +41,9 @@
     "label": "Main navigation",
     "home": "Home",
     "open": "Open navigation",
-    "close": "Close navigation"
+    "close": "Close navigation",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
   },
   "command": {
     "open": "Search",

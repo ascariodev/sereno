@@ -200,6 +200,35 @@ describe('AppLayout', () => {
     expect(document.querySelector('[role=option][data-value="log:5"]')).not.toBeNull()
   })
 
+  it('collapses the sidebar to icons, keeps accessible names and remembers the choice', async () => {
+    const { wrapper } = await mountApp(undefined, '/channels/7')
+    const sidebar = () => wrapper.find('.app-layout__sidebar')
+    const toggle = () => sidebar().find('button[name=sidebar-toggle]')
+    expect(toggle().attributes('aria-expanded')).toBe('true')
+    expect(sidebar().text()).toContain('posveapi')
+    expect(wrapper.find('.app-layout--collapsed').exists()).toBe(false)
+
+    await toggle().trigger('click')
+    expect(wrapper.find('.app-layout--collapsed').exists()).toBe(true)
+    expect(toggle().attributes('aria-expanded')).toBe('false')
+    expect(toggle().attributes('aria-label')).toBe('Expand sidebar')
+    expect(sidebar().text()).not.toContain('posveapi')
+    expect(sidebar().find('a[href="/channels/7"]').attributes('aria-label')).toBe('posveapi')
+    expect(sidebar().find('a[href="/"]').attributes('aria-label')).toBe('Home')
+    expect(sidebar().find('button[name=search]').attributes('aria-label')).toBe('Search')
+    expect(localStorage.getItem('workspace.sidebar')).toBe('collapsed')
+
+    await toggle().trigger('click')
+    expect(sidebar().text()).toContain('posveapi')
+    expect(localStorage.getItem('workspace.sidebar')).toBe('expanded')
+  })
+
+  it('starts collapsed when the choice was saved', async () => {
+    localStorage.setItem('workspace.sidebar', 'collapsed')
+    const { wrapper } = await mountApp()
+    expect(wrapper.find('.app-layout--collapsed').exists()).toBe(true)
+  })
+
   describe('mobile drawer', () => {
     const toggle = () => document.querySelector<HTMLButtonElement>('button[name=open-sidebar]')!
     const drawer = () => document.querySelector<HTMLElement>('[role=dialog]')

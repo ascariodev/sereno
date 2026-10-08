@@ -41,7 +41,9 @@
     "label": "Navegación principal",
     "home": "Inicio",
     "open": "Abrir navegación",
-    "close": "Cerrar navegación"
+    "close": "Cerrar navegación",
+    "collapse": "Contraer barra lateral",
+    "expand": "Expandir barra lateral"
   },
   "command": {
     "open": "Buscar",

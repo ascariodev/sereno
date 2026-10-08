@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { House, Search } from '@lucide/vue'
+import { House, PanelLeftClose, PanelLeftOpen, Search } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
@@ -7,9 +7,11 @@ import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import OrgSwitcher from './OrgSwitcher.vue'
 import UserMenu from './UserMenu.vue'
+import AppTooltip from './ui/AppTooltip.vue'
 import ProjectKey from './ui/ProjectKey.vue'
 
-defineEmits<{ search: [] }>()
+defineProps<{ collapsed?: boolean; collapsible?: boolean }>()
+defineEmits<{ search: []; toggle: [] }>()
 
 const { t } = useI18n()
 const isApple = /Mac|iPhone|iPad/.test(navigator.userAgent)
@@ -31,50 +33,83 @@ function currentFor(projectId: number): 'page' | undefined {
 </script>
 
 <template>
-  <nav class="app-sidebar" :aria-label="t('sidebar.label')">
-    <strong class="app-sidebar__brand">{{ t('app.name') }}</strong>
+  <nav :class="['app-sidebar', { 'app-sidebar--collapsed': collapsed }]" :aria-label="t('sidebar.label')">
+    <div class="app-sidebar__top">
+      <strong v-if="!collapsed" class="app-sidebar__brand">{{ t('app.name') }}</strong>
+      <AppTooltip
+        v-if="collapsible"
+        :text="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
+        side="right"
+      >
+        <button
+          type="button"
+          name="sidebar-toggle"
+          class="app-sidebar__toggle"
+          :aria-label="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
+          :aria-expanded="!collapsed"
+          @click="$emit('toggle')"
+        >
+          <PanelLeftOpen v-if="collapsed" :size="17" aria-hidden="true" />
+          <PanelLeftClose v-else :size="17" aria-hidden="true" />
+        </button>
+      </AppTooltip>
+    </div>
 
     <OrgSwitcher />
 
     <div class="app-sidebar__group">
-      <button
-        type="button"
-        name="search"
-        class="app-sidebar__link app-sidebar__search"
-        aria-haspopup="dialog"
-        :aria-keyshortcuts="isApple ? 'Meta+K' : 'Control+K'"
-        @click="$emit('search')"
-      >
-        <Search :size="17" aria-hidden="true" />
-        <span class="app-sidebar__name">{{ t('command.open') }}</span>
-        <kbd class="app-sidebar__kbd" aria-hidden="true">{{ isApple ? '⌘K' : 'Ctrl K' }}</kbd>
-      </button>
-      <RouterLink :to="{ name: 'projects' }" class="app-sidebar__link">
-        <House :size="17" aria-hidden="true" />
-        <span>{{ t('sidebar.home') }}</span>
-      </RouterLink>
+      <AppTooltip :text="t('command.open')" side="right" :disabled="!collapsed">
+        <button
+          type="button"
+          name="search"
+          class="app-sidebar__link app-sidebar__search"
+          aria-haspopup="dialog"
+          :aria-label="collapsed ? t('command.open') : undefined"
+          :aria-keyshortcuts="isApple ? 'Meta+K' : 'Control+K'"
+          @click="$emit('search')"
+        >
+          <Search :size="17" aria-hidden="true" />
+          <template v-if="!collapsed">
+            <span class="app-sidebar__name">{{ t('command.open') }}</span>
+            <kbd class="app-sidebar__kbd" aria-hidden="true">{{ isApple ? '⌘K' : 'Ctrl K' }}</kbd>
+          </template>
+        </button>
+      </AppTooltip>
+      <AppTooltip :text="t('sidebar.home')" side="right" :disabled="!collapsed">
+        <RouterLink
+          :to="{ name: 'projects' }"
+          class="app-sidebar__link"
+          :aria-label="collapsed ? t('sidebar.home') : undefined"
+        >
+          <House :size="17" aria-hidden="true" />
+          <span v-if="!collapsed">{{ t('sidebar.home') }}</span>
+        </RouterLink>
+      </AppTooltip>
     </div>
 
     <div v-if="organization.activeId !== null" class="app-sidebar__group">
-      <span class="app-sidebar__heading">{{ t('projects.title') }}</span>
+      <span v-if="!collapsed" class="app-sidebar__heading">{{ t('projects.title') }}</span>
       <template v-for="project in projectsStore.projects" :key="project.id">
-        <RouterLink
-          v-if="projectsStore.channelByProject[project.id] !== undefined"
-          :to="{ name: 'channel', params: { id: projectsStore.channelByProject[project.id] } }"
-          class="app-sidebar__link app-sidebar__project"
-          :aria-current="currentFor(project.id)"
-        >
-          <ProjectKey :value="project.key" />
-          <span class="app-sidebar__name">{{ project.name }}</span>
-        </RouterLink>
-        <span
-          v-else
-          class="app-sidebar__link app-sidebar__project app-sidebar__project--disabled"
-          :aria-current="currentFor(project.id)"
-        >
-          <ProjectKey :value="project.key" />
-          <span class="app-sidebar__name">{{ project.name }}</span>
-        </span>
+        <AppTooltip :text="project.name" side="right" :disabled="!collapsed">
+          <RouterLink
+            v-if="projectsStore.channelByProject[project.id] !== undefined"
+            :to="{ name: 'channel', params: { id: projectsStore.channelByProject[project.id] } }"
+            class="app-sidebar__link app-sidebar__project"
+            :aria-label="collapsed ? project.name : undefined"
+            :aria-current="currentFor(project.id)"
+          >
+            <ProjectKey :value="project.key" />
+            <span v-if="!collapsed" class="app-sidebar__name">{{ project.name }}</span>
+          </RouterLink>
+          <span
+            v-else
+            class="app-sidebar__link app-sidebar__project app-sidebar__project--disabled"
+            :aria-current="currentFor(project.id)"
+          >
+            <ProjectKey :value="project.key" />
+            <span v-if="!collapsed" class="app-sidebar__name">{{ project.name }}</span>
+          </span>
+        </AppTooltip>
       </template>
       <p v-if="projectsStore.failed" class="app-sidebar__note" role="alert">{{ t('projects.loadFailed') }}</p>
     </div>
@@ -91,6 +126,58 @@ function currentFor(projectId: number): 'page' | undefined {
   flex-direction: column;
   gap: 18px;
   padding: 6px 6px 10px;
+}
+
+.app-sidebar__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.app-sidebar__toggle {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.app-sidebar__toggle:hover {
+  color: var(--ink);
+}
+
+.app-sidebar__toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.app-sidebar--collapsed .app-sidebar__top {
+  justify-content: center;
+  padding-right: 0;
+}
+
+.app-sidebar--collapsed .app-sidebar__link {
+  justify-content: center;
+  padding: 0;
+}
+
+.app-sidebar--collapsed :deep(.org-switcher),
+.app-sidebar--collapsed :deep(.user-menu) {
+  justify-content: center;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.app-sidebar--collapsed :deep(.org-switcher__name),
+.app-sidebar--collapsed :deep(.user-menu__name) {
+  display: none;
 }
 
 .app-sidebar__brand {
