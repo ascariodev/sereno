@@ -2,7 +2,7 @@
 
 **Objetivo:** un solo repo `sereno` (Gitea) con `api/`, `web/` y `app/`, el historial de `workspace-api` y
 `workspace-web` conservado bajo su carpeta, y la raíz (compose, docs, CLAUDE.md, .claude) versionada.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 
 
 ## Contexto mínimo
@@ -71,7 +71,7 @@
 - **Archivos:** los 5 `SKILL.md` de `.claude/skills/` y `docs/plans/_plantilla.md` (cambios mecánicos de texto).
 - **Terminado cuando:** el mismo `grep` sobre `.claude/skills` y la plantilla no devuelve nada.
 
-### [ ] Fase 7 — Adaptar el plan web-docker al monorepo
+### [x] Fase 7 — Adaptar el plan web-docker al monorepo
 - **Alcance:** reescribir las fases 6 y 7 de `docs/plans/web-docker.md` como workflows en `.gitea/workflows/` de la
   raíz con filtro por ruta (`api/**`, `web/**`), cada uno con su propio deploy.
 - **Archivos:** `docs/plans/web-docker.md`.

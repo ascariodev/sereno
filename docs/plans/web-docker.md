@@ -1,19 +1,20 @@
 # Plan: web-docker
 
-**Objetivo:** que workspace-web se desarrolle en Docker (Vite con recarga, tests y typecheck dentro del contenedor) y que
-workspace-api y workspace-web tengan un stack de producción en Docker desplegable como bidfletes/fletes-api (Gitea).
+**Objetivo:** que la web se desarrolle en Docker (Vite con recarga, tests y typecheck dentro del contenedor) y que
+`api/` y `web/` tengan un stack de producción en Docker desplegable como bidfletes/fletes-api (Gitea).
 **Estado:** pausado (esperando datos de Gitea y servidor) · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
-- Repos afectados: `workspace-web` (fases 1, 3, 7), `workspace-api` (fases 4 a 6). La raíz (`docker-compose.yml`,
-  `CLAUDE.md`, `.claude/`) no es repo: sus cambios no llevan commit.
-- Desarrollo hoy: la raíz hace `include` de `workspace-api/docker-compose.yml` (proyecto `workspace`: api con
-  `php:8.4-cli-alpine` + `artisan serve` en 8003, reverb 8086, queue, scheduler, postgres 18 en 5435). La web corre en
-  el host con Node 24 (`npm --prefix workspace-web ...`), Vite en 5174 con `strictPort`.
+- Monorepo `sereno` (plan `monorepo-sereno`): `api/` (fases 4 a 6) y `web/` (fases 1, 3, 7); todo se commitea en la
+  raíz. Las fases 1 a 5 se hicieron con los repos separados y conservan los nombres viejos (`workspace-api/` = `api/`,
+  `workspace-web/` = `web/`).
+- Desarrollo: la raíz hace `include` de `api/docker-compose.yml` y `web/docker-compose.yml` (proyecto `workspace`:
+  api con `php:8.4-cli-alpine` + `artisan serve` en 8003, reverb 8086, queue, scheduler, postgres 18 en 5435, y `web`
+  con Vite en 5174 desde la fase 1).
 - Web: `src/config.ts` lee `VITE_API_URL`, `VITE_REVERB_APP_KEY`, `VITE_REVERB_HOST`, `VITE_REVERB_PORT`,
   `VITE_REVERB_SCHEME` **al compilar**. Router en history mode (`createWebHistory`): producción necesita fallback SPA.
-  `VITE_REVERB_APP_KEY` está en `workspace-web/.env.local` (lo crea el usuario; nunca leerlo ni mostrarlo).
+  `VITE_REVERB_APP_KEY` está en `web/.env.local` (lo crea el usuario; nunca leerlo ni mostrarlo).
 - Referencia de desarrollo: `../sicm/.docker-workspace/sicm-v2/docker-compose.yml`, servicio `vite` (node, bind mount,
   `node_modules` en volumen con nombre, `npm install` si falta `node_modules/.bin/vite`, `--host 0.0.0.0`; sin polling,
   con `origin`).
@@ -23,7 +24,9 @@ workspace-api y workspace-web tengan un stack de producción en Docker desplegab
   imágenes solo si cambió el hash de `docker/` + compose; luego composer, permisos, `optimize`, `migrate --force`,
   reinicios. El `.env` vive solo en el servidor.
 - API: health en `/up`; CORS `*` fijo en `config/cors.php` (auth Bearer); no usa `storage:link`; sin `.dockerignore`.
-- Ningún repo de workspace tiene remoto todavía: las fases 6 y 7 requieren los repos en Gitea y los datos del servidor.
+- Remoto: `https://gitea.ascario.dev/ascario/sereno.git` (rama `main`). Las fases 6 y 7 son dos workflows en
+  `.gitea/workflows/` de la raíz, cada uno con filtro `paths` para que un push solo despliegue la app que cambió.
+  Requieren los datos del servidor.
 
 ## Fases
 
@@ -76,22 +79,28 @@ workspace-api y workspace-web tengan un stack de producción en Docker desplegab
   `-p` y otros puertos (sin tocar el stack de desarrollo ni leer `.env`), `/up` da 200 a través de nginx, un job de la
   cola se procesa y reverb acepta conexión.
 
-### [ ] Fase 6 — Despliegue del API por Gitea (workspace-api) [riesgo]
-- **Requiere:** repo `workspace-api` en Gitea, ruta del servidor, dominio y nombre del proyecto compose (los da el
-  usuario). `ejecutar-plan` se detiene antes si faltan.
-- **Alcance:** workflow y scripts adaptados de fletes-api (rsync sin `.env`/`vendor`/`storage`, rebuild por hash,
-  composer `--no-dev`, permisos, `optimize`, `migrate --force`, reinicio de queue y reverb).
-- **Archivos:** `.gitea/workflows/deploy.yml` y los scripts de deploy que use (mismo esquema que fletes-api).
-- **Terminado cuando:** los scripts corren en local contra el stack de la fase 5 y el workflow pasa una validación de
-  sintaxis; el primer deploy real lo confirma el usuario.
+### [ ] Fase 6 — Despliegue del API por Gitea (`api/`) [riesgo]
+- **Requiere:** ruta del servidor, dominio y nombre del proyecto compose (los da el usuario), y el repo `sereno`
+  publicado (fase 8 de `monorepo-sereno`). `ejecutar-plan` se detiene antes si faltan.
+- **Alcance:** `.gitea/workflows/deploy-api.yml` con `on.push.branches: [main]` y
+  `paths: ['api/**', '.gitea/workflows/deploy-api.yml']`. Scripts adaptados de fletes-api en `api/docker/deploy/`:
+  `rsync` de `api/` (sin `.env`/`vendor`/`storage`) a la ruta del API en el servidor, rebuild por hash de
+  `api/docker/` + `api/docker-compose.prod.yml`, composer `--no-dev`, permisos, `optimize`, `migrate --force`, reinicio
+  de queue y reverb.
+- **Archivos:** `.gitea/workflows/deploy-api.yml` y los scripts de `api/docker/deploy/`.
+- **Terminado cuando:** los scripts corren en local contra el stack de la fase 5, el workflow pasa una validación de
+  sintaxis y un cambio solo en `web/` no lo dispara (filtro `paths` revisado); el primer deploy real lo confirma el
+  usuario.
 
-### [ ] Fase 7 — Despliegue de la web por Gitea (workspace-web) [riesgo]
-- **Requiere:** lo mismo que la fase 6 para `workspace-web`, y dónde viven los `VITE_*` de producción en el servidor.
-- **Alcance:** workflow que hace `npm ci && npm run build` con los `VITE_*` del servidor, `rsync` de `dist/` y de la
-  conf, y `up -d` del compose de producción solo si cambió.
-- **Archivos:** `.gitea/workflows/deploy.yml` (+ script si hace falta).
-- **Terminado cuando:** el build del workflow corre en local con `VITE_*` de prueba y el workflow pasa una validación
-  de sintaxis; el primer deploy real lo confirma el usuario.
+### [ ] Fase 7 — Despliegue de la web por Gitea (`web/`) [riesgo]
+- **Requiere:** lo mismo que la fase 6, la ruta de la web en el servidor y dónde viven los `VITE_*` de producción
+  (servidor o secretos de Gitea).
+- **Alcance:** `.gitea/workflows/deploy-web.yml` con `paths: ['web/**', '.gitea/workflows/deploy-web.yml']`: en
+  `web/`, `npm ci && npm run build` con los `VITE_*` de producción, `rsync` de `web/dist/` y
+  `web/docker/nginx/default.conf`, y `up -d` de `web/docker-compose.prod.yml` solo si cambió.
+- **Archivos:** `.gitea/workflows/deploy-web.yml` (+ script en `web/docker/deploy/` si hace falta).
+- **Terminado cuando:** el build del workflow corre en local con `VITE_*` de prueba, el workflow pasa una validación
+  de sintaxis y un cambio solo en `api/` no lo dispara; el primer deploy real lo confirma el usuario.
 
 ## Decisiones
 - 2026-10-07 — Se sigue el patrón de fletes-api: el código no va dentro de la imagen; producción monta el repo
@@ -100,6 +109,8 @@ workspace-api y workspace-web tengan un stack de producción en Docker desplegab
 - 2026-10-07 — Los compose de producción son `docker-compose.prod.yml` dentro de cada repo; los `docker-compose.yml`
   siguen siendo los de desarrollo (la raíz los incluye). Distinto de fletes-api, donde el del repo es el de deploy.
 - 2026-10-07 — TLS lo termina el proxy del host (fuera del plan); los stacks publican HTTP.
+- 2026-10-08 — Monorepo: un workflow por app en `.gitea/workflows/` de la raíz con filtro `paths`; cada app sigue con
+  su `docker-compose.prod.yml` y su ruta propia en el servidor (solo se sincroniza su carpeta).
 - 2026-10-07 — Fase 1: `vite.config.ts` activa `server.host` con `DEV_HOST` y el polling con `DEV_POLLING=true`; sin
   ellas no cambia nada fuera de Docker. Los comandos de la web se corren desde la raíz (`docker compose exec web ...`):
   dentro de `workspace-web/` compose usa otro nombre de proyecto.
@@ -128,8 +139,9 @@ workspace-api y workspace-web tengan un stack de producción en Docker desplegab
   reenviar `Host` (`proxy_set_header Host $host`, si no `url()` da `https://127.0.0.1:8003`); no
   publicar `API_BIND` en `0.0.0.0`. Si conviven dev y prod en la misma máquina, cambiar los puertos por defecto. El tag
   `workspace-api-fpm` es compartido por todos los proyectos compose de la máquina.
-- `workspace-web/dist/` local quedó con un build de prueba (`VITE_*` falsos); ignorado por git, reconstruir si se usa.
-- Fases 6 y 7: pedir al usuario los repos en Gitea, ruta del servidor, dominios y proyecto compose antes de empezar.
+- `web/dist/` local quedó con un build de prueba (`VITE_*` falsos); ignorado por git, reconstruir si se usa.
+- Fases 6 y 7: pedir al usuario ruta del servidor, dominios, proyecto compose y dónde van los `VITE_*` antes de
+  empezar; el repo `sereno` tiene que estar publicado.
 
 ## Mejoras propuestas
 - [x] M-1 (baja, sonnet) — `workspace-web/docker-compose.yml`: correr el servicio `web` como `user: node` para que
