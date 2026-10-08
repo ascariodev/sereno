@@ -6,6 +6,8 @@ import './style.css'
 import { initTheme } from './theme/theme'
 import App from './App.vue'
 import { i18n, installI18nOnApi } from './i18n'
+import { toast } from './components/ui/toast'
+import { registerServiceWorker } from './pwa/serviceWorker'
 import { createAppRouter } from './router'
 import { redirectToLogin } from './router/redirectToLogin'
 import { installAuthOnApi } from './stores/auth'
@@ -25,6 +27,13 @@ app.use(i18n).use(router).mount('#app')
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {})
+    registerServiceWorker({
+      onUpdateReady: (applyUpdate) => {
+        toast.info(i18n.global.t('pwa.updateReady'), {
+          duration: Number.POSITIVE_INFINITY,
+          action: { label: i18n.global.t('pwa.reload'), onSelect: applyUpdate },
+        })
+      },
+    }).catch(() => {})
   })
 }

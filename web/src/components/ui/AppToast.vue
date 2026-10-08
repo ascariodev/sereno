@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { CircleAlert, CircleCheck, X } from '@lucide/vue'
-import { ToastClose, ToastDescription, ToastProvider, ToastRoot, ToastViewport } from 'reka-ui'
+import { CircleAlert, CircleCheck, Info, X } from '@lucide/vue'
+import { ToastAction, ToastClose, ToastDescription, ToastProvider, ToastRoot, ToastViewport } from 'reka-ui'
 import { TOAST_DURATION, toast, toasts } from './toast'
 
 defineProps<{ label: string; closeLabel: string }>()
@@ -23,8 +23,18 @@ function onOpenChange(id: number, open: boolean) {
       @update:open="onOpenChange(item.id, $event)"
     >
       <CircleAlert v-if="item.kind === 'error'" class="app-toast__icon" :size="18" aria-hidden="true" />
+      <Info v-else-if="item.kind === 'info'" class="app-toast__icon" :size="18" aria-hidden="true" />
       <CircleCheck v-else class="app-toast__icon" :size="18" aria-hidden="true" />
       <ToastDescription class="app-toast__message">{{ item.message }}</ToastDescription>
+      <ToastAction
+        v-if="item.action"
+        class="app-toast__action"
+        name="toast-action"
+        :alt-text="item.action.label"
+        @click="item.action.onSelect()"
+      >
+        {{ item.action.label }}
+      </ToastAction>
       <ToastClose class="app-toast__close" :aria-label="closeLabel" name="close-toast">
         <X :size="16" aria-hidden="true" />
       </ToastClose>
@@ -67,9 +77,30 @@ function onOpenChange(id: number, open: boolean) {
 .app-toast--error .app-toast__icon {
   color: var(--level-error-fg);
 }
+.app-toast--info .app-toast__icon {
+  color: var(--accent-ink);
+}
 .app-toast__icon {
   flex: none;
   margin-top: 1px;
+}
+.app-toast__action {
+  flex: none;
+  min-height: 28px;
+  margin: -3px 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--ink);
+  color: var(--surface);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.app-toast__action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 .app-toast__message {
   flex: 1;

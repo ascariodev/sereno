@@ -8,6 +8,10 @@
     "region": "Notifications",
     "close": "Dismiss notification"
   },
+  "pwa": {
+    "updateReady": "A new version of Sereno is available.",
+    "reload": "Reload"
+  },
   "app": {
     "name": "Sereno"
   },

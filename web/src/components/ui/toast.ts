@@ -1,17 +1,24 @@
 import { shallowRef } from 'vue'
 
-export type ToastKind = 'success' | 'error'
+export type ToastKind = 'success' | 'error' | 'info'
+
+export interface ToastAction {
+  label: string
+  onSelect: () => void
+}
 
 export interface ToastItem {
   id: number
   kind: ToastKind
   message: string
   duration: number
+  action?: ToastAction
   open: boolean
 }
 
 export interface ToastOptions {
   duration?: number
+  action?: ToastAction
 }
 
 export const TOAST_LIMIT = 3
@@ -29,7 +36,7 @@ function push(kind: ToastKind, message: string, options: ToastOptions = {}): num
   const duration = options.duration ?? (kind === 'error' ? TOAST_ERROR_DURATION : TOAST_DURATION)
   const alive = toasts.value.filter((item) => item.open)
   const overflow = alive.slice(0, Math.max(0, alive.length + 1 - TOAST_LIMIT))
-  toasts.value = [...toasts.value.filter((item) => !overflow.includes(item)), { id, kind, message, duration, open: true }]
+  toasts.value = [...toasts.value.filter((item) => !overflow.includes(item)), { id, kind, message, duration, action: options.action, open: true }]
   return id
 }
 
@@ -54,6 +61,7 @@ function clear(): void {
 export const toast = {
   success: (message: string, options?: ToastOptions) => push('success', message, options),
   error: (message: string, options?: ToastOptions) => push('error', message, options),
+  info: (message: string, options?: ToastOptions) => push('info', message, options),
   dismiss,
   clear,
 }
