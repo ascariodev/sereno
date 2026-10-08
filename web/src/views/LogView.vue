@@ -9,11 +9,11 @@ import LogGroupAside from '../components/LogGroupAside.vue'
 import ProjectHeader from '../components/ProjectHeader.vue'
 import AppSegmented from '../components/ui/AppSegmented.vue'
 import LevelPill from '../components/ui/LevelPill.vue'
+import { LOG_LEVELS } from '../api/logLevels'
 import StatusPill from '../components/ui/StatusPill.vue'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 
-const LEVELS = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency']
 const STATUSES: LogGroupStatus[] = ['open', 'resolved', 'ignored']
 const ALL = 'all'
 const DEFAULT_STATUS = 'open'
@@ -48,7 +48,7 @@ const statusFilter = computed(() => {
 })
 const levelFilter = computed(() => {
   const raw = firstQuery('level')
-  return raw !== undefined && LEVELS.includes(raw) ? raw : ALL
+  return raw !== undefined && LOG_LEVELS.includes(raw) ? raw : ALL
 })
 const page = computed(() => positiveInt(firstQuery('page')) ?? 1)
 const groupId = computed(() => positiveInt(firstQuery('group')))
@@ -63,7 +63,7 @@ const statusOptions = computed(() =>
 )
 const levelOptions = computed(() => [
   { value: ALL, label: t('log.level.all') },
-  ...LEVELS.map((value) => ({ value, label: t('log.level.atLeast', { level: t(`notice.level.${value}`) }) })),
+  ...LOG_LEVELS.map((value) => ({ value, label: t('log.level.atLeast', { level: t(`notice.level.${value}`) }) })),
 ])
 
 function navigate(changes: Record<string, string | undefined>): void {

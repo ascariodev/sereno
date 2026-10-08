@@ -43,6 +43,14 @@ describe('SystemNotice', () => {
     expect(es).toContain('1 evento')
   })
 
+  it('names the card by its kind label without repeating the level', () => {
+    const wrapper = mount(SystemNotice, { props: { message: message(opened) }, global: { plugins: [i18n] } })
+    const card = wrapper.get('article')
+    expect(card.attributes('aria-label')).toBeUndefined()
+    const labelId = card.attributes('aria-labelledby') as string
+    expect(wrapper.get(`[id="${labelId}"]`).text()).toBe('New log group')
+  })
+
   it('renders log.group_reopened with plural events', () => {
     const en = textIn('en', message(reopened))
     expect(en).toContain('Log group reopened')

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { Check, EyeOff, Info, OctagonAlert, RotateCcw, TriangleAlert } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { updateLogGroupStatus } from '../api/logGroups'
 import { isLogGroupOpenedPayload, isLogGroupStatus, isLogGroupStatusChangedPayload } from '../api/types'
 import type { LogGroupStatus, Message } from '../api/types'
+import { LOG_LEVELS } from '../api/logLevels'
 import LevelPill from './ui/LevelPill.vue'
 
-const LEVELS = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency']
 const STRONG_LEVELS = ['critical', 'alert', 'emergency']
 const STATUSES = ['open', 'resolved', 'ignored']
 
@@ -17,6 +17,7 @@ const emit = defineEmits<{ select: [groupId: number] }>()
 
 const { t, te, locale } = useI18n()
 
+const kindId = useId()
 const pending = ref(false)
 const errorText = ref<string | null>(null)
 const doneStatus = ref<LogGroupStatus | null>(null)
@@ -57,7 +58,7 @@ function known(prefix: string, value: string): string {
   return te(`${prefix}.${value}`) ? t(`${prefix}.${value}`) : value
 }
 
-const levelTone = computed(() => (opened.value && LEVELS.includes(opened.value.level) ? opened.value.level : 'debug'))
+const levelTone = computed(() => (opened.value && LOG_LEVELS.includes(opened.value.level) ? opened.value.level : 'debug'))
 const strong = computed(() => STRONG_LEVELS.includes(levelTone.value))
 const levelIcon = computed(() => {
   if (opened.value?.type === 'log.group_reopened') return RotateCcw
@@ -83,10 +84,10 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
     <span class="system-notice__icon" :class="`system-notice__icon--${levelTone}`" aria-hidden="true">
       <component :is="levelIcon" :size="17" :stroke-width="1.8" />
     </span>
-    <article class="system-notice__card" :aria-label="`${kindLabel}: ${known('notice.level', opened.level)}`">
+    <article class="system-notice__card" :aria-labelledby="kindId">
       <div class="system-notice__head">
         <LevelPill :level="opened.level" />
-        <span class="system-notice__kind">{{ kindLabel }}</span>
+        <span :id="kindId" class="system-notice__kind">{{ kindLabel }}</span>
         <time class="system-notice__time" :datetime="message.created_at" :title="fullDate">{{ shortTime }}</time>
       </div>
       <p class="system-notice__title">
