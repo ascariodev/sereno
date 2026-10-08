@@ -103,7 +103,7 @@ class DatabaseSeeder extends Seeder
 
         $notices = [
             [null, ['type' => 'log.group_opened', 'log_group_id' => $group->id, 'level' => 'error', 'title' => $group->title, 'events_count' => 1]],
-            [$user, ['type' => 'log.group_status_changed', 'log_group_id' => $group->id, 'status' => 'resolved', 'previous_status' => 'open']],
+            [$user, ['type' => 'log.group_status_changed', 'log_group_id' => $group->id, 'title' => $group->title, 'status' => 'resolved', 'previous_status' => 'open']],
         ];
 
         foreach ($notices as [$actor, $payload]) {

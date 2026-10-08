@@ -294,6 +294,7 @@ it('posts a status change notice in the project channel with the actor', functio
         ->and($message->payload)->toEqual([
             'type' => 'log.group_status_changed',
             'log_group_id' => $group->id,
+            'title' => $group->title,
             'status' => 'resolved',
             'previous_status' => 'open',
         ]);

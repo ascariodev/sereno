@@ -85,6 +85,7 @@ class LogGroupController extends Controller
             'payload' => [
                 'type' => 'log.group_status_changed',
                 'log_group_id' => $group->id,
+                'title' => $group->title,
                 'status' => $group->status->value,
                 'previous_status' => $previousStatus,
             ],
