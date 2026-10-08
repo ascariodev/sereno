@@ -1,6 +1,6 @@
 # workspace-api: Laravel 13
 
-API (solo JSON) para web, escritorio y móvil. PHP 8.4, PostgreSQL 18, Pest 5.
+API (solo JSON) de Sereno para web, escritorio y móvil. PHP 8.4, PostgreSQL 18, Pest 5.
 
 ## Todo corre dentro de Docker
 
