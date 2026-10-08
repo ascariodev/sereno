@@ -420,6 +420,18 @@ it('lets an admin list pending invitations', function () {
     listInvitations($admin, $this->organization)->assertOk()->assertJsonCount(1, 'data');
 });
 
+it('lists owner-role pending invitations for an admin', function () {
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+    $ownerInvitation = createPreviewInvitation($this->organization, $this->owner, ['role' => 'owner']);
+
+    listInvitations($admin, $this->organization)
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $ownerInvitation->id)
+        ->assertJsonPath('data.0.role', 'owner');
+});
+
 it('forbids plain members from listing invitations', function () {
     $member = User::factory()->create();
     $this->organization->addMember($member, [Role::Member]);
