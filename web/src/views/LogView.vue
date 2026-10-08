@@ -3,7 +3,7 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
-import { listLogGroups } from '../api/logGroups'
+import { getHourlyCounts, listLogGroups } from '../api/logGroups'
 import { isLogGroupStatusChangedPayload } from '../api/types'
 import type { LogGroup, LogGroupStatus, Message, Paginated } from '../api/types'
 import LogGroupAside from '../components/LogGroupAside.vue'
@@ -11,6 +11,7 @@ import ProjectHeader from '../components/ProjectHeader.vue'
 import AppSegmented from '../components/ui/AppSegmented.vue'
 import LevelPill from '../components/ui/LevelPill.vue'
 import { LOG_LEVELS } from '../api/logLevels'
+import Sparkline from '../components/ui/Sparkline.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
 import { onReconnect, subscribeToChannel } from '../realtime/echo'
 import { useOrganizationStore } from '../stores/organization'
@@ -33,6 +34,9 @@ const loadError = ref<'failed' | 'notFound' | null>(null)
 let generation = 0
 let loadedProject: number | null = null
 let controller: AbortController | null = null
+const hourly = ref<Record<string, number[]>>({})
+let hourlyGeneration = 0
+let hourlyController: AbortController | null = null
 
 function firstQuery(name: string): string | undefined {
   const raw = route.query[name]
@@ -94,17 +98,43 @@ function selectGroup(id: number | null, replace = false): void {
   navigate({ group: id === null ? undefined : String(id) }, replace)
 }
 
+function resetHourly(): void {
+  hourlyGeneration++
+  hourlyController?.abort()
+  hourlyController = null
+  hourly.value = {}
+}
+
+async function loadHourly(rows: LogGroup[]): Promise<void> {
+  const current = ++hourlyGeneration
+  hourlyController?.abort()
+  hourlyController = null
+  if (rows.length === 0) return
+  hourlyController = new AbortController()
+  try {
+    const response = await getHourlyCounts(projectId.value, rows.map((row) => row.id), hourlyController.signal)
+    if (current !== hourlyGeneration) return
+    hourly.value = response.counts ?? {}
+  } catch {
+    if (current === hourlyGeneration) hourly.value = {}
+  }
+}
+
 async function load(): Promise<void> {
   const current = ++generation
   controller?.abort()
   controller = new AbortController()
   const { signal } = controller
-  if (loadedProject !== projectId.value) result.value = null
+  if (loadedProject !== projectId.value) {
+    result.value = null
+    resetHourly()
+  }
   loadedProject = projectId.value
   loading.value = true
   loadError.value = null
   if (!Number.isInteger(projectId.value) || projectId.value < 1) {
     result.value = null
+    resetHourly()
     loading.value = false
     loadError.value = 'notFound'
     return
@@ -125,9 +155,11 @@ async function load(): Promise<void> {
       return
     }
     result.value = response
+    void loadHourly(response.data)
   } catch (caught) {
     if (current !== generation) return
     result.value = null
+    resetHourly()
     loadError.value = caught instanceof ApiError && caught.status === 404 ? 'notFound' : 'failed'
   } finally {
     if (current === generation) loading.value = false
@@ -195,6 +227,7 @@ onUnmounted(() => {
   leaveRealtime()
   generation++
   controller?.abort()
+  resetHourly()
 })
 
 function formatDate(value: string): string {
@@ -253,6 +286,7 @@ function formatDate(value: string): string {
                   <th scope="col" class="log-view__col-level">{{ t('log.table.level') }}</th>
                   <th scope="col">{{ t('log.table.group') }}</th>
                   <th scope="col" class="log-view__col-events">{{ t('log.table.events') }}</th>
+                  <th scope="col" class="log-view__col-activity">{{ t('log.table.activity') }}</th>
                   <th scope="col" class="log-view__col-last">{{ t('log.table.lastSeen') }}</th>
                   <th scope="col" class="log-view__col-status">{{ t('log.table.status') }}</th>
                 </tr>
@@ -269,6 +303,9 @@ function formatDate(value: string): string {
                     >{{ group.title }}</a>
                   </td>
                   <td class="log-view__number">{{ group.events_count }}</td>
+                  <td class="log-view__activity">
+                    <Sparkline v-if="hourly[String(group.id)]" :counts="hourly[String(group.id)]" :level="group.level" />
+                  </td>
                   <td class="log-view__date">{{ formatDate(group.last_seen_at) }}</td>
                   <td><StatusPill :status="group.status" /></td>
                 </tr>
@@ -352,7 +389,7 @@ function formatDate(value: string): string {
 }
 .log-view__table {
   width: 100%;
-  min-width: 720px;
+  min-width: 850px;
   border-collapse: collapse;
   font-size: 13.5px;
 }
@@ -374,6 +411,7 @@ function formatDate(value: string): string {
 }
 .log-view__col-level { width: 110px; }
 .log-view__col-events { width: 100px; }
+.log-view__col-activity { width: 130px; }
 .log-view__col-last { width: 170px; }
 .log-view__col-status { width: 110px; }
 .log-view__group {

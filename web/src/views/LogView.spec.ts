@@ -41,11 +41,20 @@ function groupCalls(spy: { mock: { calls: unknown[][] } }): Query[] {
     .map(([, options]) => (options as { query: Query }).query)
 }
 
-function mockApi(groups: (query: Query) => unknown) {
+function hourlyCalls(spy: { mock: { calls: unknown[][] } }): string[] {
+  return spy.mock.calls
+    .filter(([path]) => path === '/api/projects/5/log-groups/hourly')
+    .map(([, options]) => (options as { query: { ids: string } }).query.ids)
+}
+
+const hourlyBody = (counts: Record<string, number[]>) => ({ data: { from: '', hours: 24, counts } })
+
+function mockApi(groups: (query: Query) => unknown, hourly: (query: Query) => unknown = () => hourlyBody({})) {
   return vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: { query?: Query }) => {
     if (path === '/api/projects') return { data: [project], meta: { last_page: 1 } } as never
     if (path === '/api/channels') return { data: [{ id: 7, project_id: 5, name: 'general' }] } as never
     if (path === '/api/projects/5/log-groups') return (await groups(options?.query ?? {})) as never
+    if (path === '/api/projects/5/log-groups/hourly') return (await hourly(options?.query ?? {})) as never
     if (path.startsWith('/api/projects/5/log-groups/')) return { data: group(1) } as never
     return undefined as never
   })
@@ -176,6 +185,54 @@ describe('LogView', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('fresh')
     expect(wrapper.text()).not.toContain('stale')
+  })
+
+  it('requests the hourly counts once per page and renders a sparkline per group', async () => {
+    const spy = mockApi(
+      () => page([group(1), group(2)]),
+      () => hourlyBody({ '1': [0, 3, 1], '2': [2, 0, 0] }),
+    )
+    const wrapper = await mountView()
+    expect(hourlyCalls(spy)).toEqual(['1,2'])
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows[0].find('.sparkline').exists()).toBe(true)
+    expect(rows[0].find('.sparkline').text()).toContain('4')
+    expect(rows[1].find('.sparkline').exists()).toBe(true)
+  })
+
+  it('discards a stale hourly response when a newer page loads', async () => {
+    const resolvers: Record<string, (value: unknown) => void> = {}
+    const spy = mockApi(
+      (query) => page([group(Number(query.page ?? 1))], Number(query.page ?? 1), 3),
+      (query) =>
+        new Promise((resolve) => {
+          resolvers[String(query.ids)] = resolve
+        }),
+    )
+    const wrapper = await mountView()
+    await wrapper.router.push('/projects/5/log?page=2')
+    await flushPromises()
+    expect(hourlyCalls(spy)).toEqual(['1', '2'])
+    resolvers['2'](hourlyBody({ '2': [5, 5] }))
+    await flushPromises()
+    resolvers['1'](hourlyBody({ '1': [9, 9] }))
+    await flushPromises()
+    const row = wrapper.find('tbody tr')
+    expect(row.find('.sparkline').text()).toContain('10')
+    expect(wrapper.text()).not.toContain('18')
+  })
+
+  it('keeps the list without sparklines when the hourly request fails', async () => {
+    mockApi(
+      () => page([group(1)]),
+      () => {
+        throw new ApiError(500, 'boom')
+      },
+    )
+    const wrapper = await mountView()
+    expect(wrapper.findAll('tbody tr')).toHaveLength(1)
+    expect(wrapper.find('.sparkline').exists()).toBe(false)
+    expect(wrapper.find('[role=alert]').exists()).toBe(false)
   })
 
   it('opens the detail panel from a row and closes it, keeping the filters', async () => {

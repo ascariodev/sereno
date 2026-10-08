@@ -168,6 +168,7 @@
       "level": "Level",
       "group": "Group",
       "events": "Events",
+      "activity": "Last 24 h",
       "lastSeen": "Last seen",
       "status": "Status"
     },
