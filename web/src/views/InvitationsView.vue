@@ -23,7 +23,6 @@ const inviteOpen = ref(false)
 let generation = 0
 let controller: AbortController | null = null
 
-
 const confirmOpen = computed({
   get: () => pending.value !== null,
   set: (open: boolean) => {
@@ -71,6 +70,7 @@ watch(
     generation++
     controller?.abort()
     invitations.value = []
+    pending.value = null
     void router.replace({ name: 'projects' })
   },
   { immediate: true },
@@ -101,7 +101,7 @@ async function confirmRevoke(): Promise<void> {
     if (current !== generation) return
     if (error.status === 404) {
       invitations.value = invitations.value.filter((invitation) => invitation.id !== target.id)
-      toast.error(t('invitations.revokeGone'))
+      toast.info(t('invitations.revokeGone'))
     } else if (error.status === 403) {
       toast.error(t('invitations.revokeForbidden'))
     } else {

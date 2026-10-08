@@ -168,7 +168,7 @@ describe('InvitationsView', () => {
     dialogButton('confirm')!.click()
     await flushPromises()
     expect(wrapper!.findAll('[data-test=invitation]')).toHaveLength(0)
-    expect(toasts.value.map((item) => item.kind)).toEqual(['error'])
+    expect(toasts.value.map((item) => item.kind)).toEqual(['info'])
   })
 
   it('an admin cannot revoke owner invitations but an owner can', async () => {
