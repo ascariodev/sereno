@@ -29,7 +29,7 @@
 - L-19: Un chequeo que evita un `chown -R` busca cualquier entrada ajena (`find ! -user X -print -quit`), no solo el dueño de la raíz: el contenido puede ser de root con la raíz ya corregida. — aplicada en: pendiente
 - L-20: Un test de cierre (Escape, clic afuera) afirma primero que el elemento está abierto: si no abrió, "cerrado" pasa en falso. — aplicada en: test (AppMenu.spec, AppTooltip.spec)
 - L-21: Una tarjeta que es un enlace entero fija su nombre accesible con `aria-labelledby` al título (y `aria-describedby` al resto): si no, el lector lee todo el contenido como nombre. — aplicada en: test (ProjectsView.spec)
-- L-22: Un contenedor `flex-wrap` con altura mínima estira sus líneas (`align-content: normal`): fijar `align-content` o pasar a columna, y revisar el layout en el navegador, porque jsdom no lo detecta. — aplicada en: pendiente
+- L-22: Un contenedor `flex-wrap` con altura mínima estira sus líneas (`align-content: normal`): fijar `align-content` o pasar a columna, y revisar el layout en el navegador, porque jsdom no lo detecta. — aplicada en: log-resumen M-19
 - L-23: Un modal que se abre desde otro (cajón, hoja) cierra el primero o se prueba apilado: elegir una acción que no navega deja el de abajo abierto. — aplicada en: test (AppLayout.spec)
 - L-24: Un cambio de scroll o layout trae tests que simulan `scrollTop` y `scrollHeight` (crecen con el DOM, no antes del render): sin ellos la lógica de anclaje queda sin cubrir. — aplicada en: test (MessageList.spec)
 - L-27: Un estado derivado de los mensajes del canal se alimenta en todos los caminos que los cargan (`open`, `loadOlder`, `catchUp` en sus dos ramas, en vivo), no solo en el de tiempo real. — aplicada en: test (messages.spec)
