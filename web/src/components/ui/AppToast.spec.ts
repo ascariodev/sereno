@@ -107,8 +107,11 @@ describe('AppToast', () => {
   it('does not let a stale remove timer drop a toast after clear', async () => {
     const first = toast.success('First')
     await settle(50)
+    const before = vi.getTimerCount()
     toast.dismiss(first)
+    expect(vi.getTimerCount()).toBe(before + 1)
     toast.clear()
+    expect(vi.getTimerCount()).toBe(before)
     toast.success('Second')
     await settle(50)
     expect(items()).toHaveLength(1)
