@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { i18n } from '../i18n'
 import { createAppRouter } from '../router'
+import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 import ProjectsView from './ProjectsView.vue'
 
@@ -30,6 +31,7 @@ async function mountView() {
   const pinia = createPinia()
   setActivePinia(pinia)
   useOrganizationStore().$patch({ activeId: 1 })
+  useAuthStore().$patch({ user: { id: 1, name: 'Sergio', email: 's@x.test', locale: 'en' } })
   const router = createAppRouter(createMemoryHistory())
   const wrapper = mount(ProjectsView, { global: { plugins: [pinia, i18n, router] } })
   await flushPromises()
@@ -104,5 +106,44 @@ describe('ProjectsView', () => {
     vi.spyOn(api, 'get').mockRejectedValue(new ApiError(500, 'boom'))
     const wrapper = await mountView()
     expect(wrapper.find('[role=alert]').exists()).toBe(true)
+  })
+
+  it('greets the user by name', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: [], meta: { current_page: 1, last_page: 1, per_page: 100, total: 0 } } as never)
+    const wrapper = await mountView()
+    expect(wrapper.find('h1').text()).toBe('Hello, Sergio')
+  })
+
+  it('shows the empty state without projects', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: [], meta: { current_page: 1, last_page: 1, per_page: 100, total: 0 } } as never)
+    const wrapper = await mountView()
+    expect(wrapper.find('.projects__empty').text()).toContain('No projects yet.')
+    expect(wrapper.findAll('li')).toHaveLength(0)
+  })
+
+  it('renders a project without channel as a card without link', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
+      path === '/api/projects'
+        ? ({ data: [{ ...project(1, 'Alpha'), description: 'Does things' }], meta: { current_page: 1, last_page: 1, per_page: 100, total: 1 } } as never)
+        : ({ data: [] } as never),
+    )
+    const wrapper = await mountView()
+    expect(wrapper.find('a').exists()).toBe(false)
+    expect(wrapper.text()).toContain('K1')
+    expect(wrapper.text()).toContain('Does things')
+  })
+
+  it('labels the card link by name and describes it by description', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
+      path === '/api/projects'
+        ? ({ data: [{ ...project(1, 'Alpha'), description: 'Does things' }], meta: { current_page: 1, last_page: 1, per_page: 100, total: 1 } } as never)
+        : ({ data: [channel(7, 1)] } as never),
+    )
+    const wrapper = await mountView()
+    const link = wrapper.find('a')
+    expect(link.attributes('aria-labelledby')).toBe('project-1-name')
+    expect(link.attributes('aria-describedby')).toBe('project-1-description')
+    expect(link.find('#project-1-name').text()).toBe('Alpha')
+    expect(link.find('#project-1-description').text()).toBe('Does things')
   })
 })

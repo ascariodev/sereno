@@ -1,54 +1,96 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ProjectCard from '../components/ProjectCard.vue'
+import { useAuthStore } from '../stores/auth'
 import { useProjectsStore } from '../stores/projects'
 
 const { t } = useI18n()
 const store = useProjectsStore()
 const { projects, channelByProject, loading, failed } = storeToRefs(store)
 const reload = store.reload
+const { user } = storeToRefs(useAuthStore())
+const greeting = computed(() => (user.value ? t('projects.greeting', { name: user.value.name }) : t('projects.title')))
 </script>
 
 <template>
   <section class="projects">
-    <h1>{{ t('projects.title') }}</h1>
+    <h1 class="projects__greeting">{{ greeting }}</h1>
+    <h2 class="projects__heading">{{ t('projects.title') }}</h2>
     <p v-if="loading">{{ t('common.loading') }}</p>
     <p v-else-if="failed" role="alert">
       {{ t('projects.loadFailed') }}
       <button type="button" name="retry" @click="reload">{{ t('common.retry') }}</button>
     </p>
-    <p v-else-if="projects.length === 0" class="projects__empty">{{ t('projects.empty') }}</p>
+    <p v-else-if="projects.length === 0" class="projects__empty">
+      <strong>{{ t('projects.empty') }}</strong>
+      <span>{{ t('projects.emptyHint') }}</span>
+    </p>
     <ul v-else class="projects__list">
-      <li v-for="project in projects" :key="project.id" class="projects__item">
-        <RouterLink
-          v-if="channelByProject[project.id]"
-          :to="{ name: 'channel', params: { id: channelByProject[project.id] } }"
-        >
-          {{ project.name }}
-        </RouterLink>
-        <span v-else>{{ project.name }}</span>
-        <small class="projects__key">{{ project.key }}</small>
-        <p v-if="project.description" class="projects__description">{{ project.description }}</p>
+      <li v-for="project in projects" :key="project.id">
+        <ProjectCard :project="project" :channel-id="channelByProject[project.id]" />
       </li>
     </ul>
   </section>
 </template>
 
 <style scoped>
+.projects {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 44px 32px 40px;
+}
+
+.projects__greeting {
+  margin: 0 0 12px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.projects__heading {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.projects p {
+  margin: 0;
+}
+
 .projects__list {
-  list-style: none;
-  padding: 0;
   display: grid;
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(290px, 100%), 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.projects__key {
-  margin-left: 0.5rem;
-  opacity: 0.6;
+.projects__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 40px 16px;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-panel);
+  color: var(--ink-3);
+  text-align: center;
 }
 
-.projects__description {
-  margin: 0.25rem 0 0;
-  opacity: 0.8;
+.projects__empty strong {
+  color: var(--ink-2);
+}
+
+@media (max-width: 600px) {
+  .projects {
+    padding: 24px 16px;
+  }
 }
 </style>

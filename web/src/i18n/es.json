@@ -44,9 +44,11 @@
     "logout": "Cerrar sesión"
   },
   "projects": {
+    "greeting": "Hola, {name}",
     "title": "Proyectos",
     "loadFailed": "No se pudieron cargar los proyectos.",
-    "empty": "Aún no hay proyectos."
+    "empty": "Aún no hay proyectos.",
+    "emptyHint": "Los proyectos a los que perteneces aparecen aquí."
   },
   "channel": {
     "title": "Canal",

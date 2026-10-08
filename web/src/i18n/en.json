@@ -44,9 +44,11 @@
     "logout": "Sign out"
   },
   "projects": {
+    "greeting": "Hello, {name}",
     "title": "Projects",
     "loadFailed": "Could not load the projects.",
-    "empty": "No projects yet."
+    "empty": "No projects yet.",
+    "emptyHint": "Projects you belong to appear here."
   },
   "channel": {
     "title": "Channel",
