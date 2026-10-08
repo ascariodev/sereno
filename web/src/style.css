@@ -1,8 +1,156 @@
 :root {
-  font: 16px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
-  color-scheme: light dark;
+  --bg: #F3F4F6;
+  --surface: #FFFFFF;
+  --ink: #15171C;
+  --ink-2: #4A5160;
+  --ink-3: #626976;
+  --border: #E5E7EB;
+  --accent: #4B4FD8;
+  --accent-soft: #EEEEFD;
+  --accent-ink: #3A3DB8;
+  --level-debug-bg: #F0F1F4;
+  --level-debug-fg: #4A5160;
+  --level-info-bg: #EEEEFD;
+  --level-info-fg: #3A3DB8;
+  --level-notice-bg: #E2F4F3;
+  --level-notice-fg: #0B5F5C;
+  --level-warning-bg: #FEF6E0;
+  --level-warning-fg: #8A5A06;
+  --level-error-bg: #FFF0EA;
+  --level-error-fg: #B93815;
+  --level-critical-bg: #B42318;
+  --level-critical-fg: #FFFFFF;
+  --level-alert-bg: #7A1A12;
+  --level-alert-fg: #FFFFFF;
+  --level-emergency-bg: #15171C;
+  --level-emergency-fg: #FF9C7A;
+  --status-open-bg: #EEEEFD;
+  --status-open-fg: #3A3DB8;
+  --status-resolved-bg: #E7F6EE;
+  --status-resolved-fg: #067647;
+  --status-ignored-bg: #F0F1F4;
+  --status-ignored-fg: #4A5160;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0F1114;
+    --surface: #171A1F;
+    --ink: #ECEEF2;
+    --ink-2: #B4BAC4;
+    --ink-3: #8A919C;
+    --border: #2A2F37;
+    --accent: #6E71E8;
+    --accent-soft: #23244A;
+    --accent-ink: #A9ABF5;
+    --level-debug-bg: #22262D;
+    --level-debug-fg: #B4BAC4;
+    --level-info-bg: #23244A;
+    --level-info-fg: #A9ABF5;
+    --level-notice-bg: #0F2E2D;
+    --level-notice-fg: #5CCFC8;
+    --level-warning-bg: #33270C;
+    --level-warning-fg: #F5C35C;
+    --level-error-bg: #3A1F17;
+    --level-error-fg: #FF9C7A;
+    --level-critical-bg: #D92D20;
+    --level-critical-fg: #FFFFFF;
+    --level-alert-bg: #FDA29B;
+    --level-alert-fg: #55160C;
+    --level-emergency-bg: #ECEEF2;
+    --level-emergency-fg: #B42318;
+    --status-open-bg: #23244A;
+    --status-open-fg: #A9ABF5;
+    --status-resolved-bg: #12301F;
+    --status-resolved-fg: #5FD39A;
+    --status-ignored-bg: #22262D;
+    --status-ignored-fg: #B4BAC4;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #0F1114;
+  --surface: #171A1F;
+  --ink: #ECEEF2;
+  --ink-2: #B4BAC4;
+  --ink-3: #8A919C;
+  --border: #2A2F37;
+  --accent: #6E71E8;
+  --accent-soft: #23244A;
+  --accent-ink: #A9ABF5;
+  --level-debug-bg: #22262D;
+  --level-debug-fg: #B4BAC4;
+  --level-info-bg: #23244A;
+  --level-info-fg: #A9ABF5;
+  --level-notice-bg: #0F2E2D;
+  --level-notice-fg: #5CCFC8;
+  --level-warning-bg: #33270C;
+  --level-warning-fg: #F5C35C;
+  --level-error-bg: #3A1F17;
+  --level-error-fg: #FF9C7A;
+  --level-critical-bg: #D92D20;
+  --level-critical-fg: #FFFFFF;
+  --level-alert-bg: #FDA29B;
+  --level-alert-fg: #55160C;
+  --level-emergency-bg: #ECEEF2;
+  --level-emergency-fg: #B42318;
+  --status-open-bg: #23244A;
+  --status-open-fg: #A9ABF5;
+  --status-resolved-bg: #12301F;
+  --status-resolved-fg: #5FD39A;
+  --status-ignored-bg: #22262D;
+  --status-ignored-fg: #B4BAC4;
+  color-scheme: dark;
+}
+
+:root {
+  --font-sans: 'Figtree Variable', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --radius-chip: 6px;
+  --radius-control: 9px;
+  --radius-card: 12px;
+  --radius-panel: 14px;
+  --radius-pill: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
 }
 
 body {
-  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
 }

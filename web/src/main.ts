@@ -1,5 +1,7 @@
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
+import '@fontsource-variable/figtree'
+import '@fontsource-variable/jetbrains-mono'
 import './style.css'
 import App from './App.vue'
 import { i18n, installI18nOnApi } from './i18n'
