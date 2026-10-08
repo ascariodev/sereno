@@ -1,7 +1,7 @@
 # Plan: miembros
 
 **Objetivo:** que cualquier miembro vea quién está en la organización, que owner y admin cambien roles y quiten miembros según su rango, y que cualquiera pueda salir de la organización, sin que la organización se quede nunca sin owner.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -19,7 +19,7 @@
 - **Archivos:** `api/routes/api.php`, `api/app/Http/Controllers/Api/MemberController.php` (nuevo), `api/app/Http/Resources/MemberResource.php` (nuevo), `api/app/Policies/MemberPolicy.php` (nuevo, o el registro de Gates), tests en `api/tests/Feature/MemberApiTest.php` (nuevo).
 - **Terminado cuando:** tests de listado (solo miembros de la organización activa, rol correcto por organización, sin N+1, 403 de organización ajena, 401 sin sesión) pasan.
 
-### [ ] Fase 2 — Operaciones de membresía en el modelo [riesgo]
+### [x] Fase 2 — Operaciones de membresía en el modelo [riesgo]
 - **Alcance:** `Organization::changeMemberRole(User, Role)` y `Organization::removeMember(User)`: cambian o borran el rol del team (restaurando el team en `finally`, L-03) y el pivote, en transacción con lock sobre las membresías de la organización; si la operación deja la organización sin owner, lanzan una excepción de dominio con mensaje traducido (422).
 - **Archivos:** `api/app/Models/Organization.php`, `api/app/Exceptions/LastOwnerException.php` (nuevo), `api/lang/en.json`, `api/lang/es.json`, tests en `OrganizationModelTest.php`.
 - **Terminado cuando:** tests de cambiar rol, quitar (pivote y `model_has_roles` de esa organización, sin tocar otras), último owner bloqueado al degradar y al quitar, y team restaurado incluso si lanza, pasan.
@@ -62,13 +62,15 @@
 - 2026-10-08 — Un miembro tiene un solo rol por organización: cambiar el rol reemplaza el anterior.
 - 2026-10-08 — Salir de la organización es el mismo `DELETE` sobre uno mismo; el último owner no puede salir ni degradarse.
 - 2026-10-08 — Las reglas de miembros viven en `MemberPolicy`, registrada con `Gate::policy(User::class, ...)` (el objetivo es un `User`; no existe `UserPolicy`). Hoy solo `viewAny` (cualquier rol de la organización activa); las fases 3 y 4 añaden `updateRole(actor, target, Role)` y `remove(actor, target)`. `MemberResource` toma el rol de `roles->first()?->name` (el eager load ya filtra por team) y `joined_at` de `pivot->created_at`.
+- 2026-10-08 — `Organization::changeMemberRole/removeMember` toman `lockForUpdate` sobre la fila de `organizations` (serializa toda mutación de membresía) antes de contar owners; `addMember` no lo toma. Usuario no miembro: `ModelNotFoundException` (404). `LastOwnerException` se renderiza sola como 422 traducido: los controladores no la capturan. `changeMemberRole` usa `syncRoles` (reemplaza el rol).
 - 2026-10-08 — No se cortan las suscripciones Reverb ya autorizadas del miembro quitado (queda como mejora).
 
 ## Notas para la próxima sesión
-- Fase 1 hecha. Empezar por la fase 2 (riesgo: lock sobre membresías). Leer `docs/lecciones.md` antes. Policy en `api/app/Policies/MemberPolicy.php`.
+- Fases 1 y 2 hechas. Empezar por la fase 3: reglas `updateRole` en `MemberPolicy` y llamar `Organization::changeMemberRole`. Leer `docs/lecciones.md` antes.
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): cortar en vivo las suscripciones Reverb de un miembro quitado (requiere un canal privado por usuario u organización).
 - [ ] M-2 (media, sonnet): transferir la propiedad (owner) en un paso, sin pasar por dos owners.
 - [ ] M-3 (baja, sonnet): fijar `joined_at` con `toIso8601String()` en `MemberResource` y probar el formato.
 - [ ] M-4 (baja, sonnet): test de que `MemberPolicy::viewAny` no concede sin team activo.
+- [ ] M-5 (baja, sonnet): test de concurrencia real con dos conexiones para el lock de `mutateMembership` (hoy solo se prueba el orden del SQL).

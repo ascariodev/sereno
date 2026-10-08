@@ -4,10 +4,12 @@ namespace App\Models;
 
 use App\Enums\Locale;
 use App\Enums\Role;
+use App\Exceptions\LastOwnerException;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -90,5 +92,76 @@ class Organization extends Model
             setPermissionsTeamId($previousTeam);
             $user->unsetRelation('roles');
         }
+    }
+
+    /**
+     * Replaces the member's role in this organization.
+     *
+     * @throws LastOwnerException when it would demote the last owner
+     * @throws ModelNotFoundException when the user is not a member
+     */
+    public function changeMemberRole(User $user, Role $role): void
+    {
+        $this->mutateMembership($user, function () use ($user, $role) {
+            if ($role !== Role::Owner && $this->isLastOwner($user)) {
+                throw new LastOwnerException;
+            }
+
+            $user->syncRoles([$role]);
+        });
+    }
+
+    /**
+     * Detaches the member and deletes their roles in this organization only.
+     *
+     * @throws LastOwnerException when the user is the last owner
+     * @throws ModelNotFoundException when the user is not a member
+     */
+    public function removeMember(User $user): void
+    {
+        $this->mutateMembership($user, function () use ($user) {
+            if ($this->isLastOwner($user)) {
+                throw new LastOwnerException;
+            }
+
+            $user->syncRoles([]);
+            $this->users()->detach($user->id);
+        });
+    }
+
+    /**
+     * Locking the organization row serializes every membership change of this organization, so the owner count
+     * read inside the callback cannot be invalidated by a concurrent demotion or removal before commit.
+     */
+    private function mutateMembership(User $user, callable $mutation): void
+    {
+        DB::transaction(function () use ($user, $mutation) {
+            static::query()->whereKey($this->id)->lockForUpdate()->firstOrFail();
+
+            if (! $this->users()->whereKey($user->id)->exists()) {
+                throw (new ModelNotFoundException)->setModel(User::class, [$user->id]);
+            }
+
+            $previousTeam = getPermissionsTeamId();
+            setPermissionsTeamId($this->id);
+
+            try {
+                $user->unsetRelation('roles');
+                $mutation();
+            } finally {
+                setPermissionsTeamId($previousTeam);
+                $user->unsetRelation('roles');
+            }
+        });
+    }
+
+    private function isLastOwner(User $user): bool
+    {
+        $isOwner = $user->roles()->where('roles.name', Role::Owner->value)->exists();
+
+        return $isOwner && ! $this->users()
+            ->whereKeyNot($user->id)
+            ->whereHas('roles', fn ($query) => $query->where('roles.name', Role::Owner->value))
+            ->exists();
     }
 }
