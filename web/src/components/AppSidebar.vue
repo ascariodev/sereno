@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { useOrganizationStore } from '../stores/organization'
+import { isApple } from '../platform'
 import { useProjectsStore } from '../stores/projects'
 import OrgSwitcher from './OrgSwitcher.vue'
 import UserMenu from './UserMenu.vue'
@@ -14,7 +15,6 @@ defineProps<{ collapsed?: boolean; collapsible?: boolean }>()
 defineEmits<{ search: []; toggle: [] }>()
 
 const { t } = useI18n()
-const isApple = /Mac|iPhone|iPad/.test(navigator.userAgent)
 const organization = useOrganizationStore()
 const projectsStore = useProjectsStore()
 const route = useRoute()
@@ -239,6 +239,12 @@ function currentFor(projectId: number): 'page' | undefined {
   font-family: var(--font-sans);
   font-size: 11px;
   color: var(--ink-3);
+}
+
+@media (max-width: 767px) {
+  .app-sidebar__kbd {
+    display: none;
+  }
 }
 
 .app-sidebar__project--disabled {

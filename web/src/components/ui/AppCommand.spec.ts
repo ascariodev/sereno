@@ -133,6 +133,20 @@ describe('AppCommand', () => {
     expect(isOpen).toBe(false)
   })
 
+  it('keeps the field expanded and the highlight when the pointer leaves the list', async () => {
+    await mountOpen()
+    expect(input().getAttribute('aria-expanded')).toBe('true')
+    key('ArrowDown')
+    await settle()
+    expect(highlighted()).toBe('log:5')
+
+    document.querySelector('.app-command')!.dispatchEvent(new Event('pointerleave'))
+    await settle()
+
+    expect(highlighted()).toBe('log:5')
+    expect(input().getAttribute('aria-expanded')).toBe('true')
+  })
+
   it('chooses an option with the pointer', async () => {
     await mountOpen()
 

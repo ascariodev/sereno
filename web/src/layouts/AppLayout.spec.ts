@@ -201,6 +201,19 @@ describe('AppLayout', () => {
     expect(document.querySelector('[role=option][data-value="log:5"]')).not.toBeNull()
   })
 
+  it('the search button in the mobile top bar opens the command palette', async () => {
+    Element.prototype.scrollIntoView = () => {}
+    await mountApp()
+    const button = document.querySelector<HTMLButtonElement>('.mobile-top-bar button[name=search]')!
+    expect(button.getAttribute('aria-label')).toBe('Search')
+
+    button.click()
+    await settle()
+
+    expect(document.querySelectorAll('[role=dialog]')).toHaveLength(1)
+    expect(document.activeElement?.getAttribute('role')).toBe('combobox')
+  })
+
   it('collapses the sidebar to icons, keeps accessible names and remembers the choice', async () => {
     const { wrapper } = await mountApp(undefined, '/channels/7')
     const sidebar = () => wrapper.find('.app-layout__sidebar')

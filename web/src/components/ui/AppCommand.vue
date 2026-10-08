@@ -22,7 +22,7 @@ function normalize(text: string): string {
 <script setup lang="ts">
 import { Search } from '@lucide/vue'
 import { ListboxContent, ListboxFilter, ListboxGroup, ListboxGroupLabel, ListboxItem, ListboxRoot } from 'reka-ui'
-import { computed, ref, useId, watch } from 'vue'
+import { computed, nextTick, ref, useId, watch } from 'vue'
 import AppDialog from './AppDialog.vue'
 
 const props = defineProps<{
@@ -37,10 +37,23 @@ const emit = defineEmits<{ select: [value: string] }>()
 const open = defineModel<boolean>('open', { default: false })
 const query = ref('')
 const listId = useId()
+const listbox = ref<{ highlightItem: (value: string) => void } | null>(null)
+let lastHighlighted: string | null = null
 
 watch(open, (isOpen) => {
-  if (isOpen) query.value = ''
+  if (!isOpen) return
+  query.value = ''
+  lastHighlighted = null
 })
+
+function onHighlight(item?: { value: unknown }): void {
+  if (typeof item?.value === 'string') lastHighlighted = item.value
+}
+
+function keepHighlight(): void {
+  const value = lastHighlighted
+  if (value !== null) void nextTick(() => listbox.value?.highlightItem(value))
+}
 
 const visibleGroups = computed(() => {
   const terms = normalize(query.value).split(/\s+/).filter(Boolean)
@@ -64,7 +77,7 @@ function choose(value: string): void {
 
 <template>
   <AppDialog v-model:open="open" :title="title" hide-title>
-    <ListboxRoot class="app-command">
+    <ListboxRoot ref="listbox" class="app-command" @highlight="onHighlight" @leave="keepHighlight">
       <div class="app-command__field">
         <Search class="app-command__search-icon" :size="17" aria-hidden="true" />
         <ListboxFilter

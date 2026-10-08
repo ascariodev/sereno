@@ -92,7 +92,7 @@ onBeforeUnmount(() => {
       { 'app-layout--fixed': route.name === 'channel', 'app-layout--collapsed': sidebarCollapsed },
     ]"
   >
-    <MobileTopBar class="app-layout__top-bar" :open="drawerOpen" @toggle="drawerOpen = !drawerOpen" />
+    <MobileTopBar class="app-layout__top-bar" :open="drawerOpen" @toggle="drawerOpen = !drawerOpen" @search="paletteOpen = true" />
     <AppDialog
       v-model:open="drawerOpen"
       variant="sheet-left"

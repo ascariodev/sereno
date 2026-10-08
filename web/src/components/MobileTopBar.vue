@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Menu } from '@lucide/vue'
+import { Menu, Search } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 
 defineProps<{ open: boolean }>()
-defineEmits<{ toggle: [] }>()
+defineEmits<{ toggle: []; search: [] }>()
 
 const { t } = useI18n()
 </script>
@@ -22,6 +22,16 @@ const { t } = useI18n()
       <Menu :size="20" aria-hidden="true" />
     </button>
     <strong class="mobile-top-bar__brand">{{ t('app.name') }}</strong>
+    <button
+      type="button"
+      name="search"
+      class="mobile-top-bar__button mobile-top-bar__search"
+      :aria-label="t('command.open')"
+      aria-haspopup="dialog"
+      @click="$emit('search')"
+    >
+      <Search :size="20" aria-hidden="true" />
+    </button>
   </header>
 </template>
 
@@ -47,6 +57,10 @@ const { t } = useI18n()
   background: transparent;
   color: var(--ink-2);
   cursor: pointer;
+}
+
+.mobile-top-bar__search {
+  margin-left: auto;
 }
 
 .mobile-top-bar__button:hover {
