@@ -83,7 +83,7 @@
 
 ## Mejoras propuestas
 - [x] M-1 (baja, sonnet): `LogGroupHourlyResource` para documentar en un solo sitio la forma de la respuesta de `hourly`, en vez de `JsonResource::make` con `(object)`.
-- [ ] M-2 (baja, sonnet): test unitario de `LogLevel::bySeverity()` y `fromSeverityPosition()` que recorra todos los casos del enum.
+- [x] M-2 (baja, sonnet): test unitario de `LogLevel::bySeverity()` y `fromSeverityPosition()` que recorra todos los casos del enum.
 - [ ] M-3 (baja, sonnet): cachear en una estática el orden de `LogLevel::fromSeverityPosition()` (hoy hace `usort` en cada llamada, una por proyecto).
 - [x] M-4 (baja, sonnet): la suite completa del API no carga: `ingest()` global está declarada en `tests/Feature/LogSourceAuthTest.php:32` y `RotateLogSourceKeyCommandTest.php:34` (viene de conectar-posveapi M-18/M-20, no de este plan). Renombrar o encapsular una de las dos.
 - [ ] M-5 (baja, sonnet): renombrar el caso de error de `getHourlyCounts` en `logGroups.spec.ts` para que diga que provoca el 422 con `ids` vacío.
