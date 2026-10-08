@@ -133,8 +133,8 @@ class LogEventRecorder
      */
     private function conflictAssignments(): array
     {
-        $severity = self::severitySql('log_groups.level');
-        $incomingSeverity = self::severitySql('EXCLUDED.level');
+        $severity = LogLevel::severitySql('log_groups.level');
+        $incomingSeverity = LogLevel::severitySql('EXCLUDED.level');
 
         return [
             'events_count = log_groups.events_count + 1',
@@ -143,19 +143,5 @@ class LogEventRecorder
             "status = CASE WHEN log_groups.status = '".LogGroupStatus::Resolved->value."' THEN '".LogGroupStatus::Open->value."' ELSE log_groups.status END",
             'updated_at = EXCLUDED.updated_at',
         ];
-    }
-
-    /**
-     * Position of the level in an array literal ordered by LogLevel::severity(); the literals come
-     * from the enum, never from input.
-     */
-    private static function severitySql(string $column): string
-    {
-        $levels = LogLevel::cases();
-        usort($levels, fn (LogLevel $a, LogLevel $b) => $a->severity() <=> $b->severity());
-
-        $literals = implode(', ', array_map(fn (LogLevel $level) => "'{$level->value}'", $levels));
-
-        return "array_position(ARRAY[{$literals}]::text[], {$column}::text)";
     }
 }

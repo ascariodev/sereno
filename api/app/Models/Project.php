@@ -61,4 +61,9 @@ class Project extends Model
     {
         return $this->hasMany(LogSource::class);
     }
+
+    public function logGroups(): HasMany
+    {
+        return $this->hasMany(LogGroup::class);
+    }
 }

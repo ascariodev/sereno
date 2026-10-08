@@ -1,10 +1,13 @@
 <?php
 
+use App\Enums\LogLevel;
 use App\Enums\Role;
 use App\Models\Channel;
+use App\Models\LogGroup;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -313,4 +316,62 @@ it('syncs the channel archived_at with its archived project idempotently', funct
     expect($channelArchived->fresh()->archived_at->equalTo($archivedAt))->toBeTrue()
         ->and($channelActive->fresh()->archived_at)->toBeNull()
         ->and($channelAlready->fresh()->archived_at->equalTo($custom))->toBeTrue();
+});
+
+it('counts only open groups and reports their highest level per project', function () {
+    $busy = Project::factory()->for($this->organization)->create(['name' => 'A']);
+    $calm = Project::factory()->for($this->organization)->create(['name' => 'B']);
+    LogGroup::factory()->for($busy)->create(['level' => LogLevel::Warning]);
+    LogGroup::factory()->for($busy)->create(['level' => LogLevel::Critical]);
+    LogGroup::factory()->for($busy)->resolved()->create(['level' => LogLevel::Emergency]);
+    LogGroup::factory()->for($busy)->ignored()->create(['level' => LogLevel::Alert]);
+    LogGroup::factory()->for($calm)->resolved()->create(['level' => LogLevel::Error]);
+
+    $data = asUser($this->users['member'], $this->organization)->getJson('/api/projects')->assertOk()->json('data');
+
+    expect($data[0])->toMatchArray(['open_groups_count' => 2, 'open_max_level' => 'critical'])
+        ->and($data[1])->toMatchArray(['open_groups_count' => 0, 'open_max_level' => null]);
+});
+
+it('does not count groups of other organizations or projects', function () {
+    $mine = Project::factory()->for($this->organization)->create();
+    $theirs = Project::factory()->for($this->other)->create();
+    LogGroup::factory()->for($theirs)->create(['level' => LogLevel::Emergency]);
+
+    $data = asUser($this->users['member'], $this->organization)->getJson('/api/projects')->assertOk()->json('data');
+
+    expect($data)->toHaveCount(1)
+        ->and($data[0])->toMatchArray(['id' => $mine->id, 'open_groups_count' => 0, 'open_max_level' => null]);
+});
+
+it('keeps the open summary out of single project responses', function () {
+    $project = Project::factory()->for($this->organization)->create();
+
+    asUser($this->users['member'], $this->organization)->getJson("/api/projects/{$project->id}")
+        ->assertOk()
+        ->assertJsonMissingPath('data.open_groups_count')
+        ->assertJsonMissingPath('data.open_max_level');
+});
+
+it('runs a fixed number of queries however many projects have groups', function () {
+    $queries = function () {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        asUser($this->users['member'], $this->organization)->getJson('/api/projects')->assertOk();
+        $count = count(DB::getQueryLog());
+        DB::flushQueryLog();
+
+        return $count;
+    };
+
+    $first = Project::factory()->for($this->organization)->create();
+    LogGroup::factory()->for($first)->create();
+    $queries();
+    $before = $queries();
+
+    foreach (Project::factory()->for($this->organization)->count(4)->create() as $project) {
+        LogGroup::factory()->for($project)->count(2)->create();
+    }
+
+    expect($queries())->toBe($before);
 });

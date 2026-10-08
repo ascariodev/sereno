@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\LogGroupStatus;
+use App\Enums\LogLevel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Project\ListProjectsRequest;
 use App\Http\Requests\Project\ProjectRequest;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
@@ -16,9 +19,13 @@ class ProjectController extends Controller
 {
     public function index(ListProjectsRequest $request): AnonymousResourceCollection
     {
+        $open = fn (Builder $query) => $query->where('status', LogGroupStatus::Open->value);
+
         return ProjectResource::collection(
             Project::query()
                 ->when(! $request->includeArchived(), fn ($query) => $query->whereNull('archived_at'))
+                ->withCount(['logGroups as open_groups_count' => $open])
+                ->withAggregate(['logGroups as open_max_severity' => $open], DB::raw(LogLevel::severitySql('level')), 'max')
                 ->orderBy('name')
                 ->orderBy('id')
                 ->paginate($request->perPage())

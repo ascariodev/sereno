@@ -36,4 +36,31 @@ enum LogLevel: string
     {
         return $second->severity() > $first->severity() ? $second : $first;
     }
+
+    /**
+     * @return list<self>
+     */
+    public static function bySeverity(): array
+    {
+        $levels = self::cases();
+        usort($levels, fn (self $a, self $b) => $a->severity() <=> $b->severity());
+
+        return $levels;
+    }
+
+    /**
+     * 1-based position of the level in an array literal ordered by severity; the literals come
+     * from the enum, never from input.
+     */
+    public static function severitySql(string $column): string
+    {
+        $literals = implode(', ', array_map(fn (self $level) => "'{$level->value}'", self::bySeverity()));
+
+        return "array_position(ARRAY[{$literals}]::text[], {$column}::text)";
+    }
+
+    public static function fromSeverityPosition(int $position): ?self
+    {
+        return self::bySeverity()[$position - 1] ?? null;
+    }
 }
