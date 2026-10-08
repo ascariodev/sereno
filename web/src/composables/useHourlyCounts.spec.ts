@@ -124,6 +124,19 @@ describe('useHourlyCounts', () => {
     expect(omitted.find('.sparkline').exists()).toBe(false)
   })
 
+  it('retries the same message id after a failed request', async () => {
+    const spy = vi.spyOn(api, 'get').mockRejectedValueOnce(new Error('down'))
+    requestHourlyCounts(3, 5, 10)
+    await flushPromises()
+    expect(hourlyCountsOf(5)).toBeNull()
+
+    spy.mockResolvedValueOnce({ data: { from: '', hours: 24, counts: { '5': series(4) } } } as never)
+    requestHourlyCounts(3, 5, 10)
+    await flushPromises()
+    expect(spy).toHaveBeenCalledTimes(2)
+    expect(hourlyCountsOf(5)).toEqual(series(4))
+  })
+
   it('clears the cache and drops in-flight responses on reset', async () => {
     mockHourly()
     requestHourlyCounts(3, 5, 1)
