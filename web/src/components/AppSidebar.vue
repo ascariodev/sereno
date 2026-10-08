@@ -104,6 +104,7 @@ function currentFor(projectId: number): 'page' | undefined {
           <span
             v-else
             class="app-sidebar__link app-sidebar__project app-sidebar__project--disabled"
+            aria-disabled="true"
             :aria-current="currentFor(project.id)"
           >
             <ProjectKey :value="project.key" />
@@ -111,7 +112,7 @@ function currentFor(projectId: number): 'page' | undefined {
           </span>
         </AppTooltip>
       </template>
-      <p v-if="projectsStore.failed" class="app-sidebar__note" role="alert">{{ t('projects.loadFailed') }}</p>
+      <p v-if="projectsStore.failed" class="app-sidebar__note">{{ t('projects.loadFailed') }}</p>
     </div>
 
     <span class="app-sidebar__spacer" />
