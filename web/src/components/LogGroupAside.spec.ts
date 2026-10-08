@@ -133,6 +133,32 @@ describe('LogGroupAside', () => {
     expect(removeEventListener).toHaveBeenCalledWith('change', listener)
   })
 
+  it('does not request the group again nor drop it when crossing the breakpoint', async () => {
+    fakeMatchMedia(false)
+    mountAside()
+    await flushPromises()
+    listener!({ matches: true })
+    await flushPromises()
+    expect(sheet()!.querySelector('.log-group-panel h2')!.textContent).toBe('Timeout in webhook')
+    listener!({ matches: false })
+    await flushPromises()
+    expect(wrapper!.find('aside.wide-panel h2').text()).toBe('Timeout in webhook')
+    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the resolved status after crossing the breakpoint', async () => {
+    fakeMatchMedia(false)
+    vi.spyOn(api, 'patch').mockResolvedValue({ data: { ...loaded.data, status: 'resolved' } } as never)
+    mountAside()
+    await flushPromises()
+    await wrapper!.find('button[name=resolve]').trigger('click')
+    await flushPromises()
+    listener!({ matches: true })
+    await flushPromises()
+    expect(sheet()!.querySelector('[data-status="resolved"]')).not.toBeNull()
+    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(1)
+  })
+
   it('moves focus to the aside on open and returns it to the opener on close', async () => {
     fakeMatchMedia(false)
     const card = document.createElement('button')

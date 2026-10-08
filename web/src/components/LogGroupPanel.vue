@@ -1,74 +1,38 @@
 <script setup lang="ts">
 import { Check, EyeOff, X } from '@lucide/vue'
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
-import { getLogGroup, statusFrom, updateLogGroupStatus } from '../api/logGroups'
+import { statusFrom, updateLogGroupStatus } from '../api/logGroups'
 import type { LogGroup, LogGroupStatus } from '../api/types'
 import { toast } from './ui/toast'
 import LevelPill from './ui/LevelPill.vue'
 import StatusPill from './ui/StatusPill.vue'
 
-const props = defineProps<{ projectId: number; groupId: number; refreshToken?: number }>()
-defineEmits<{ close: [] }>()
+const props = defineProps<{
+  projectId: number
+  groupId: number
+  group: LogGroup | null
+  loading: boolean
+  loadError: 'failed' | 'notFound' | null
+}>()
+const emit = defineEmits<{ close: []; status: [status: LogGroupStatus] }>()
 
 const { t, locale } = useI18n()
 
-const group = ref<LogGroup | null>(null)
-const loading = ref(false)
-const loadError = ref<'failed' | 'notFound' | null>(null)
 const pending = ref(false)
-let generation = 0
-let controller: AbortController | null = null
-
-async function load(reset: boolean): Promise<void> {
-  const current = ++generation
-  controller?.abort()
-  controller = new AbortController()
-  if (reset) {
-    group.value = null
-    loading.value = true
-  }
-  loadError.value = null
-  try {
-    const loaded = await getLogGroup(props.projectId, props.groupId, controller.signal)
-    if (current !== generation) return
-    group.value = loaded
-  } catch (caught) {
-    if (current !== generation) return
-    if (reset) group.value = null
-    loadError.value = caught instanceof ApiError && caught.status === 404 ? 'notFound' : 'failed'
-  } finally {
-    if (current === generation) loading.value = false
-  }
-}
-
-watch(
-  () => [props.projectId, props.groupId] as const,
-  () => void load(true),
-  { immediate: true },
-)
-watch(
-  () => props.refreshToken,
-  () => void load(false),
-)
-
-onUnmounted(() => {
-  generation++
-  controller?.abort()
-})
 
 async function act(status: LogGroupStatus): Promise<void> {
-  if (pending.value || !group.value) return
-  const current = generation
+  if (pending.value || !props.group) return
+  const targetGroupId = props.groupId
   pending.value = true
   try {
-    const response = await updateLogGroupStatus(props.projectId, props.groupId, status)
+    const response = await updateLogGroupStatus(props.projectId, targetGroupId, status)
     const applied = statusFrom(response) ?? status
-    if (current === generation && group.value) group.value = { ...group.value, status: applied }
+    if (targetGroupId === props.groupId) emit('status', applied)
     toast.success(t('notice.actions.marked', { status: t(`notice.status.${applied}`) }))
   } catch (caught) {
-    if (current !== generation) return
+    if (targetGroupId !== props.groupId) return
     if (caught instanceof ApiError && caught.status === 403) {
       toast.error(t('notice.actions.forbidden'))
     } else if (caught instanceof ApiError && caught.status === 422) {
@@ -85,7 +49,7 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleString(locale.value, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
-const latestEvent = computed(() => group.value?.events?.[0] ?? null)
+const latestEvent = computed(() => props.group?.events?.[0] ?? null)
 const eventText = computed(() => {
   const event = latestEvent.value
   if (!event) return ''
@@ -104,7 +68,7 @@ const eventText = computed(() => {
   <aside class="log-group-panel" tabindex="-1" :aria-label="t('logGroup.label')">
     <div class="log-group-panel__top">
       <span class="log-group-panel__heading">{{ t('logGroup.heading', { id: groupId }) }}</span>
-      <button type="button" name="close-group" class="log-group-panel__close" :aria-label="t('logGroup.close')" @click="$emit('close')">
+      <button type="button" name="close-group" class="log-group-panel__close" :aria-label="t('logGroup.close')" @click="emit('close')">
         <X :size="16" :stroke-width="1.8" aria-hidden="true" />
       </button>
     </div>

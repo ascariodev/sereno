@@ -22,8 +22,13 @@ const group = (overrides: Partial<LogGroup> = {}): LogGroup => ({
   ...overrides,
 })
 
-function mountPanel(props: { groupId?: number; refreshToken?: number } = {}) {
-  return mount(LogGroupPanel, { props: { projectId: 3, groupId: 5, ...props }, global: { plugins: [i18n] } })
+type Props = { groupId: number; group: LogGroup | null; loading: boolean; loadError: 'failed' | 'notFound' | null }
+
+function mountPanel(props: Partial<Props> = {}) {
+  return mount(LogGroupPanel, {
+    props: { projectId: 3, groupId: 5, group: group(), loading: false, loadError: null, ...props },
+    global: { plugins: [i18n] },
+  })
 }
 
 describe('LogGroupPanel', () => {
@@ -32,11 +37,8 @@ describe('LogGroupPanel', () => {
     toast.clear()
   })
 
-  it('loads the group and shows pills, count and the latest event with its context', async () => {
-    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: group() } as never)
+  it('shows pills, count and the latest event with its context', () => {
     const wrapper = mountPanel()
-    await flushPromises()
-    expect(get).toHaveBeenCalledWith('/api/projects/3/log-groups/5', expect.anything())
     expect(wrapper.find('h2').text()).toBe('Timeout in webhook')
     expect(wrapper.find('[data-level="error"]').exists()).toBe(true)
     expect(wrapper.find('[data-status="open"]').exists()).toBe(true)
@@ -47,91 +49,73 @@ describe('LogGroupPanel', () => {
     expect(event).not.toContain('older boom')
   })
 
-  it('announces the loading text as a status until the group arrives', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: group() } as never)
-    const wrapper = mountPanel()
+  it('announces the loading text as a status while loading', async () => {
+    const wrapper = mountPanel({ group: null, loading: true })
     expect(wrapper.find('[role="status"]').exists()).toBe(true)
-    await flushPromises()
+    await wrapper.setProps({ group: group(), loading: false })
     expect(wrapper.find('[role="status"]').exists()).toBe(false)
   })
 
-  it('shows a not-found message on 404', async () => {
-    vi.spyOn(api, 'get').mockRejectedValue(new ApiError(404, 'Not found'))
-    const wrapper = mountPanel()
-    await flushPromises()
+  it('shows a not-found message', () => {
+    const wrapper = mountPanel({ group: null, loadError: 'notFound' })
     expect(wrapper.find('[role="alert"]').text()).toContain('does not exist')
   })
 
-  it('discards a stale response when the group changes while loading', async () => {
-    const resolvers: Record<string, (value: unknown) => void> = {}
-    vi.spyOn(api, 'get').mockImplementation(
-      (path: string) => new Promise((resolve) => (resolvers[path] = resolve)) as never,
-    )
-    const wrapper = mountPanel()
-    await wrapper.setProps({ groupId: 6 })
-    resolvers['/api/projects/3/log-groups/6']({ data: group({ id: 6, title: 'New one' }) })
-    await flushPromises()
-    resolvers['/api/projects/3/log-groups/5']({ data: group({ id: 5, title: 'Old one' }) })
-    await flushPromises()
-    expect(wrapper.find('h2').text()).toBe('New one')
+  it('keeps the group visible with an alert when a reload fails', () => {
+    const wrapper = mountPanel({ loadError: 'failed' })
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true)
+    expect(wrapper.find('h2').exists()).toBe(true)
   })
 
-  it('resolves through the shared client and updates the status', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: group() } as never)
+  it('never requests the group by itself', async () => {
+    const get = vi.spyOn(api, 'get')
+    mountPanel()
+    await flushPromises()
+    expect(get).not.toHaveBeenCalled()
+  })
+
+  it('resolves through the shared client and emits the applied status', async () => {
     const patch = vi.spyOn(api, 'patch').mockResolvedValue({ data: group({ status: 'resolved' }) } as never)
     const wrapper = mountPanel()
-    await flushPromises()
     await wrapper.find('button[name="resolve"]').trigger('click')
     await flushPromises()
     expect(patch).toHaveBeenCalledWith('/api/projects/3/log-groups/5', { status: 'resolved' })
-    expect(wrapper.find('[data-status="resolved"]').exists()).toBe(true)
-    expect(wrapper.find('button[name="resolve"]').exists()).toBe(false)
-    expect(wrapper.find('button[name="ignore"]').exists()).toBe(true)
+    expect(wrapper.emitted('status')).toEqual([['resolved']])
     expect(toasts.value.map((item) => [item.kind, item.message])).toEqual([['success', 'Marked as resolved']])
   })
 
   it('shows a confirmation toast when ignoring', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: group() } as never)
     vi.spyOn(api, 'patch').mockResolvedValue({ data: group({ status: 'ignored' }) } as never)
     const wrapper = mountPanel()
-    await flushPromises()
     await wrapper.find('button[name="ignore"]').trigger('click')
     await flushPromises()
     expect(toasts.value.map((item) => [item.kind, item.message])).toEqual([['success', 'Marked as ignored']])
   })
 
   it('shows a forbidden message when the action is rejected', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: group() } as never)
     vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(403, 'Forbidden'))
     const wrapper = mountPanel()
-    await flushPromises()
     await wrapper.find('button[name="ignore"]').trigger('click')
     await flushPromises()
     expect(toasts.value).toHaveLength(1)
     expect(toasts.value[0]).toMatchObject({ kind: 'error' })
     expect(toasts.value[0].message).toContain('not allowed')
-    expect(wrapper.find('[data-test="error-action"]').exists()).toBe(false)
-    expect(wrapper.find('[data-status="open"]').exists()).toBe(true)
+    expect(wrapper.emitted('status')).toBeUndefined()
   })
 
-  it('reloads without clearing the group when the refresh token changes', async () => {
-    const get = vi
-      .spyOn(api, 'get')
-      .mockResolvedValueOnce({ data: group() } as never)
-      .mockResolvedValueOnce({ data: group({ status: 'resolved' }) } as never)
-    const wrapper = mountPanel({ refreshToken: 0 })
+  it('does not emit a status for a group that is no longer shown', async () => {
+    let resolvePatch: (value: unknown) => void = () => {}
+    vi.spyOn(api, 'patch').mockImplementation(() => new Promise((resolve) => (resolvePatch = resolve)) as never)
+    const wrapper = mountPanel()
+    await wrapper.find('button[name="resolve"]').trigger('click')
+    await wrapper.setProps({ groupId: 6, group: group({ id: 6 }) })
+    resolvePatch({ data: group({ status: 'resolved' }) })
     await flushPromises()
-    await wrapper.setProps({ refreshToken: 1 })
-    expect(wrapper.find('h2').exists()).toBe(true)
-    await flushPromises()
-    expect(get).toHaveBeenCalledTimes(2)
-    expect(wrapper.find('[data-status="resolved"]').exists()).toBe(true)
+    expect(wrapper.emitted('status')).toBeUndefined()
   })
 
   it('emits close', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: group() } as never)
     const wrapper = mountPanel()
-    await flushPromises()
     await wrapper.find('button[name="close-group"]').trigger('click')
     expect(wrapper.emitted('close')).toHaveLength(1)
   })

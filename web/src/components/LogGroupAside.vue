@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useLogGroup } from '../composables/useLogGroup'
 import LogGroupPanel from './LogGroupPanel.vue'
 import AppDialog from './ui/AppDialog.vue'
 
 defineOptions({ inheritAttrs: false })
-defineProps<{ projectId: number; groupId: number; refreshToken?: number }>()
+const props = defineProps<{ projectId: number; groupId: number; refreshToken?: number }>()
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
+const { group, loading, loadError, setStatus } = useLogGroup(
+  () => props.projectId,
+  () => props.groupId,
+  () => props.refreshToken,
+)
 
 const narrowQuery = typeof window.matchMedia === 'function' ? window.matchMedia('(max-width: 767px)') : null
 const narrow = ref(narrowQuery?.matches ?? false)
@@ -49,7 +55,10 @@ function onOpenChange(open: boolean): void {
       class="log-group-aside__sheet-panel"
       :project-id="projectId"
       :group-id="groupId"
-      :refresh-token="refreshToken"
+      :group="group"
+      :loading="loading"
+      :load-error="loadError"
+      @status="setStatus"
       @close="emit('close')"
     />
   </AppDialog>
@@ -59,7 +68,10 @@ function onOpenChange(open: boolean): void {
     v-bind="$attrs"
     :project-id="projectId"
     :group-id="groupId"
-    :refresh-token="refreshToken"
+    :group="group"
+    :loading="loading"
+    :load-error="loadError"
+    @status="setStatus"
     @close="emit('close')"
   />
 </template>
