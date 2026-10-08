@@ -2,6 +2,7 @@
 
 use App\Enums\LogGroupStatus;
 use App\Models\Channel;
+use App\Models\LogEvent;
 use App\Models\LogGroup;
 use App\Models\Message;
 use App\Models\Organization;
@@ -27,4 +28,16 @@ it('seeds development data idempotently', function () {
         ->and(Message::withoutGlobalScopes()->where('kind', 'user')->count())->toBe(2)
         ->and(Message::withoutGlobalScopes()->where('kind', 'system')->count())->toBe(2)
         ->and(LogGroup::withoutGlobalScopes()->firstOrFail()->status)->toBe(LogGroupStatus::Resolved);
+});
+
+it('seeds log events matching each group events_count', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $groups = LogGroup::withoutGlobalScopes()->get();
+    expect($groups)->not->toBeEmpty();
+
+    foreach ($groups as $group) {
+        expect($group->events_count)->toBeGreaterThan(0)
+            ->and(LogEvent::withoutGlobalScopes()->where('log_group_id', $group->id)->count())->toBe($group->events_count);
+    }
 });

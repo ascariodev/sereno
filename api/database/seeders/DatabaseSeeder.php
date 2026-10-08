@@ -6,12 +6,14 @@ use App\Enums\LogGroupStatus;
 use App\Enums\LogLevel;
 use App\Enums\Role;
 use App\Models\Channel;
+use App\Models\LogEvent;
 use App\Models\LogGroup;
 use App\Models\Message;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use App\Support\LogPartitions;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -63,6 +65,8 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
+        $eventCount = 3;
+
         $group = $this->create(new LogGroup, $organization, [
             'fingerprint' => hash('sha256', 'demo-seed'),
             'first_seen_at' => now(),
@@ -70,9 +74,23 @@ class DatabaseSeeder extends Seeder
             'project_id' => $project->id,
             'level' => LogLevel::Error,
             'title' => 'Call to undefined method on null',
-            'events_count' => 3,
+            'events_count' => $eventCount,
             'status' => LogGroupStatus::Resolved,
         ]);
+
+        LogPartitions::ensure(now());
+
+        foreach (range(1, $eventCount) as $number) {
+            $this->create(new LogEvent, $organization, [
+                'project_id' => $project->id,
+                'log_group_id' => $group->id,
+                'level' => LogLevel::Error,
+                'message' => $group->title,
+                'context' => ['seed' => $number],
+                'occurred_at' => now(),
+                'received_at' => now(),
+            ]);
+        }
 
         foreach (['Welcome to the demo channel.', 'Log alerts for this project show up here.'] as $body) {
             $this->create(new Message, $organization, [
