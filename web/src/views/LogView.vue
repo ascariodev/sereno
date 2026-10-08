@@ -66,10 +66,12 @@ const levelOptions = computed(() => [
   ...LOG_LEVELS.map((value) => ({ value, label: t('log.level.atLeast', { level: t(`notice.level.${value}`) }) })),
 ])
 
-function navigate(changes: Record<string, string | undefined>): void {
+function navigate(changes: Record<string, string | undefined>, replace = false): void {
   const query: Record<string, unknown> = { ...route.query, ...changes }
   for (const key of Object.keys(query)) if (query[key] === undefined) delete query[key]
-  void router.push({ query: query as Record<string, string> })
+  const target = { query: query as Record<string, string> }
+  if (replace) void router.replace(target)
+  else void router.push(target)
 }
 
 function setStatus(value: string): void {
@@ -85,8 +87,8 @@ function goToPage(target: number): void {
   navigate({ page: target <= 1 ? undefined : String(target) })
 }
 
-function selectGroup(id: number | null): void {
-  navigate({ group: id === null ? undefined : String(id) })
+function selectGroup(id: number | null, replace = false): void {
+  navigate({ group: id === null ? undefined : String(id) }, replace)
 }
 
 async function load(): Promise<void> {
@@ -133,6 +135,14 @@ watch(
   () => [organization.activeId, projectId.value, statusFilter.value, levelFilter.value, page.value] as const,
   () => void load(),
   { immediate: true },
+)
+
+watch(
+  () => organization.activeId,
+  (_, previous) => {
+    if (previous === null) return
+    if (firstQuery('group') !== undefined || firstQuery('page') !== undefined) navigate({ group: undefined, page: undefined }, true)
+  },
 )
 
 onUnmounted(() => {
@@ -236,7 +246,8 @@ function formatDate(value: string): string {
         class="log-view__panel"
         :project-id="projectId"
         :group-id="groupId"
-        @close="selectGroup(null)"
+        @close="selectGroup(null, $event)"
+        @status="load"
       />
     </div>
   </section>

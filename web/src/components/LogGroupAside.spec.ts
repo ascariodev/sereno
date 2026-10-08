@@ -1,8 +1,9 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { api } from '../api/client'
+import { api, ApiError } from '../api/client'
 import { resetGroupStatuses, setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
 import { i18n } from '../i18n'
+import { toast, toasts } from './ui/toast'
 import LogGroupAside from './LogGroupAside.vue'
 
 const loaded = {
@@ -70,6 +71,28 @@ describe('LogGroupAside', () => {
     await wrapper!.find('button[name=ignore]').trigger('click')
     await flushPromises()
     expect(statusOfGroup(5)).toBe('ignored')
+    expect(wrapper!.emitted('status')).toEqual([['ignored']])
+  })
+
+  it('toasts and emits close with replace when the group is not found', async () => {
+    fakeMatchMedia(false)
+    toast.clear()
+    mountAside()
+    await flushPromises()
+    expect(wrapper!.emitted('close')).toBeUndefined()
+    vi.mocked(api.get).mockRejectedValue(new ApiError(404, 'Not found'))
+    await wrapper!.setProps({ groupId: 6 })
+    await flushPromises()
+    expect(wrapper!.emitted('close')).toEqual([[true]])
+    expect(toasts.value.map((item) => item.message)).toEqual(['This log group does not exist or you cannot access it.'])
+  })
+
+  it('emits close with replace when the group is not found on a narrow viewport', async () => {
+    fakeMatchMedia(true)
+    vi.mocked(api.get).mockRejectedValue(new ApiError(404, 'Not found'))
+    mountAside()
+    await flushPromises()
+    expect(wrapper!.emitted('close')).toEqual([[true]])
   })
 
   it('renders an aside with the passed class when matchMedia is missing', async () => {

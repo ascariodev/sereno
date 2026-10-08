@@ -76,6 +76,16 @@ describe('router guard', () => {
     expect(router.currentRoute.value.name).toBe('projects')
   })
 
+  it('resolves the project log route with its project id', async () => {
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+    vi.spyOn(api, 'get').mockResolvedValue({ data: user })
+    const router = setup()
+    await router.push('/projects/5/log?group=3')
+    expect(router.currentRoute.value.name).toBe('project-log')
+    expect(router.currentRoute.value.params.projectId).toBe('5')
+    expect(router.currentRoute.value.query.group).toBe('3')
+  })
+
   it('an invalid token (401 clears the session) redirects to login', async () => {
     localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
     const router = setup()

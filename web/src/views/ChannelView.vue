@@ -61,11 +61,12 @@ async function loadChannel(id: number, current: number): Promise<void> {
   }
 }
 
-function selectGroup(id: number | null): void {
+function selectGroup(id: number | null, replace = false): void {
   const query = { ...route.query }
   if (id === null) delete query.group
   else query.group = String(id)
-  void router.push({ query })
+  if (replace) void router.replace({ query })
+  else void router.push({ query })
 }
 
 function markMessagesSeen(): void {
@@ -183,7 +184,7 @@ onUnmounted(() => {
         :project-id="panelProjectId"
         :group-id="groupId"
         :refresh-token="panelRefresh"
-        @close="selectGroup(null)"
+        @close="selectGroup(null, $event)"
       />
     </div>
   </section>

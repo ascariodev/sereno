@@ -3,12 +3,13 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import { createMemoryHistory } from 'vue-router'
-import { api } from '../api/client'
+import { api, ApiError } from '../api/client'
 import type { LogGroup } from '../api/types'
 import { i18n } from '../i18n'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { toast, toasts } from '../components/ui/toast'
 import LogView from './LogView.vue'
 
 const project = { id: 5, name: 'posveapi', key: 'POSVE', description: 'Sales', archived_at: null, created_at: '', updated_at: '' }
@@ -204,6 +205,79 @@ describe('LogView', () => {
     await wrapper.find('button[name=retry]').trigger('click')
     await flushPromises()
     expect(wrapper.find('[role=alert]').exists()).toBe(false)
+  })
+
+  it('shows not found without retry when the project does not exist', async () => {
+    mockApi(() => {
+      throw new ApiError(404, 'Not found')
+    })
+    const wrapper = await mountView()
+    expect(wrapper.find('[role=alert]').text()).toContain('This project does not exist')
+    expect(wrapper.find('button[name=retry]').exists()).toBe(false)
+  })
+
+  it('aborts the pending request on unmount and on organization change', async () => {
+    const signals: AbortSignal[] = []
+    vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: { signal?: AbortSignal }) => {
+      if (path === '/api/projects') return { data: [project], meta: { last_page: 1 } } as never
+      if (path === '/api/channels') return { data: [] } as never
+      if (path === '/api/projects/5/log-groups') {
+        signals.push(options!.signal!)
+        return new Promise(() => {}) as never
+      }
+      return undefined as never
+    })
+    const wrapper = await mountView()
+    expect(signals).toHaveLength(1)
+    expect(signals[0].aborted).toBe(false)
+    useOrganizationStore().$patch({ activeId: 2 })
+    await flushPromises()
+    expect(signals).toHaveLength(2)
+    expect(signals[0].aborted).toBe(true)
+    expect(signals[1].aborted).toBe(false)
+    wrapper.unmount()
+    expect(signals[1].aborted).toBe(true)
+  })
+
+  it('clears the group and the page when the organization changes', async () => {
+    mockApi((query) => page([group(1)], Number(query.page ?? 1), 3))
+    const wrapper = await mountView('/projects/5/log?status=all&group=1&page=2')
+    expect(wrapper.find('aside').exists()).toBe(true)
+    const replace = vi.spyOn(wrapper.router, 'replace')
+    const push = vi.spyOn(wrapper.router, 'push')
+    useOrganizationStore().$patch({ activeId: 2 })
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query).toEqual({ status: 'all' })
+    expect(wrapper.find('aside').exists()).toBe(false)
+    expect(replace).toHaveBeenCalledTimes(1)
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('closes the panel replacing the history entry when the group is not found', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/projects') return { data: [project], meta: { last_page: 1 } } as never
+      if (path === '/api/channels') return { data: [] } as never
+      if (path === '/api/projects/5/log-groups') return page([group(1)]) as never
+      throw new ApiError(404, 'Not found')
+    })
+    toast.clear()
+    const wrapper = await mountView('/projects/5/log?status=all&group=99')
+    expect(wrapper.router.currentRoute.value.query).toEqual({ status: 'all' })
+    expect(wrapper.find('aside').exists()).toBe(false)
+    expect(toasts.value.map((item) => item.message)).toEqual(['This log group does not exist or you cannot access it.'])
+    wrapper.router.back()
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query.group).toBeUndefined()
+  })
+
+  it('reloads the list when the panel resolves a group', async () => {
+    const spy = mockApi(() => page([group(1)]))
+    const wrapper = await mountView('/projects/5/log?group=1')
+    const before = groupCalls(spy).length
+    vi.spyOn(api, 'patch').mockResolvedValue({ data: group(1, { status: 'resolved' }) } as never)
+    await wrapper.find('aside button[name=resolve]').trigger('click')
+    await flushPromises()
+    expect(groupCalls(spy).length).toBe(before + 1)
   })
 
   it('links the Channel and Log tabs and marks Log as current', async () => {

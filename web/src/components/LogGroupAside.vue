@@ -5,11 +5,12 @@ import type { LogGroupStatus } from '../api/types'
 import { useLogGroup } from '../composables/useLogGroup'
 import { setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
 import LogGroupPanel from './LogGroupPanel.vue'
+import { toast } from './ui/toast'
 import AppDialog from './ui/AppDialog.vue'
 
 defineOptions({ inheritAttrs: false })
 const props = defineProps<{ projectId: number; groupId: number; refreshToken?: number }>()
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: [replace?: boolean]; status: [status: LogGroupStatus] }>()
 
 const { t } = useI18n()
 const { group, loading, loadError, setStatus } = useLogGroup(
@@ -17,6 +18,12 @@ const { group, loading, loadError, setStatus } = useLogGroup(
   () => props.groupId,
   () => props.refreshToken,
 )
+
+watch(loadError, (error) => {
+  if (error !== 'notFound') return
+  toast.error(t('logGroup.notFound'))
+  emit('close', true)
+})
 
 watch(
   () => statusOfGroup(props.groupId),
@@ -28,6 +35,7 @@ watch(
 function applyStatus(status: LogGroupStatus): void {
   setGroupStatus(props.groupId, status)
   setStatus(status)
+  emit('status', status)
 }
 
 const narrowQuery = typeof window.matchMedia === 'function' ? window.matchMedia('(max-width: 767px)') : null
