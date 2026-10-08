@@ -1,6 +1,18 @@
 services:
+  web-init:
+    image: node:24
+    user: root
+    volumes:
+      - web-node-modules:/app/node_modules
+    entrypoint: ["chown", "-R", "node:node", "/app/node_modules"]
+    restart: "no"
+
   web:
     image: node:24
+    user: node
+    depends_on:
+      web-init:
+        condition: service_completed_successfully
     container_name: workspace_web
     working_dir: /app
     volumes:
