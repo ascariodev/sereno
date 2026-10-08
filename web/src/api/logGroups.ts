@@ -1,6 +1,6 @@
 import { api } from './client'
 import { isLogGroupStatus } from './types'
-import type { DataEnvelope, LogGroup, LogGroupStatus, Paginated } from './types'
+import type { DataEnvelope, HourlyCounts, LogGroup, LogGroupStatus, Paginated } from './types'
 
 export interface ListLogGroupsParams {
   status?: LogGroupStatus
@@ -28,6 +28,14 @@ export async function getLogGroup(projectId: number, groupId: number, signal?: A
 
 export async function updateLogGroupStatus(projectId: number, groupId: number, status: LogGroupStatus): Promise<LogGroup> {
   const response = await api.patch<DataEnvelope<LogGroup>>(`/api/projects/${projectId}/log-groups/${groupId}`, { status })
+  return response.data
+}
+
+export async function getHourlyCounts(projectId: number, ids: number[], signal?: AbortSignal): Promise<HourlyCounts> {
+  const response = await api.get<DataEnvelope<HourlyCounts>>(`/api/projects/${projectId}/log-groups/hourly`, {
+    query: { ids: ids.join(',') },
+    signal,
+  })
   return response.data
 }
 

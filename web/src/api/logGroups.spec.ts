@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getLogGroup, listLogGroups, statusFrom } from './logGroups'
+import { getHourlyCounts, getLogGroup, listLogGroups, statusFrom } from './logGroups'
 import type { LogGroup } from './types'
 
 const group: LogGroup = {
@@ -72,6 +72,37 @@ describe('log groups client', () => {
     stubFetch({ message: 'Not found' }, 404)
 
     await expect(getLogGroup(3, 99)).rejects.toMatchObject({ status: 404 })
+  })
+})
+
+describe('getHourlyCounts', () => {
+  const series = Array.from({ length: 24 }, (_, i) => (i === 23 ? 4 : 0))
+
+  it('requests the ids as CSV and unwraps the counts', async () => {
+    const data = { from: '2026-10-07T11:00:00.000000Z', hours: 24, counts: { '7': series, '9': series } }
+    const fetchMock = stubFetch({ data })
+
+    const result = await getHourlyCounts(3, [7, 9])
+
+    const url = new URL(fetchMock.mock.calls[0][0])
+    expect(url.pathname).toBe('/api/projects/3/log-groups/hourly')
+    expect(url.searchParams.get('ids')).toBe('7,9')
+    expect(result).toEqual(data)
+    expect(result.counts['7']).toHaveLength(24)
+  })
+
+  it('accepts an empty counts object', async () => {
+    stubFetch({ data: { from: '2026-10-07T11:00:00.000000Z', hours: 24, counts: {} } })
+
+    const result = await getHourlyCounts(3, [999])
+
+    expect(result.counts).toEqual({})
+  })
+
+  it('rejects when the API answers an error', async () => {
+    stubFetch({ message: 'The given data was invalid.' }, 422)
+
+    await expect(getHourlyCounts(3, [])).rejects.toMatchObject({ status: 422 })
   })
 })
 

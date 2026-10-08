@@ -64,6 +64,14 @@ export interface LogGroup {
   events?: LogEvent[]
 }
 
+export interface HourlyCounts {
+  /** ISO start of the oldest hour (UTC). */
+  from: string
+  hours: number
+  /** Events per hour, oldest first, keyed by group id. Ids not in the project are omitted; may be `{}`. */
+  counts: Record<string, number[]>
+}
+
 export interface LogGroupOpenedPayload {
   type: 'log.group_opened' | 'log.group_reopened'
   log_group_id: number
