@@ -53,12 +53,12 @@ function projectCalls(spy: { mock: { calls: unknown[][] } }): number {
 
 const hourlyBody = (counts: Record<string, number[]>) => ({ data: { from: '', hours: 24, counts } })
 
-function mockApi(groups: (query: Query) => unknown, hourly: (query: Query) => unknown = () => hourlyBody({})) {
-  return vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: { query?: Query }) => {
+function mockApi(groups: (query: Query) => unknown, hourly: (query: Query, signal?: AbortSignal) => unknown = () => hourlyBody({})) {
+  return vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: { query?: Query; signal?: AbortSignal }) => {
     if (path === '/api/projects') return { data: [project], meta: { last_page: 1 } } as never
     if (path === '/api/channels') return { data: [{ id: 7, project_id: 5, name: 'general' }] } as never
     if (path === '/api/projects/5/log-groups') return (await groups(options?.query ?? {})) as never
-    if (path === '/api/projects/5/log-groups/hourly') return (await hourly(options?.query ?? {})) as never
+    if (path === '/api/projects/5/log-groups/hourly') return (await hourly(options?.query ?? {}, options?.signal)) as never
     if (path.startsWith('/api/projects/5/log-groups/')) return { data: group(1) } as never
     return undefined as never
   })
@@ -206,17 +206,22 @@ describe('LogView', () => {
 
   it('discards a stale hourly response when a newer page loads', async () => {
     const resolvers: Record<string, (value: unknown) => void> = {}
+    const signals: Record<string, AbortSignal> = {}
     const spy = mockApi(
       (query) => page([group(Number(query.page ?? 1))], Number(query.page ?? 1), 3),
-      (query) =>
-        new Promise((resolve) => {
+      (query, signal) =>
+        new Promise((resolve, reject) => {
+          signals[String(query.ids)] = signal!
           resolvers[String(query.ids)] = resolve
+          signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
         }),
     )
     const wrapper = await mountView()
     await wrapper.router.push('/projects/5/log?page=2')
     await flushPromises()
     expect(hourlyCalls(spy)).toEqual(['1', '2'])
+    expect(signals['1'].aborted).toBe(true)
+    expect(signals['2'].aborted).toBe(false)
     resolvers['2'](hourlyBody({ '2': [5, 5] }))
     await flushPromises()
     resolvers['1'](hourlyBody({ '1': [9, 9] }))
