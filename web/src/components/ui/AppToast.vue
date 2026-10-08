@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CircleAlert, CircleCheck, X } from '@lucide/vue'
 import { ToastClose, ToastDescription, ToastProvider, ToastRoot, ToastViewport } from 'reka-ui'
-import { toast, toasts } from './toast'
+import { TOAST_DURATION, toast, toasts } from './toast'
 
 defineProps<{ label: string; closeLabel: string }>()
 
@@ -11,7 +11,7 @@ function onOpenChange(id: number, open: boolean) {
 </script>
 
 <template>
-  <ToastProvider :label="label" :duration="4000" swipe-direction="right">
+  <ToastProvider :label="label" :duration="TOAST_DURATION" swipe-direction="right">
     <ToastRoot
       v-for="item in toasts"
       :key="item.id"

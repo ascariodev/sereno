@@ -22,6 +22,7 @@ const REMOVE_DELAY = 300
 export const toasts = shallowRef<ToastItem[]>([])
 
 let nextId = 0
+const removeTimers = new Map<number, ReturnType<typeof setTimeout>>()
 
 function push(kind: ToastKind, message: string, options: ToastOptions = {}): number {
   const id = ++nextId
@@ -36,14 +37,17 @@ function dismiss(id: number): void {
   const target = toasts.value.find((item) => item.id === id)
   if (!target || !target.open) return
   toasts.value = toasts.value.map((item) => (item.id === id ? { ...item, open: false } : item))
-  setTimeout(() => remove(id), REMOVE_DELAY)
+  removeTimers.set(id, setTimeout(() => remove(id), REMOVE_DELAY))
 }
 
 function remove(id: number): void {
+  removeTimers.delete(id)
   toasts.value = toasts.value.filter((item) => item.id !== id)
 }
 
 function clear(): void {
+  removeTimers.forEach((timer) => clearTimeout(timer))
+  removeTimers.clear()
   toasts.value = []
 }
 

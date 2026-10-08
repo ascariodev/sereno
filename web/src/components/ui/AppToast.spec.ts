@@ -93,6 +93,44 @@ describe('AppToast', () => {
     expect(items()[TOAST_LIMIT - 1]!.textContent).toContain(`Message ${TOAST_LIMIT + 2}`)
   })
 
+  it('keeps the limit while the oldest toast is still leaving', async () => {
+    for (let i = 1; i <= TOAST_LIMIT; i++) toast.success(`Message ${i}`)
+    await settle(50)
+    toast.success('Message extra')
+    await settle(50)
+    const open = toasts.value.filter((item) => item.open)
+    expect(open).toHaveLength(TOAST_LIMIT)
+    expect(open.map((item) => item.message)).toEqual(['Message 2', 'Message 3', 'Message extra'])
+    expect(items().map((el) => el.textContent).join('|')).not.toContain('Message 1')
+  })
+
+  it('does not let a stale remove timer drop a toast after clear', async () => {
+    const first = toast.success('First')
+    await settle(50)
+    toast.dismiss(first)
+    toast.clear()
+    toast.success('Second')
+    await settle(50)
+    expect(items()).toHaveLength(1)
+    await settle(400)
+    expect(toasts.value.map((item) => item.message)).toEqual(['Second'])
+  })
+
+  it('pauses the timer while the pointer is over the viewport and resumes on leave', async () => {
+    toast.success('Hover me', { duration: 1000 })
+    await settle(50)
+    expect(items()).toHaveLength(1)
+    const viewport = document.querySelector('.app-toast-viewport')!
+    viewport.dispatchEvent(new Event('pointermove', { bubbles: true }))
+    await settle(3000)
+    expect(items()).toHaveLength(1)
+    expect(toasts.value[0]!.open).toBe(true)
+    viewport.dispatchEvent(new Event('pointerleave'))
+    await settle(1100)
+    await settle(400)
+    expect(items()).toHaveLength(0)
+  })
+
   it('labels the close button', async () => {
     toast.error('Failed')
     await settle(50)
