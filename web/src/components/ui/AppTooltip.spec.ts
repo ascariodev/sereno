@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, describe, expect, it } from 'vitest'
-import { h, nextTick } from 'vue'
+import { TooltipProvider } from 'reka-ui'
+import { defineComponent, h, nextTick } from 'vue'
 import AppTooltip from './AppTooltip.vue'
 
 let wrapper: VueWrapper | undefined
@@ -49,5 +50,20 @@ describe('AppTooltip', () => {
     await settle()
     expect(document.querySelector('[role=tooltip]')).toBeNull()
     expect(document.activeElement).toBe(button)
+  })
+
+  it('creates its own provider only when there is none', () => {
+    mountTooltip()
+    expect(wrapper!.findAllComponents(TooltipProvider)).toHaveLength(1)
+    wrapper!.unmount()
+
+    const Host = defineComponent({
+      render: () =>
+        h(TooltipProvider, null, () =>
+          h(AppTooltip, { text: 'Resolve group' }, () => h('button', { type: 'button', name: 'resolve' }, 'R')),
+        ),
+    })
+    wrapper = mount(Host, { attachTo: document.body })
+    expect(wrapper.findAllComponents(TooltipProvider)).toHaveLength(1)
   })
 })

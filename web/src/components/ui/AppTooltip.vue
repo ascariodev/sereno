@@ -8,10 +8,10 @@ import {
   TooltipTrigger,
 } from 'reka-ui'
 import type { FunctionalComponent } from 'vue'
+import { TOOLTIP_DELAY_MS, TOOLTIP_SKIP_DELAY_MS } from './tooltipDelay'
 
 withDefaults(defineProps<{ text: string; side?: 'top' | 'right' | 'bottom' | 'left'; delay?: number; disabled?: boolean }>(), {
   side: 'top',
-  delay: 400,
   disabled: false,
 })
 
@@ -20,7 +20,10 @@ const Passthrough: FunctionalComponent = (_, { slots }) => slots.default?.()
 </script>
 
 <template>
-  <component :is="hasProvider ? Passthrough : TooltipProvider">
+  <component
+    :is="hasProvider ? Passthrough : TooltipProvider"
+    v-bind="hasProvider ? {} : { delayDuration: TOOLTIP_DELAY_MS, skipDelayDuration: TOOLTIP_SKIP_DELAY_MS }"
+  >
     <TooltipRoot :delay-duration="delay" :disabled="disabled">
       <TooltipTrigger as-child>
         <slot />
