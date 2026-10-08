@@ -104,6 +104,7 @@ function currentFor(projectId: number): 'page' | undefined {
           <span
             v-else
             class="app-sidebar__link app-sidebar__project app-sidebar__project--disabled"
+            role="link"
             aria-disabled="true"
             :aria-label="collapsed ? project.name : undefined"
             :aria-current="currentFor(project.id)"

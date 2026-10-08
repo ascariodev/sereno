@@ -244,11 +244,13 @@ describe('AppLayout', () => {
     const item = wrapper.find('.app-layout__sidebar span.app-sidebar__project--disabled')
     expect(item.attributes('aria-label')).toBe('posveapi')
     expect(item.attributes('aria-disabled')).toBe('true')
+    expect(item.attributes('role')).toBe('link')
   })
 
   it('shows the project tooltip on focus only while the sidebar is collapsed', async () => {
     const { wrapper } = await mountApp(undefined, '/channels/7')
     const link = () => document.querySelector<HTMLAnchorElement>('.app-layout__sidebar a[href="/channels/7"]')!
+    expect(wrapper.find('.app-layout--collapsed').exists()).toBe(false)
     link().focus()
     await settle()
     expect(document.querySelector('[role=tooltip]')).toBeNull()
