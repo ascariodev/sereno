@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import type { LogGroupStatus } from '../api/types'
 import { useLogGroup } from '../composables/useLogGroup'
+import { setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
 import LogGroupPanel from './LogGroupPanel.vue'
 import AppDialog from './ui/AppDialog.vue'
 
@@ -15,6 +17,18 @@ const { group, loading, loadError, setStatus } = useLogGroup(
   () => props.groupId,
   () => props.refreshToken,
 )
+
+watch(
+  () => statusOfGroup(props.groupId),
+  (status) => {
+    if (status) setStatus(status)
+  },
+)
+
+function applyStatus(status: LogGroupStatus): void {
+  setGroupStatus(props.groupId, status)
+  setStatus(status)
+}
 
 const narrowQuery = typeof window.matchMedia === 'function' ? window.matchMedia('(max-width: 767px)') : null
 const narrow = ref(narrowQuery?.matches ?? false)
@@ -67,7 +81,7 @@ function onOpenChange(open: boolean): void {
       :group="group"
       :loading="loading"
       :load-error="loadError"
-      @status="setStatus"
+      @status="applyStatus"
       @close="emit('close')"
     />
   </AppDialog>
@@ -80,7 +94,7 @@ function onOpenChange(open: boolean): void {
     :group="group"
     :loading="loading"
     :load-error="loadError"
-    @status="setStatus"
+    @status="applyStatus"
     @close="emit('close')"
   />
 </template>

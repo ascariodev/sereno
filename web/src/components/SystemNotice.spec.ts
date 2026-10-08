@@ -1,7 +1,8 @@
 import { mount } from '@vue/test-utils'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import type { LogGroup, Message, MessagePayload } from '../api/types'
+import { resetGroupStatuses, setGroupStatus } from '../composables/useLogGroupStatuses'
 import { i18n } from '../i18n'
 import SystemNotice from './SystemNotice.vue'
 
@@ -34,7 +35,12 @@ function textIn(locale: 'en' | 'es', msg: Message): string {
 }
 
 describe('SystemNotice', () => {
+  beforeEach(() => {
+    resetGroupStatuses()
+  })
+
   afterEach(() => {
+    resetGroupStatuses()
     vi.restoreAllMocks()
     i18n.global.locale.value = 'en'
   })
@@ -43,6 +49,18 @@ describe('SystemNotice', () => {
   const reopened = { type: 'log.group_reopened', log_group_id: 5, level: 'critical', title: 'Boom', events_count: 3 }
   const changed = { type: 'log.group_status_changed', log_group_id: 5, status: 'resolved', previous_status: 'open' }
   const ana = { id: 1, name: 'Ana' }
+
+  it('follows the shared group status set elsewhere and restores the actions on reopen', async () => {
+    const wrapper = mount(SystemNotice, { props: { message: message(opened), projectId: 3 }, global: { plugins: [i18n] } })
+    expect(wrapper.find('button[name="resolve"]').exists()).toBe(true)
+    setGroupStatus(5, 'resolved')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('button[name="resolve"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('resolved')
+    setGroupStatus(5, 'open')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('button[name="resolve"]').exists()).toBe(true)
+  })
 
   it('renders log.group_opened as a card', () => {
     const en = textIn('en', message(opened))
@@ -129,6 +147,7 @@ describe('SystemNotice', () => {
       const wrapper = mountActions(opened)
       await wrapper.find('button[name=resolve]').trigger('click')
       expect(patch).toHaveBeenLastCalledWith('/api/projects/3/log-groups/5', { status: 'resolved' })
+      resetGroupStatuses()
       const other = mountActions(opened)
       await other.find('button[name=ignore]').trigger('click')
       expect(patch).toHaveBeenLastCalledWith('/api/projects/3/log-groups/5', { status: 'ignored' })

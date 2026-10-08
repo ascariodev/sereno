@@ -2,7 +2,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick, watch } from 'vue'
 import { api, ApiError } from '../api/client'
-import type { Message } from '../api/types'
+import type { Message, MessagePayload } from '../api/types'
+import { resetGroupStatuses, setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
 import { CATCH_UP_MAX_PAGES, useMessagesStore } from './messages'
 
 const message = (id: number, channel_id = 5): Message => ({
@@ -21,6 +22,53 @@ describe('messages store', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     setActivePinia(createPinia())
+    resetGroupStatuses()
+  })
+
+  it('records a status_changed that arrives while the channel is loading', async () => {
+    let resolve: (value: unknown) => void = () => {}
+    vi.spyOn(api, 'get').mockReturnValue(new Promise((done) => (resolve = done)) as never)
+    const store = useMessagesStore()
+    const opening = store.open(5)
+    expect(store.loading).toBe(true)
+    const payload = { type: 'log.group_status_changed', log_group_id: 9, status: 'resolved', previous_status: 'open' }
+    store.insert({ ...message(7), kind: 'system', payload: payload as MessagePayload })
+    expect(statusOfGroup(9)).toBe('resolved')
+    resolve(page([1], null))
+    await opening
+    expect(statusOfGroup(9)).toBe('resolved')
+    store.clear()
+    expect(statusOfGroup(9)).toBeUndefined()
+  })
+
+  const statusMessage = (id: number, status: string): Message => ({
+    ...message(id),
+    kind: 'system',
+    payload: { type: 'log.group_status_changed', log_group_id: 9, status, previous_status: 'open' } as MessagePayload,
+  })
+
+  it('feeds the status map from the history pages, newest wins', async () => {
+    const get = vi
+      .spyOn(api, 'get')
+      .mockResolvedValueOnce({ data: [statusMessage(8, 'open'), statusMessage(6, 'ignored')], meta: { next_cursor: 'c' } } as never)
+      .mockResolvedValueOnce({ data: [statusMessage(3, 'resolved')], meta: { next_cursor: null } } as never)
+    const store = useMessagesStore()
+    await store.open(5)
+    expect(statusOfGroup(9)).toBe('open')
+    await store.loadOlder()
+    expect(get).toHaveBeenCalledTimes(2)
+    expect(statusOfGroup(9)).toBe('open')
+  })
+
+  it('ignores a late older status_changed after a local action', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([10], null) as never)
+    const store = useMessagesStore()
+    await store.open(5)
+    setGroupStatus(9, 'resolved')
+    store.insert(statusMessage(7, 'ignored'))
+    expect(statusOfGroup(9)).toBe('resolved')
+    store.insert(statusMessage(11, 'open'))
+    expect(statusOfGroup(9)).toBe('open')
   })
 
   it('keeps messages oldest first', async () => {
@@ -204,6 +252,16 @@ describe('messages store', () => {
       expect(get).toHaveBeenCalledTimes(1 + CATCH_UP_MAX_PAGES)
       expect(store.messages.map((m) => m.id)).toEqual([119, 120])
       expect(store.nextCursor).toBe('newest')
+    })
+
+    it('feeds the status map from the newest page when it cannot join', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([2, 1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      get.mockResolvedValueOnce({ data: [statusMessage(120, 'resolved')], meta: { next_cursor: 'newest' } } as never)
+      get.mockResolvedValue(page([100], 'more') as never)
+      await store.catchUp()
+      expect(statusOfGroup(9)).toBe('resolved')
     })
 
     it('keeps the reset list when a pending loadOlder resolves afterwards', async () => {

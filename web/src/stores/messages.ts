@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import { api, ApiError } from '../api/client'
 import type { CursorPage, Message } from '../api/types'
+import { observeStatusMessage, resetGroupStatuses } from '../composables/useLogGroupStatuses'
 
 export const MESSAGES_PER_PAGE = 50
 export const CATCH_UP_MAX_PAGES = 10
@@ -54,8 +55,13 @@ export const useMessagesStore = defineStore('messages', () => {
     messages.value = mergeById(messages.value, incoming)
   }
 
+  function observeAll(list: readonly Message[]): void {
+    ;[...list].sort((a, b) => a.id - b.id).forEach(observeStatusMessage)
+  }
+
   function clear(): void {
     generation++
+    resetGroupStatuses()
     pending = new Map()
     flushScheduled = false
     channelId.value = null
@@ -69,6 +75,7 @@ export const useMessagesStore = defineStore('messages', () => {
   function insert(message: Message): boolean {
     if (message.channel_id !== channelId.value) return false
     if (has(message.id)) return false
+    observeStatusMessage(message)
     pending.set(message.id, message)
     if (!flushScheduled) {
       flushScheduled = true
@@ -88,6 +95,7 @@ export const useMessagesStore = defineStore('messages', () => {
       })
       if (current !== generation) return
       flush()
+      observeAll(page.data)
       const loaded = new Set(page.data.map((message) => message.id))
       const live = messages.value.filter((message) => !loaded.has(message.id))
       messages.value = [...page.data, ...live].sort((a, b) => a.id - b.id)
@@ -130,6 +138,7 @@ export const useMessagesStore = defineStore('messages', () => {
       return
     }
     flush()
+    observeAll(newest.data)
     const loaded = new Set(newest.data.map((message) => message.id))
     const oldestId = Math.min(...newest.data.map((message) => message.id))
     const live = messages.value.filter((message) => message.id > oldestId && !loaded.has(message.id))
@@ -152,6 +161,7 @@ export const useMessagesStore = defineStore('messages', () => {
       })
       if (current !== generation || version !== listVersion) return
       flush()
+      observeAll(page.data)
       const known = new Set(messages.value.map((message) => message.id))
       const older = page.data.filter((message) => !known.has(message.id)).sort((a, b) => a.id - b.id)
       messages.value = [...older, ...messages.value]

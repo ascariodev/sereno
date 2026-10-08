@@ -7,6 +7,7 @@ import { statusFrom, updateLogGroupStatus } from '../api/logGroups'
 import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
 import type { LogGroupStatus, Message } from '../api/types'
 import { LOG_LEVELS } from '../api/logLevels'
+import { setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
 import LevelPill from './ui/LevelPill.vue'
 
 const STRONG_LEVELS = ['critical', 'alert', 'emergency']
@@ -20,12 +21,13 @@ const { t, te, locale } = useI18n()
 const kindId = useId()
 const pending = ref(false)
 const errorText = ref<string | null>(null)
-const doneStatus = ref<LogGroupStatus | null>(null)
 
 const payload = computed(() => props.message.payload)
 const opened = computed(() => (isLogGroupOpenedPayload(payload.value) ? payload.value : null))
 const changed = computed(() => (isLogGroupStatusChangedPayload(payload.value) ? payload.value : null))
 const groupId = computed(() => opened.value?.log_group_id ?? null)
+const sharedStatus = computed(() => statusOfGroup(groupId.value))
+const doneStatus = computed(() => (sharedStatus.value && sharedStatus.value !== 'open' ? sharedStatus.value : null))
 const canAct = computed(() => props.projectId !== undefined && groupId.value !== null)
 
 async function act(status: LogGroupStatus): Promise<void> {
@@ -34,7 +36,7 @@ async function act(status: LogGroupStatus): Promise<void> {
   errorText.value = null
   try {
     const response = await updateLogGroupStatus(props.projectId as number, groupId.value as number, status)
-    doneStatus.value = statusFrom(response) ?? status
+    setGroupStatus(groupId.value as number, statusFrom(response) ?? status)
   } catch (caught) {
     if (caught instanceof ApiError && caught.status === 403) {
       errorText.value = t('notice.actions.forbidden')

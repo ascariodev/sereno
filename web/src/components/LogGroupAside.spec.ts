@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
+import { resetGroupStatuses, setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
 import { i18n } from '../i18n'
 import LogGroupAside from './LogGroupAside.vue'
 
@@ -43,6 +44,7 @@ function mountAside() {
 const sheet = () => document.querySelector('[role="dialog"]')
 
 beforeEach(() => {
+  resetGroupStatuses()
   vi.spyOn(api, 'get').mockResolvedValue(loaded as never)
   removeEventListener.mockClear()
 })
@@ -57,6 +59,19 @@ afterEach(() => {
 })
 
 describe('LogGroupAside', () => {
+  it('reflects a status set elsewhere and writes its own actions to the shared map', async () => {
+    mountAside()
+    await flushPromises()
+    expect(wrapper!.find('button[name=resolve]').exists()).toBe(true)
+    setGroupStatus(5, 'resolved')
+    await flushPromises()
+    expect(wrapper!.find('button[name=resolve]').exists()).toBe(false)
+    vi.spyOn(api, 'patch').mockResolvedValue({ data: { ...loaded.data, status: 'ignored' } } as never)
+    await wrapper!.find('button[name=ignore]').trigger('click')
+    await flushPromises()
+    expect(statusOfGroup(5)).toBe('ignored')
+  })
+
   it('renders an aside with the passed class when matchMedia is missing', async () => {
     mountAside()
     await flushPromises()
