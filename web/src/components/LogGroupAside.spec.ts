@@ -98,19 +98,20 @@ describe('LogGroupAside', () => {
     mountAside()
     await flushPromises()
     expect(sheet()).not.toBeNull()
-    document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    sheet()!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
     await flushPromises()
     expect(wrapper!.emitted('close')).toHaveLength(1)
   })
 
-  it('emits close when the overlay is clicked', async () => {
+  it('emits close when clicking outside the sheet', async () => {
     fakeMatchMedia(true)
     mountAside()
     await flushPromises()
     expect(sheet()).not.toBeNull()
-    const overlay = document.querySelector('.app-dialog-overlay')!
-    overlay.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' }))
-    overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    const outside = document.createElement('div')
+    document.body.appendChild(outside)
+    outside.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' }))
+    outside.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     await flushPromises()
     expect(wrapper!.emitted('close')).toHaveLength(1)
   })

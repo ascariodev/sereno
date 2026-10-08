@@ -65,6 +65,7 @@ function onOpenChange(open: boolean): void {
 </template>
 
 <style scoped>
+/* Repeating the class raises specificity above LogGroupPanel's own scoped `.log-group-panel` rule, whose order relative to this one is not guaranteed. */
 .log-group-aside__sheet-panel.log-group-aside__sheet-panel {
   padding: 0;
   border-left: 0;
