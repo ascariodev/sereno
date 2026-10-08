@@ -107,6 +107,9 @@
     "loadFailed": "No se pudo cargar el grupo de logs.",
     "notFound": "Este grupo de logs no existe o no tienes acceso."
   },
+  "sparkline": {
+    "total": "{n} evento en las últimas 24 horas | {n} eventos en las últimas 24 horas"
+  },
   "notice": {
     "openedLabel": "Nuevo grupo de logs",
     "reopenedLabel": "Grupo de logs reabierto",

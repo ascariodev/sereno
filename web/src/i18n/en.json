@@ -107,6 +107,9 @@
     "loadFailed": "Could not load the log group.",
     "notFound": "This log group does not exist or you cannot access it."
   },
+  "sparkline": {
+    "total": "{n} event in the last 24 hours | {n} events in the last 24 hours"
+  },
   "notice": {
     "openedLabel": "New log group",
     "reopenedLabel": "Log group reopened",
