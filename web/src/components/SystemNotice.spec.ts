@@ -99,6 +99,16 @@ describe('SystemNotice', () => {
     const wrapper = mount(SystemNotice, { props: { message: message(changed, ana) }, global: { plugins: [i18n] } })
     expect(wrapper.find('article').exists()).toBe(false)
     expect(wrapper.find('.system-notice-line b').text()).toBe('Ana')
+    expect(wrapper.find('.system-notice-line em').exists()).toBe(false)
+  })
+
+  it('names the log group in the status line when the payload carries its title', () => {
+    const titled = { ...changed, title: 'Timeout en webhook' }
+    expect(textIn('en', message(titled, ana))).toContain('Ana marked Timeout en webhook as resolved')
+    expect(textIn('es', message(titled, ana))).toContain('Ana marcó Timeout en webhook como resuelto')
+    const wrapper = mount(SystemNotice, { props: { message: message(titled, ana) }, global: { plugins: [i18n] } })
+    expect(wrapper.find('.system-notice-line em').text()).toBe('Timeout en webhook')
+    expect(textIn('en', message({ ...changed, title: '  ' }, ana))).toContain('Ana marked the log group as resolved')
   })
 
   it('shows unknown levels and statuses as they come', () => {
@@ -123,6 +133,7 @@ describe('SystemNotice', () => {
     expect(textIn('en', message({ type: 'log.group_opened', log_group_id: 5 }))).toBe('System notice')
     expect(textIn('en', message({ ...opened, events_count: '1' }))).toBe('System notice')
     expect(textIn('en', message({ type: 'log.group_status_changed', log_group_id: 5 }, ana))).toBe('System notice')
+    expect(textIn('en', message({ ...changed, title: 7 }, ana))).toBe('System notice')
   })
 
   describe('actions', () => {

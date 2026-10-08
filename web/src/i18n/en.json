@@ -112,6 +112,7 @@
     "reopenedLabel": "Log group reopened",
     "eventsWord": "event | events",
     "statusChanged": "{actor} marked the log group as {status}",
+    "statusChangedTitled": "{actor} marked {title} as {status}",
     "actions": {
       "resolve": "Resolve",
       "ignore": "Ignore",

@@ -69,6 +69,7 @@ const eventsWord = computed(() => (opened.value ? t('notice.eventsWord', opened.
 const changedTone = computed(() => (changed.value && STATUSES.includes(changed.value.status) ? changed.value.status : 'ignored'))
 const actor = computed(() => props.message.user?.name ?? t('notice.unknownActor'))
 const changedStatus = computed(() => (changed.value ? known('notice.status', changed.value.status) : ''))
+const changedTitle = computed(() => changed.value?.title?.trim() || null)
 
 const created = computed(() => new Date(props.message.created_at))
 const shortTime = computed(() => created.value.toLocaleTimeString(locale.value, { timeStyle: 'short' }))
@@ -114,9 +115,12 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
       <EyeOff v-else-if="changedTone === 'ignored'" :size="13" :stroke-width="2.4" />
       <RotateCcw v-else :size="13" :stroke-width="2.4" />
     </span>
-    <i18n-t keypath="notice.statusChanged" tag="span" scope="global">
+    <i18n-t :keypath="changedTitle ? 'notice.statusChangedTitled' : 'notice.statusChanged'" tag="span" scope="global">
       <template #actor>
         <b class="system-notice-line__actor">{{ actor }}</b>
+      </template>
+      <template v-if="changedTitle" #title>
+        <em class="system-notice-line__title">{{ changedTitle }}</em>
       </template>
       <template #status>
         <b :class="`system-notice-line__status--${changedTone}`">{{ changedStatus }}</b>
@@ -266,6 +270,9 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
   font-weight: 600;
 }
 .system-notice-line__actor {
+  color: var(--ink);
+}
+.system-notice-line__title {
   color: var(--ink);
 }
 .system-notice-line__status--open { color: var(--status-open-fg); }

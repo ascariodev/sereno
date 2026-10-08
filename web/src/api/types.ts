@@ -75,6 +75,7 @@ export interface LogGroupOpenedPayload {
 export interface LogGroupStatusChangedPayload {
   type: 'log.group_status_changed'
   log_group_id: number
+  title?: string
   status: LogGroupStatus
   previous_status: LogGroupStatus
 }
@@ -102,6 +103,7 @@ export function isLogGroupStatusChangedPayload(
   return (
     payload?.type === 'log.group_status_changed' &&
     typeof payload.log_group_id === 'number' &&
+    (payload.title === undefined || typeof payload.title === 'string') &&
     typeof payload.status === 'string' &&
     typeof payload.previous_status === 'string'
   )
