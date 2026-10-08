@@ -28,6 +28,7 @@ Route::get('invitations/{token}', [InvitationController::class, 'show'])->middle
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('invitations/accept', [InvitationController::class, 'accept']);
+    Route::get('invitations', [InvitationController::class, 'index'])->middleware('organization');
     Route::post('invitations', [InvitationController::class, 'store'])->middleware('organization');
 });
 

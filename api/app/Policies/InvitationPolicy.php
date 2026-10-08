@@ -11,6 +11,11 @@ use App\Models\User;
  */
 class InvitationPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->hasAnyRole([Role::Owner->value, Role::Admin->value]);
+    }
+
     public function create(User $user, ?Role $role): bool
     {
         if ($user->hasRole(Role::Owner->value)) {

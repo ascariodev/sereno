@@ -6,17 +6,28 @@ use App\Enums\Locale;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Invitation\InviteRequest;
+use App\Http\Resources\InvitationResource;
 use App\Models\Invitation;
 use App\Notifications\InvitationNotification;
 use App\Support\CurrentOrganization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 
 class InvitationController extends Controller
 {
+    public function index(): AnonymousResourceCollection
+    {
+        Gate::authorize('viewAny', Invitation::class);
+
+        return InvitationResource::collection(
+            Invitation::query()->pending()->with('inviter')->orderByDesc('created_at')->orderByDesc('id')->get(),
+        );
+    }
+
     public function store(InviteRequest $request): JsonResponse
     {
         $role = Role::from($request->validated('role'));
@@ -55,13 +66,7 @@ class InvitationController extends Controller
             (new InvitationNotification($organization->name, $role->value, $plainToken))->locale($locale->value),
         );
 
-        return response()->json(['data' => [
-            'id' => $invitation->id,
-            'email' => $invitation->email,
-            'role' => $invitation->role,
-            'locale' => $invitation->locale,
-            'expires_at' => $invitation->expires_at,
-        ]], 201);
+        return (new InvitationResource($invitation->load('inviter')))->response()->setStatusCode(201);
     }
 
     /**

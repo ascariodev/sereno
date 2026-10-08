@@ -33,6 +33,7 @@ it('lets an owner invite and sends the email in the organization locale', functi
         ->assertCreated()
         ->assertJsonPath('data.email', 'new@example.com')
         ->assertJsonPath('data.locale', 'es')
+        ->assertJsonPath('data.invited_by.id', $this->owner->id)
         ->assertJsonMissingPath('data.token');
 
     $invitation = Invitation::query()->firstOrFail();
@@ -382,4 +383,56 @@ it('throttles invitation previews per ip with a translated 429', function () {
         ->assertTooManyRequests()
         ->assertHeader('Retry-After')
         ->assertJsonPath('message', __('Too many attempts. Please try again in :seconds seconds.', ['seconds' => 60], 'es'));
+});
+
+function listInvitations(User $user, Organization $organization)
+{
+    Sanctum::actingAs($user);
+
+    return test()->withHeader('X-Organization-Id', (string) $organization->id)->getJson('/api/invitations');
+}
+
+it('lists only pending invitations of the active organization with the inviter', function () {
+    $pending = createPreviewInvitation($this->organization, $this->owner, ['email' => 'a@example.com']);
+    Invitation::factory()->create(['organization_id' => $this->organization->id, 'invited_by' => $this->owner->id, 'email' => 'used@example.com', 'accepted_at' => now()]);
+    Invitation::factory()->create(['organization_id' => $this->organization->id, 'invited_by' => $this->owner->id, 'email' => 'old@example.com', 'expires_at' => now()->subDay()]);
+
+    $other = Organization::factory()->create();
+    $otherOwner = User::factory()->create();
+    $other->addMember($otherOwner, [Role::Owner]);
+    Invitation::factory()->create(['organization_id' => $other->id, 'invited_by' => $otherOwner->id, 'email' => 'other@example.com']);
+
+    listInvitations($this->owner, $this->organization)
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $pending->id)
+        ->assertJsonPath('data.0.email', 'a@example.com')
+        ->assertJsonPath('data.0.role', 'admin')
+        ->assertJsonPath('data.0.invited_by', ['id' => $this->owner->id, 'name' => $this->owner->name])
+        ->assertJsonMissingPath('data.0.token');
+});
+
+it('lets an admin list pending invitations', function () {
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+    createPreviewInvitation($this->organization, $this->owner);
+
+    listInvitations($admin, $this->organization)->assertOk()->assertJsonCount(1, 'data');
+});
+
+it('forbids plain members from listing invitations', function () {
+    $member = User::factory()->create();
+    $this->organization->addMember($member, [Role::Member]);
+
+    listInvitations($member, $this->organization)->assertForbidden();
+});
+
+it('rejects listing invitations of an organization the user does not belong to', function () {
+    $other = Organization::factory()->create();
+
+    listInvitations($this->owner, $other)->assertForbidden();
+});
+
+it('requires authentication to list invitations', function () {
+    $this->getJson('/api/invitations')->assertUnauthorized();
 });
