@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client'
 import { isLogGroupStatusChangedPayload } from '../api/types'
 import type { Channel } from '../api/types'
-import LogGroupPanel from '../components/LogGroupPanel.vue'
+import LogGroupAside from '../components/LogGroupAside.vue'
 import MessageComposer from '../components/MessageComposer.vue'
 import MessageList from '../components/MessageList.vue'
 import ProjectHeader from '../components/ProjectHeader.vue'
@@ -159,7 +159,7 @@ onUnmounted(() => {
           <MessageComposer v-else-if="channel" />
         </template>
       </div>
-      <LogGroupPanel
+      <LogGroupAside
         v-if="channel && groupId !== null"
         class="channel__panel"
         :project-id="channel.project_id"

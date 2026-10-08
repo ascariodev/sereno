@@ -1,0 +1,134 @@
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '../api/client'
+import { i18n } from '../i18n'
+import LogGroupAside from './LogGroupAside.vue'
+
+const loaded = {
+  data: {
+    id: 5,
+    project_id: 3,
+    level: 'error',
+    title: 'Timeout in webhook',
+    status: 'open',
+    events_count: 3,
+    first_seen_at: '2026-10-01T10:00:00.000000Z',
+    last_seen_at: '2026-10-02T10:00:00.000000Z',
+    events: [],
+  },
+}
+
+let wrapper: VueWrapper | undefined
+let listener: ((event: { matches: boolean }) => void) | undefined
+const removeEventListener = vi.fn()
+
+function fakeMatchMedia(matches: boolean) {
+  window.matchMedia = vi.fn().mockReturnValue({
+    matches,
+    addEventListener: (_: string, fn: typeof listener) => (listener = fn),
+    removeEventListener,
+  })
+}
+
+function mountAside() {
+  wrapper = mount(LogGroupAside, {
+    props: { projectId: 3, groupId: 5 },
+    attrs: { class: 'wide-panel' },
+    global: { plugins: [i18n] },
+    attachTo: document.body,
+  })
+  return wrapper
+}
+
+const sheet = () => document.querySelector('[role="dialog"]')
+
+beforeEach(() => {
+  vi.spyOn(api, 'get').mockResolvedValue(loaded as never)
+  removeEventListener.mockClear()
+})
+
+afterEach(() => {
+  wrapper?.unmount()
+  wrapper = undefined
+  document.body.innerHTML = ''
+  listener = undefined
+  delete (window as { matchMedia?: unknown }).matchMedia
+  vi.restoreAllMocks()
+})
+
+describe('LogGroupAside', () => {
+  it('renders an aside with the passed class when matchMedia is missing', async () => {
+    mountAside()
+    await flushPromises()
+    expect(wrapper!.find('aside.wide-panel').exists()).toBe(true)
+    expect(sheet()).toBeNull()
+  })
+
+  it('renders an aside on wide viewports and emits close from its button', async () => {
+    fakeMatchMedia(false)
+    mountAside()
+    await flushPromises()
+    expect(wrapper!.find('aside.wide-panel').exists()).toBe(true)
+    expect(sheet()).toBeNull()
+    await wrapper!.find('button[name=close-group]').trigger('click')
+    expect(wrapper!.emitted('close')).toHaveLength(1)
+  })
+
+  it('renders a bottom sheet on narrow viewports with the panel loaded', async () => {
+    fakeMatchMedia(true)
+    mountAside()
+    await flushPromises()
+    expect(sheet()).not.toBeNull()
+    expect(sheet()!.className).toContain('app-dialog--sheet-bottom')
+    expect(sheet()!.querySelector('.log-group-panel h2')!.textContent).toBe('Timeout in webhook')
+    expect(wrapper!.find('aside.wide-panel').exists()).toBe(false)
+    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(1)
+  })
+
+  it('emits close from the panel button inside the sheet', async () => {
+    fakeMatchMedia(true)
+    mountAside()
+    await flushPromises()
+    sheet()!.querySelector<HTMLButtonElement>('button[name=close-group]')!.click()
+    expect(wrapper!.emitted('close')).toHaveLength(1)
+  })
+
+  it('emits close on Escape', async () => {
+    fakeMatchMedia(true)
+    mountAside()
+    await flushPromises()
+    expect(sheet()).not.toBeNull()
+    document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await flushPromises()
+    expect(wrapper!.emitted('close')).toHaveLength(1)
+  })
+
+  it('emits close when the overlay is clicked', async () => {
+    fakeMatchMedia(true)
+    mountAside()
+    await flushPromises()
+    expect(sheet()).not.toBeNull()
+    const overlay = document.querySelector('.app-dialog-overlay')!
+    overlay.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' }))
+    overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+    expect(wrapper!.emitted('close')).toHaveLength(1)
+  })
+
+  it('switches between aside and sheet when the viewport changes and stops listening on unmount', async () => {
+    fakeMatchMedia(false)
+    mountAside()
+    await flushPromises()
+    expect(sheet()).toBeNull()
+    listener!({ matches: true })
+    await flushPromises()
+    expect(sheet()).not.toBeNull()
+    listener!({ matches: false })
+    await flushPromises()
+    expect(sheet()).toBeNull()
+    expect(wrapper!.find('aside.wide-panel').exists()).toBe(true)
+    wrapper!.unmount()
+    wrapper = undefined
+    expect(removeEventListener).toHaveBeenCalledWith('change', listener)
+  })
+})

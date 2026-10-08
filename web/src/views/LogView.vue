@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import { listLogGroups } from '../api/logGroups'
 import type { LogGroup, LogGroupStatus, Paginated } from '../api/types'
-import LogGroupPanel from '../components/LogGroupPanel.vue'
+import LogGroupAside from '../components/LogGroupAside.vue'
 import ProjectHeader from '../components/ProjectHeader.vue'
 import AppSegmented from '../components/ui/AppSegmented.vue'
 import LevelPill from '../components/ui/LevelPill.vue'
@@ -231,7 +231,7 @@ function formatDate(value: string): string {
         </template>
       </div>
 
-      <LogGroupPanel
+      <LogGroupAside
         v-if="groupId !== null && !Number.isNaN(projectId)"
         class="log-view__panel"
         :project-id="projectId"
