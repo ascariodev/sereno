@@ -32,25 +32,48 @@ describe('SystemNotice', () => {
   const changed = { type: 'log.group_status_changed', log_group_id: 5, status: 'resolved', previous_status: 'open' }
   const ana = { id: 1, name: 'Ana' }
 
-  it('renders log.group_opened', () => {
-    expect(textIn('en', message(opened))).toBe('New log group (error): Boom (1 event)')
-    expect(textIn('es', message(opened))).toBe('Nuevo grupo de logs (error): Boom (1 evento)')
+  it('renders log.group_opened as a card', () => {
+    const en = textIn('en', message(opened))
+    expect(en).toContain('error')
+    expect(en).toContain('New log group')
+    expect(en).toContain('Boom')
+    expect(en).toContain('1 event')
+    const es = textIn('es', message(opened))
+    expect(es).toContain('Nuevo grupo de logs')
+    expect(es).toContain('1 evento')
   })
 
   it('renders log.group_reopened with plural events', () => {
-    expect(textIn('en', message(reopened))).toBe('Log group reopened (critical): Boom (3 events)')
-    expect(textIn('es', message(reopened))).toBe('Grupo de logs reabierto (crítico): Boom (3 eventos)')
+    const en = textIn('en', message(reopened))
+    expect(en).toContain('Log group reopened')
+    expect(en).toContain('critical')
+    expect(en).toContain('3 events')
+    const es = textIn('es', message(reopened))
+    expect(es).toContain('Grupo de logs reabierto')
+    expect(es).toContain('crítico')
+    expect(es).toContain('3 eventos')
   })
 
-  it('renders log.group_status_changed with the actor', () => {
-    expect(textIn('en', message(changed, ana))).toBe('Ana marked the log group as resolved')
-    expect(textIn('es', message(changed, ana))).toBe('Ana marcó el grupo de logs como resuelto')
-    expect(textIn('en', message(changed))).toBe('Someone marked the log group as resolved')
+  it('renders log.group_status_changed as a compact line with the actor', () => {
+    expect(textIn('en', message(changed, ana))).toContain('Ana marked the log group as resolved')
+    expect(textIn('es', message(changed, ana))).toContain('Ana marcó el grupo de logs como resuelto')
+    expect(textIn('en', message(changed))).toContain('Someone marked the log group as resolved')
+    const wrapper = mount(SystemNotice, { props: { message: message(changed, ana) }, global: { plugins: [i18n] } })
+    expect(wrapper.find('article').exists()).toBe(false)
+    expect(wrapper.find('.system-notice-line b').text()).toBe('Ana')
   })
 
   it('shows unknown levels and statuses as they come', () => {
-    expect(textIn('en', message({ ...opened, level: 'verbose' }))).toContain('(verbose)')
+    expect(textIn('en', message({ ...opened, level: 'verbose' }))).toContain('verbose')
     expect(textIn('en', message({ ...changed, status: 'archived' }, ana))).toContain('as archived')
+  })
+
+  it('emits select with the group id when the title is clicked', async () => {
+    const wrapper = mount(SystemNotice, { props: { message: message(opened) }, global: { plugins: [i18n] } })
+    await wrapper.find('a').trigger('click')
+    expect(wrapper.emitted('select')).toEqual([[5]])
+    const line = mount(SystemNotice, { props: { message: message(changed, ana) }, global: { plugins: [i18n] } })
+    expect(line.find('a').exists()).toBe(false)
   })
 
   it('falls back to the generic notice for an unknown or missing type', () => {

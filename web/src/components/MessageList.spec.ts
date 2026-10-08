@@ -29,6 +29,22 @@ describe('MessageList', () => {
     expect(wrapper.text()).toContain('hello')
   })
 
+  it('forwards select from a system notice', async () => {
+    const notice: Message = {
+      ...message(null),
+      id: 2,
+      kind: 'system',
+      body: null,
+      payload: { type: 'log.group_opened', log_group_id: 9, level: 'error', title: 'Boom', events_count: 2 },
+    }
+    const wrapper = mount(MessageList, {
+      props: { messages: [notice], hasMore: false, loadingMore: false, projectId: 3 },
+      global: { plugins: [i18n] },
+    })
+    await wrapper.find('li.message--system a').trigger('click')
+    expect(wrapper.emitted('select')).toEqual([[9]])
+  })
+
   describe('day separators and time', () => {
     const originalTz = process.env.TZ
 

@@ -68,9 +68,9 @@
     }
   },
   "notice": {
-    "groupOpened": "Nuevo grupo de logs ({level}): {title} ({events})",
-    "groupReopened": "Grupo de logs reabierto ({level}): {title} ({events})",
-    "events": "{count} evento | {count} eventos",
+    "openedLabel": "Nuevo grupo de logs",
+    "reopenedLabel": "Grupo de logs reabierto",
+    "eventsWord": "evento | eventos",
     "statusChanged": "{actor} marcó el grupo de logs como {status}",
     "actions": {
       "resolve": "Resolver",

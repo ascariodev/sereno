@@ -6,7 +6,7 @@ import MessageItem from './MessageItem.vue'
 import SystemNotice from './SystemNotice.vue'
 
 const props = defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number }>()
-defineEmits<{ loadOlder: [] }>()
+defineEmits<{ loadOlder: []; select: [groupId: number] }>()
 
 const { t, locale } = useI18n()
 
@@ -47,7 +47,12 @@ const rows = computed<Row[]>(() => {
       <template v-for="row in rows" :key="row.key">
         <li v-if="row.type === 'day'" class="message-list__day">{{ row.label }}</li>
         <li v-else :class="['message', `message--${row.message.kind}`]">
-          <SystemNotice v-if="row.message.kind === 'system'" :message="row.message" :project-id="projectId" />
+          <SystemNotice
+            v-if="row.message.kind === 'system'"
+            :message="row.message"
+            :project-id="projectId"
+            @select="$emit('select', $event)"
+          />
           <MessageItem v-else :message="row.message" />
         </li>
       </template>
