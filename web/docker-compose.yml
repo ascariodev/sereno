@@ -4,8 +4,7 @@ services:
     user: root
     volumes:
       - web-node-modules:/app/node_modules
-    entrypoint: ["chown", "-R", "node:node", "/app/node_modules"]
-    restart: "no"
+    entrypoint: ["sh", "-c", "[ -z \"$$(find /app/node_modules ! -user node -print -quit)\" ] || chown -R node:node /app/node_modules"]
 
   web:
     image: node:24
