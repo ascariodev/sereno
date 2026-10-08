@@ -32,6 +32,14 @@
     "label": "Main navigation",
     "home": "Home"
   },
+  "userMenu": {
+    "label": "User menu",
+    "theme": {
+      "system": "System theme",
+      "light": "Light theme",
+      "dark": "Dark theme"
+    }
+  },
   "layout": {
     "logout": "Sign out"
   },

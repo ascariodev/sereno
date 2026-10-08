@@ -1,6 +1,7 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { i18n } from '../i18n'
@@ -8,6 +9,7 @@ import AppLayout from './AppLayout.vue'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { THEME_STORAGE_KEY } from '../theme/theme'
 
 const user = { id: 1, name: 'Ada', email: 'a@e.com', locale: 'en' }
 const project = {
@@ -31,6 +33,32 @@ function sidebarData(path: string): unknown {
   return undefined
 }
 
+let mounted: VueWrapper | undefined
+
+function key(target: Element, name: string) {
+  target.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true, cancelable: true }))
+}
+
+async function settle() {
+  await flushPromises()
+  await nextTick()
+  await new Promise((resolve) => setTimeout(resolve, 0))
+}
+
+async function openMenu(trigger: string) {
+  const button = document.querySelector<HTMLButtonElement>(trigger)!
+  button.focus()
+  key(button, 'ArrowDown')
+  await settle()
+}
+
+async function pick(value: string) {
+  const item = document.querySelector<HTMLElement>(`[role=menuitem][data-value="${value}"]`)!
+  item.focus()
+  key(item, 'Enter')
+  await settle()
+}
+
 async function mountApp(
   organizations: () => Promise<unknown> = async () => ({ data: orgs }),
   path = '/',
@@ -44,8 +72,9 @@ async function mountApp(
   const router = createAppRouter(createMemoryHistory())
   await router.push(path)
   await router.isReady()
-  const wrapper = mount({ template: '<RouterView />' }, { global: { plugins: [pinia, i18n, router] } })
+  const wrapper = mount({ template: '<RouterView />' }, { global: { plugins: [pinia, i18n, router] }, attachTo: document.body })
   await flushPromises()
+  mounted = wrapper
   return { wrapper, router }
 }
 
@@ -53,26 +82,37 @@ describe('AppLayout', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.restoreAllMocks()
+    document.documentElement.removeAttribute('data-theme')
+  })
+
+  afterEach(() => {
+    mounted?.unmount()
+    mounted = undefined
+    document.body.innerHTML = ''
   })
 
   it('shows the user, the organizations and the page', async () => {
     const { wrapper } = await mountApp()
     expect(wrapper.text()).toContain('Ada')
-    expect(wrapper.findAll('option').map((o) => o.text())).toEqual(['One', 'Two'])
+    expect(wrapper.find('button[name=organization]').text()).toBe('One')
     expect(wrapper.text()).toContain('Projects')
   })
 
-  it('changing the selector changes the active organization', async () => {
+  it('lists the organizations in the menu and choosing one changes the active organization', async () => {
     const { wrapper } = await mountApp()
-    await wrapper.find('select').setValue('2')
+    await openMenu('button[name=organization]')
+    const options = [...document.querySelectorAll('[role=menuitem]')]
+    expect(options.map((el) => el.textContent?.trim())).toEqual(['One', 'Two'])
+    await pick('2')
     expect(useOrganizationStore().activeId).toBe(2)
+    expect(wrapper.find('button[name=organization]').text()).toBe('Two')
   })
 
   it('shows a message without organizations and no page', async () => {
     const { wrapper } = await mountApp(async () => ({ data: [] }))
     expect(wrapper.text()).toContain('You do not belong to any organization yet.')
     expect(wrapper.text()).not.toContain('Projects')
-    expect(wrapper.find('select').exists()).toBe(false)
+    expect(wrapper.find('button[name=organization]').exists()).toBe(false)
   })
 
   it('shows an error when loading fails', async () => {
@@ -118,12 +158,26 @@ describe('AppLayout', () => {
   })
 
   it('logout clears the session and goes to login', async () => {
-    const { wrapper, router } = await mountApp()
+    const { router } = await mountApp()
     vi.spyOn(api, 'post').mockResolvedValue(undefined)
-    await wrapper.find('button[name=logout]').trigger('click')
-    await flushPromises()
+    await openMenu('button[name=user-menu]')
+    expect(document.querySelector('[role=menu]')).not.toBeNull()
+    await pick('logout')
     expect(router.currentRoute.value.name).toBe('login')
     expect(useAuthStore().isAuthenticated).toBe(false)
     expect(useOrganizationStore().activeId).toBeNull()
+  })
+
+  it('the user menu changes and saves the theme', async () => {
+    await mountApp()
+    await openMenu('button[name=user-menu]')
+    expect(document.querySelector('[role=menu]')).not.toBeNull()
+    await pick('theme:dark')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
+    await openMenu('button[name=user-menu]')
+    await pick('theme:system')
+    expect(document.documentElement.hasAttribute('data-theme')).toBe(false)
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('system')
   })
 })

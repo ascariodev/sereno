@@ -32,6 +32,14 @@
     "label": "Navegación principal",
     "home": "Inicio"
   },
+  "userMenu": {
+    "label": "Menú de usuario",
+    "theme": {
+      "system": "Tema del sistema",
+      "light": "Tema claro",
+      "dark": "Tema oscuro"
+    }
+  },
   "layout": {
     "logout": "Cerrar sesión"
   },
