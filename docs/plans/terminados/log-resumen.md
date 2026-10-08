@@ -82,7 +82,7 @@
 - Plan terminado el 2026-10-08. M-4 aplicada; suite API 396/396 y web 469/469.
 
 ## Mejoras propuestas
-- [ ] M-1 (baja, sonnet): `LogGroupHourlyResource` para documentar en un solo sitio la forma de la respuesta de `hourly`, en vez de `JsonResource::make` con `(object)`.
+- [x] M-1 (baja, sonnet): `LogGroupHourlyResource` para documentar en un solo sitio la forma de la respuesta de `hourly`, en vez de `JsonResource::make` con `(object)`.
 - [ ] M-2 (baja, sonnet): test unitario de `LogLevel::bySeverity()` y `fromSeverityPosition()` que recorra todos los casos del enum.
 - [ ] M-3 (baja, sonnet): cachear en una estática el orden de `LogLevel::fromSeverityPosition()` (hoy hace `usort` en cada llamada, una por proyecto).
 - [x] M-4 (baja, sonnet): la suite completa del API no carga: `ingest()` global está declarada en `tests/Feature/LogSourceAuthTest.php:32` y `RotateLogSourceKeyCommandTest.php:34` (viene de conectar-posveapi M-18/M-20, no de este plan). Renombrar o encapsular una de las dos.
