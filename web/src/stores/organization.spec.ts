@@ -1,8 +1,14 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
+import { leaveOrganization } from '../realtime/echo'
 import { useAuthStore } from './auth'
 import { ORGANIZATION_STORAGE_KEY, installOrganizationOnApi, useOrganizationStore } from './organization'
+
+vi.mock('../realtime/echo', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../realtime/echo')>()),
+  leaveOrganization: vi.fn(),
+}))
 
 const orgs = [
   { id: 1, name: 'One', slug: 'one', settings: null, roles: ['owner'] },
@@ -117,6 +123,64 @@ describe('organization store', () => {
     installOrganizationOnApi()
     await store.load()
     expect(setProvider.mock.calls[0][0]?.()).toBe(1)
+  })
+
+  it('revoking the active organization leaves its channels and switches to another', async () => {
+    const store = setup()
+    await store.load()
+    vi.spyOn(api, 'get').mockResolvedValue({ data: [orgs[1]] })
+    const changed = await store.handleMembershipRevoked(1)
+    expect(leaveOrganization).toHaveBeenCalledWith(1)
+    expect(changed).toBe(true)
+    expect(store.activeId).toBe(2)
+  })
+
+  it('revoking the only organization leaves no active one', async () => {
+    const store = setup([orgs[0]])
+    await store.load()
+    vi.spyOn(api, 'get').mockResolvedValue({ data: [] })
+    const changed = await store.handleMembershipRevoked(1)
+    expect(changed).toBe(true)
+    expect(store.activeId).toBeNull()
+    expect(store.loaded).toBe(true)
+  })
+
+  it('revoking a non active organization keeps the active one', async () => {
+    const store = setup()
+    await store.load()
+    vi.spyOn(api, 'get').mockResolvedValue({ data: [orgs[0]] })
+    const changed = await store.handleMembershipRevoked(2)
+    expect(leaveOrganization).toHaveBeenCalledWith(2)
+    expect(changed).toBe(false)
+    expect(store.activeId).toBe(1)
+    expect(store.organizations).toEqual([orgs[0]])
+  })
+
+  it('a revoke reload in flight when clear runs is discarded', async () => {
+    const store = setup()
+    await store.load()
+    let resolve!: (value: { data: typeof orgs }) => void
+    vi.spyOn(api, 'get').mockReturnValue(new Promise((r) => (resolve = r)))
+    const pending = store.handleMembershipRevoked(1)
+    store.clear()
+    resolve({ data: [orgs[1]] })
+    expect(await pending).toBe(false)
+    expect(store.organizations).toEqual([])
+    expect(store.activeId).toBeNull()
+  })
+
+  it('a newer load that changes the active organization still reports the change', async () => {
+    const store = setup()
+    await store.load()
+    const resolvers: Array<(value: { data: typeof orgs }) => void> = []
+    vi.spyOn(api, 'get').mockImplementation(() => new Promise((r) => resolvers.push(r)))
+    const revoked = store.handleMembershipRevoked(1)
+    const reconnect = store.load()
+    resolvers[1]({ data: [orgs[1]] })
+    await reconnect
+    resolvers[0]({ data: orgs })
+    expect(await revoked).toBe(true)
+    expect(store.activeId).toBe(2)
   })
 
   it('derives owner and invitation management from the active roles', async () => {

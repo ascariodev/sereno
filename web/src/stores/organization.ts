@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '../api/client'
 import type { InvitationRole, Organization } from '../api/types'
+import { leaveOrganization } from '../realtime/echo'
 
 export const ORGANIZATION_STORAGE_KEY = 'workspace.organization'
 
@@ -17,6 +18,8 @@ export const useOrganizationStore = defineStore('organization', () => {
   const loaded = ref(false)
   const version = ref(0)
   let generation = 0
+  let clearCount = 0
+  let latestLoad: Promise<void> = Promise.resolve()
 
   const active = computed(() => organizations.value.find((o) => o.id === activeId.value) ?? null)
 
@@ -44,7 +47,7 @@ export const useOrganizationStore = defineStore('organization', () => {
     if (id !== null) localStorage.setItem(ORGANIZATION_STORAGE_KEY, String(id))
   }
 
-  async function load(): Promise<void> {
+  async function fetchOrganizations(): Promise<void> {
     const current = ++generation
     const response = await api.get<{ data: Organization[] }>('/api/organizations')
     if (current !== generation) return
@@ -55,6 +58,25 @@ export const useOrganizationStore = defineStore('organization', () => {
     setActive(keep ?? response.data[0]?.id ?? null)
   }
 
+  function load(): Promise<void> {
+    latestLoad = fetchOrganizations()
+    return latestLoad
+  }
+
+  async function handleMembershipRevoked(organizationId: number): Promise<boolean> {
+    leaveOrganization(organizationId)
+    const previousActiveId = activeId.value
+    const clearsBefore = clearCount
+    let awaited = load()
+    await awaited
+    while (awaited !== latestLoad) {
+      awaited = latestLoad
+      await awaited
+    }
+    if (clearsBefore !== clearCount) return false
+    return activeId.value !== previousActiveId
+  }
+
   function select(id: number): void {
     if (!organizations.value.some((o) => o.id === id)) return
     setActive(id)
@@ -62,12 +84,13 @@ export const useOrganizationStore = defineStore('organization', () => {
 
   function clear(): void {
     generation++
+    clearCount++
     organizations.value = []
     loaded.value = false
     setActive(null)
   }
 
-  return { organizations, activeId, active, isOwner, isAdmin, assignableRolesFor, canRemoveMember, canManageInvitations, loaded, version, load, select, clear }
+  return { organizations, activeId, active, isOwner, isAdmin, assignableRolesFor, canRemoveMember, canManageInvitations, loaded, version, load, handleMembershipRevoked, select, clear }
 })
 
 export function installOrganizationOnApi(): void {

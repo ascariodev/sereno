@@ -1,7 +1,7 @@
 # Plan: corte-realtime
 
 **Objetivo:** que un miembro quitado de una organización deje de recibir en vivo los mensajes de sus canales: el API avisa por un canal privado del usuario y el cliente corta sus suscripciones de esa organización, recarga las organizaciones y sale de sus pantallas.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -29,7 +29,7 @@
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/test/fakeRealtimeClient.ts` (si hace falta), `web/src/realtime/echo.spec.ts`.
 - **Terminado cuando:** specs de suscribir y recibir, refcount, `leaveOrganization` que solo corta los canales de esa organización, y nada tras `disconnectRealtime`, pasan; typecheck limpio.
 
-### [ ] Fase 4 — Reacción del store a la membresía revocada
+### [x] Fase 4 — Reacción del store a la membresía revocada
 - **Alcance:** acción `organization.handleMembershipRevoked(orgId)`: llama a `leaveOrganization(orgId)` y a `load()`; si era la activa, `load()` elige otra o deja `activeId` en null. Descarta lo viejo si hubo `clear()` o una carga más nueva (L-10). Devuelve si la activa cambió, para que quien la llame decida navegar.
 - **Archivos:** `web/src/stores/organization.ts`, `web/src/stores/organization.spec.ts`.
 - **Terminado cuando:** specs de revocar la activa (con otra y sin otras), revocar una no activa, y `clear()` durante la carga, pasan.
@@ -47,9 +47,10 @@
 - 2026-10-08 — Fase 1: el canal se registra en el servidor como `users.{userId}`, no `users.{user}`: con `{user}` Laravel hace binding implícito porque el primer parámetro de `join()` es `$user` (el autenticado), y daba 403 al propio usuario y 500 con ids mal formados. Ningún canal del servidor usa el placeholder `{user}`. En el cliente el nombre sigue siendo `users.{id}`.
 - 2026-10-08 — Fase 2: `removeMember` despacha `MembershipRevoked($userId, $organizationId)` dentro del closure de `mutateMembership`, tras el `detach`; `ShouldDispatchAfterCommit` lo retiene hasta el commit. El evento guarda solo ids.
 - 2026-10-08 — Fase 3: `subscribeToChannel` y `subscribeToUser(userId, cb)` comparten el helper interno `subscribe`; el callback de `subscribeToUser` recibe el `organization_id`. `leaveOrganization(orgId)` corta los canales con prefijo `organizations.{orgId}.` y borra sus entradas del Map. El unsubscribe solo hace `leave` si su entrada sigue vigente en el Map: tras `leaveOrganization`, `disconnectRealtime` o cambio de cliente es un no-op, y no corta una suscripción nueva del mismo nombre.
+- 2026-10-08 — Fase 4: `handleMembershipRevoked(orgId): Promise<boolean>` llama a `leaveOrganization` y `load()`, espera a la última carga en vuelo (`latestLoad`, por si `onReconnect` lanza otra a la vez) y devuelve `activeId !== activa previa`; devuelve false solo si hubo `clear()` (contador propio `clearCount`). Si una carga rechaza, el error se propaga: en la fase 5 quien la llame lleva `catch`.
 
 ## Notas para la próxima sesión
-- Fases 1 a 3 hechas: API lista y `echo.ts` con `subscribeToUser`, `leaveOrganization`, `MEMBERSHIP_REVOKED_EVENT` y `userChannelName`. Seguir con la fase 4 (`organization.handleMembershipRevoked`).
+- Fases 1 a 4 hechas. Seguir con la fase 5 [riesgo]: suscribir `users.{id}` en la sesión y reaccionar con `handleMembershipRevoked` (con `catch`), toast y navegación; verificación en vivo con Reverb (el worker `queue` ya se reinició con `MembershipRevoked`).
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): corte forzado del lado servidor: que el cliente se una a un canal de presencia propio para que la conexión lleve `user_id` y llamar a `terminate_connections` (`Pusher::terminateUserConnections`) al quitar; el cliente reconecta y `/broadcasting/auth` rechaza la organización quitada.
