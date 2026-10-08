@@ -119,7 +119,7 @@ function currentFor(projectId: number): 'page' | undefined {
     <div v-if="organization.activeId !== null" class="app-sidebar__group">
       <span v-if="!collapsed" class="app-sidebar__heading">{{ t('projects.title') }}</span>
       <template v-for="{ project, summary, label } in projectRows" :key="project.id">
-        <AppTooltip :text="project.name" side="right" :disabled="!collapsed">
+        <AppTooltip :text="summary?.label ?? project.name" side="right" :disabled="!collapsed">
           <RouterLink
             v-if="projectsStore.channelByProject[project.id] !== undefined"
             :to="{ name: 'channel', params: { id: projectsStore.channelByProject[project.id] } }"
