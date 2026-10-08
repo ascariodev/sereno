@@ -57,7 +57,9 @@ async function loadOrganizations(): Promise<void> {
 }
 
 function closeDrawerOnLink(event: MouseEvent): void {
-  if (event.target instanceof Element && event.target.closest('a')) drawerOpen.value = false
+  if (!(event.target instanceof Element)) return
+  const link = event.target.closest('a')
+  if (link && link.target !== '_blank' && link.origin === window.location.origin) drawerOpen.value = false
 }
 
 watch(
@@ -94,7 +96,7 @@ onBeforeUnmount(() => {
     <AppDialog
       v-model:open="drawerOpen"
       variant="sheet-left"
-      :title="t('sidebar.label')"
+      :title="t('sidebar.menu')"
       hide-title
       :close-label="t('sidebar.close')"
     >

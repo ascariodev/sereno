@@ -38,6 +38,7 @@
     "loadFailed": "No se pudieron cargar tus organizaciones."
   },
   "sidebar": {
+    "menu": "Menú",
     "label": "Navegación principal",
     "home": "Inicio",
     "open": "Abrir navegación",

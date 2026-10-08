@@ -251,6 +251,32 @@ describe('AppLayout', () => {
       expect(drawer()!.querySelector('nav[aria-label="Main navigation"]')).not.toBeNull()
     })
 
+    it('titles the drawer differently from the navigation landmark', async () => {
+      await mountApp()
+      await openDrawer()
+      expect(drawer()!.getAttribute('aria-labelledby')).not.toBeNull()
+      expect(drawer()!.textContent).toContain('Menu')
+      expect(drawer()!.querySelector('nav')!.getAttribute('aria-label')).toBe('Main navigation')
+    })
+
+    it('stays open when following an external or new-tab link', async () => {
+      await mountApp()
+      await openDrawer()
+      const nav = drawer()!.querySelector('nav')!
+      const external = document.createElement('a')
+      external.href = 'https://example.com/docs'
+      external.addEventListener('click', (e) => e.preventDefault())
+      const newTab = document.createElement('a')
+      newTab.href = '/channels/7'
+      newTab.target = '_blank'
+      newTab.addEventListener('click', (e) => e.preventDefault())
+      nav.append(external, newTab)
+      external.click()
+      newTab.click()
+      await settle()
+      expect(drawer()).not.toBeNull()
+    })
+
     it('closes with Escape', async () => {
       await mountApp()
       await openDrawer()

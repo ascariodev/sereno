@@ -56,6 +56,9 @@ async function retry(): Promise<void> {
   justify-items: center;
   gap: 0.75rem;
   text-align: center;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+  box-sizing: border-box;
 }
 
 .session-error p {

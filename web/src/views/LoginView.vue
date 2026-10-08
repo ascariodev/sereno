@@ -171,7 +171,8 @@ async function submit(): Promise<void> {
   flex: 1 1 440px;
   display: flex;
   flex-direction: column;
-  padding: 32px 40px;
+  padding: calc(32px + env(safe-area-inset-top)) calc(40px + env(safe-area-inset-right))
+    calc(32px + env(safe-area-inset-bottom)) calc(40px + env(safe-area-inset-left));
 }
 .login__top {
   display: flex;

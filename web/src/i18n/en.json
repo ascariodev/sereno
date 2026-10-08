@@ -38,6 +38,7 @@
     "loadFailed": "Could not load your organizations."
   },
   "sidebar": {
+    "menu": "Menu",
     "label": "Main navigation",
     "home": "Home",
     "open": "Open navigation",
