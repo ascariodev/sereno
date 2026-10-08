@@ -234,7 +234,7 @@
     "You do not belong to this organization.": "No pertenece a esta organización.",
     "You have been invited to :organization": "Te han invitado a :organization",
     "You have been invited to join :organization as :role.": "Te han invitado a unirte a :organization como :role.",
-    "Your invitation token is: :token": "Tu token de invitación es: :token",
+    "Accept invitation": "Aceptar invitación",
     "This invitation expires in :days days.": "Esta invitación vence en :days días.",
     "This user is already a member of the organization.": "Este usuario ya es miembro de la organización.",
     "The invitation is invalid or has expired.": "La invitación no es válida o ha vencido.",

@@ -33,7 +33,7 @@ class InvitationNotification extends Notification implements ShouldBeEncrypted, 
                 'organization' => $this->organizationName,
                 'role' => __($this->role),
             ]))
-            ->line(__('Your invitation token is: :token', ['token' => $this->plainToken]))
+            ->action(__('Accept invitation'), rtrim(config('app.frontend_url'), '/').'/invite/'.$this->plainToken)
             ->line(__('This invitation expires in :days days.', ['days' => Invitation::VALID_DAYS]));
     }
 }

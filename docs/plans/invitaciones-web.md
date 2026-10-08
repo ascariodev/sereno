@@ -1,7 +1,7 @@
 # Plan: invitaciones-web
 
 **Objetivo:** que un owner o admin invite desde la web, que la persona invitada llegue por un enlace del correo, se registre o inicie sesión y acepte, y que el owner o admin vea y revoque las invitaciones pendientes.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -15,7 +15,7 @@
 
 ## Fases
 
-### [ ] Fase 1 — Enlace de aceptación en el correo
+### [x] Fase 1 — Enlace de aceptación en el correo
 - **Alcance:** `config('app.frontend_url')` desde `FRONTEND_URL` (por defecto `http://localhost:5174`); el correo de invitación lleva un botón a `{frontend_url}/invite/{token}` y deja de mostrar el token en texto.
 - **Archivos:** `api/config/app.php`, `api/.env.example`, `api/app/Notifications/InvitationNotification.php`, `api/lang/en.json`, `api/lang/es.json`, test en `InvitationApiTest.php`.
 - **Terminado cuando:** un test comprueba que el `toMail` tiene la acción con la URL del frontend y el token; pint y los tests de invitaciones pasan.
@@ -68,9 +68,11 @@
 - 2026-10-08 — Se invita a la organización, no a un proyecto: el modelo actual no tiene permisos por proyecto.
 - 2026-10-08 — Registro y aceptación desde la web se encadenan (register y luego accept) en vez de que `register` acepte un token: no toca la autenticación del API. Si accept falla, la cuenta queda creada sin organización y la vista lo informa.
 - 2026-10-08 — Volver a invitar el mismo email ya reemplaza la invitación pendiente: no hace falta un endpoint de reenvío.
+- 2026-10-08 — Fase 1: la clave "Your invitation token is: :token" se reemplazó por "Accept invitation" (botón). La URL usa `rtrim(frontend_url, '/')`. Producción lee el `.env` del servidor (no declara variables una a una en `docker-compose.prod.yml`): `FRONTEND_URL` se agrega en ese `.env` al desplegar.
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1. Leer `docs/lecciones.md` antes.
+- Fase 1 hecha. Sigue la fase 2 (riesgo, opus).
+- Pendiente del usuario: agregar `FRONTEND_URL=http://localhost:5174` a `api/.env.example` (una regla de permisos impide al agente leerlo o editarlo) y al `.env` de producción al desplegar.
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): gestión de miembros (listar, cambiar rol, quitar), que hoy no existe en el API.

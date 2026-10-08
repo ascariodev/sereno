@@ -234,7 +234,7 @@
     "You do not belong to this organization.": "You do not belong to this organization.",
     "You have been invited to :organization": "You have been invited to :organization",
     "You have been invited to join :organization as :role.": "You have been invited to join :organization as :role.",
-    "Your invitation token is: :token": "Your invitation token is: :token",
+    "Accept invitation": "Accept invitation",
     "This invitation expires in :days days.": "This invitation expires in :days days.",
     "This user is already a member of the organization.": "This user is already a member of the organization.",
     "The invitation is invalid or has expired.": "The invitation is invalid or has expired.",

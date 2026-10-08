@@ -287,3 +287,13 @@ it('queues the invitation email keeping the invitation locale', function () {
             && $job->shouldBeEncrypted === true;
     });
 });
+
+it('links the invitation email to the frontend and no longer shows the token', function () {
+    config(['app.frontend_url' => 'https://app.example.com/']);
+
+    $mail = (new InvitationNotification('Acme', 'member', 'tok123'))->toMail(new AnonymousNotifiable);
+
+    expect($mail->actionUrl)->toBe('https://app.example.com/invite/tok123')
+        ->and($mail->actionText)->toBe('Accept invitation')
+        ->and(implode(' ', $mail->introLines))->not->toContain('tok123');
+});
