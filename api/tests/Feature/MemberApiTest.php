@@ -314,7 +314,9 @@ it('no longer accepts pending invitations issued by the removed member', functio
     removeMemberRequest($this->owner, $this->organization, $admin)->assertNoContent();
 
     Sanctum::actingAs($invitee);
-    test()->postJson('/api/invitations/accept', ['token' => 'plain'])->assertUnprocessable();
+    test()->postJson('/api/invitations/accept', ['token' => 'plain'])
+        ->assertUnprocessable()
+        ->assertJsonPath('message', __('The invitation is invalid or has expired.'));
     expect($this->organization->users()->whereKey($invitee->id)->exists())->toBeFalse();
 });
 
