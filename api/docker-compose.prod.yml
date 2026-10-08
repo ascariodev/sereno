@@ -1,0 +1,81 @@
+# Producción: el repo llega por rsync y el .env vive solo en el servidor (Laravel lo lee del bind del repo;
+# compose lo usa para interpolar las credenciales de postgres). TLS lo termina el proxy del host.
+
+x-app: &app
+  image: workspace-api-fpm
+  restart: unless-stopped
+  volumes:
+    - ./:/var/www/api
+  environment:
+    DB_HOST: postgres
+    DB_PORT: 5432
+    REVERB_HOST: reverb
+    REVERB_PORT: 8080
+    REVERB_SCHEME: http
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    # Solo el proxy del host debe llegar aquí: Laravel confía en X-Forwarded-* de su par inmediato.
+    ports:
+      - "${API_BIND:-127.0.0.1}:${API_PORT:-8003}:80"
+    volumes:
+      - ./:/var/www/api:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/up || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      - app
+
+  app:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/php-fpm/Dockerfile
+
+  queue:
+    <<: *app
+    command: ["php", "artisan", "queue:work", "--tries=3"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      reverb:
+        condition: service_started
+
+  scheduler:
+    <<: *app
+    command: ["php", "artisan", "schedule:work"]
+
+  reverb:
+    <<: *app
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    ports:
+      - "${REVERB_BIND:-127.0.0.1}:${REVERB_PUBLISH_PORT:-8086}:8080"
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "127.0.0.1:${DB_PUBLISH_PORT:-5435}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

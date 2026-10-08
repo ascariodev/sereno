@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withBroadcasting(__DIR__.'/../routes/channels.php', ['middleware' => [SetLocale::class, 'auth:sanctum']])
     ->withMiddleware(function (Middleware $middleware): void {
+        // In production TLS ends at the host proxy, the only peer of nginx (bound to 127.0.0.1). Trusting just
+        // the immediate peer gives https URLs and the real client IP for the per-IP limiters, while an
+        // X-Forwarded-For forged by the client is ignored.
+        $middleware->trustProxies(at: 'REMOTE_ADDR');
         $middleware->api(append: [
             SetLocale::class,
         ]);
