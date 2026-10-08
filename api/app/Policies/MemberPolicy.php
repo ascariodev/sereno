@@ -26,4 +26,13 @@ class MemberPolicy
             && $role !== Role::Owner
             && ! $target->hasRole(Role::Owner->value);
     }
+
+    public function remove(User $actor, User $target): bool
+    {
+        if ($actor->is($target) || $actor->hasRole(Role::Owner->value)) {
+            return true;
+        }
+
+        return $actor->hasRole(Role::Admin->value) && ! $target->hasRole(Role::Owner->value);
+    }
 }

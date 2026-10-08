@@ -1,7 +1,7 @@
 # Plan: miembros
 
 **Objetivo:** que cualquier miembro vea quién está en la organización, que owner y admin cambien roles y quiten miembros según su rango, y que cualquiera pueda salir de la organización, sin que la organización se quede nunca sin owner.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -30,7 +30,7 @@
 - **Archivos:** `api/routes/api.php`, `MemberController.php`, `api/app/Http/Requests/Member/UpdateMemberRoleRequest.php` (nuevo), `MemberPolicy.php`, tests.
 - **Terminado cuando:** tests por combinación de rol (owner, admin, member, sobre sí mismo), 404 de usuario ajeno, 422 de último owner y respuesta con `MemberResource` pasan.
 
-### [ ] Fase 4 — Endpoint para quitar un miembro o salir
+### [x] Fase 4 — Endpoint para quitar un miembro o salir
 - **Alcance:** `DELETE /api/members/{user}` (204). Owner quita a cualquiera; admin quita admins y members, no owners; cualquiera puede quitarse a sí mismo (salir). 422 si deja la organización sin owner.
 - **Archivos:** `api/routes/api.php`, `MemberController.php`, `MemberPolicy.php`, tests.
 - **Terminado cuando:** tests de quitar por rol, salir, último owner, que el quitado recibe 403 en la siguiente petición y que sus invitaciones pendientes ya no se aceptan, pasan.
@@ -64,10 +64,11 @@
 - 2026-10-08 — Las reglas de miembros viven en `MemberPolicy`, registrada con `Gate::policy(User::class, ...)` (el objetivo es un `User`; no existe `UserPolicy`). Hoy solo `viewAny` (cualquier rol de la organización activa); las fases 3 y 4 añaden `updateRole(actor, target, Role)` y `remove(actor, target)`. `MemberResource` toma el rol de `roles->first()?->name` (el eager load ya filtra por team) y `joined_at` de `pivot->created_at`.
 - 2026-10-08 — `Organization::changeMemberRole/removeMember` toman `lockForUpdate` sobre la fila de `organizations` (serializa toda mutación de membresía) antes de contar owners; `addMember` no lo toma. Usuario no miembro: `ModelNotFoundException` (404). `LastOwnerException` se renderiza sola como 422 traducido: los controladores no la capturan. `changeMemberRole` usa `syncRoles` (reemplaza el rol).
 - 2026-10-08 — `MemberPolicy::updateRole(actor, target, ?Role)`: owner todo; admin solo si el target no es owner y el rol pedido no es owner; member nada (403 antes de saber si el target existe). Owner/admin sobre un no miembro reciben 404.
+- 2026-10-08 — `MemberPolicy::remove(actor, target)`: quien se quita a sí mismo siempre pasa; owner quita a cualquiera; admin no quita owners; member nada. El 422 de último owner y el 404 de no miembro los da el modelo. `DELETE` responde 204.
 - 2026-10-08 — No se cortan las suscripciones Reverb ya autorizadas del miembro quitado (queda como mejora).
 
 ## Notas para la próxima sesión
-- Fases 1 a 3 hechas. Empezar por la fase 4: añadir `remove` a `MemberPolicy` y llamar `Organization::removeMember`; reutilizar helpers de test de `MemberApiTest` (`changeRole`, `memberWithRole`, `roleIn`). Leer `docs/lecciones.md` antes.
+- API completa (fases 1 a 4). Empezar por la fase 5 (web): `web/src/api/members.ts` y tipo `Member` leído de `MemberResource` (`id, name, email, role (puede ser null), joined_at` ISO 8601 UTC). Leer `docs/lecciones.md` antes.
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): cortar en vivo las suscripciones Reverb de un miembro quitado (requiere un canal privado por usuario u organización).
@@ -76,3 +77,4 @@
 - [ ] M-4 (baja, sonnet): test de que `MemberPolicy::viewAny` no concede sin team activo.
 - [ ] M-5 (baja, sonnet): test de concurrencia real con dos conexiones para el lock de `mutateMembership` (hoy solo se prueba el orden del SQL).
 - [ ] M-6 (baja, sonnet): en `UpdateMemberRoleRequest::authorize()`, evitar el aviso por `(string)` si `role` llega como array (usar `$this->string('role')->value()` o `is_string`).
+- [ ] M-7 (baja, sonnet): en el test de invitaciones del quitado, afirmar el mensaje del 422 con `assertJsonPath`, no solo `assertUnprocessable`.

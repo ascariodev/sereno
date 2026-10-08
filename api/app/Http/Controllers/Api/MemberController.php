@@ -9,6 +9,7 @@ use App\Http\Resources\MemberResource;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 
 class MemberController extends Controller
@@ -29,5 +30,14 @@ class MemberController extends Controller
         $organization->changeMemberRole($user, Role::from($request->validated('role')));
 
         return new MemberResource($organization->users()->with('roles')->whereKey($user->id)->firstOrFail());
+    }
+
+    public function destroy(User $user): Response
+    {
+        Gate::authorize('remove', $user);
+
+        app(CurrentOrganization::class)->get()->removeMember($user);
+
+        return response()->noContent();
     }
 }

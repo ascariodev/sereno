@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Models\Invitation;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -202,5 +203,106 @@ it('rejects changing roles from an organization the actor does not belong to', f
 it('requires authentication to change a role', function () {
     $this->withHeader('X-Organization-Id', (string) $this->organization->id)
         ->patchJson('/api/members/'.$this->owner->id, ['role' => 'member'])
+        ->assertUnauthorized();
+});
+
+function removeMemberRequest(User $actor, Organization $organization, User|int $target)
+{
+    Sanctum::actingAs($actor);
+
+    return test()->withHeader('X-Organization-Id', (string) $organization->id)
+        ->deleteJson('/api/members/'.($target instanceof User ? $target->id : $target));
+}
+
+it('removes members according to the actor rank', function (Role $actorRole, Role $targetRole, bool $allowed) {
+    $actor = memberWithRole($this->organization, $actorRole, 'Actor');
+    $target = memberWithRole($this->organization, $targetRole, 'Target');
+
+    $response = removeMemberRequest($actor, $this->organization, $target);
+
+    if ($allowed) {
+        $response->assertNoContent();
+        expect($this->organization->users()->whereKey($target->id)->exists())->toBeFalse();
+    } else {
+        $response->assertForbidden();
+        expect($this->organization->users()->whereKey($target->id)->exists())->toBeTrue();
+    }
+})->with([
+    'owner removes owner' => [Role::Owner, Role::Owner, true],
+    'owner removes admin' => [Role::Owner, Role::Admin, true],
+    'owner removes member' => [Role::Owner, Role::Member, true],
+    'admin removes admin' => [Role::Admin, Role::Admin, true],
+    'admin removes member' => [Role::Admin, Role::Member, true],
+    'admin cannot remove owner' => [Role::Admin, Role::Owner, false],
+    'member cannot remove member' => [Role::Member, Role::Member, false],
+    'member cannot remove admin' => [Role::Member, Role::Admin, false],
+    'member cannot remove owner' => [Role::Member, Role::Owner, false],
+]);
+
+it('lets any member leave the organization', function (Role $role) {
+    $actor = memberWithRole($this->organization, $role, 'Actor');
+
+    removeMemberRequest($actor, $this->organization, $actor)->assertNoContent();
+
+    expect($this->organization->users()->whereKey($actor->id)->exists())->toBeFalse();
+})->with([Role::Owner, Role::Admin, Role::Member]);
+
+it('returns 422 when the last owner leaves or is removed', function () {
+    $admin = memberWithRole($this->organization, Role::Admin, 'Ada');
+
+    removeMemberRequest($this->owner, $this->organization, $this->owner)
+        ->assertStatus(422)
+        ->assertJsonPath('message', __('The organization must keep at least one owner.'));
+    removeMemberRequest($admin, $this->organization, $this->owner)->assertForbidden();
+
+    expect(roleIn($this->organization, $this->owner))->toBe('owner');
+});
+
+it('returns 404 when removing a user outside the active organization', function () {
+    $stranger = memberWithRole(Organization::factory()->create(), Role::Member, 'Zoe');
+
+    removeMemberRequest($this->owner, $this->organization, $stranger)->assertNotFound();
+    removeMemberRequest($this->owner, $this->organization, 999999)->assertNotFound();
+});
+
+it('does not remove the member from another organization', function () {
+    $other = Organization::factory()->create();
+    $shared = memberWithRole($this->organization, Role::Member, 'Ana');
+    $other->addMember($shared, [Role::Admin]);
+
+    removeMemberRequest($this->owner, $this->organization, $shared)->assertNoContent();
+
+    expect($other->users()->whereKey($shared->id)->exists())->toBeTrue()
+        ->and(roleIn($other, $shared))->toBe('admin');
+});
+
+it('answers 403 to a removed member on the next request', function () {
+    $member = memberWithRole($this->organization, Role::Member, 'Ana');
+
+    removeMemberRequest($this->owner, $this->organization, $member)->assertNoContent();
+
+    listMembers($member, $this->organization)->assertForbidden();
+});
+
+it('no longer accepts pending invitations issued by the removed member', function () {
+    $admin = memberWithRole($this->organization, Role::Admin, 'Ada');
+    $invitee = User::factory()->create();
+    Invitation::factory()->withPlainToken('plain')->create([
+        'organization_id' => $this->organization->id,
+        'email' => $invitee->email,
+        'role' => 'member',
+        'invited_by' => $admin->id,
+    ]);
+
+    removeMemberRequest($this->owner, $this->organization, $admin)->assertNoContent();
+
+    Sanctum::actingAs($invitee);
+    test()->postJson('/api/invitations/accept', ['token' => 'plain'])->assertUnprocessable();
+    expect($this->organization->users()->whereKey($invitee->id)->exists())->toBeFalse();
+});
+
+it('requires authentication to remove a member', function () {
+    $this->withHeader('X-Organization-Id', (string) $this->organization->id)
+        ->deleteJson('/api/members/'.$this->owner->id)
         ->assertUnauthorized();
 });
