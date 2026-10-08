@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getLogGroup, listLogGroups } from './logGroups'
+import { getLogGroup, listLogGroups, statusFrom } from './logGroups'
 import type { LogGroup } from './types'
 
 const group: LogGroup = {
@@ -72,5 +72,17 @@ describe('log groups client', () => {
     stubFetch({ message: 'Not found' }, 404)
 
     await expect(getLogGroup(3, 99)).rejects.toMatchObject({ status: 404 })
+  })
+})
+
+describe('statusFrom', () => {
+  it('returns the status of a valid group', () => {
+    expect(statusFrom({ ...group, status: 'resolved' })).toBe('resolved')
+  })
+
+  it('returns null for an unknown status, an empty response or undefined', () => {
+    expect(statusFrom({ ...group, status: 'archived' as LogGroup['status'] })).toBeNull()
+    expect(statusFrom({} as LogGroup)).toBeNull()
+    expect(statusFrom(undefined)).toBeNull()
   })
 })

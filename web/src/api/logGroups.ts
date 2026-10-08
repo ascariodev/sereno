@@ -1,4 +1,5 @@
 import { api } from './client'
+import { isLogGroupStatus } from './types'
 import type { DataEnvelope, LogGroup, LogGroupStatus, Paginated } from './types'
 
 export interface ListLogGroupsParams {
@@ -28,4 +29,8 @@ export async function getLogGroup(projectId: number, groupId: number, signal?: A
 export async function updateLogGroupStatus(projectId: number, groupId: number, status: LogGroupStatus): Promise<LogGroup> {
   const response = await api.patch<DataEnvelope<LogGroup>>(`/api/projects/${projectId}/log-groups/${groupId}`, { status })
   return response.data
+}
+
+export function statusFrom(updated: LogGroup | undefined): LogGroupStatus | null {
+  return isLogGroupStatus(updated?.status) ? updated.status : null
 }

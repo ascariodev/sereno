@@ -3,9 +3,9 @@ import { Check, EyeOff, Info, OctagonAlert, RotateCcw, TriangleAlert } from '@lu
 import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
-import { updateLogGroupStatus } from '../api/logGroups'
-import { isLogGroupOpenedPayload, isLogGroupStatus, isLogGroupStatusChangedPayload } from '../api/types'
-import type { LogGroup, LogGroupStatus, Message } from '../api/types'
+import { statusFrom, updateLogGroupStatus } from '../api/logGroups'
+import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
+import type { LogGroupStatus, Message } from '../api/types'
 import { LOG_LEVELS } from '../api/logLevels'
 import LevelPill from './ui/LevelPill.vue'
 
@@ -27,10 +27,6 @@ const opened = computed(() => (isLogGroupOpenedPayload(payload.value) ? payload.
 const changed = computed(() => (isLogGroupStatusChangedPayload(payload.value) ? payload.value : null))
 const groupId = computed(() => opened.value?.log_group_id ?? null)
 const canAct = computed(() => props.projectId !== undefined && groupId.value !== null)
-
-function statusFrom(updated: LogGroup | undefined): LogGroupStatus | null {
-  return isLogGroupStatus(updated?.status) ? updated.status : null
-}
 
 async function act(status: LogGroupStatus): Promise<void> {
   if (pending.value || !canAct.value) return

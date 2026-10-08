@@ -3,8 +3,7 @@ import { Check, EyeOff, X } from '@lucide/vue'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
-import { getLogGroup, updateLogGroupStatus } from '../api/logGroups'
-import { isLogGroupStatus } from '../api/types'
+import { getLogGroup, statusFrom, updateLogGroupStatus } from '../api/logGroups'
 import type { LogGroup, LogGroupStatus } from '../api/types'
 import { toast } from './ui/toast'
 import LevelPill from './ui/LevelPill.vue'
@@ -58,10 +57,6 @@ onUnmounted(() => {
   generation++
   controller?.abort()
 })
-
-function statusFrom(updated: LogGroup | undefined): LogGroupStatus | null {
-  return isLogGroupStatus(updated?.status) ? updated.status : null
-}
 
 async function act(status: LogGroupStatus): Promise<void> {
   if (pending.value || !group.value) return

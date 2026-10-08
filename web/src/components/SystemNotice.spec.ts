@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
-import type { Message, MessagePayload } from '../api/types'
+import type { LogGroup, Message, MessagePayload } from '../api/types'
 import { i18n } from '../i18n'
 import SystemNotice from './SystemNotice.vue'
 
@@ -15,6 +15,18 @@ const message = (payload: unknown, user: Message['user'] = null): Message => ({
   user,
   created_at: '2026-01-01T00:00:00Z',
 })
+
+const logGroup = (status: string): LogGroup =>
+  ({
+    id: 5,
+    project_id: 3,
+    level: 'error',
+    title: 'Boom',
+    status,
+    events_count: 1,
+    first_seen_at: '2026-01-01T00:00:00Z',
+    last_seen_at: '2026-01-01T00:00:00Z',
+  }) as LogGroup
 
 function textIn(locale: 'en' | 'es', msg: Message): string {
   i18n.global.locale.value = locale
@@ -150,7 +162,7 @@ describe('SystemNotice', () => {
     })
 
     it('falls back to the requested status when the response status is unknown', async () => {
-      vi.spyOn(api, 'patch').mockResolvedValue({ data: { status: 'archived' } })
+      vi.spyOn(api, 'patch').mockResolvedValue({ data: logGroup('archived') })
       const wrapper = mountActions(opened)
       await wrapper.find('button[name=resolve]').trigger('click')
       await vi.waitFor(() => expect(wrapper.text()).toContain('Marked as resolved'))
@@ -158,7 +170,7 @@ describe('SystemNotice', () => {
     })
 
     it('shows the status from the response over the requested one in the confirmation', async () => {
-      vi.spyOn(api, 'patch').mockResolvedValue({ data: { status: 'ignored' } })
+      vi.spyOn(api, 'patch').mockResolvedValue({ data: logGroup('ignored') })
       const wrapper = mountActions(opened)
       await wrapper.find('button[name=resolve]').trigger('click')
       await vi.waitFor(() => expect(wrapper.find('button').exists()).toBe(false))
