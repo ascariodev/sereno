@@ -100,7 +100,28 @@
     "theme": "Tema",
     "language": "Idioma"
   },
+  "invitations": {
+    "title": "Invitaciones pendientes",
+    "empty": "No hay invitaciones pendientes.",
+    "loadFailed": "No se pudieron cargar las invitaciones.",
+    "email": "Correo",
+    "role": "Rol",
+    "invitedBy": "Invitó",
+    "unknownInviter": "Desconocido",
+    "expires": "Vence",
+    "revoke": "Revocar",
+    "revokeTitle": "Revocar invitación",
+    "revokeConfirm": "¿Revocar la invitación de {email}? El enlace dejará de funcionar.",
+    "revokeAction": "Revocar invitación",
+    "cancel": "Cancelar",
+    "revoking": "Revocando...",
+    "revoked": "Invitación de {email} revocada.",
+    "revokeGone": "Esa invitación ya no existe.",
+    "revokeForbidden": "No tienes permiso para revocar esta invitación.",
+    "revokeFailed": "No se pudo revocar la invitación. Inténtalo de nuevo."
+  },
   "userMenu": {
+    "invitations": "Invitaciones",
     "label": "Menú de usuario",
     "theme": {
       "system": "Tema del sistema",

@@ -8,6 +8,7 @@ import { i18n, LOCALE_STORAGE_KEY, setLocale } from '../i18n'
 import { toast, toasts } from './ui/toast'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
+import { useOrganizationStore } from '../stores/organization'
 import { initTheme, saveThemePreference, THEME_STORAGE_KEY } from '../theme/theme'
 import UserMenu from './UserMenu.vue'
 
@@ -36,9 +37,9 @@ async function settle() {
   await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
-function mountMenu() {
+function mountMenu(router = createAppRouter(createMemoryHistory())) {
   wrapper = mount(UserMenu, {
-    global: { plugins: [i18n, createAppRouter(createMemoryHistory())] },
+    global: { plugins: [i18n, router] },
     attachTo: document.body,
   })
 }
@@ -128,5 +129,49 @@ describe('UserMenu', () => {
     expect(i18n.global.locale.value).toBe('es')
     expect(useAuthStore().user?.locale).toBe('en')
     expect(toasts.value.map((t) => t.kind)).toEqual(['error'])
+  })
+
+  describe('invitations entry', () => {
+    function entry(): HTMLElement | undefined {
+      return Array.from(document.querySelectorAll<HTMLElement>('[role=menuitem]')).find(
+        (el) => el.textContent!.trim() === 'Invitations',
+      )
+    }
+
+    function withRoles(roles: string[] | null) {
+      const organization = useOrganizationStore()
+      if (roles) {
+        organization.$patch({
+          organizations: [{ id: 1, name: 'Acme', slug: 'acme', settings: null, roles }],
+          activeId: 1,
+        })
+      }
+    }
+
+    it.each([['owner'], ['admin']])('shows the entry to %s and navigates to the screen', async (role) => {
+      withRoles([role])
+      const router = createAppRouter(createMemoryHistory())
+      const push = vi.spyOn(router, 'push')
+      mountMenu(router)
+      await open()
+      expect(entry()).toBeDefined()
+      entry()!.click()
+      await settle()
+      expect(push).toHaveBeenCalledWith({ name: 'invitations' })
+    })
+
+    it('hides the entry from members', async () => {
+      withRoles(['member'])
+      mountMenu()
+      await open()
+      expect(entry()).toBeUndefined()
+    })
+
+    it('hides the entry while no organization is active', async () => {
+      withRoles(null)
+      mountMenu()
+      await open()
+      expect(entry()).toBeUndefined()
+    })
   })
 })

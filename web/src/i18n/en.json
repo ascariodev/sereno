@@ -100,7 +100,28 @@
     "theme": "Theme",
     "language": "Language"
   },
+  "invitations": {
+    "title": "Pending invitations",
+    "empty": "There are no pending invitations.",
+    "loadFailed": "Could not load the invitations.",
+    "email": "Email",
+    "role": "Role",
+    "invitedBy": "Invited by",
+    "unknownInviter": "Unknown",
+    "expires": "Expires",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke invitation",
+    "revokeConfirm": "Revoke the invitation for {email}? The link will stop working.",
+    "revokeAction": "Revoke invitation",
+    "cancel": "Cancel",
+    "revoking": "Revoking...",
+    "revoked": "Invitation for {email} revoked.",
+    "revokeGone": "That invitation no longer exists.",
+    "revokeForbidden": "You are not allowed to revoke this invitation.",
+    "revokeFailed": "Could not revoke the invitation. Try again."
+  },
   "userMenu": {
+    "invitations": "Invitations",
     "label": "User menu",
     "theme": {
       "system": "System theme",

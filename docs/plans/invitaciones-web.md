@@ -1,7 +1,7 @@
 # Plan: invitaciones-web
 
 **Objetivo:** que un owner o admin invite desde la web, que la persona invitada llegue por un enlace del correo, se registre o inicie sesión y acepte, y que el owner o admin vea y revoque las invitaciones pendientes.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -53,7 +53,7 @@
 - **Archivos:** `web/src/views/InviteView.vue`, `web/src/stores/auth.ts`, `web/src/i18n/en.json`, `web/src/i18n/es.json`, specs.
 - **Terminado cuando:** specs de registro y aceptación encadenados, errores 422 por campo, y redirección del login de vuelta a la invitación pasan.
 
-### [ ] Fase 8 — Pantalla de invitaciones pendientes
+### [x] Fase 8 — Pantalla de invitaciones pendientes
 - **Alcance:** ruta `/settings/invitations` solo para owner y admin (los demás van a projects); lista email, rol, invitador y vencimiento, con Revocar (confirmación). Enlace "Invitaciones" en `UserMenu` solo para owner y admin.
 - **Archivos:** `web/src/router/index.ts`, `web/src/views/InvitationsView.vue` (nueva), `web/src/components/UserMenu.vue`, `web/src/i18n/en.json`, `web/src/i18n/es.json`, specs.
 - **Terminado cuando:** specs de lista, revocar, lista vacía y acceso denegado a member pasan.
@@ -75,9 +75,10 @@
 - 2026-10-08 — Fase 5: `web/src/api/invitations.ts` exporta `previewInvitation(token, signal?)`, `acceptInvitation(token)` (→ `{organization_id}`), `listInvitations(signal?)`, `createInvitation(email, role)`, `revokeInvitation(id)` (void), todas con `data` desenvuelto. Tipos `InvitationRole`, `Invitation`, `InvitationPreview`, `AcceptedInvitation` en `api/types.ts`. Errores del API: preview 404 si no es usable; accept 422 si inválida/vencida/invitador sin permiso y 403 si el email no coincide.
 - 2026-10-08 — Fase 6: meta `anySession: true` en `/invite/:token`. Sin sesión entra; con sesión pasa por `fetchMe` como ruta privada (5xx a `session-error?redirect=...`; 401 queda en la invitación sin sesión). `whileLoadingSession(router, fn)` en `redirectToLogin.ts` suspende la redirección del handler global de 401 mientras el guard carga la sesión (para cualquier ruta; el guard decide). InviteView compara emails sin distinguir mayúsculas; al aceptar hace `organization.load()` + `select(id)`, toast y projects (si `load` falla, `clear()` y guarda el id en `ORGANIZATION_STORAGE_KEY`). Errores de accept: 422 no usable, 403 otro email, 401 `invite.sessionExpired` con enlace a `/login?redirect=/invite/<token>`. Con otro email ofrece cerrar sesión y queda en la vista previa sin sesión.
 - 2026-10-08 — Fase 7: `auth.register(name, email, password, passwordConfirmation)` (envía `password_confirmation`; guarda token, user y locale como `login`). Sin sesión, InviteView muestra registro (email de solo lectura) y un enlace a `/login?redirect=<fullPath>`. Tras registrar llama a `accept()`; si falla, queda el botón Aceptar con "cuenta creada, aún no te uniste" (422: "no usable" + "cuenta creada, no se pudo aceptar"). Si el registro termina tras desmontar o cambiar de token, la sesión queda iniciada sin aceptar. Se tocaron 7 archivos (specs extra de `auth` y `LoginView` por L-25).
+- 2026-10-08 — Fase 8: el acceso a `/settings/invitations` (name `invitations`, hija de AppLayout) se resuelve en la vista, no en el guard: AppLayout solo renderiza el RouterView con organización activa, y un `watch` inmediato sobre `[activeId, canManage]` carga la lista o hace `router.replace` a projects sin llamar a la API. `canManage` sale de `organization.active?.roles` (duplicado en UserMenu y la vista). Un admin no ve Revocar en invitaciones de rol owner. Revocar: 404 saca la fila y avisa; 403 y otros dejan la fila con toast. Roles reutilizan `invite.roles.*`.
 
 ## Notas para la próxima sesión
-- Fases 1 a 7 hechas. Sigue la fase 8. La revisión visual de InviteView (con el formulario de registro) queda para la fase 9.
+- Fases 1 a 8 hechas. Sigue la fase 9: el `AppDialog` de confirmación de InvitationsView sirve de referencia. La revisión visual cubre InviteView (vista previa, aceptar, registro), InvitationsView y el diálogo de invitar.
 - Con `APP_DEBUG` los 404 traen la traza: los tests revisan `message` con `assertJsonPath`, no `assertExactJson`.
 - Pendiente del usuario: agregar `FRONTEND_URL=http://localhost:5174` a `api/.env.example` (una regla de permisos impide al agente leerlo o editarlo) y al `.env` de producción al desplegar.
 
@@ -92,3 +93,5 @@
 - [ ] M-8 (baja, haiku): `InviteView.spec` lee `loadError` desde `vm` de la vista desmontada; afirmar por el DOM o por una señal pública para no depender del acceso a `script setup`.
 - [ ] M-9 (baja, haiku): en InviteView, un 422 de register en `email` (ya registrado) muestra solo el mensaje del API; agregar un texto que lleve a "Iniciar sesión".
 - [ ] M-10 (baja, haiku): unificar `role="alert"`/`role="status"` en los avisos de "cuenta creada" de InviteView, y usar una key con índice en los `v-for` de errores.
+- [ ] M-11 (baja, haiku): mover `canManageInvitations` a `organizationStore` para quitar el duplicado entre UserMenu e InvitationsView.
+- [ ] M-12 (baja, haiku): en InvitationsView, el 404 al revocar (ya no existe) muestra un toast informativo, no de error; y limpiar `pending` en la rama que redirige a projects.
