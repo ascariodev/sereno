@@ -1,14 +1,13 @@
 import { vi } from 'vitest'
-import type { Message } from '../api/types'
-import type { ConnectionStatus, RealtimeClient } from '../realtime/echo'
+import type { ConnectionStatus, RealtimeClient, RealtimePayload } from '../realtime/echo'
 
 export function createFakeRealtimeClient() {
-  const listeners = new Map<string, (data: { message: Message }) => void>()
+  const listeners = new Map<string, (data: RealtimePayload) => void>()
   let status: ConnectionStatus = 'connecting'
   const statusListeners = new Set<(next: ConnectionStatus) => void>()
   const client = {
     private: vi.fn((name: string) => ({
-      listen: vi.fn((event: string, callback: (data: { message: Message }) => void) => {
+      listen: vi.fn((event: string, callback: (data: RealtimePayload) => void) => {
         listeners.set(`${name}|${event}`, callback)
       }),
     })),

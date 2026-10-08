@@ -4,9 +4,15 @@ import type { Message } from '../api/types'
 import { config } from '../config'
 
 export const MESSAGE_CREATED_EVENT = '.message.created'
+export const MEMBERSHIP_REVOKED_EVENT = '.membership.revoked'
+
+export interface RealtimePayload {
+  message?: Message
+  organization_id?: number
+}
 
 export interface RealtimeClient {
-  private(name: string): { listen(event: string, callback: (data: { message: Message }) => void): unknown }
+  private(name: string): { listen(event: string, callback: (data: RealtimePayload) => void): unknown }
   leave(name: string): void
   disconnect(): void
   connectionStatus(): ConnectionStatus
@@ -16,10 +22,11 @@ export interface RealtimeClient {
 export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'reconnecting' | 'failed'
 
 type Fetch = typeof fetch
+type Subscriber = (value: never) => void
 
 let getToken: () => string | null | undefined = () => null
 let client: RealtimeClient | null = null
-const subscriptions = new Map<string, { client: RealtimeClient; callbacks: Set<(message: Message) => void> }>()
+const subscriptions = new Map<string, { client: RealtimeClient; callbacks: Set<Subscriber> }>()
 let factory: () => RealtimeClient | null = createEchoClient
 
 export function setRealtimeTokenProvider(provider: () => string | null | undefined): void {
@@ -35,23 +42,28 @@ export function channelName(organizationId: number, channelId: number): string {
   return `organizations.${organizationId}.channels.${channelId}`
 }
 
-export function subscribeToChannel(
-  organizationId: number,
-  channelId: number,
-  onMessage: (message: Message) => void,
+export function userChannelName(userId: number): string {
+  return `users.${userId}`
+}
+
+function subscribe<T>(
+  name: string,
+  event: string,
+  extract: (data: RealtimePayload) => T | undefined,
+  onValue: (value: T) => void,
 ): () => void {
   client ??= factory()
   const current = client
   if (current === null) return () => {}
-  const name = channelName(organizationId, channelId)
   let entry = subscriptions.get(name)
   if (!entry || entry.client !== current) {
-    const callbacks = new Set<(message: Message) => void>()
-    current.private(name).listen(MESSAGE_CREATED_EVENT, (data) => {
-      if (!data?.message) return
+    const callbacks = new Set<Subscriber>()
+    current.private(name).listen(event, (data) => {
+      const value = data ? extract(data) : undefined
+      if (value === undefined) return
       for (const callback of [...callbacks]) {
         try {
-          callback(data.message)
+          ;(callback as (value: T) => void)(value)
         } catch (error) {
           queueMicrotask(() => {
             throw error
@@ -63,12 +75,35 @@ export function subscribeToChannel(
     subscriptions.set(name, entry)
   }
   const { callbacks } = entry
-  const subscriber = (message: Message) => onMessage(message)
-  callbacks.add(subscriber)
+  const subscriber = (value: T) => onValue(value)
+  callbacks.add(subscriber as Subscriber)
   return () => {
-    if (!callbacks.delete(subscriber) || callbacks.size > 0) return
-    if (subscriptions.get(name)?.callbacks === callbacks) subscriptions.delete(name)
+    if (!callbacks.delete(subscriber as Subscriber) || callbacks.size > 0) return
+    if (subscriptions.get(name)?.callbacks !== callbacks) return
+    subscriptions.delete(name)
     current.leave(name)
+  }
+}
+
+export function subscribeToChannel(
+  organizationId: number,
+  channelId: number,
+  onMessage: (message: Message) => void,
+): () => void {
+  return subscribe(channelName(organizationId, channelId), MESSAGE_CREATED_EVENT, (data) => data.message, onMessage)
+}
+
+export function subscribeToUser(userId: number, onMembershipRevoked: (organizationId: number) => void): () => void {
+  return subscribe(userChannelName(userId), MEMBERSHIP_REVOKED_EVENT, (data) => data.organization_id, onMembershipRevoked)
+}
+
+export function leaveOrganization(organizationId: number): void {
+  const prefix = `organizations.${organizationId}.`
+  for (const [name, entry] of [...subscriptions]) {
+    if (!name.startsWith(prefix)) continue
+    subscriptions.delete(name)
+    entry.callbacks.clear()
+    entry.client.leave(name)
   }
 }
 

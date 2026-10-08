@@ -5,11 +5,14 @@ import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import {
   createAuthorizer,
   disconnectRealtime,
+  leaveOrganization,
+  MEMBERSHIP_REVOKED_EVENT,
   MESSAGE_CREATED_EVENT,
   onReconnect,
   setRealtimeClientFactory,
   setRealtimeTokenProvider,
   subscribeToChannel,
+  subscribeToUser,
 } from './echo'
 
 describe('realtime', () => {
@@ -133,6 +136,69 @@ describe('realtime', () => {
     setStatus('failed')
     setStatus('connected')
     expect(callback).not.toHaveBeenCalled()
+  })
+
+  it('subscribes to the user channel and forwards membership.revoked with the organization id', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const received: number[] = []
+    const leave = subscribeToUser(5, (organizationId) => received.push(organizationId))
+
+    expect(client.private).toHaveBeenCalledWith('users.5')
+    const emit = listeners.get(`users.5|${MEMBERSHIP_REVOKED_EVENT}`)
+    emit?.({})
+    emit?.({ organization_id: 3 })
+    expect(received).toEqual([3])
+
+    leave()
+    expect(client.leave).toHaveBeenCalledWith('users.5')
+  })
+
+  it('keeps the user channel open until its last subscriber leaves', () => {
+    const { client } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const leaveFirst = subscribeToUser(5, () => {})
+    const leaveSecond = subscribeToUser(5, () => {})
+    expect(client.private).toHaveBeenCalledTimes(1)
+    leaveFirst()
+    expect(client.leave).not.toHaveBeenCalled()
+    leaveSecond()
+    expect(client.leave).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaveOrganization drops only the channels of that organization and stops delivery', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const dropped: number[] = []
+    const kept: number[] = []
+    const leaveA = subscribeToChannel(3, 7, (message) => dropped.push(message.id))
+    subscribeToChannel(3, 8, () => {})
+    subscribeToChannel(30, 7, (message) => kept.push(message.id))
+    subscribeToUser(3, () => {})
+
+    leaveOrganization(3)
+
+    expect(client.leave).toHaveBeenCalledTimes(2)
+    expect(client.leave).toHaveBeenCalledWith('organizations.3.channels.7')
+    expect(client.leave).toHaveBeenCalledWith('organizations.3.channels.8')
+    listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 1 } as Message })
+    listeners.get(`organizations.30.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 2 } as Message })
+    expect(dropped).toEqual([])
+    expect(kept).toEqual([2])
+
+    leaveA()
+    expect(client.leave).toHaveBeenCalledTimes(2)
+  })
+
+  it('delivers nothing and leaves nothing after disconnectRealtime', () => {
+    const { client } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const leave = subscribeToUser(5, () => {})
+    disconnectRealtime()
+    leave()
+    leaveOrganization(3)
+    expect(client.leave).not.toHaveBeenCalled()
+    expect(client.disconnect).toHaveBeenCalledOnce()
   })
 
   it('does nothing without a client (no Reverb key)', () => {

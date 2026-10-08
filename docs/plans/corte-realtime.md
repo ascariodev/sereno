@@ -1,7 +1,7 @@
 # Plan: corte-realtime
 
 **Objetivo:** que un miembro quitado de una organización deje de recibir en vivo los mensajes de sus canales: el API avisa por un canal privado del usuario y el cliente corta sus suscripciones de esa organización, recarga las organizaciones y sale de sus pantallas.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -24,7 +24,7 @@
 - **Archivos:** `api/app/Events/MembershipRevoked.php` (nuevo), `api/app/Models/Organization.php`, tests en `api/tests/Feature/MembershipBroadcastTest.php` (nuevo).
 - **Terminado cuando:** tests de canal, nombre y payload, que no se emite si la transacción hace rollback o lanza `LastOwnerException`, y que `changeMemberRole` no lo emite, pasan.
 
-### [ ] Fase 3 — Suscripción al canal del usuario en el cliente
+### [x] Fase 3 — Suscripción al canal del usuario en el cliente
 - **Alcance:** en `echo.ts`, `subscribeToUser(userId, callback)` para `users.{id}` y el evento `.membership.revoked`, con el mismo refcount y la misma protección ante cliente viejo que `subscribeToChannel`; y `leaveOrganization(orgId)` que corta todas las suscripciones `organizations.{orgId}.*` del Map (para no seguir recibiendo aunque una vista no se desmonte).
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/test/fakeRealtimeClient.ts` (si hace falta), `web/src/realtime/echo.spec.ts`.
 - **Terminado cuando:** specs de suscribir y recibir, refcount, `leaveOrganization` que solo corta los canales de esa organización, y nada tras `disconnectRealtime`, pasan; typecheck limpio.
@@ -46,9 +46,10 @@
 - 2026-10-08 — Cambiar el rol no emite evento en este plan (ver M-2).
 - 2026-10-08 — Fase 1: el canal se registra en el servidor como `users.{userId}`, no `users.{user}`: con `{user}` Laravel hace binding implícito porque el primer parámetro de `join()` es `$user` (el autenticado), y daba 403 al propio usuario y 500 con ids mal formados. Ningún canal del servidor usa el placeholder `{user}`. En el cliente el nombre sigue siendo `users.{id}`.
 - 2026-10-08 — Fase 2: `removeMember` despacha `MembershipRevoked($userId, $organizationId)` dentro del closure de `mutateMembership`, tras el `detach`; `ShouldDispatchAfterCommit` lo retiene hasta el commit. El evento guarda solo ids.
+- 2026-10-08 — Fase 3: `subscribeToChannel` y `subscribeToUser(userId, cb)` comparten el helper interno `subscribe`; el callback de `subscribeToUser` recibe el `organization_id`. `leaveOrganization(orgId)` corta los canales con prefijo `organizations.{orgId}.` y borra sus entradas del Map. El unsubscribe solo hace `leave` si su entrada sigue vigente en el Map: tras `leaveOrganization`, `disconnectRealtime` o cambio de cliente es un no-op, y no corta una suscripción nueva del mismo nombre.
 
 ## Notas para la próxima sesión
-- Fases 1 y 2 hechas (API lista): canal `users.{id}`, evento `.membership.revoked` con `{organization_id}`. Seguir con la fase 3 (`subscribeToUser` y `leaveOrganization` en `echo.ts`).
+- Fases 1 a 3 hechas: API lista y `echo.ts` con `subscribeToUser`, `leaveOrganization`, `MEMBERSHIP_REVOKED_EVENT` y `userChannelName`. Seguir con la fase 4 (`organization.handleMembershipRevoked`).
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): corte forzado del lado servidor: que el cliente se una a un canal de presencia propio para que la conexión lleve `user_id` y llamar a `terminate_connections` (`Pusher::terminateUserConnections`) al quitar; el cliente reconecta y `/broadcasting/auth` rechaza la organización quitada.
@@ -57,3 +58,4 @@
 - [ ] M-4 (baja, sonnet): quitar el docblock de `api/app/Broadcasting/UserChannel.php` que solo repite el nombre de la clase.
 - [ ] M-5 (baja, sonnet): simplificar la validación del id en `UserChannel` (`ctype_digit` y la comparación del string canónico se solapan con `FILTER_VALIDATE_INT`), cuidando que los casos de `BroadcastingAuthTest` sigan rechazados.
 - [ ] M-6 (baja, sonnet): en `MembershipBroadcastTest`, el test de rollback usa `Event::fake()` sin argumentos; pasar a `Event::fake([MembershipRevoked::class])` como el `beforeEach`.
+- [ ] M-7 (baja, sonnet): en `web/src/realtime/echo.ts`, tipar el Map de suscriptores sin el casteo `Subscriber = (value: never) => void` y sacar el prefijo de `leaveOrganization` a un helper junto a `channelName`.
