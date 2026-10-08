@@ -143,6 +143,15 @@ export interface Invitation {
   created_at: string
 }
 
+/** `role` is null if the member has no role in the active organization. */
+export interface Member {
+  id: number
+  name: string
+  email: string
+  role: InvitationRole | null
+  joined_at: string | null
+}
+
 export interface InvitationPreview {
   organization: { name: string }
   email: string

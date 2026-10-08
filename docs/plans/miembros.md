@@ -1,7 +1,7 @@
 # Plan: miembros
 
 **Objetivo:** que cualquier miembro vea quién está en la organización, que owner y admin cambien roles y quiten miembros según su rango, y que cualquiera pueda salir de la organización, sin que la organización se quede nunca sin owner.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -35,7 +35,7 @@
 - **Archivos:** `api/routes/api.php`, `MemberController.php`, `MemberPolicy.php`, tests.
 - **Terminado cuando:** tests de quitar por rol, salir, último owner, que el quitado recibe 403 en la siguiente petición y que sus invitaciones pendientes ya no se aceptan, pasan.
 
-### [ ] Fase 5 — Cliente web de miembros
+### [x] Fase 5 — Cliente web de miembros
 - **Alcance:** `web/src/api/members.ts` con `listMembers`, `updateMemberRole`, `removeMember`; tipo `Member` en `api/types.ts` leído del Resource (L-09).
 - **Archivos:** `web/src/api/members.ts` (nuevo), `web/src/api/types.ts`, spec.
 - **Terminado cuando:** el spec cubre rutas, cuerpos y errores (403, 404, 422, 204); typecheck limpio.
@@ -65,10 +65,11 @@
 - 2026-10-08 — `Organization::changeMemberRole/removeMember` toman `lockForUpdate` sobre la fila de `organizations` (serializa toda mutación de membresía) antes de contar owners; `addMember` no lo toma. Usuario no miembro: `ModelNotFoundException` (404). `LastOwnerException` se renderiza sola como 422 traducido: los controladores no la capturan. `changeMemberRole` usa `syncRoles` (reemplaza el rol).
 - 2026-10-08 — `MemberPolicy::updateRole(actor, target, ?Role)`: owner todo; admin solo si el target no es owner y el rol pedido no es owner; member nada (403 antes de saber si el target existe). Owner/admin sobre un no miembro reciben 404.
 - 2026-10-08 — `MemberPolicy::remove(actor, target)`: quien se quita a sí mismo siempre pasa; owner quita a cualquiera; admin no quita owners; member nada. El 422 de último owner y el 404 de no miembro los da el modelo. `DELETE` responde 204.
+- 2026-10-08 — Web: `Member = {id, name, email, role: InvitationRole | null, joined_at: string | null}`; `joined_at` es ISO 8601 UTC con Z (verificado). Firmas: `listMembers(signal?)`, `updateMemberRole(id, role)`, `removeMember(id)`.
 - 2026-10-08 — No se cortan las suscripciones Reverb ya autorizadas del miembro quitado (queda como mejora).
 
 ## Notas para la próxima sesión
-- API completa (fases 1 a 4). Empezar por la fase 5 (web): `web/src/api/members.ts` y tipo `Member` leído de `MemberResource` (`id, name, email, role (puede ser null), joined_at` ISO 8601 UTC). Leer `docs/lecciones.md` antes.
+- Fases 1 a 5 hechas (API y cliente web). Empezar por la fase 6: pantalla `/settings/members` siguiendo `InvitationsView.vue`; `role` puede ser null. Leer `docs/lecciones.md` antes.
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): cortar en vivo las suscripciones Reverb de un miembro quitado (requiere un canal privado por usuario u organización).
