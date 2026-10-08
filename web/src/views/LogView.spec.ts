@@ -47,6 +47,10 @@ function hourlyCalls(spy: { mock: { calls: unknown[][] } }): string[] {
     .map(([, options]) => (options as { query: { ids: string } }).query.ids)
 }
 
+function projectCalls(spy: { mock: { calls: unknown[][] } }): number {
+  return spy.mock.calls.filter(([path]) => path === '/api/projects').length
+}
+
 const hourlyBody = (counts: Record<string, number[]>) => ({ data: { from: '', hours: 24, counts } })
 
 function mockApi(groups: (query: Query) => unknown, hourly: (query: Query) => unknown = () => hourlyBody({})) {
@@ -364,6 +368,17 @@ describe('LogView', () => {
     expect(groupCalls(spy).length).toBe(before + 1)
   })
 
+  it('refreshes the project counts after resolving a group from the panel', async () => {
+    const spy = mockApi(() => page([group(1)]))
+    const wrapper = await mountView('/projects/5/log?group=1')
+    const before = projectCalls(spy)
+    vi.spyOn(api, 'patch').mockResolvedValue({ data: group(1, { status: 'resolved' }) } as never)
+    vi.useFakeTimers()
+    await wrapper.find('aside button[name=resolve]').trigger('click')
+    await vi.advanceTimersByTimeAsync(300)
+    expect(projectCalls(spy)).toBe(before + 1)
+  })
+
   it('links the Channel and Log tabs and marks Log as current', async () => {
     mockApi(() => page([group(1)]))
     const wrapper = await mountView('/projects/5/log?status=all')
@@ -436,6 +451,23 @@ describe('LogView', () => {
       realtime.setStatus('connected')
       await vi.advanceTimersByTimeAsync(0)
       expect(groupCalls(spy)).toHaveLength(before + 1)
+    })
+
+    it('refreshes the project counts once, after 300 ms, for opened and status notices', async () => {
+      const realtime = fakeRealtime()
+      const spy = mockApi(() => page([group(1, { status: 'resolved' })]))
+      await mountView()
+      const before = projectCalls(spy)
+      vi.useFakeTimers()
+      realtime.emit({ ...statusMessage(10), kind: 'user', payload: null })
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(projectCalls(spy)).toBe(before)
+      realtime.emit({ ...statusMessage(11), payload: { type: 'log.group_opened', log_group_id: 2, level: 'error', title: 'T', events_count: 1 } })
+      realtime.emit(statusMessage(12))
+      await vi.advanceTimersByTimeAsync(299)
+      expect(projectCalls(spy)).toBe(before)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(projectCalls(spy)).toBe(before + 1)
     })
 
     it('leaves the channel and drops a pending reload on unmount', async () => {

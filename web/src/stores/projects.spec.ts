@@ -1,6 +1,6 @@
 import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import { useOrganizationStore } from './organization'
 import { useProjectsStore } from './projects'
@@ -120,5 +120,93 @@ describe('projects store', () => {
     await store.reload()
     expect(store.failed).toBe(false)
     expect(store.projects).toHaveLength(1)
+  })
+
+  describe('refreshCounts', () => {
+    afterEach(() => vi.useRealTimers())
+
+    const counted = (id: number, name: string, open_groups_count: number, open_max_level: string | null) => ({
+      ...project(id, name),
+      open_groups_count,
+      open_max_level,
+    })
+
+    async function loaded(responses: () => Promise<unknown>) {
+      const get = vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
+        path === '/api/projects'
+          ? ({ data: [counted(1, 'Alpha', 0, null), counted(2, 'Beta', 1, 'warning')], meta: meta() } as never)
+          : ({ data: [channel(7, 1)] } as never),
+      )
+      const store = setup()
+      await flushPromises()
+      get.mockImplementation(((path: string) =>
+        path === '/api/projects' ? responses() : Promise.resolve({ data: [] })) as never)
+      vi.useFakeTimers()
+      return { store, get }
+    }
+    const projectCalls = (get: { mock: { calls: unknown[][] } }) => get.mock.calls.filter(([path]) => path === '/api/projects').length
+
+    it('waits 300 ms, requests once and updates only the counts, keeping the list', async () => {
+      const { store, get } = await loaded(async () => ({
+        data: [counted(1, 'Renamed', 3, 'critical'), counted(2, 'Beta', 1, 'warning'), counted(9, 'New', 2, 'error')],
+        meta: meta(),
+      }))
+      const before = projectCalls(get)
+      const beta = store.projects[1]
+      store.refreshCounts()
+      store.refreshCounts()
+      await vi.advanceTimersByTimeAsync(299)
+      expect(projectCalls(get)).toBe(before)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(projectCalls(get)).toBe(before + 1)
+      expect(store.projects.map((p) => [p.id, p.name, p.open_groups_count, p.open_max_level])).toEqual([
+        [1, 'Alpha', 3, 'critical'],
+        [2, 'Beta', 1, 'warning'],
+      ])
+      expect(store.projects[1]).toBe(beta)
+      expect(store.channelByProject).toEqual({ 1: 7 })
+    })
+
+    it('discards an older response that arrives after a newer one', async () => {
+      const pending: ((value: unknown) => void)[] = []
+      const { store } = await loaded(() => new Promise((resolve) => pending.push(resolve)))
+      store.refreshCounts()
+      await vi.advanceTimersByTimeAsync(300)
+      store.refreshCounts()
+      await vi.advanceTimersByTimeAsync(300)
+      expect(pending).toHaveLength(2)
+      pending[1]({ data: [counted(1, 'Alpha', 5, 'alert'), counted(2, 'Beta', 0, null)], meta: meta() })
+      await vi.advanceTimersByTimeAsync(0)
+      pending[0]({ data: [counted(1, 'Alpha', 4, 'error'), counted(2, 'Beta', 2, 'error')], meta: meta() })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(store.projects.map((p) => [p.open_groups_count, p.open_max_level])).toEqual([
+        [5, 'alert'],
+        [0, null],
+      ])
+    })
+
+    it('drops a pending wait and an in-flight response when the organization changes or clears', async () => {
+      const pending: ((value: unknown) => void)[] = []
+      const { store, get } = await loaded(() => new Promise((resolve) => pending.push(resolve)))
+      store.refreshCounts()
+      await vi.advanceTimersByTimeAsync(300)
+      expect(pending).toHaveLength(1)
+      store.refreshCounts()
+      useOrganizationStore().$patch({ activeId: null })
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(pending).toHaveLength(1)
+      pending[0]({ data: [counted(1, 'Alpha', 4, 'error')], meta: meta() })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(store.projects).toEqual([])
+      expect(projectCalls(get)).toBeGreaterThan(0)
+    })
+
+    it('keeps the previous counts when the refresh fails', async () => {
+      const { store } = await loaded(() => Promise.reject(new ApiError(500, 'boom')))
+      store.refreshCounts()
+      await vi.advanceTimersByTimeAsync(300)
+      expect(store.projects.map((p) => p.open_groups_count)).toEqual([0, 1])
+      expect(store.failed).toBe(false)
+    })
   })
 })

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import { getHourlyCounts, listLogGroups } from '../api/logGroups'
-import { isLogGroupStatusChangedPayload } from '../api/types'
+import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
 import type { LogGroup, LogGroupStatus, Message, Paginated } from '../api/types'
 import LogGroupAside from '../components/LogGroupAside.vue'
 import ProjectHeader from '../components/ProjectHeader.vue'
@@ -197,10 +197,17 @@ function scheduleLiveReload(): void {
 
 function onLiveMessage(message: Message): void {
   const payload = message.payload
+  if (isLogGroupOpenedPayload(payload)) projects.refreshCounts()
   if (!isLogGroupStatusChangedPayload(payload)) return
+  projects.refreshCounts()
   const row = groups.value.find((item) => item.id === payload.log_group_id)
   if (row?.status === payload.status) return
   scheduleLiveReload()
+}
+
+function onPanelStatus(): void {
+  void load()
+  projects.refreshCounts()
 }
 
 function leaveRealtime(): void {
@@ -331,7 +338,7 @@ function formatDate(value: string): string {
         :project-id="projectId"
         :group-id="groupId"
         @close="selectGroup(null, $event)"
-        @status="load"
+        @status="onPanelStatus"
       />
     </div>
   </section>

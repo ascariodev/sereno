@@ -1,9 +1,10 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import type { Message } from '../api/types'
+import LogGroupAside from '../components/LogGroupAside.vue'
 import { toast, toasts } from '../components/ui/toast'
 import { i18n } from '../i18n'
 import { setRealtimeClientFactory } from '../realtime/echo'
@@ -488,5 +489,42 @@ describe('ChannelView group panel', () => {
     realtime.emit('organizations.1.channels.7', changed(3, 5))
     await flushPromises()
     expect(groupCalls(spy)).toHaveLength(2)
+  })
+
+  describe('project counts', () => {
+    afterEach(() => vi.useRealTimers())
+    const projectCalls = (spy: { mock: { calls: unknown[][] } }) => spy.mock.calls.filter(([path]) => path === '/api/projects').length
+
+    it('refreshes the counts once, after 300 ms, for log notices but not for people messages', async () => {
+      const realtime = fakeRealtime()
+      const spy = mockGroups([opened(1, 5)])
+      await mountView()
+      const before = projectCalls(spy)
+      vi.useFakeTimers()
+      realtime.emit('organizations.1.channels.7', message(2))
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(projectCalls(spy)).toBe(before)
+
+      realtime.emit('organizations.1.channels.7', opened(3, 6))
+      realtime.emit('organizations.1.channels.7', changed(4, 6))
+      await vi.advanceTimersByTimeAsync(299)
+      expect(projectCalls(spy)).toBe(before)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(projectCalls(spy)).toBe(before + 1)
+
+      realtime.emit('organizations.1.channels.7', { ...opened(5, 7), payload: { ...opened(5, 7).payload!, type: 'log.group_reopened' } } as Message)
+      await vi.advanceTimersByTimeAsync(300)
+      expect(projectCalls(spy)).toBe(before + 2)
+    })
+
+    it('refreshes the counts after a status change from the panel', async () => {
+      const spy = mockGroups([opened(1, 5)])
+      const wrapper = await mountView('/channels/7?group=5')
+      const before = projectCalls(spy)
+      vi.useFakeTimers()
+      wrapper.findComponent(LogGroupAside).vm.$emit('status', 'resolved')
+      await vi.advanceTimersByTimeAsync(300)
+      expect(projectCalls(spy)).toBe(before + 1)
+    })
   })
 })

@@ -5,6 +5,7 @@ import type { Channel, Paginated, Project } from '../api/types'
 import { useOrganizationStore } from './organization'
 
 const PER_PAGE = 100
+const COUNTS_REFRESH_DELAY_MS = 300
 
 async function fetchProjects(): Promise<Project[]> {
   const all: Project[] = []
@@ -25,9 +26,18 @@ export const useProjectsStore = defineStore('projects', () => {
   const loading = ref(false)
   const failed = ref(false)
   let generation = 0
+  let countsGeneration = 0
+  let countsTimer: ReturnType<typeof setTimeout> | null = null
+
+  function cancelCountsRefresh(): void {
+    countsGeneration++
+    if (countsTimer !== null) clearTimeout(countsTimer)
+    countsTimer = null
+  }
 
   function clear(): void {
     generation++
+    cancelCountsRefresh()
     projects.value = []
     channelByProject.value = {}
     failed.value = false
@@ -36,6 +46,7 @@ export const useProjectsStore = defineStore('projects', () => {
 
   async function reload(): Promise<void> {
     const current = ++generation
+    cancelCountsRefresh()
     projects.value = []
     channelByProject.value = {}
     failed.value = false
@@ -56,6 +67,34 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
+  async function fetchCounts(): Promise<void> {
+    const current = ++countsGeneration
+    const listGeneration = generation
+    try {
+      const loaded = await fetchProjects()
+      if (current !== countsGeneration || listGeneration !== generation) return
+      const fresh = new Map(loaded.map((project) => [project.id, project]))
+      projects.value = projects.value.map((project) => {
+        const latest = fresh.get(project.id)
+        if (!latest) return project
+        if (latest.open_groups_count === project.open_groups_count && latest.open_max_level === project.open_max_level) {
+          return project
+        }
+        return { ...project, open_groups_count: latest.open_groups_count, open_max_level: latest.open_max_level }
+      })
+    } catch {
+      // The counts keep their previous values until the next refresh or reload.
+    }
+  }
+
+  function refreshCounts(): void {
+    if (countsTimer !== null) clearTimeout(countsTimer)
+    countsTimer = setTimeout(() => {
+      countsTimer = null
+      void fetchCounts()
+    }, COUNTS_REFRESH_DELAY_MS)
+  }
+
   const organization = useOrganizationStore()
   watch(
     () => organization.activeId,
@@ -63,5 +102,5 @@ export const useProjectsStore = defineStore('projects', () => {
     { immediate: true },
   )
 
-  return { projects, channelByProject, loading, failed, reload, clear }
+  return { projects, channelByProject, loading, failed, reload, clear, refreshCounts }
 })

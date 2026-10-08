@@ -3,8 +3,8 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client'
-import { isLogGroupStatusChangedPayload } from '../api/types'
-import type { Channel } from '../api/types'
+import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
+import type { Channel, Message } from '../api/types'
 import LogGroupAside from '../components/LogGroupAside.vue'
 import MessageComposer from '../components/MessageComposer.vue'
 import MessageList from '../components/MessageList.vue'
@@ -98,6 +98,13 @@ watch(
   },
 )
 
+function onLiveMessage(message: Message): void {
+  messages.insert(message)
+  if (isLogGroupOpenedPayload(message.payload) || isLogGroupStatusChangedPayload(message.payload)) {
+    projects.refreshCounts()
+  }
+}
+
 function leaveRealtime(): void {
   unsubscribe?.()
   unsubscribe = null
@@ -117,7 +124,7 @@ function reload(): void {
   void loadChannel(channelId.value, current)
   void messages.open(channelId.value)
   if (organization.activeId !== null) {
-    unsubscribe = subscribeToChannel(organization.activeId, channelId.value, messages.insert)
+    unsubscribe = subscribeToChannel(organization.activeId, channelId.value, onLiveMessage)
     unsubscribeReconnect = onReconnect(() => {
       const visible = toasts.value.some((item) => item.id === reconnectToastId && item.open)
       if (!visible) reconnectToastId = toast.success(t('channel.reconnected'))
@@ -185,6 +192,7 @@ onUnmounted(() => {
         :group-id="groupId"
         :refresh-token="panelRefresh"
         @close="selectGroup(null, $event)"
+        @status="projects.refreshCounts()"
       />
     </div>
   </section>
