@@ -316,8 +316,7 @@ describe('LogView', () => {
     expect(tabs[1].attributes('aria-current')).toBe('page')
 
     await tabs[0].trigger('click')
-    await flushPromises()
-    expect(wrapper.router.currentRoute.value.name).toBe('channel')
+    await vi.waitFor(() => expect(wrapper.router.currentRoute.value.name).toBe('channel'))
   })
 
   describe('realtime', () => {
