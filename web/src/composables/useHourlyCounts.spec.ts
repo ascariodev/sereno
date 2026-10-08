@@ -131,10 +131,20 @@ describe('useHourlyCounts', () => {
     expect(hourlyCountsOf(5)).toEqual(series(1))
 
     let release: (value: unknown) => void = () => {}
-    vi.spyOn(api, 'get').mockImplementation(() => new Promise((resolve) => (release = resolve as (value: unknown) => void)))
+    let signal: AbortSignal | undefined
+    vi.spyOn(api, 'get').mockImplementation(
+      (_path: string, options?: unknown) =>
+        new Promise((resolve, reject) => {
+          signal = (options as { signal?: AbortSignal }).signal
+          release = resolve as (value: unknown) => void
+          signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+        }),
+    )
     requestHourlyCounts(3, 6, 2)
     await flushPromises()
+    expect(signal?.aborted).toBe(false)
     resetHourlyCounts()
+    expect(signal?.aborted).toBe(true)
     expect(hourlyCountsOf(5)).toBeNull()
     release({ data: { from: '', hours: 24, counts: { '6': series(3) } } })
     await flushPromises()
