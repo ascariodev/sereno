@@ -174,6 +174,30 @@ describe('LogGroupAside', () => {
     expect(document.activeElement).toBe(card)
   })
 
+  it('keeps focus in the panel when the sheet becomes the aside', async () => {
+    fakeMatchMedia(true)
+    mountAside()
+    await flushPromises()
+    const close = sheet()!.querySelector<HTMLButtonElement>('button[name=close-group]')!
+    close.focus()
+    expect(document.activeElement).toBe(close)
+    listener!({ matches: false })
+    await flushPromises()
+    expect(document.activeElement).toBe(wrapper!.find('aside.wide-panel').element)
+  })
+
+  it('does not move focus to the aside when it was outside the panel at the transition', async () => {
+    fakeMatchMedia(true)
+    mountAside()
+    await flushPromises()
+    ;(document.activeElement as HTMLElement).blur()
+    expect(sheet()!.contains(document.activeElement)).toBe(false)
+    listener!({ matches: false })
+    await flushPromises()
+    expect(wrapper!.find('aside.wide-panel').exists()).toBe(true)
+    expect(document.activeElement).toBe(document.body)
+  })
+
   it('does not steal focus back from the sheet on narrow viewports', async () => {
     fakeMatchMedia(true)
     const card = document.createElement('button')

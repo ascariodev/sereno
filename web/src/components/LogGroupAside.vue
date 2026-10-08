@@ -35,9 +35,14 @@ function focusPanel(): void {
 onMounted(() => {
   if (!narrow.value) focusPanel()
 })
-watch(narrow, (isNarrow) => {
-  if (!isNarrow) focusPanel()
-})
+watch(
+  narrow,
+  (isNarrow) => {
+    const focusWasInPanel = document.activeElement?.closest('.log-group-panel') != null
+    if (!isNarrow && focusWasInPanel) focusPanel()
+  },
+  { flush: 'pre' },
+)
 
 onBeforeUnmount(() => {
   narrowQuery?.removeEventListener('change', followViewport)
