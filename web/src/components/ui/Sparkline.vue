@@ -61,5 +61,5 @@ const points = computed(() => {
 .sparkline--error { color: var(--level-error-fg); }
 .sparkline--critical { color: var(--level-critical-bg); }
 .sparkline--alert { color: var(--level-alert-bg); }
-.sparkline--emergency { color: var(--level-emergency-fg); }
+.sparkline--emergency { color: var(--level-emergency-bg); }
 </style>
