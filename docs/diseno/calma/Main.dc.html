@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Canal del proyecto</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6}
+a{color:#3A3DB8}a:hover{color:#2B2E91}
+button{font:inherit;color:inherit}
+textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 960px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; background: #F3F4F6; color: #15171C; font-family: 'Figtree', system-ui, sans-serif; font-size: 14px; line-height: 1.45">
+
+<nav aria-label="Navegación principal" style="flex: 1 1 248px; display: flex; flex-direction: column; gap: 18px; padding: 6px 6px 10px; box-sizing: border-box">
+  <button type="button" style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 6px 8px; border: 0; background: transparent; border-radius: 10px; cursor: pointer; text-align: left">
+    <span style="width: 30px; height: 30px; border-radius: 9px; background: #15171C; color: #FFFFFF; display: grid; place-items: center; font-weight: 700; font-size: 12px; flex-shrink: 0">EP</span>
+    <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+      <span style="font-weight: 600; font-size: 14px">Equipo Posven</span>
+      <span style="font-size: 12px; color: #626976">Owner · 8 personas</span>
+    </span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#626976" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"></path></svg>
+  </button>
+
+  <button type="button" style="display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 0 10px; border: 1px solid #E5E7EB; background: #FFFFFF; border-radius: 10px; cursor: pointer; color: #626976; text-align: left">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+    <span style="flex: 1">Buscar</span>
+    <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 2px 6px; border: 1px solid #E5E7EB; border-radius: 6px">Ctrl K</span>
+  </button>
+
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <a href="Projects.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 10px; border-radius: 8px; color: #4A5160; text-decoration: none">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>
+      <span style="flex: 1">Inicio</span>
+    </a>
+    <a href="#menciones" style="display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 10px; border-radius: 8px; color: #4A5160; text-decoration: none">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"></path></svg>
+      <span style="flex: 1">Menciones</span>
+      <span style="min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: #4B4FD8; color: #FFFFFF; font-size: 11px; font-weight: 600; display: grid; place-items: center">2</span>
+    </a>
+    <a href="Logs.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 10px; border-radius: 8px; color: #4A5160; text-decoration: none">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+      <span style="flex: 1">Avisos abiertos</span>
+      <span style="min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: #FFF0EA; color: #B93815; font-size: 11px; font-weight: 600; display: grid; place-items: center">5</span>
+    </a>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 4px 4px 10px">
+      <span style="font-size: 12px; font-weight: 600; color: #626976">Proyectos</span>
+      <button type="button" aria-label="Nuevo proyecto" style="width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: #626976; display: grid; place-items: center; cursor: pointer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+      </button>
+    </div>
+    <a href="Main.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 10px; border-radius: 8px; background: #FFFFFF; box-shadow: 0 0 0 1px #E5E7EB; color: #15171C; text-decoration: none; font-weight: 600">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500; padding: 2px 5px; border-radius: 5px; background: #EEEEFD; color: #3A3DB8">POSVE</span>
+      <span style="flex: 1">posveapi</span>
+      <span style="width: 8px; height: 8px; border-radius: 999px; background: #D92D20" title="Aviso crítico abierto"></span>
+    </a>
+    <a href="#web" style="display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 10px; border-radius: 8px; color: #4A5160; text-decoration: none">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500; padding: 2px 5px; border-radius: 5px; background: #E9EBEF; color: #4A5160">WEB</span>
+      <span style="flex: 1">workspace-web</span>
+      <span style="font-size: 12px; font-weight: 600; color: #15171C">3</span>
+    </a>
+    <a href="#medic" style="display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 10px; border-radius: 8px; color: #4A5160; text-decoration: none">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500; padding: 2px 5px; border-radius: 5px; background: #E9EBEF; color: #4A5160">MED</span>
+      <span style="flex: 1">medic</span>
+    </a>
+    <a href="#bid" style="display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 10px; border-radius: 8px; color: #626976; text-decoration: none">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500; padding: 2px 5px; border-radius: 5px; background: #E9EBEF; color: #626976">BID</span>
+      <span style="flex: 1">bidfletes</span>
+    </a>
+  </div>
+
+  <div style="flex-grow: 1"></div>
+
+  <div style="display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px">
+    <span style="position: relative; width: 32px; height: 32px; border-radius: 999px; background: #DCD9FB; color: #2B2E91; display: grid; place-items: center; font-weight: 600; font-size: 12px; flex-shrink: 0">SC
+      <span style="position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px; border-radius: 999px; background: #12B76A; border: 2px solid #F3F4F6"></span>
+    </span>
+    <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+      <span style="font-weight: 600">Sergio</span>
+      <span style="font-size: 12px; color: #626976">En línea</span>
+    </span>
+    <button type="button" aria-label="Ajustes" style="width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: #626976; display: grid; place-items: center; cursor: pointer">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>
+    </button>
+  </div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 14px; overflow: hidden">
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 12px 20px; border-bottom: 1px solid #EDEEF1">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 260px; min-width: 0">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; padding: 3px 6px; border-radius: 6px; background: #EEEEFD; color: #3A3DB8">POSVE</span>
+      <h1 style="margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.01em">posveapi</h1>
+      <span style="color: #626976; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">API de ventas y facturación</span>
+    </div>
+    <nav aria-label="Vistas del proyecto" style="display: flex; gap: 2px; padding: 3px; background: #F3F4F6; border-radius: 10px">
+      <a href="Main.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 8px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(21,23,28,0.08); color: #15171C; text-decoration: none; font-weight: 600">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        Canal
+      </a>
+      <a href="Logs.dc.html" style="display: flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 8px; color: #4A5160; text-decoration: none; font-weight: 500">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+        Log
+        <span style="font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 999px; background: #FFF0EA; color: #B93815">4</span>
+      </a>
+      <a href="Plan.dc.html" style="display: flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 8px; color: #4A5160; text-decoration: none; font-weight: 500">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M8 7v7M12 7v4M16 7v9"></path></svg>
+        Plan
+      </a>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="display: flex" aria-label="5 miembros">
+        <span style="width: 28px; height: 28px; border-radius: 999px; background: #DCD9FB; color: #2B2E91; border: 2px solid #FFFFFF; display: grid; place-items: center; font-size: 11px; font-weight: 600">SC</span>
+        <span style="width: 28px; height: 28px; margin-left: -8px; border-radius: 999px; background: #FCE3D3; color: #93370D; border: 2px solid #FFFFFF; display: grid; place-items: center; font-size: 11px; font-weight: 600">CR</span>
+        <span style="width: 28px; height: 28px; margin-left: -8px; border-radius: 999px; background: #D3F0E3; color: #05603A; border: 2px solid #FFFFFF; display: grid; place-items: center; font-size: 11px; font-weight: 600">DM</span>
+        <span style="width: 28px; height: 28px; margin-left: -8px; border-radius: 999px; background: #F0F1F4; color: #4A5160; border: 2px solid #FFFFFF; display: grid; place-items: center; font-size: 11px; font-weight: 600">+2</span>
+      </div>
+      <button type="button" style="display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid #E5E7EB; background: #FFFFFF; border-radius: 9px; cursor: pointer; font-weight: 500">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="m10.7 12.3 9.8-9.8M17 6l3 3M14 9l2 2"></path></svg>
+        Fuentes
+      </button>
+    </div>
+  </header>
+
+  <div style="flex: 1; display: flex; flex-wrap: wrap; min-height: 0">
+    <section aria-label="Mensajes" style="flex: 999 1 460px; min-width: 0; display: flex; flex-direction: column">
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 20px 28px 16px">
+        <div style="display: flex; align-items: center; gap: 12px; color: #626976; font-size: 12px; font-weight: 600">
+          <span style="flex: 1; height: 1px; background: #EDEEF1"></span>Hoy<span style="flex: 1; height: 1px; background: #EDEEF1"></span>
+        </div>
+
+        <article style="display: flex; gap: 12px">
+          <span style="width: 34px; height: 34px; border-radius: 999px; background: #D3F0E3; color: #05603A; display: grid; place-items: center; font-weight: 600; font-size: 12px; flex-shrink: 0">DM</span>
+          <div style="min-width: 0">
+            <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-weight: 600">Diego</span><span style="font-size: 12px; color: #626976">09:12</span></div>
+            <p style="margin: 2px 0 0; color: #2A2E37">Subí el fix del cálculo de IVA a producción. Si ven algo raro en facturas, me avisan.</p>
+          </div>
+        </article>
+
+        <article aria-label="Aviso de log: error" style="display: flex; gap: 12px">
+          <span style="width: 34px; height: 34px; border-radius: 10px; background: #FFF0EA; color: #B93815; display: grid; place-items: center; flex-shrink: 0">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+          </span>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 12px; border: 1px solid #C9CAF5; box-shadow: 0 0 0 3px #EEEEFD; background: #FFFFFF">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+              <span style="font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #FFF0EA; color: #B93815">Error</span>
+              <span style="font-size: 13px; color: #4A5160">Nuevo grupo de logs</span>
+              <span style="flex: 1"></span>
+              <span style="font-size: 12px; color: #626976">09:31</span>
+            </div>
+            <p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: #15171C; overflow-wrap: anywhere">SQLSTATE[23505]: Unique violation: orders_number_unique</p>
+            <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 20px">
+              <div style="display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: #4A5160">
+                <span><b style="color: #15171C; font-weight: 600">37</b> eventos</span>
+                <span>último hace 2 min</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">api-prod</span>
+              </div>
+              <div aria-hidden="true" style="display: flex; align-items: flex-end; gap: 2px; height: 22px">
+                <sc-for list="{{ sparkSmall }}" as="b" hint-placeholder-count="16">
+                  <span style="width: 4px; height: {{ b.h }}px; border-radius: 2px; background: {{ b.c }}"></span>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+              <button type="button" style="display: flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 0; background: #15171C; color: #FFFFFF; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 13px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                Resolver
+              </button>
+              <button type="button" style="display: flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid #E5E7EB; background: #FFFFFF; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 13px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.9 4.2A10 10 0 0 1 12 4c7 0 10 8 10 8a17 17 0 0 1-3.2 4.2M6.6 6.6A17 17 0 0 0 2 12s3 8 10 8a9.7 9.7 0 0 0 5.4-1.6"></path><path d="m2 2 20 20"></path></svg>
+                Ignorar
+              </button>
+              <a href="Plan.dc.html" style="display: flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid #E5E7EB; background: #FFFFFF; border-radius: 8px; color: #15171C; text-decoration: none; font-weight: 500; font-size: 13px; box-sizing: border-box">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 12H3M16 6H3M16 18H3M18 9v6M21 12h-6"></path></svg>
+                Crear tarea
+              </a>
+              <span style="flex: 1"></span>
+              <a href="#hilo" style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; text-decoration: none">
+                <span style="display: flex">
+                  <span style="width: 20px; height: 20px; border-radius: 999px; background: #FCE3D3; color: #93370D; border: 2px solid #FFFFFF; display: grid; place-items: center; font-size: 9px; font-weight: 700">CR</span>
+                  <span style="width: 20px; height: 20px; margin-left: -6px; border-radius: 999px; background: #D3F0E3; color: #05603A; border: 2px solid #FFFFFF; display: grid; place-items: center; font-size: 9px; font-weight: 700">DM</span>
+                </span>
+                2 respuestas
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <article style="display: flex; gap: 12px">
+          <span style="width: 34px; height: 34px; border-radius: 999px; background: #FCE3D3; color: #93370D; display: grid; place-items: center; font-weight: 600; font-size: 12px; flex-shrink: 0">CR</span>
+          <div style="min-width: 0">
+            <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-weight: 600">Camila</span><span style="font-size: 12px; color: #626976">09:34</span></div>
+            <p style="margin: 2px 0 0; color: #2A2E37">Lo tomo yo. Parece que el reintento de la cola de facturación duplica el número de orden.</p>
+          </div>
+        </article>
+
+        <div style="display: flex; align-items: center; gap: 10px; padding-left: 46px; font-size: 13px; color: #4A5160">
+          <span style="width: 22px; height: 22px; border-radius: 999px; background: #E7F6EE; color: #067647; display: grid; place-items: center; flex-shrink: 0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+          </span>
+          <span><b style="font-weight: 600; color: #15171C">Camila</b> marcó <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">Timeout en webhook de pagos</span> como <b style="font-weight: 600; color: #067647">resuelto</b></span>
+          <span style="font-size: 12px; color: #626976">09:58</span>
+        </div>
+
+        <article aria-label="Aviso de log: crítico" style="display: flex; gap: 12px">
+          <span style="width: 34px; height: 34px; border-radius: 10px; background: #B42318; color: #FFFFFF; display: grid; place-items: center; flex-shrink: 0">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg>
+          </span>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 12px; border: 1px solid #F4C7C3; background: #FFFBFA">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+              <span style="font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #B42318; color: #FFFFFF">Crítico</span>
+              <span style="font-size: 13px; color: #4A5160">Grupo reabierto</span>
+              <span style="flex: 1"></span>
+              <span style="font-size: 12px; color: #626976">10:02</span>
+            </div>
+            <p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: #15171C; overflow-wrap: anywhere">Connection refused [tcp://redis:6379]</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: #4A5160">
+              <span><b style="color: #15171C; font-weight: 600">214</b> eventos</span>
+              <span>en los últimos 6 min</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">worker-prod</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px">
+              <button type="button" style="display: flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 0; background: #15171C; color: #FFFFFF; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 13px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                Resolver
+              </button>
+              <button type="button" style="display: flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid #E5E7EB; background: #FFFFFF; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 13px">Ignorar</button>
+              <a href="Plan.dc.html" style="display: flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid #E5E7EB; background: #FFFFFF; border-radius: 8px; color: #15171C; text-decoration: none; font-weight: 500; font-size: 13px; box-sizing: border-box">Crear tarea</a>
+            </div>
+          </div>
+        </article>
+
+        <article style="display: flex; gap: 12px">
+          <span style="width: 34px; height: 34px; border-radius: 999px; background: #DCD9FB; color: #2B2E91; display: grid; place-items: center; font-weight: 600; font-size: 12px; flex-shrink: 0">SC</span>
+          <div style="min-width: 0">
+            <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-weight: 600">Sergio</span><span style="font-size: 12px; color: #626976">10:05</span></div>
+            <p style="margin: 2px 0 0; color: #2A2E37"><span style="padding: 1px 4px; border-radius: 5px; background: #EEEEFD; color: #3A3DB8; font-weight: 500">@Diego</span> ¿puede ser el failover de Redis de anoche? Reviso el worker.</p>
+          </div>
+        </article>
+      </div>
+
+      <form style="padding: 0 24px 20px">
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 8px 14px; border: 1px solid #DADDE3; border-radius: 12px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(21,23,28,0.04)">
+          <label for="composer" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap">Mensaje para #posveapi</label>
+          <textarea id="composer" rows="2" placeholder="Escribe en #posveapi" style="border: 0; outline: none; resize: none; background: transparent; padding: 2px 0; font-size: 14px"></textarea>
+          <div style="display: flex; align-items: center; gap: 4px">
+            <button type="button" aria-label="Adjuntar archivo" style="width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: #626976; display: grid; place-items: center; cursor: pointer">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"></path></svg>
+            </button>
+            <button type="button" aria-label="Mencionar" style="width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: #626976; display: grid; place-items: center; cursor: pointer">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"></path></svg>
+            </button>
+            <span style="flex: 1; font-size: 12px; color: #626976; padding-left: 6px">Enter envía · Shift+Enter salto de línea</span>
+            <button type="button" aria-label="Enviar" style="width: 36px; height: 36px; border: 0; border-radius: 9px; background: #4B4FD8; color: #FFFFFF; display: grid; place-items: center; cursor: pointer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4z"></path><path d="M22 2 11 13"></path></svg>
+            </button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <aside aria-label="Detalle del grupo de logs" style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 18px; padding: 18px 20px; border-left: 1px solid #EDEEF1; background: #FAFAFB; box-sizing: border-box">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <span style="font-size: 12px; font-weight: 600; color: #626976">Grupo de logs #1842</span>
+        <button type="button" aria-label="Cerrar detalle" style="width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: #626976; display: grid; place-items: center; cursor: pointer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; gap: 6px">
+          <span style="font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #FFF0EA; color: #B93815">Error</span>
+          <span style="font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #EEEEFD; color: #3A3DB8">Abierto</span>
+        </div>
+        <h2 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 14.5px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere">SQLSTATE[23505]: Unique violation: orders_number_unique</h2>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+        <div style="padding: 10px 12px; border-radius: 10px; background: #FFFFFF; border: 1px solid #EDEEF1"><div style="font-size: 11.5px; color: #626976">Eventos</div><div style="font-size: 18px; font-weight: 700">37</div></div>
+        <div style="padding: 10px 12px; border-radius: 10px; background: #FFFFFF; border: 1px solid #EDEEF1"><div style="font-size: 11.5px; color: #626976">Primera vez</div><div style="font-size: 14px; font-weight: 600; padding-top: 3px">09:31</div></div>
+        <div style="padding: 10px 12px; border-radius: 10px; background: #FFFFFF; border: 1px solid #EDEEF1"><div style="font-size: 11.5px; color: #626976">Última vez</div><div style="font-size: 14px; font-weight: 600; padding-top: 3px">hace 2 min</div></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #626976"><span>Últimas 24 h</span><span>pico 11 eventos/h</span></div>
+        <div role="img" aria-label="Eventos por hora en las últimas 24 horas, en aumento desde las 9:00" style="display: flex; align-items: flex-end; gap: 3px; height: 64px; padding: 8px; border-radius: 10px; background: #FFFFFF; border: 1px solid #EDEEF1">
+          <sc-for list="{{ sparkDay }}" as="b" hint-placeholder-count="24">
+            <span style="flex: 1; height: {{ b.h }}px; border-radius: 2px; background: {{ b.c }}"></span>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 12px; font-weight: 600; color: #626976">Último evento</span>
+        <pre style="margin: 0; padding: 12px; border-radius: 10px; background: #F3F4F6; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.6; color: #2A2E37; white-space: pre-wrap; overflow-wrap: anywhere">duplicate key value violates unique
+constraint "orders_number_unique"
+
+order_id   88412
+queue      billing
+attempt    2</pre>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #4A5160">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="8" rx="2"></rect><rect x="3" y="13" width="18" height="8" rx="2"></rect><path d="M7 7h.01M7 17h.01"></path></svg>
+        <span>Fuente <b style="font-weight: 600; color: #15171C">api-prod</b></span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #626976">wsk_8f2a91c4</span>
+      </div>
+      <div style="flex-grow: 1"></div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <button type="button" style="display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border: 0; background: #15171C; color: #FFFFFF; border-radius: 9px; cursor: pointer; font-weight: 600">Resolver grupo</button>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+          <button type="button" style="min-height: 40px; border: 1px solid #E5E7EB; background: #FFFFFF; border-radius: 9px; cursor: pointer; font-weight: 500">Ignorar</button>
+          <a href="Plan.dc.html" style="display: grid; place-items: center; min-height: 40px; border: 1px solid #E5E7EB; background: #FFFFFF; border-radius: 9px; color: #15171C; text-decoration: none; font-weight: 500; box-sizing: border-box">Crear tarea</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var small = [2, 2, 3, 2, 4, 3, 2, 5, 8, 6, 12, 9, 14, 18, 16, 20];
+    var day = [4, 3, 2, 2, 3, 2, 4, 3, 2, 3, 2, 3, 2, 3, 2, 4, 3, 6, 10, 14, 22, 30, 40, 46];
+    return {
+      sparkSmall: small.map(function (h, i) { return { h: h, c: i > 11 ? '#E8613C' : '#F7C7B5' }; }),
+      sparkDay: day.map(function (h, i) { return { h: h, c: i > 17 ? '#E8613C' : '#E3E5EA' }; })
+    };
+  }
+}
+</script>
+</body>
+</html>

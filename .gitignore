@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+node_modules/
+vendor/
+.DS_Store
+.idea/
+.claude/backup-*/
+.claude/settings.local.json
+.graphify-workspace/

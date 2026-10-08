@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Fundamentos de Calma</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#3A3DB8}a:hover{color:#2B2E91}
+button{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 1200px; height: 900px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 28px; background: #FFFFFF; color: #15171C; font-family: 'Figtree', system-ui, sans-serif; font-size: 14px; line-height: 1.45">
+  <div style="display: flex; align-items: baseline; justify-content: space-between">
+    <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">Calma · fundamentos</h1>
+    <span style="font-size: 13px; color: #626976">Figtree + JetBrains Mono · un acento · bordes finos, casi sin sombras</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 40px">
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #4A5160">Color · claro</h2>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+        <sc-for list="{{ light }}" as="s" hint-placeholder-count="8">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="height: 44px; border-radius: 10px; border: 1px solid #E5E7EB; background: {{ s.hex }}"></span>
+            <span style="font-size: 12.5px; font-weight: 600">{{ s.name }}</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #626976; margin-top: -6px">{{ s.hex }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #4A5160">Color · oscuro</h2>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 12px; margin: -12px; border-radius: 14px; background: #0F1114">
+        <sc-for list="{{ dark }}" as="s" hint-placeholder-count="8">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="height: 44px; border-radius: 10px; border: 1px solid #2A2F37; background: {{ s.hex }}"></span>
+            <span style="font-size: 12.5px; font-weight: 600; color: #ECEEF2">{{ s.name }}</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8A919C; margin-top: -6px">{{ s.hex }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #4A5160">Niveles de log (PSR-3)</h2>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{ levels }}" as="l" hint-placeholder-count="8">
+          <span style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: {{ l.bg }}; color: {{ l.fg }}">{{ l.name }}</span>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border-radius: 12px; background: #0F1114">
+        <sc-for list="{{ levelsDark }}" as="l" hint-placeholder-count="8">
+          <span style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: {{ l.bg }}; color: {{ l.fg }}">{{ l.name }}</span>
+        </sc-for>
+      </div>
+      <p style="margin: 0; font-size: 12.5px; color: #626976">Hasta error: pastilla suave. Crítico, alerta y emergencia: pastilla sólida, para que se distingan por luminosidad y no solo por tono. En oscuro las sólidas van de más oscura a más clara según la gravedad.</p>
+      <h2 style="margin: 8px 0 0; font-size: 13px; font-weight: 600; color: #4A5160">Estado del grupo</h2>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+        <span style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #EEEEFD; color: #3A3DB8">Abierto</span>
+        <span style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #E7F6EE; color: #067647">Resuelto</span>
+        <span style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #F0F1F4; color: #4A5160">Ignorado</span>
+        <span style="display: flex; gap: 8px; padding: 6px 10px; margin-left: 8px; border-radius: 12px; background: #0F1114">
+          <span style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #23244A; color: #A9ABF5">Abierto</span>
+          <span style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #12301F; color: #5FD39A">Resuelto</span>
+          <span style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #22262D; color: #B4BAC4">Ignorado</span>
+        </span>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #4A5160">Tipografía</h2>
+      <div style="display: flex; align-items: baseline; gap: 16px"><span style="width: 120px; font-size: 12px; color: #626976">Título · 28/700</span><span style="font-size: 28px; font-weight: 700; letter-spacing: -0.02em">Buenos días</span></div>
+      <div style="display: flex; align-items: baseline; gap: 16px"><span style="width: 120px; font-size: 12px; color: #626976">Encabezado · 17/700</span><span style="font-size: 17px; font-weight: 700">posveapi</span></div>
+      <div style="display: flex; align-items: baseline; gap: 16px"><span style="width: 120px; font-size: 12px; color: #626976">Cuerpo · 14/400</span><span style="font-size: 14px">Lo tomo yo, es el reintento de la cola.</span></div>
+      <div style="display: flex; align-items: baseline; gap: 16px"><span style="width: 120px; font-size: 12px; color: #626976">Etiqueta · 12/600</span><span style="font-size: 12px; font-weight: 600; color: #4A5160">Proyectos</span></div>
+      <div style="display: flex; align-items: baseline; gap: 16px"><span style="width: 120px; font-size: 12px; color: #626976">Log · Mono 13/500</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500">orders_number_unique</span></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #4A5160">Botones</h2>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+        <button type="button" style="min-height: 38px; padding: 0 14px; border: 0; border-radius: 9px; background: #15171C; color: #FFFFFF; font-weight: 600">Primario</button>
+        <button type="button" style="min-height: 38px; padding: 0 14px; border: 0; border-radius: 9px; background: #4B4FD8; color: #FFFFFF; font-weight: 600">Acento</button>
+        <button type="button" style="min-height: 38px; padding: 0 14px; border: 1px solid #E5E7EB; border-radius: 9px; background: #FFFFFF; font-weight: 500">Secundario</button>
+        <button type="button" style="min-height: 38px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; color: #4A5160; font-weight: 500">Fantasma</button>
+        <button type="button" disabled style="min-height: 38px; padding: 0 14px; border: 0; border-radius: 9px; background: #F0F1F4; color: #8A909C; font-weight: 500">Deshabilitado</button>
+      </div>
+      <p style="margin: 0; font-size: 12.5px; color: #626976">El acento se reserva para lo propio y lo nuevo (enviar, menciones, sin leer). La acción principal de un aviso usa tinta, para no competir con el color del nivel.</p>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #4A5160">Forma y espacio</h2>
+      <div style="display: flex; align-items: flex-end; gap: 14px">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 48px; height: 48px; border: 1.5px solid #15171C; border-radius: 6px"></span><span style="font-size: 11.5px; color: #626976">6 chip</span></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 48px; height: 48px; border: 1.5px solid #15171C; border-radius: 9px"></span><span style="font-size: 11.5px; color: #626976">9 control</span></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 48px; height: 48px; border: 1.5px solid #15171C; border-radius: 12px"></span><span style="font-size: 11.5px; color: #626976">12 tarjeta</span></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 48px; height: 48px; border: 1.5px solid #15171C; border-radius: 14px"></span><span style="font-size: 11.5px; color: #626976">14 panel</span></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 64px; height: 28px; border: 1.5px solid #15171C; border-radius: 999px"></span><span style="font-size: 11.5px; color: #626976">pastilla</span></div>
+        <span style="flex: 1"></span>
+        <div style="display: flex; align-items: flex-end; gap: 6px">
+          <sc-for list="{{ space }}" as="sp" hint-placeholder-count="6">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+              <span style="width: {{ sp.v }}px; height: {{ sp.v }}px; border-radius: 3px; background: #C9CAF5"></span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #626976">{{ sp.v }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      light: [
+        { name: 'Fondo', hex: '#F3F4F6' }, { name: 'Superficie', hex: '#FFFFFF' },
+        { name: 'Tinta', hex: '#15171C' }, { name: 'Tinta 2', hex: '#4A5160' },
+        { name: 'Tinta 3', hex: '#626976' }, { name: 'Borde', hex: '#E5E7EB' },
+        { name: 'Acento', hex: '#4B4FD8' }, { name: 'Acento suave', hex: '#EEEEFD' }
+      ],
+      dark: [
+        { name: 'Fondo', hex: '#0F1114' }, { name: 'Superficie', hex: '#171A1F' },
+        { name: 'Tinta', hex: '#ECEEF2' }, { name: 'Tinta 2', hex: '#B4BAC4' },
+        { name: 'Tinta 3', hex: '#8A919C' }, { name: 'Borde', hex: '#2A2F37' },
+        { name: 'Acento', hex: '#6E71E8' }, { name: 'Acento suave', hex: '#23244A' }
+      ],
+      levels: [
+        { name: 'Depuración', bg: '#F0F1F4', fg: '#4A5160' },
+        { name: 'Info', bg: '#EEEEFD', fg: '#3A3DB8' },
+        { name: 'Aviso', bg: '#E2F4F3', fg: '#0B5F5C' },
+        { name: 'Advertencia', bg: '#FEF6E0', fg: '#8A5A06' },
+        { name: 'Error', bg: '#FFF0EA', fg: '#B93815' },
+        { name: 'Crítico', bg: '#B42318', fg: '#FFFFFF' },
+        { name: 'Alerta', bg: '#7A1A12', fg: '#FFFFFF' },
+        { name: 'Emergencia', bg: '#15171C', fg: '#FF9C7A' }
+      ],
+      levelsDark: [
+        { name: 'Depuración', bg: '#22262D', fg: '#B4BAC4' },
+        { name: 'Info', bg: '#23244A', fg: '#A9ABF5' },
+        { name: 'Aviso', bg: '#0F2E2D', fg: '#5CCFC8' },
+        { name: 'Advertencia', bg: '#33270C', fg: '#F5C35C' },
+        { name: 'Error', bg: '#3A1F17', fg: '#FF9C7A' },
+        { name: 'Crítico', bg: '#D92D20', fg: '#FFFFFF' },
+        { name: 'Alerta', bg: '#FDA29B', fg: '#55160C' },
+        { name: 'Emergencia', bg: '#ECEEF2', fg: '#B42318' }
+      ],
+      space: [{ v: 4 }, { v: 8 }, { v: 12 }, { v: 16 }, { v: 24 }, { v: 32 }]
+    };
+  }
+}
+</script>
+</body>
+</html>

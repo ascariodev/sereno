@@ -1,0 +1,28 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "workspace-web",
+      "url": "http://localhost:5174",
+      "port": 5174
+    },
+    {
+      "name": "web-dist-nginx",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": [
+        "run",
+        "--rm",
+        "--name",
+        "sereno_dist_preview",
+        "-p",
+        "4180:80",
+        "-v",
+        "C:/Users/Windows 11/Documents/Development/workspace/web/dist:/usr/share/nginx/html:ro",
+        "-v",
+        "C:/Users/Windows 11/Documents/Development/workspace/web/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro",
+        "nginx:alpine"
+      ],
+      "port": 4180
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose exec api php artisan test:*)",
+      "Bash(docker compose exec -T api php artisan test:*)",
+      "Bash(docker compose exec api ./vendor/bin/pint:*)",
+      "Bash(docker compose exec -T api ./vendor/bin/pint:*)",
+      "Bash(git status*)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git -C * status*)",
+      "Bash(git -C * diff*)",
+      "Bash(git -C * add *)",
+      "Bash(git -C * commit *)"
+    ],
+    "ask": [
+      "Bash(psql:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker compose exec postgres:*)",
+      "Bash(docker compose exec -T postgres:*)",
+      "Bash(docker compose exec api php artisan tinker:*)",
+      "Bash(docker compose exec api php artisan db:*)",
+      "Bash(docker compose exec api php artisan migrate:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
+      "Bash(cat .env*)",
+      "Bash(cat ./.env*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|compact|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/plan-state.mjs\" 2>/dev/null || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

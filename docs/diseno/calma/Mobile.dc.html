@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Canal en móvil, modo oscuro</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1114}
+a{color:#A9ABF5}a:hover{color:#C6C7F8}
+button,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #0F1114; color: #ECEEF2; font-family: 'Figtree', system-ui, sans-serif; font-size: 14px; line-height: 1.45; overflow: hidden">
+  <header style="display: flex; flex-direction: column; gap: 10px; padding: 14px 12px 10px; border-bottom: 1px solid #22262D">
+    <div style="display: flex; align-items: center; gap: 6px">
+      <a href="#proyectos" aria-label="Volver a proyectos" style="width: 44px; height: 44px; border-radius: 12px; color: #B4BAC4; display: grid; place-items: center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+      </a>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500; padding: 2px 6px; border-radius: 6px; background: #23244A; color: #A9ABF5">POSVE</span>
+      <h1 style="margin: 0; flex: 1; font-size: 17px; font-weight: 700">posveapi</h1>
+      <button type="button" aria-label="Detalles del proyecto" style="width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: #B4BAC4; display: grid; place-items: center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg>
+      </button>
+    </div>
+    <nav aria-label="Vistas del proyecto" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 3px; margin: 0 4px; background: #1A1D22; border-radius: 11px">
+      <a href="#canal" aria-current="page" style="display: grid; place-items: center; min-height: 34px; border-radius: 9px; background: #2A2F37; color: #ECEEF2; text-decoration: none; font-weight: 600">Canal</a>
+      <a href="#log" style="display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; border-radius: 9px; color: #B4BAC4; text-decoration: none; font-weight: 500">Log <span style="font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 999px; background: #3A1F17; color: #FF9C7A">4</span></a>
+      <a href="#plan" style="display: grid; place-items: center; min-height: 34px; border-radius: 9px; color: #B4BAC4; text-decoration: none; font-weight: 500">Plan</a>
+    </nav>
+  </header>
+
+  <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 16px; padding: 16px; overflow: hidden">
+    <article style="display: flex; gap: 10px">
+      <span style="width: 30px; height: 30px; border-radius: 999px; background: #3B2414; color: #F8B98F; display: grid; place-items: center; font-weight: 600; font-size: 11px; flex-shrink: 0">CR</span>
+      <div style="min-width: 0">
+        <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-weight: 600">Camila</span><span style="font-size: 12px; color: #8A919C">09:34</span></div>
+        <p style="margin: 2px 0 0; color: #D3D7DE">Lo tomo yo. Parece que el reintento de la cola duplica el número de orden.</p>
+      </div>
+    </article>
+
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #B4BAC4">
+      <span style="width: 20px; height: 20px; border-radius: 999px; background: #12301F; color: #5FD39A; display: grid; place-items: center; flex-shrink: 0">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+      </span>
+      <span><b style="font-weight: 600; color: #ECEEF2">Camila</b> resolvió <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px">Timeout en webhook</span></span>
+    </div>
+
+    <article aria-label="Aviso de log: crítico" style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; background: #1A1416; border: 1px solid #4A2422">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <span style="font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #D92D20; color: #FFFFFF">Crítico</span>
+        <span style="font-size: 12.5px; color: #B4BAC4">Grupo reabierto</span>
+        <span style="flex: 1"></span>
+        <span style="font-size: 12px; color: #8A919C">10:02</span>
+      </div>
+      <p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; overflow-wrap: anywhere">Connection refused [tcp://redis:6379]</p>
+      <div style="display: flex; gap: 12px; font-size: 12.5px; color: #B4BAC4">
+        <span><b style="color: #ECEEF2; font-weight: 600">214</b> eventos</span>
+        <span>worker-prod</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+        <button type="button" style="min-height: 40px; border: 0; border-radius: 10px; background: #ECEEF2; color: #0F1114; font-weight: 600; font-size: 13px">Resolver</button>
+        <button type="button" style="min-height: 40px; border: 1px solid #2E333B; border-radius: 10px; background: #171A1F; font-weight: 500; font-size: 13px">Ignorar</button>
+        <button type="button" style="min-height: 40px; border: 1px solid #2E333B; border-radius: 10px; background: #171A1F; font-weight: 500; font-size: 13px">Tarea</button>
+      </div>
+    </article>
+
+    <article style="display: flex; gap: 10px">
+      <span style="width: 30px; height: 30px; border-radius: 999px; background: #23244A; color: #A9ABF5; display: grid; place-items: center; font-weight: 600; font-size: 11px; flex-shrink: 0">SC</span>
+      <div style="min-width: 0">
+        <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-weight: 600">Sergio</span><span style="font-size: 12px; color: #8A919C">10:05</span></div>
+        <p style="margin: 2px 0 0; color: #D3D7DE"><span style="padding: 1px 4px; border-radius: 5px; background: #23244A; color: #A9ABF5; font-weight: 500">@Diego</span> ¿puede ser el failover de Redis de anoche?</p>
+      </div>
+    </article>
+  </div>
+
+  <form style="padding: 0 12px 10px">
+    <div style="display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 14px; border: 1px solid #2A2F37; border-radius: 14px; background: #171A1F">
+      <label for="m-composer" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Mensaje para #posveapi</label>
+      <textarea id="m-composer" rows="1" placeholder="Escribe en #posveapi" style="flex: 1; border: 0; outline: none; resize: none; background: transparent; padding: 0; font-size: 15px"></textarea>
+      <button type="button" aria-label="Enviar" style="width: 40px; height: 40px; border: 0; border-radius: 11px; background: #6E71E8; color: #FFFFFF; display: grid; place-items: center">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4z"></path><path d="M22 2 11 13"></path></svg>
+      </button>
+    </div>
+  </form>
+
+  <nav aria-label="Navegación principal" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 6px 8px 18px; border-top: 1px solid #22262D; background: #13161A">
+    <a href="#inicio" style="display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; color: #ECEEF2; text-decoration: none; font-size: 11px; font-weight: 600">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>
+      Proyectos
+    </a>
+    <a href="#menciones" style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; color: #8A919C; text-decoration: none; font-size: 11px; font-weight: 500">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"></path></svg>
+      Menciones
+    </a>
+    <a href="#avisos" style="display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; color: #8A919C; text-decoration: none; font-size: 11px; font-weight: 500">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+      Avisos
+    </a>
+    <a href="#perfil" style="display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; color: #8A919C; text-decoration: none; font-size: 11px; font-weight: 500">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+      Tú
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
