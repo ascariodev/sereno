@@ -68,6 +68,15 @@ class LogSource extends Model
         return [$source, $plainKey];
     }
 
+    /** @return array<string, string> error message by field, empty when the key can be rotated. */
+    public function rotationErrors(Project $project): array
+    {
+        return array_filter([
+            'project' => $project->isArchived() ? __('This project is archived and its log source keys cannot be rotated.') : null,
+            'source' => $this->isRevoked() ? __('This log source is revoked and its key cannot be rotated.') : null,
+        ]);
+    }
+
     /**
      * Replaces the key in place: the previous one stops authenticating as soon as this is saved.
      * The UPDATE is conditioned on the key hash this instance read and on the source not being

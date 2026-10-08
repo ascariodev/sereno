@@ -259,5 +259,9 @@
     "Project :project not found.": "Proyecto :project no encontrado.",
     "Project :project not found in organization :organization.": "Proyecto :project no encontrado en la organización :organization.",
     "Several projects match :project; pass --organization with the organization slug.": "Varios proyectos coinciden con :project; indica --organization con el slug de la organización.",
-    "Log source created. Copy the key now, it will not be shown again.": "Fuente de log creada. Copia la key ahora, no se volverá a mostrar."
+    "Log source created. Copy the key now, it will not be shown again.": "Fuente de log creada. Copia la key ahora, no se volverá a mostrar.",
+    "Pass either the source name or --id.": "Indica el nombre de la fuente o --id, no ambos.",
+    "Log source not found in project :project.": "Fuente de log no encontrada en el proyecto :project.",
+    "Several log sources are named :name in project :project; pass --id with the source id.": "Varias fuentes de log se llaman :name en el proyecto :project; indica --id con el id de la fuente.",
+    "Log source key rotated. Copy the key now, it will not be shown again.": "Key de la fuente de log rotada. Copia la key ahora, no se volverá a mostrar."
 }

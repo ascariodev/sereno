@@ -2,10 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\ResolvesProjectByKey;
 use App\Http\Requests\LogSource\StoreLogSourceRequest;
 use App\Models\LogSource;
-use App\Models\Project;
-use App\Models\Scopes\OrganizationScope;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -15,6 +14,8 @@ use Illuminate\Support\Facades\Validator;
 #[Description('Create a log source for a project and print its key once')]
 class CreateLogSource extends Command
 {
+    use ResolvesProjectByKey;
+
     public function handle(): int
     {
         $validator = Validator::make(
@@ -30,34 +31,9 @@ class CreateLogSource extends Command
             return self::FAILURE;
         }
 
-        $key = strtoupper((string) $this->argument('project'));
-
-        $projects = Project::query()
-            ->withoutGlobalScope(OrganizationScope::class)
-            ->where('key', $key)
-            ->when($this->option('organization'), fn ($query, $slug) => $query->whereHas(
-                'organization',
-                fn ($organization) => $organization->where('slug', $slug),
-            ))
-            ->limit(2)
-            ->get();
-
-        if ($projects->isEmpty()) {
-            $slug = $this->option('organization');
-            $this->components->error($slug
-                ? __('Project :project not found in organization :organization.', ['project' => $key, 'organization' => $slug])
-                : __('Project :project not found.', ['project' => $key]));
-
+        if (! $project = $this->resolveProject()) {
             return self::FAILURE;
         }
-
-        if ($projects->count() > 1) {
-            $this->components->error(__('Several projects match :project; pass --organization with the organization slug.', ['project' => $key]));
-
-            return self::FAILURE;
-        }
-
-        $project = $projects->first();
 
         if ($error = $project->logSourceCreationError()) {
             $this->components->error($error);

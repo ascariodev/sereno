@@ -3,7 +3,6 @@
 namespace App\Http\Requests\LogSource;
 
 use App\Models\LogSource;
-use App\Models\Project;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
@@ -29,15 +28,8 @@ class RotateLogSourceKeyRequest extends FormRequest
     {
         return [
             function (Validator $validator) {
-                /** @var Project $project */
-                $project = $this->route('project');
-
-                if ($project->isArchived()) {
-                    $validator->errors()->add('project', __('This project is archived and its log source keys cannot be rotated.'));
-                }
-
-                if ($this->route('source')->isRevoked()) {
-                    $validator->errors()->add('source', __('This log source is revoked and its key cannot be rotated.'));
+                foreach ($this->route('source')->rotationErrors($this->route('project')) as $field => $message) {
+                    $validator->errors()->add($field, $message);
                 }
             },
         ];
