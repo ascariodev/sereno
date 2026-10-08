@@ -22,14 +22,16 @@ function organizations() {
 
 let wrapper: VueWrapper | undefined
 
-async function mountView(members: unknown[] = [], roles: string[] = ['member']) {
+async function mountView(members: unknown[] = [], roles: string[] = ['member'], failFirstLoad = false) {
   localStorage.setItem(TOKEN_STORAGE_KEY, 'tok')
   const pinia = createPinia()
   setActivePinia(pinia)
   useAuthStore().$patch({ user })
   const organization = useOrganizationStore()
   organization.$patch({ organizations: [{ ...organizations()[0], roles }], activeId: 1, loaded: true })
-  const get = vi.spyOn(api, 'get').mockResolvedValue({ data: members })
+  const get = vi.spyOn(api, 'get')
+  if (failFirstLoad) get.mockRejectedValueOnce(new ApiError(500, 'boom', {}))
+  get.mockResolvedValue({ data: members })
   const router = createAppRouter(createMemoryHistory())
   wrapper = mount(MembersView, { attachTo: document.body, global: { plugins: [pinia, i18n, router] } })
   await flushPromises()
@@ -71,20 +73,13 @@ describe('MembersView', () => {
   })
 
   it('shows an error with retry when the list fails', async () => {
-    localStorage.setItem(TOKEN_STORAGE_KEY, 'tok')
-    const pinia = createPinia()
-    setActivePinia(pinia)
-    useAuthStore().$patch({ user })
-    useOrganizationStore().$patch({ organizations: organizations(), activeId: 1, loaded: true })
-    const get = vi.spyOn(api, 'get').mockRejectedValueOnce(new ApiError(500, 'boom', {}))
-    wrapper = mount(MembersView, { attachTo: document.body, global: { plugins: [pinia, i18n, createAppRouter(createMemoryHistory())] } })
-    await flushPromises()
-    expect(wrapper.find('[data-test=load-failed]').exists()).toBe(true)
+    const { get } = await mountView([], ['member'], true)
+    expect(wrapper!.find('[data-test=load-failed]').exists()).toBe(true)
     get.mockResolvedValue({ data: [member(2, 'admin')] })
-    await wrapper.find('button[name=retry]').trigger('click')
+    await wrapper!.find('button[name=retry]').trigger('click')
     await flushPromises()
-    expect(wrapper.find('[data-test=load-failed]').exists()).toBe(false)
-    expect(wrapper.findAll('[data-test=member]')).toHaveLength(1)
+    expect(wrapper!.find('[data-test=load-failed]').exists()).toBe(false)
+    expect(wrapper!.findAll('[data-test=member]')).toHaveLength(1)
   })
 
   it('reloads the list when the active organization changes and discards the stale response', async () => {

@@ -82,7 +82,7 @@
 - [x] M-5 (baja, sonnet) [descartada 2026-10-08: el orden del FOR UPDATE ya está probado; un test con dos conexiones exige salir de RefreshDatabase en una base compartida]: test de concurrencia real con dos conexiones para el lock de `mutateMembership` (hoy solo se prueba el orden del SQL).
 - [x] M-6 (baja, sonnet): en `UpdateMemberRoleRequest::authorize()`, evitar el aviso por `(string)` si `role` llega como array (usar `$this->string('role')->value()` o `is_string`). Hecha con `is_string` (`$this->string()` también lanza con array).
 - [x] M-7 (baja, sonnet): en el test de invitaciones del quitado, afirmar el mensaje del 422 con `assertJsonPath`, no solo `assertUnprocessable`.
-- [ ] M-8 (baja, sonnet): ordenar el import de `MembersView` en `web/src/router/index.ts` y parametrizar `mountView` en `MembersView.spec.ts` para el test de error con reintento.
+- [x] M-8 (baja, sonnet): ordenar el import de `MembersView` en `web/src/router/index.ts` y parametrizar `mountView` en `MembersView.spec.ts` para el test de error con reintento.
 - [ ] M-9 (baja, sonnet): si `organization.load()` falla tras cambiar el propio rol, no restaurar el select ni mostrar `roleFailed`: separar el `load()` en su propio try.
 - [ ] M-10 (baja, sonnet): spec de L-10/L-32 para el cambio de rol: cambiar de organización con la petición en vuelo no aplica la respuesta.
 - [ ] M-11 (baja, sonnet): spec de `organization.load()` fallido tras salir (toast `leftReloadFailed`) y del reset de `leaving` cuando `router.replace` no navega.
