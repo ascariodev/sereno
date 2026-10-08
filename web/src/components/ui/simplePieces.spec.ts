@@ -52,6 +52,24 @@ describe('AppAvatar', () => {
     expect(paletteFor(1)).not.toEqual(paletteFor(2))
     expect(mount(AppAvatar, { props: { name: 'Sergio Carrillo', id: 1 } }).text()).toBe('SC')
   })
+
+  it('applies the palette tokens to the element', () => {
+    const wrapper = mount(AppAvatar, { props: { name: 'Sergio Carrillo', id: 1 } })
+    const { bg, fg } = paletteFor(1)
+    expect(bg).toMatch(/^var\(--avatar-\d-bg\)$/)
+    expect(wrapper.element.style.background).toBe(bg)
+    expect(wrapper.element.style.color).toBe(fg)
+  })
+
+  it('falls back to a valid palette entry for negative or non numeric ids', () => {
+    const valid = [1, 2, 3].map((n) => `var(--avatar-${n}-bg)`)
+    expect(paletteFor(-4)).toEqual(paletteFor(4))
+    for (const id of [-1, -7, 'abc', 'x-1', '', NaN]) {
+      expect(valid).toContain(paletteFor(id).bg)
+      expect(paletteFor(id).fg).toMatch(/^var\(--avatar-\d-fg\)$/)
+    }
+    expect(paletteFor('abc')).toEqual(paletteFor('abc'))
+  })
 })
 
 describe('ProjectKey', () => {

@@ -1,8 +1,8 @@
 <script lang="ts">
 const PALETTE = [
-  { bg: '#DCD9FB', fg: '#2B2E91' },
-  { bg: '#FCE3D3', fg: '#93370D' },
-  { bg: '#D3F0E3', fg: '#05603A' },
+  { bg: 'var(--avatar-1-bg)', fg: 'var(--avatar-1-fg)' },
+  { bg: 'var(--avatar-2-bg)', fg: 'var(--avatar-2-fg)' },
+  { bg: 'var(--avatar-3-bg)', fg: 'var(--avatar-3-fg)' },
 ]
 
 export function initialsOf(name: string): string {
