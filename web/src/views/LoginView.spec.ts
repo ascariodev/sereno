@@ -8,13 +8,13 @@ import { createAppRouter } from '../router'
 
 const user = { id: 1, name: 'Test', email: 't@e.com', locale: 'en' }
 
-async function mountLogin(path = '/login') {
+async function mountLogin(path = '/login', attachTo?: HTMLElement) {
   const pinia = createPinia()
   setActivePinia(pinia)
   const router = createAppRouter(createMemoryHistory())
   await router.push(path)
   await router.isReady()
-  const wrapper = mount({ template: '<RouterView />' }, { global: { plugins: [pinia, i18n, router] } })
+  const wrapper = mount({ template: '<RouterView />' }, { global: { plugins: [pinia, i18n, router] }, attachTo })
   await flushPromises()
   return { wrapper, router }
 }
@@ -43,6 +43,20 @@ describe('LoginView', () => {
     expect(document.documentElement.lang).toBe('es')
     expect(wrapper.find('h1').text()).toBe('Iniciar sesión')
     expect(wrapper.find('[aria-label="Idioma"] button[data-state=on]').text()).toBe('ES')
+  })
+
+  it('focuses the email field on mount', async () => {
+    const { wrapper } = await mountLogin('/login', document.body)
+    expect(document.activeElement).toBe(document.getElementById('login-email'))
+    wrapper.unmount()
+  })
+
+  it('exposes accessible names and language for the language options', async () => {
+    const { wrapper } = await mountLogin()
+    const buttons = wrapper.findAll('[aria-label="Language"] button')
+    expect(buttons.map((b) => b.text())).toEqual(['ES', 'EN'])
+    expect(buttons.map((b) => b.attributes('aria-label'))).toEqual(['Español', 'English'])
+    expect(buttons.map((b) => b.attributes('lang'))).toEqual(['es', 'en'])
   })
 
   it('lets the user locale win over the saved choice after signing in', async () => {

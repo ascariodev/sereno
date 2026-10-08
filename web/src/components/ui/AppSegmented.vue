@@ -4,6 +4,8 @@ export interface AppSegmentedOption {
   label: string
   count?: number
   disabled?: boolean
+  ariaLabel?: string
+  lang?: string
 }
 </script>
 
@@ -35,6 +37,8 @@ function onUpdate(value: unknown) {
       class="app-segmented__item"
       :value="option.value"
       :disabled="option.disabled"
+      :aria-label="option.ariaLabel"
+      :lang="option.lang"
     >
       <span>{{ option.label }}</span>
       <span v-if="option.count !== undefined" class="app-segmented__count">

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
@@ -13,6 +13,7 @@ const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
+const emailInput = ref<HTMLInputElement | null>(null)
 const email = ref('')
 const password = ref('')
 const submitting = ref(false)
@@ -29,9 +30,11 @@ function describedBy(field: 'email' | 'password'): string | undefined {
 }
 
 const languageOptions = [
-  { value: 'es', label: 'ES' },
-  { value: 'en', label: 'EN' },
+  { value: 'es', label: 'ES', ariaLabel: 'Español', lang: 'es' },
+  { value: 'en', label: 'EN', ariaLabel: 'English', lang: 'en' },
 ]
+
+onMounted(() => emailInput.value?.focus())
 
 function onLanguage(value: string): void {
   chooseLocale(value as Locale)
@@ -94,6 +97,7 @@ async function submit(): Promise<void> {
             <label for="login-email">{{ t('login.email') }}</label>
             <input
               id="login-email"
+              ref="emailInput"
               v-model="email"
               type="email"
               name="email"

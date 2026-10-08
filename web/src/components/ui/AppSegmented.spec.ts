@@ -49,6 +49,25 @@ describe('AppSegmented', () => {
     expect(buttons()[2].disabled).toBe(true)
   })
 
+  it('renders aria-label and lang only on options that define them', () => {
+    wrapper = mount(AppSegmented, {
+      props: {
+        modelValue: 'es',
+        label: 'Language',
+        options: [
+          { value: 'es', label: 'ES', ariaLabel: 'Español', lang: 'es' },
+          { value: 'plain', label: 'Plain' },
+        ],
+      },
+      attachTo: document.body,
+    })
+    const [named, plain] = buttons()
+    expect(named.getAttribute('aria-label')).toBe('Español')
+    expect(named.getAttribute('lang')).toBe('es')
+    expect(plain.hasAttribute('aria-label')).toBe(false)
+    expect(plain.hasAttribute('lang')).toBe(false)
+  })
+
   it('clicking another option emits update:modelValue', async () => {
     const segmented = mountSegmented()
     buttons()[1].click()
