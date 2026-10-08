@@ -105,11 +105,18 @@ function resetHourly(): void {
   hourly.value = {}
 }
 
+function hourlyFor(group: LogGroup): number[] | undefined {
+  return hourly.value[String(group.id)]
+}
+
 async function loadHourly(rows: LogGroup[]): Promise<void> {
   const current = ++hourlyGeneration
   hourlyController?.abort()
   hourlyController = null
-  if (rows.length === 0) return
+  if (rows.length === 0) {
+    hourly.value = {}
+    return
+  }
   hourlyController = new AbortController()
   try {
     const response = await getHourlyCounts(projectId.value, rows.map((row) => row.id), hourlyController.signal)
@@ -311,7 +318,7 @@ function formatDate(value: string): string {
                   </td>
                   <td class="log-view__number">{{ group.events_count }}</td>
                   <td class="log-view__activity">
-                    <Sparkline v-if="hourly[String(group.id)]" :counts="hourly[String(group.id)]" :level="group.level" />
+                    <Sparkline v-if="hourlyFor(group)" :counts="hourlyFor(group)!" :level="group.level" />
                   </td>
                   <td class="log-view__date">{{ formatDate(group.last_seen_at) }}</td>
                   <td><StatusPill :status="group.status" /></td>
