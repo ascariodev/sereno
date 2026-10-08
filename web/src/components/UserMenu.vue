@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { LogOut, Monitor, Moon, Sun } from '@lucide/vue'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { saveThemePreference, type ThemePreference } from '../theme/theme'
+import { readThemePreference, saveThemePreference, type ThemePreference } from '../theme/theme'
 import { useAuthStore } from '../stores/auth'
 import AppAvatar from './ui/AppAvatar.vue'
 import AppMenu from './ui/AppMenu.vue'
@@ -13,17 +13,19 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const THEME_PREFIX = 'theme:'
+const theme = ref<ThemePreference>(readThemePreference())
 
 const items = computed(() => [
-  { value: `${THEME_PREFIX}system`, label: t('userMenu.theme.system'), icon: Monitor },
-  { value: `${THEME_PREFIX}light`, label: t('userMenu.theme.light'), icon: Sun },
-  { value: `${THEME_PREFIX}dark`, label: t('userMenu.theme.dark'), icon: Moon },
+  { value: `${THEME_PREFIX}system`, label: t('userMenu.theme.system'), icon: Monitor, checked: theme.value === 'system' },
+  { value: `${THEME_PREFIX}light`, label: t('userMenu.theme.light'), icon: Sun, checked: theme.value === 'light' },
+  { value: `${THEME_PREFIX}dark`, label: t('userMenu.theme.dark'), icon: Moon, checked: theme.value === 'dark' },
   { value: 'logout', label: t('layout.logout'), icon: LogOut, danger: true },
 ])
 
 async function onSelect(value: string): Promise<void> {
   if (value.startsWith(THEME_PREFIX)) {
-    saveThemePreference(value.slice(THEME_PREFIX.length) as ThemePreference)
+    theme.value = value.slice(THEME_PREFIX.length) as ThemePreference
+    saveThemePreference(theme.value)
     return
   }
   await auth.logout()

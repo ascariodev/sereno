@@ -7,11 +7,14 @@ export interface AppMenuItem {
   icon?: LucideIcon
   disabled?: boolean
   danger?: boolean
+  checked?: boolean
 }
 </script>
 
 <script setup lang="ts">
+import { Check } from '@lucide/vue'
 import {
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuPortal,
@@ -34,7 +37,8 @@ const emit = defineEmits<{ select: [value: string] }>()
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
       <DropdownMenuContent class="app-menu" :side="side" :align="align" :side-offset="6" :collision-padding="8">
-        <DropdownMenuItem
+        <component
+          :is="item.checked === undefined ? DropdownMenuItem : DropdownMenuCheckboxItem"
           v-for="item in items"
           :key="item.value"
           class="app-menu__item"
@@ -42,11 +46,13 @@ const emit = defineEmits<{ select: [value: string] }>()
           :disabled="item.disabled"
           :text-value="item.label"
           :data-value="item.value"
+          v-bind="item.checked === undefined ? {} : { modelValue: item.checked }"
           @select="emit('select', item.value)"
         >
           <component :is="item.icon" v-if="item.icon" class="app-menu__icon" :size="16" aria-hidden="true" />
-          <span>{{ item.label }}</span>
-        </DropdownMenuItem>
+          <span class="app-menu__label">{{ item.label }}</span>
+          <Check v-if="item.checked" class="app-menu__check" :size="15" aria-hidden="true" />
+        </component>
       </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
@@ -96,6 +102,13 @@ const emit = defineEmits<{ select: [value: string] }>()
 .app-menu__item--danger,
 .app-menu__item--danger[data-highlighted] {
   color: var(--level-error-fg);
+}
+.app-menu__label {
+  flex: 1;
+}
+.app-menu__check {
+  flex: none;
+  color: var(--accent-ink);
 }
 .app-menu__icon {
   flex: none;

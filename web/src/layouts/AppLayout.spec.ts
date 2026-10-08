@@ -53,7 +53,7 @@ async function openMenu(trigger: string) {
 }
 
 async function pick(value: string) {
-  const item = document.querySelector<HTMLElement>(`[role=menuitem][data-value="${value}"]`)!
+  const item = document.querySelector<HTMLElement>(`[role^=menuitem][data-value="${value}"]`)!
   item.focus()
   key(item, 'Enter')
   await settle()
@@ -95,13 +95,14 @@ describe('AppLayout', () => {
     const { wrapper } = await mountApp()
     expect(wrapper.text()).toContain('Ada')
     expect(wrapper.find('button[name=organization]').text()).toBe('One')
+    expect(wrapper.find('button[name=organization]').attributes('aria-label')).toBe('Organization: One')
     expect(wrapper.text()).toContain('Projects')
   })
 
   it('lists the organizations in the menu and choosing one changes the active organization', async () => {
     const { wrapper } = await mountApp()
     await openMenu('button[name=organization]')
-    const options = [...document.querySelectorAll('[role=menuitem]')]
+    const options = [...document.querySelectorAll('[role^=menuitem]')]
     expect(options.map((el) => el.textContent?.trim())).toEqual(['One', 'Two'])
     await pick('2')
     expect(useOrganizationStore().activeId).toBe(2)

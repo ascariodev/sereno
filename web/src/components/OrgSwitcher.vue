@@ -9,7 +9,7 @@ const { t } = useI18n()
 const organization = useOrganizationStore()
 
 const items = computed(() =>
-  organization.organizations.map((item) => ({ value: String(item.id), label: item.name })),
+  organization.organizations.map((item) => ({ value: String(item.id), label: item.name, checked: item.id === organization.activeId })),
 )
 const activeName = computed(
   () => organization.organizations.find((item) => item.id === organization.activeId)?.name ?? '',
@@ -18,7 +18,7 @@ const activeName = computed(
 
 <template>
   <AppMenu v-if="organization.organizations.length > 0" :items="items" @select="organization.select(Number($event))">
-    <button type="button" name="organization" class="org-switcher" :aria-label="t('organization.label')">
+    <button type="button" name="organization" class="org-switcher" :aria-label="`${t('organization.label')}: ${activeName}`">
       <span class="org-switcher__name">{{ activeName }}</span>
       <ChevronsUpDown :size="15" aria-hidden="true" />
     </button>

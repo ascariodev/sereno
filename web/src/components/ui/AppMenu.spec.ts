@@ -122,4 +122,18 @@ describe('AppMenu', () => {
     await settle()
     expect(menuWrapper.emitted('select')).toBeUndefined()
   })
+
+  it('marks the checked item and emits select for it', async () => {
+    wrapper = mount(AppMenu, {
+      props: { items: [{ value: 'a', label: 'A', checked: true }, { value: 'b', label: 'B', checked: false }] },
+      slots: { default: () => h('button', { type: 'button', name: 'open-menu' }, 'Menu') },
+      attachTo: document.body,
+    })
+    await openWithKeyboard()
+    const options = [...menu()!.querySelectorAll('[role=menuitemcheckbox]')]
+    expect(options.map((el) => el.getAttribute('aria-checked'))).toEqual(['true', 'false'])
+    ;(options[1] as HTMLElement).click()
+    await settle()
+    expect(wrapper.emitted('select')).toEqual([['b']])
+  })
 })
