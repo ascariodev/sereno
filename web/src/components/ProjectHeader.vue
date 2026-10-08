@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Activity, MessageSquare } from '@lucide/vue'
+import { useI18n } from 'vue-i18n'
 import ProjectKey from './ui/ProjectKey.vue'
 
 defineProps<{
@@ -6,7 +8,11 @@ defineProps<{
   projectKey: string
   description?: string | null
   channelName?: string | null
+  projectId?: number
+  channelId?: number | null
 }>()
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -19,7 +25,22 @@ defineProps<{
       </h1>
       <span v-if="description" class="project-header__description" :title="description">{{ description }}</span>
     </div>
-    <slot name="tabs" />
+    <slot name="tabs">
+      <nav v-if="projectId !== undefined" class="project-header__tabs" :aria-label="t('projectTabs.label')">
+        <RouterLink v-if="channelId" :to="{ name: 'channel', params: { id: channelId } }" class="project-header__tab">
+          <MessageSquare :size="15" aria-hidden="true" />
+          {{ t('projectTabs.channel') }}
+        </RouterLink>
+        <span v-else class="project-header__tab project-header__tab--disabled" aria-disabled="true">
+          <MessageSquare :size="15" aria-hidden="true" />
+          {{ t('projectTabs.channel') }}
+        </span>
+        <RouterLink :to="{ name: 'project-log', params: { projectId } }" class="project-header__tab">
+          <Activity :size="15" aria-hidden="true" />
+          {{ t('projectTabs.log') }}
+        </RouterLink>
+      </nav>
+    </slot>
     <slot name="actions" />
   </header>
 </template>
@@ -66,5 +87,41 @@ defineProps<{
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.project-header__tabs {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg);
+  border-radius: var(--radius-control);
+}
+
+.project-header__tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--ink-2);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.project-header__tab--disabled {
+  opacity: 0.6;
+}
+
+.project-header__tab[aria-current='page'] {
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(21, 23, 28, 0.08);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.project-header__tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 </style>

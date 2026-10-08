@@ -151,6 +151,12 @@ describe('AppLayout', () => {
     expect(wrapper.find('a[href="/"]').attributes('aria-current')).toBeUndefined()
   })
 
+  it('marks the project as current on its log page', async () => {
+    const { wrapper } = await mountApp(undefined, '/projects/5/log')
+    expect(wrapper.find('a[href="/channels/7"]').attributes('aria-current')).toBe('page')
+    expect(wrapper.find('a[href="/"]').attributes('aria-current')).toBeUndefined()
+  })
+
   it('marks Home as current on the home page', async () => {
     const { wrapper } = await mountApp()
     expect(wrapper.find('a[href="/"]').attributes('aria-current')).toBe('page')

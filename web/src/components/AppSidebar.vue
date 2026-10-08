@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { House } from '@lucide/vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import OrgSwitcher from './OrgSwitcher.vue'
@@ -10,6 +12,19 @@ import ProjectKey from './ui/ProjectKey.vue'
 const { t } = useI18n()
 const organization = useOrganizationStore()
 const projectsStore = useProjectsStore()
+const route = useRoute()
+
+const activeProjectId = computed<number | null>(() => {
+  if (route.name === 'project-log') return Number(route.params.projectId)
+  if (route.name !== 'channel') return null
+  const channelId = Number(route.params.id)
+  const entry = Object.entries(projectsStore.channelByProject).find(([, id]) => id === channelId)
+  return entry ? Number(entry[0]) : null
+})
+
+function currentFor(projectId: number): 'page' | undefined {
+  return activeProjectId.value === projectId ? 'page' : undefined
+}
 </script>
 
 <template>
@@ -32,11 +47,16 @@ const projectsStore = useProjectsStore()
           v-if="projectsStore.channelByProject[project.id] !== undefined"
           :to="{ name: 'channel', params: { id: projectsStore.channelByProject[project.id] } }"
           class="app-sidebar__link app-sidebar__project"
+          :aria-current="currentFor(project.id)"
         >
           <ProjectKey :value="project.key" />
           <span class="app-sidebar__name">{{ project.name }}</span>
         </RouterLink>
-        <span v-else class="app-sidebar__link app-sidebar__project app-sidebar__project--disabled">
+        <span
+          v-else
+          class="app-sidebar__link app-sidebar__project app-sidebar__project--disabled"
+          :aria-current="currentFor(project.id)"
+        >
           <ProjectKey :value="project.key" />
           <span class="app-sidebar__name">{{ project.name }}</span>
         </span>

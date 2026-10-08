@@ -108,5 +108,43 @@
       "resolved": "resuelto",
       "ignored": "ignorado"
     }
+  },
+  "projectTabs": {
+    "label": "Vistas del proyecto",
+    "channel": "Canal",
+    "log": "Log"
+  },
+  "log": {
+    "title": "Log",
+    "loadFailed": "No se pudieron cargar los grupos de log.",
+    "notFound": "Este proyecto no existe o no tienes acceso.",
+    "empty": "Ningún grupo de log coincide con estos filtros.",
+    "filters": "Filtros",
+    "statusFilter": {
+      "label": "Estado",
+      "open": "Abiertos",
+      "resolved": "Resueltos",
+      "ignored": "Ignorados",
+      "all": "Todos"
+    },
+    "level": {
+      "label": "Nivel",
+      "all": "Todos los niveles",
+      "atLeast": "{level} o más"
+    },
+    "table": {
+      "label": "Grupos de log",
+      "level": "Nivel",
+      "group": "Grupo",
+      "events": "Eventos",
+      "lastSeen": "Última vez",
+      "status": "Estado"
+    },
+    "pagination": {
+      "label": "Paginación",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "page": "Página {page} de {last}"
+    }
   }
 }

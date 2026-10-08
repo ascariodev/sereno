@@ -1,0 +1,221 @@
+import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
+import { createMemoryHistory } from 'vue-router'
+import { api } from '../api/client'
+import type { LogGroup } from '../api/types'
+import { i18n } from '../i18n'
+import { createAppRouter } from '../router'
+import { useAuthStore } from '../stores/auth'
+import { useOrganizationStore } from '../stores/organization'
+import LogView from './LogView.vue'
+
+const project = { id: 5, name: 'posveapi', key: 'POSVE', description: 'Sales', archived_at: null, created_at: '', updated_at: '' }
+const group = (id: number, overrides: Partial<LogGroup> = {}): LogGroup => ({
+  id,
+  project_id: 5,
+  level: 'error',
+  title: `Timeout ${id}`,
+  status: 'open',
+  events_count: id * 10,
+  first_seen_at: '2026-10-01T10:00:00Z',
+  last_seen_at: '2026-10-02T10:00:00Z',
+  ...overrides,
+})
+const page = (data: LogGroup[], current = 1, last = 1) => ({
+  data,
+  links: {},
+  meta: { current_page: current, last_page: last, per_page: 20, total: data.length },
+})
+
+type Query = Record<string, unknown>
+let mounted: ReturnType<typeof mount> | undefined
+
+function groupCalls(spy: { mock: { calls: unknown[][] } }): Query[] {
+  return spy.mock.calls
+    .filter(([path]) => path === '/api/projects/5/log-groups')
+    .map(([, options]) => (options as { query: Query }).query)
+}
+
+function mockApi(groups: (query: Query) => unknown) {
+  return vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: { query?: Query }) => {
+    if (path === '/api/projects') return { data: [project], meta: { last_page: 1 } } as never
+    if (path === '/api/channels') return { data: [{ id: 7, project_id: 5, name: 'general' }] } as never
+    if (path === '/api/projects/5/log-groups') return (await groups(options?.query ?? {})) as never
+    if (path.startsWith('/api/projects/5/log-groups/')) return { data: group(1) } as never
+    return undefined as never
+  })
+}
+
+async function mountView(path = '/projects/5/log') {
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  useAuthStore().$patch({ token: 't', user: { id: 1, name: 'Ana', email: 'a@b.c', locale: null } })
+  useOrganizationStore().$patch({ activeId: 1 })
+  const router = createAppRouter(createMemoryHistory())
+  await router.push(path)
+  const wrapper = mount(LogView, { global: { plugins: [pinia, i18n, router] }, attachTo: document.body })
+  mounted = wrapper
+  await flushPromises()
+  return Object.assign(wrapper, { router })
+}
+
+describe('LogView', () => {
+  beforeEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    mounted?.unmount()
+    mounted = undefined
+    document.body.innerHTML = ''
+  })
+
+  it('lists open groups by default with level, title, events and status', async () => {
+    const spy = mockApi(() => page([group(1), group(2, { level: 'critical', status: 'resolved' })]))
+    const wrapper = await mountView()
+    expect(groupCalls(spy)).toEqual([{ status: 'open', level: undefined, page: 1, per_page: undefined }])
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows).toHaveLength(2)
+    expect(rows[0].text()).toContain('Timeout 1')
+    expect(rows[0].text()).toContain('10')
+    expect(rows[1].find('[data-level=critical]').exists()).toBe(true)
+    expect(rows[1].find('[data-status=resolved]').exists()).toBe(true)
+    expect(wrapper.find('h1').text()).toContain('posveapi')
+    expect(wrapper.find('[aria-label="Status"] [aria-pressed=true]').text()).toContain('Open')
+  })
+
+  it('filters by status and level through the URL and goes back with history', async () => {
+    const spy = mockApi(() => page([group(1)]))
+    const wrapper = await mountView()
+
+    const resolved = wrapper.findAll('[aria-label="Status"] button').find((b) => b.text().includes('Resolved'))!
+    await resolved.trigger('click')
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query).toEqual({ status: 'resolved' })
+    expect(groupCalls(spy).at(-1)?.status).toBe('resolved')
+
+    const select = wrapper.find('select[name=level]')
+    await select.setValue('error')
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query).toEqual({ status: 'resolved', level: 'error' })
+    expect(groupCalls(spy).at(-1)).toMatchObject({ status: 'resolved', level: 'error' })
+
+    const all = wrapper.findAll('[aria-label="Status"] button').find((b) => b.text().includes('All'))!
+    await all.trigger('click')
+    await flushPromises()
+    expect(groupCalls(spy).at(-1)?.status).toBeUndefined()
+    expect(wrapper.router.currentRoute.value.query.status).toBe('all')
+
+    wrapper.router.back()
+    await flushPromises()
+    expect(groupCalls(spy).at(-1)).toMatchObject({ status: 'resolved', level: 'error' })
+  })
+
+  it('reads the filters from the URL and ignores invalid values', async () => {
+    const spy = mockApi(() => page([group(1)]))
+    const wrapper = await mountView('/projects/5/log?status=ignored&level=warning&page=abc')
+    expect(groupCalls(spy)).toEqual([{ status: 'ignored', level: 'warning', page: 1, per_page: undefined }])
+    expect((wrapper.find('select[name=level]').element as HTMLSelectElement).value).toBe('warning')
+    expect(wrapper.find('[aria-label="Status"] [aria-pressed=true]').text()).toContain('Ignored')
+
+    mounted?.unmount()
+    const invalid = await mountView('/projects/5/log?status=zzz&level=nope')
+    expect(groupCalls(spy).at(-1)).toMatchObject({ status: 'open', level: undefined })
+    expect((invalid.find('select[name=level]').element as HTMLSelectElement).value).toBe('all')
+  })
+
+  it('paginates through the URL and resets the page when a filter changes', async () => {
+    const spy = mockApi((query) => page([group(Number(query.page ?? 1))], Number(query.page ?? 1), 3))
+    const wrapper = await mountView()
+    expect(wrapper.text()).toContain('Page 1 of 3')
+    expect(wrapper.find('button[name=prev-page]').attributes('disabled')).toBeDefined()
+
+    await wrapper.find('button[name=next-page]').trigger('click')
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query).toEqual({ page: '2' })
+    expect(groupCalls(spy).at(-1)?.page).toBe(2)
+    expect(wrapper.text()).toContain('Page 2 of 3')
+
+    await wrapper.find('select[name=level]').setValue('error')
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query).toEqual({ level: 'error' })
+
+    await wrapper.router.push('/projects/5/log?page=3')
+    await flushPromises()
+    expect(wrapper.find('button[name=next-page]').attributes('disabled')).toBeDefined()
+  })
+
+  it('moves to the last page when the requested one is out of range', async () => {
+    const spy = mockApi((query) => page(Number(query.page) > 2 ? [] : [group(1)], 2, 2))
+    const wrapper = await mountView('/projects/5/log?page=9')
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query).toEqual({ page: '2' })
+    expect(groupCalls(spy).at(-1)?.page).toBe(2)
+  })
+
+  it('discards a stale response when the filters change quickly', async () => {
+    const resolvers: Record<string, (value: unknown) => void> = {}
+    mockApi(
+      (query) =>
+        new Promise((resolve) => {
+          resolvers[String(query.status)] = resolve
+        }),
+    )
+    const wrapper = await mountView()
+    await wrapper.router.push('/projects/5/log?status=resolved')
+    await nextTick()
+    resolvers.resolved(page([group(2, { title: 'fresh' })]))
+    await flushPromises()
+    resolvers.open(page([group(1, { title: 'stale' })]))
+    await flushPromises()
+    expect(wrapper.text()).toContain('fresh')
+    expect(wrapper.text()).not.toContain('stale')
+  })
+
+  it('opens the detail panel from a row and closes it, keeping the filters', async () => {
+    mockApi(() => page([group(1), group(2)]))
+    const wrapper = await mountView('/projects/5/log?level=error')
+    await wrapper.findAll('a.log-view__group')[1].trigger('click')
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query).toEqual({ level: 'error', group: '2' })
+    expect(wrapper.find('aside').exists()).toBe(true)
+
+    await wrapper.find('aside button').trigger('click')
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query).toEqual({ level: 'error' })
+    expect(wrapper.find('aside').exists()).toBe(false)
+  })
+
+  it('shows the empty state, a retryable error and not found', async () => {
+    let mode: 'empty' | 'fail' = 'empty'
+    mockApi(() => {
+      if (mode === 'fail') throw new Error('boom')
+      return page([])
+    })
+    const wrapper = await mountView()
+    expect(wrapper.text()).toContain('No log groups match these filters.')
+    expect(wrapper.find('table').exists()).toBe(false)
+
+    mode = 'fail'
+    await wrapper.router.push('/projects/5/log?status=all')
+    await flushPromises()
+    expect(wrapper.find('[role=alert]').text()).toContain('Could not load the log groups.')
+
+    mode = 'empty'
+    await wrapper.find('button[name=retry]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[role=alert]').exists()).toBe(false)
+  })
+
+  it('links the Channel and Log tabs and marks Log as current', async () => {
+    mockApi(() => page([group(1)]))
+    const wrapper = await mountView('/projects/5/log?status=all')
+    const tabs = wrapper.findAll('nav[aria-label="Project views"] a')
+    expect(tabs.map((tab) => tab.attributes('href'))).toEqual(['/channels/7', '/projects/5/log'])
+    expect(tabs[0].attributes('aria-current')).toBeUndefined()
+    expect(tabs[1].attributes('aria-current')).toBe('page')
+
+    await tabs[0].trigger('click')
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.name).toBe('channel')
+  })
+})

@@ -108,5 +108,43 @@
       "resolved": "resolved",
       "ignored": "ignored"
     }
+  },
+  "projectTabs": {
+    "label": "Project views",
+    "channel": "Channel",
+    "log": "Log"
+  },
+  "log": {
+    "title": "Log",
+    "loadFailed": "Could not load the log groups.",
+    "notFound": "This project does not exist or you cannot access it.",
+    "empty": "No log groups match these filters.",
+    "filters": "Filters",
+    "statusFilter": {
+      "label": "Status",
+      "open": "Open",
+      "resolved": "Resolved",
+      "ignored": "Ignored",
+      "all": "All"
+    },
+    "level": {
+      "label": "Level",
+      "all": "All levels",
+      "atLeast": "{level} or higher"
+    },
+    "table": {
+      "label": "Log groups",
+      "level": "Level",
+      "group": "Group",
+      "events": "Events",
+      "lastSeen": "Last seen",
+      "status": "Status"
+    },
+    "pagination": {
+      "label": "Pagination",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {page} of {last}"
+    }
   }
 }

@@ -132,6 +132,8 @@ onUnmounted(() => {
       :project-key="project.key"
       :description="project.description"
       :channel-name="channel.name"
+      :project-id="channel.project_id"
+      :channel-id="channel.id"
     />
     <h1 v-else class="channel__title">{{ t('channel.title') }}</h1>
     <div class="channel__layout">
