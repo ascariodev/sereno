@@ -6,6 +6,8 @@ import es from './es.json'
 export const SUPPORTED_LOCALES = ['en', 'es'] as const
 export type Locale = (typeof SUPPORTED_LOCALES)[number]
 
+export const LOCALE_LABELS: Record<Locale, string> = { es: 'Español', en: 'English' }
+
 const DEFAULT_LOCALE: Locale = 'en'
 export const LOCALE_STORAGE_KEY = 'workspace.locale'
 

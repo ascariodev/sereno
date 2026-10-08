@@ -3,7 +3,7 @@ import { Languages, LogOut, Monitor, Moon, Sun } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import type { Locale } from '../i18n'
+import { LOCALE_LABELS, type Locale } from '../i18n'
 import { saveThemePreference, themePreference as theme, type ThemePreference } from '../theme/theme'
 import { useAuthStore } from '../stores/auth'
 import { toast } from './ui/toast'
@@ -21,8 +21,8 @@ const items = computed(() => [
   { value: `${THEME_PREFIX}system`, label: t('userMenu.theme.system'), icon: Monitor, checked: theme.value === 'system' },
   { value: `${THEME_PREFIX}light`, label: t('userMenu.theme.light'), icon: Sun, checked: theme.value === 'light' },
   { value: `${THEME_PREFIX}dark`, label: t('userMenu.theme.dark'), icon: Moon, checked: theme.value === 'dark' },
-  { value: `${LOCALE_PREFIX}es`, label: 'Español', icon: Languages, checked: locale.value === 'es' },
-  { value: `${LOCALE_PREFIX}en`, label: 'English', icon: Languages, checked: locale.value === 'en' },
+  { value: `${LOCALE_PREFIX}es`, label: LOCALE_LABELS.es, icon: Languages, checked: locale.value === 'es' },
+  { value: `${LOCALE_PREFIX}en`, label: LOCALE_LABELS.en, icon: Languages, checked: locale.value === 'en' },
   { value: 'logout', label: t('layout.logout'), icon: LogOut, danger: true },
 ])
 

@@ -1,12 +1,15 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { defineComponent, nextTick, ref } from 'vue'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
-import { i18n } from '../i18n'
+import { api, ApiError } from '../api/client'
+import { i18n, LOCALE_STORAGE_KEY, setLocale } from '../i18n'
+import { useAuthStore } from '../stores/auth'
 import { useProjectsStore } from '../stores/projects'
 import { THEME_STORAGE_KEY, themePreference } from '../theme/theme'
 import CommandPalette from './CommandPalette.vue'
+import { toast, toasts } from './ui/toast'
 
 const project = (id: number, name: string, key: string) => ({
   id,
@@ -30,6 +33,9 @@ afterEach(() => {
   document.body.innerHTML = ''
   localStorage.clear()
   document.documentElement.removeAttribute('data-theme')
+  vi.restoreAllMocks()
+  toast.clear()
+  setLocale('en')
 })
 
 async function settle() {
@@ -138,7 +144,7 @@ describe('CommandPalette', () => {
     shortcut()
     await settle()
 
-    expect(optionValues()).toEqual(['home', 'channel:7', 'log:5', 'log:6', 'theme:system', 'theme:light', 'theme:dark'])
+    expect(optionValues()).toEqual(['home', 'channel:7', 'log:5', 'log:6', 'theme:system', 'theme:light', 'theme:dark', 'locale:en', 'locale:es'])
   })
 
   it('filters by project key and section', async () => {
@@ -151,6 +157,21 @@ describe('CommandPalette', () => {
 
     await type('posve')
     expect(optionValues()).toEqual(['channel:7', 'log:5'])
+  })
+
+  it('finds the theme and language commands by their section name in either language', async () => {
+    await mountPalette()
+    shortcut()
+    await settle()
+
+    await type('language')
+    expect(optionValues()).toEqual(['locale:en', 'locale:es'])
+    await type('idioma')
+    expect(optionValues()).toEqual(['locale:en', 'locale:es'])
+    await type('theme')
+    expect(optionValues()).toEqual(['theme:system', 'theme:light', 'theme:dark'])
+    await type('tema')
+    expect(optionValues()).toEqual(['theme:system', 'theme:light', 'theme:dark'])
   })
 
   it('goes to the log of a project and closes', async () => {
@@ -188,5 +209,33 @@ describe('CommandPalette', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
     expect(themePreference.value).toBe('dark')
+  })
+
+  it('changes the language and saves it in the API', async () => {
+    const patch = vi.spyOn(api, 'patch').mockResolvedValue({ data: { id: 1, name: 'Ada', email: 'a@e.com', locale: 'es' } })
+    await mountPalette()
+    useAuthStore().user = { id: 1, name: 'Ada', email: 'a@e.com', locale: 'en' }
+    shortcut()
+    await settle()
+
+    await choose('locale:es')
+
+    expect(patch).toHaveBeenCalledWith('/api/me/locale', { locale: 'es' })
+    expect(i18n.global.locale.value).toBe('es')
+    expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('es')
+    expect(toasts.value).toHaveLength(0)
+  })
+
+  it('keeps the language applied and warns when saving fails', async () => {
+    vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(500, 'boom', {}))
+    await mountPalette()
+    useAuthStore().user = { id: 1, name: 'Ada', email: 'a@e.com', locale: 'en' }
+    shortcut()
+    await settle()
+
+    await choose('locale:es')
+
+    expect(i18n.global.locale.value).toBe('es')
+    expect(toasts.value.map((t) => t.kind)).toEqual(['error'])
   })
 })

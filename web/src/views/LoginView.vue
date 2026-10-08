@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import AppSegmented from '../components/ui/AppSegmented.vue'
 import { toast } from '../components/ui/toast'
-import { chooseLocale, type Locale } from '../i18n'
+import { chooseLocale, LOCALE_LABELS, type Locale } from '../i18n'
 import { safeRedirect } from '../router/safeRedirect'
 import { useAuthStore } from '../stores/auth'
 
@@ -32,8 +32,8 @@ function describedBy(field: 'email' | 'password'): string | undefined {
 }
 
 const languageOptions = [
-  { value: 'es', label: 'ES', ariaLabel: 'Español', lang: 'es' },
-  { value: 'en', label: 'EN', ariaLabel: 'English', lang: 'en' },
+  { value: 'es', label: 'ES', ariaLabel: LOCALE_LABELS.es, lang: 'es' },
+  { value: 'en', label: 'EN', ariaLabel: LOCALE_LABELS.en, lang: 'en' },
 ]
 
 onMounted(() => emailInput.value?.focus())

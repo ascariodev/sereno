@@ -50,10 +50,11 @@
   "command": {
     "open": "Buscar",
     "title": "Paleta de comandos",
-    "placeholder": "Ir a un proyecto o cambiar el tema",
+    "placeholder": "Ir a un proyecto o cambiar el tema o el idioma",
     "empty": "Sin resultados.",
     "goTo": "Ir a",
-    "theme": "Tema"
+    "theme": "Tema",
+    "language": "Idioma"
   },
   "userMenu": {
     "label": "Menú de usuario",

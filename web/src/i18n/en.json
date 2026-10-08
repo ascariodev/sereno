@@ -50,10 +50,11 @@
   "command": {
     "open": "Search",
     "title": "Command palette",
-    "placeholder": "Go to a project or change the theme",
+    "placeholder": "Go to a project or change the theme or language",
     "empty": "No results.",
     "goTo": "Go to",
-    "theme": "Theme"
+    "theme": "Theme",
+    "language": "Language"
   },
   "userMenu": {
     "label": "User menu",
