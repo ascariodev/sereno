@@ -122,6 +122,15 @@
     "revokeForbidden": "You are not allowed to revoke this invitation.",
     "revokeFailed": "Could not revoke the invitation. Try again."
   },
+  "members": {
+    "title": "Members",
+    "empty": "There are no members.",
+    "loadFailed": "Could not load the members.",
+    "role": "Role",
+    "noRole": "No role",
+    "joined": "Joined",
+    "you": "You"
+  },
   "inviteDialog": {
     "title": "Invite someone",
     "email": "Email",
@@ -137,6 +146,7 @@
   },
   "userMenu": {
     "invitations": "Invitations",
+    "members": "Members",
     "label": "User menu",
     "theme": {
       "system": "System theme",

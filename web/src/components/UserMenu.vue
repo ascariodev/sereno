@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Languages, LogOut, Mail, Monitor, Moon, Sun } from '@lucide/vue'
+import { Languages, LogOut, Mail, Monitor, Moon, Sun, Users } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -20,6 +20,7 @@ const THEME_PREFIX = 'theme:'
 const LOCALE_PREFIX = 'locale:'
 
 const items = computed(() => [
+  { value: 'members', label: t('userMenu.members'), icon: Users },
   ...(organization.canManageInvitations ? [{ value: 'invitations', label: t('userMenu.invitations'), icon: Mail }] : []),
   { value: `${THEME_PREFIX}system`, label: t('userMenu.theme.system'), icon: Monitor, checked: theme.value === 'system' },
   { value: `${THEME_PREFIX}light`, label: t('userMenu.theme.light'), icon: Sun, checked: theme.value === 'light' },
@@ -37,6 +38,10 @@ async function onSelect(value: string): Promise<void> {
   if (value.startsWith(LOCALE_PREFIX)) {
     const saved = await auth.chooseAndSaveLocale(value.slice(LOCALE_PREFIX.length) as Locale)
     if (!saved) toast.error(t('common.localeSaveFailed'))
+    return
+  }
+  if (value === 'members') {
+    await router.push({ name: 'members' })
     return
   }
   if (value === 'invitations') {

@@ -131,6 +131,29 @@ describe('UserMenu', () => {
     expect(toasts.value.map((t) => t.kind)).toEqual(['error'])
   })
 
+  describe('members entry', () => {
+    function membersEntry(): HTMLElement | undefined {
+      return Array.from(document.querySelectorAll<HTMLElement>('[role=menuitem]')).find(
+        (el) => el.textContent!.trim() === 'Members',
+      )
+    }
+
+    it.each([['owner'], ['admin'], ['member']])('shows the entry to %s and navigates to the screen', async (role) => {
+      useOrganizationStore().$patch({
+        organizations: [{ id: 1, name: 'Acme', slug: 'acme', settings: null, roles: [role] }],
+        activeId: 1,
+      })
+      const router = createAppRouter(createMemoryHistory())
+      const push = vi.spyOn(router, 'push')
+      mountMenu(router)
+      await open()
+      expect(membersEntry()).toBeDefined()
+      membersEntry()!.click()
+      await settle()
+      expect(push).toHaveBeenCalledWith({ name: 'members' })
+    })
+  })
+
   describe('invitations entry', () => {
     function entry(): HTMLElement | undefined {
       return Array.from(document.querySelectorAll<HTMLElement>('[role=menuitem]')).find(

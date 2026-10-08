@@ -11,6 +11,7 @@ import ChannelView from '../views/ChannelView.vue'
 import InvitationsView from '../views/InvitationsView.vue'
 import InviteView from '../views/InviteView.vue'
 import LogView from '../views/LogView.vue'
+import MembersView from '../views/MembersView.vue'
 import LoginView from '../views/LoginView.vue'
 import ProjectsView from '../views/ProjectsView.vue'
 import SessionErrorView from '../views/SessionErrorView.vue'
@@ -37,6 +38,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
           { path: 'channels/:id', name: 'channel', component: ChannelView },
           { path: 'projects/:projectId/log', name: 'project-log', component: LogView },
           { path: 'settings/invitations', name: 'invitations', component: InvitationsView },
+          { path: 'settings/members', name: 'members', component: MembersView },
         ],
       },
     ],

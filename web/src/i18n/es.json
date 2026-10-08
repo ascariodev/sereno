@@ -122,6 +122,15 @@
     "revokeForbidden": "No tienes permiso para revocar esta invitación.",
     "revokeFailed": "No se pudo revocar la invitación. Inténtalo de nuevo."
   },
+  "members": {
+    "title": "Miembros",
+    "empty": "No hay miembros.",
+    "loadFailed": "No se pudieron cargar los miembros.",
+    "role": "Rol",
+    "noRole": "Sin rol",
+    "joined": "Ingresó",
+    "you": "Tú"
+  },
   "inviteDialog": {
     "title": "Invitar a alguien",
     "email": "Correo",
@@ -137,6 +146,7 @@
   },
   "userMenu": {
     "invitations": "Invitaciones",
+    "members": "Miembros",
     "label": "Menú de usuario",
     "theme": {
       "system": "Tema del sistema",

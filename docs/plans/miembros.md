@@ -1,7 +1,7 @@
 # Plan: miembros
 
 **Objetivo:** que cualquier miembro vea quién está en la organización, que owner y admin cambien roles y quiten miembros según su rango, y que cualquiera pueda salir de la organización, sin que la organización se quede nunca sin owner.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -40,7 +40,7 @@
 - **Archivos:** `web/src/api/members.ts` (nuevo), `web/src/api/types.ts`, spec.
 - **Terminado cuando:** el spec cubre rutas, cuerpos y errores (403, 404, 422, 204); typecheck limpio.
 
-### [ ] Fase 6 — Pantalla de miembros
+### [x] Fase 6 — Pantalla de miembros
 - **Alcance:** ruta `/settings/members` para cualquier miembro; lista nombre, email, rol y fecha de ingreso, marcando "tú". Entrada "Miembros" en `UserMenu` para todos.
 - **Archivos:** `web/src/router/index.ts`, `web/src/views/MembersView.vue` (nueva), `web/src/components/UserMenu.vue`, `web/src/i18n/en.json`, `web/src/i18n/es.json`, specs.
 - **Terminado cuando:** specs de lista, error con reintento, cambio de organización activa (L-10) y entrada del menú pasan.
@@ -66,10 +66,11 @@
 - 2026-10-08 — `MemberPolicy::updateRole(actor, target, ?Role)`: owner todo; admin solo si el target no es owner y el rol pedido no es owner; member nada (403 antes de saber si el target existe). Owner/admin sobre un no miembro reciben 404.
 - 2026-10-08 — `MemberPolicy::remove(actor, target)`: quien se quita a sí mismo siempre pasa; owner quita a cualquiera; admin no quita owners; member nada. El 422 de último owner y el 404 de no miembro los da el modelo. `DELETE` responde 204.
 - 2026-10-08 — Web: `Member = {id, name, email, role: InvitationRole | null, joined_at: string | null}`; `joined_at` es ISO 8601 UTC con Z (verificado). Firmas: `listMembers(signal?)`, `updateMemberRole(id, role)`, `removeMember(id)`.
+- 2026-10-08 — Web: ruta `members` (`/settings/members`) visible para todo miembro; `MembersView` carga solo con `activeId` (generación + AbortController, L-10); "tú" = `auth.user.id === member.id`; roles con `invite.roles.*`; textos en `members.*` y `userMenu.members`; `joined_at` null se muestra "-"; fecha en zona local del navegador (intencional).
 - 2026-10-08 — No se cortan las suscripciones Reverb ya autorizadas del miembro quitado (queda como mejora).
 
 ## Notas para la próxima sesión
-- Fases 1 a 5 hechas (API y cliente web). Empezar por la fase 6: pantalla `/settings/members` siguiendo `InvitationsView.vue`; `role` puede ser null. Leer `docs/lecciones.md` antes.
+- Fases 1 a 6 hechas. Empezar por la fase 7: selector de rol por fila en `MembersView.vue` con getters en `organizationStore` (reglas de `MemberPolicy::updateRole`). Leer `docs/lecciones.md` antes.
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): cortar en vivo las suscripciones Reverb de un miembro quitado (requiere un canal privado por usuario u organización).
@@ -79,3 +80,4 @@
 - [ ] M-5 (baja, sonnet): test de concurrencia real con dos conexiones para el lock de `mutateMembership` (hoy solo se prueba el orden del SQL).
 - [ ] M-6 (baja, sonnet): en `UpdateMemberRoleRequest::authorize()`, evitar el aviso por `(string)` si `role` llega como array (usar `$this->string('role')->value()` o `is_string`).
 - [ ] M-7 (baja, sonnet): en el test de invitaciones del quitado, afirmar el mensaje del 422 con `assertJsonPath`, no solo `assertUnprocessable`.
+- [ ] M-8 (baja, sonnet): ordenar el import de `MembersView` en `web/src/router/index.ts` y parametrizar `mountView` en `MembersView.spec.ts` para el test de error con reintento.
