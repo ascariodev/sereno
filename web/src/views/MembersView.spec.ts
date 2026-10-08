@@ -169,6 +169,20 @@ describe('MembersView', () => {
     })
   })
 
+  describe('own role change with failed reload', () => {
+    it('keeps the new role and warns instead of showing roleFailed', async () => {
+      await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      vi.spyOn(api, 'patch').mockResolvedValue({ data: member(1, 'admin') })
+      vi.spyOn(api, 'get').mockRejectedValue(new ApiError(500, 'boom', {}))
+      await wrapper!.findAll('select')[0].setValue('admin')
+      await flushPromises()
+      expect(wrapper!.find('[data-test=role-error]').exists()).toBe(false)
+      expect((wrapper!.findAll('select')[0].element as HTMLSelectElement).value).toBe('admin')
+      expect(toasts.value.map((item) => item.kind)).toEqual(['error'])
+      expect(toasts.value[0].message).toContain('could not be reloaded')
+    })
+  })
+
   describe('remove and leave', () => {
     function dialogButton(name: string): HTMLButtonElement | null {
       return document.querySelector(`[role=dialog] [data-test=${name}]`)

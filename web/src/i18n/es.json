@@ -149,6 +149,7 @@
     "removeFailed": "No se pudo quitar al miembro. Inténtalo de nuevo.",
     "leaveFailed": "No se pudo salir de la organización. Inténtalo de nuevo.",
     "left": "Saliste de la organización.",
+    "roleReloadFailed": "Tu rol se cambió, pero no se pudieron recargar tus organizaciones. Recarga la página.",
     "leftReloadFailed": "Saliste de la organización, pero no se pudieron recargar tus organizaciones. Recarga la página."
   },
   "inviteDialog": {

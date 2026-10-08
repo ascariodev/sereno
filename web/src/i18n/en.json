@@ -149,6 +149,7 @@
     "removeFailed": "Could not remove the member. Try again.",
     "leaveFailed": "Could not leave the organization. Try again.",
     "left": "You left the organization.",
+    "roleReloadFailed": "Your role was changed, but your organizations could not be reloaded. Reload the page.",
     "leftReloadFailed": "You left the organization, but your organizations could not be reloaded. Reload the page."
   },
   "inviteDialog": {

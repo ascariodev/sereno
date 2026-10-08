@@ -83,11 +83,16 @@ async function changeRole(member: Member, event: Event): Promise<void> {
   roleError.value = null
   try {
     const updated = await updateMemberRole(member.id, role)
-    if (current !== generation) return
-    members.value = members.value.map((m) => (m.id === updated.id ? updated : m))
+    if (current === generation) {
+      members.value = members.value.map((m) => (m.id === updated.id ? updated : m))
+    }
     if (member.id === auth.user?.id) {
-      await organization.load()
-      if (current !== generation) return
+      try {
+        await organization.load()
+      } catch (error) {
+        if (!(error instanceof ApiError)) throw error
+        if (current === generation) toast.error(t('members.roleReloadFailed'))
+      }
     }
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
