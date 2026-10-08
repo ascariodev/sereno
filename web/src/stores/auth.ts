@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api, ApiError } from '../api/client'
 import type { LoginResponse, User } from '../api/types'
-import { setLocale } from '../i18n'
+import { chooseLocale, setLocale, type Locale } from '../i18n'
 import { disconnectRealtime, setRealtimeTokenProvider } from '../realtime/echo'
 import { useOrganizationStore } from './organization'
 
@@ -22,12 +22,35 @@ export const useAuthStore = defineStore('auth', () => {
     useOrganizationStore().clear()
   }
 
-  async function login(email: string, password: string): Promise<void> {
+  async function saveLocale(locale: Locale): Promise<boolean> {
+    const sessionToken = token.value
+    try {
+      const response = await api.patch<{ data: User }>('/api/me/locale', { locale })
+      if (token.value === sessionToken && user.value) user.value = response.data
+      return true
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error
+      return false
+    }
+  }
+
+  async function chooseAndSaveLocale(locale: Locale): Promise<boolean> {
+    chooseLocale(locale)
+    return saveLocale(locale)
+  }
+
+  async function login(email: string, password: string, explicitLocale: Locale | null = null): Promise<boolean> {
     const response = await api.post<LoginResponse>('/api/auth/login', { email, password })
     token.value = response.token
     user.value = response.user
     localStorage.setItem(TOKEN_STORAGE_KEY, response.token)
-    setLocale(response.user.locale)
+    if (!explicitLocale) {
+      setLocale(response.user.locale)
+      return true
+    }
+    const saved = await saveLocale(explicitLocale)
+    if (token.value === response.token) chooseLocale(explicitLocale)
+    return saved
   }
 
   async function fetchMe(): Promise<void> {
@@ -46,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { token, user, isAuthenticated, login, fetchMe, logout, clearSession }
+  return { token, user, isAuthenticated, login, chooseAndSaveLocale, fetchMe, logout, clearSession }
 })
 
 export function installAuthOnApi(onSessionExpired?: () => void): void {

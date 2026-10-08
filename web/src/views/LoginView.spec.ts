@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { i18n, LOCALE_STORAGE_KEY, setLocale } from '../i18n'
 import { createAppRouter } from '../router'
+import { toast, toasts } from '../components/ui/toast'
 
 const user = { id: 1, name: 'Test', email: 't@e.com', locale: 'en' }
 
@@ -30,6 +31,7 @@ describe('LoginView', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.restoreAllMocks()
+    toast.clear()
     setLocale('en')
   })
 
@@ -129,5 +131,39 @@ describe('LoginView', () => {
     const { wrapper } = await mountLogin()
     await submit(wrapper)
     expect(wrapper.find('[data-test=error-form]').text()).toBe(i18n.global.t('login.tooManyAttempts'))
+  })
+
+  it('saves in the API a language chosen explicitly on the login screen, then applies it', async () => {
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ token: 'abc', user })
+    const patch = vi.spyOn(api, 'patch').mockResolvedValue({ data: { ...user, locale: 'es' } })
+    const { wrapper } = await mountLogin()
+    await wrapper.findAll('[aria-label="Language"] button')[0]!.trigger('click')
+    await submit(wrapper)
+    expect(post).toHaveBeenCalledOnce()
+    expect(patch).toHaveBeenCalledWith('/api/me/locale', { locale: 'es' })
+    expect(i18n.global.locale.value).toBe('es')
+    expect(toasts.value).toHaveLength(0)
+  })
+
+  it('does not save the language when the selector was not touched', async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'es')
+    setLocale(null)
+    vi.spyOn(api, 'post').mockResolvedValue({ token: 'abc', user })
+    const patch = vi.spyOn(api, 'patch')
+    const { wrapper } = await mountLogin()
+    await submit(wrapper)
+    expect(patch).not.toHaveBeenCalled()
+    expect(i18n.global.locale.value).toBe('en')
+  })
+
+  it('still signs in and warns when saving the chosen language fails', async () => {
+    vi.spyOn(api, 'post').mockResolvedValue({ token: 'abc', user })
+    vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(500, 'boom', {}))
+    const { wrapper, router } = await mountLogin()
+    await wrapper.findAll('[aria-label="Language"] button')[0]!.trigger('click')
+    await submit(wrapper)
+    expect(router.currentRoute.value.path).not.toBe('/login')
+    expect(i18n.global.locale.value).toBe('es')
+    expect(toasts.value.map((t) => t.kind)).toEqual(['error'])
   })
 })

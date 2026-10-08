@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import AppSegmented from '../components/ui/AppSegmented.vue'
+import { toast } from '../components/ui/toast'
 import { chooseLocale, type Locale } from '../i18n'
 import { safeRedirect } from '../router/safeRedirect'
 import { useAuthStore } from '../stores/auth'
@@ -17,6 +18,7 @@ const emailInput = ref<HTMLInputElement | null>(null)
 const email = ref('')
 const password = ref('')
 const submitting = ref(false)
+const explicitLocale = ref<Locale | null>(null)
 const fieldErrors = ref<Record<string, string[]>>({})
 const formError = ref<string | null>(null)
 
@@ -37,7 +39,8 @@ const languageOptions = [
 onMounted(() => emailInput.value?.focus())
 
 function onLanguage(value: string): void {
-  chooseLocale(value as Locale)
+  explicitLocale.value = value as Locale
+  chooseLocale(explicitLocale.value)
 }
 
 async function submit(): Promise<void> {
@@ -46,7 +49,8 @@ async function submit(): Promise<void> {
   fieldErrors.value = {}
   formError.value = null
   try {
-    await auth.login(email.value, password.value)
+    const localeSaved = await auth.login(email.value, password.value, explicitLocale.value)
+    if (!localeSaved) toast.error(t('common.localeSaveFailed'))
     await router.push(safeRedirect(route.query.redirect) ?? '/')
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
