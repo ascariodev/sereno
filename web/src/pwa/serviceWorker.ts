@@ -3,10 +3,16 @@ export const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000
 export interface ServiceWorkerOptions {
   onUpdateReady: (applyUpdate: () => void) => void
   url?: string
+  container?: ServiceWorkerContainer
+  reload?: () => void
 }
 
-export async function registerServiceWorker({ onUpdateReady, url = '/sw.js' }: ServiceWorkerOptions): Promise<void> {
-  const container = navigator.serviceWorker
+export async function registerServiceWorker({
+  onUpdateReady,
+  url = '/sw.js',
+  container = navigator.serviceWorker,
+  reload = () => window.location.reload(),
+}: ServiceWorkerOptions): Promise<void> {
   const registration = await container.register(url)
   let notified = false
   let reloading = false
@@ -21,7 +27,7 @@ export async function registerServiceWorker({ onUpdateReady, url = '/sw.js' }: S
   container.addEventListener('controllerchange', () => {
     if (!notified || reloading) return
     reloading = true
-    window.location.reload()
+    reload()
   })
 
   if (registration.waiting && container.controller) notify(registration.waiting)

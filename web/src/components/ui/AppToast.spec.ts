@@ -135,6 +135,37 @@ describe('AppToast', () => {
     expect(items()).toHaveLength(0)
   })
 
+  it('runs the action and closes the toast when the action is selected', async () => {
+    const onSelect = vi.fn()
+    toast.info('A new version is available.', {
+      duration: Number.POSITIVE_INFINITY,
+      action: { label: 'Reload', onSelect },
+    })
+    await settle(50)
+    expect(items()[0]!.classList.contains('app-toast--info')).toBe(true)
+    const action = document.querySelector<HTMLButtonElement>('button[name=toast-action]')!
+    expect(action.textContent?.trim()).toBe('Reload')
+    action.click()
+    await settle(400)
+    expect(onSelect).toHaveBeenCalledTimes(1)
+    expect(items()).toHaveLength(0)
+    expect(toasts.value).toHaveLength(0)
+  })
+
+  it('keeps a toast without a time limit open until it is dismissed', async () => {
+    toast.info('A new version is available.', { duration: Number.POSITIVE_INFINITY })
+    await settle(50)
+    await settle(60 * 60 * 1000)
+    expect(items()).toHaveLength(1)
+    expect(toasts.value[0]!.open).toBe(true)
+  })
+
+  it('renders no action button without an action', async () => {
+    toast.info('Heads up')
+    await settle(50)
+    expect(document.querySelector('button[name=toast-action]')).toBeNull()
+  })
+
   it('labels the close button', async () => {
     toast.error('Failed')
     await settle(50)
