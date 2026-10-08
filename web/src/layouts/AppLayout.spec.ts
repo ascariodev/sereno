@@ -187,6 +187,19 @@ describe('AppLayout', () => {
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('system')
   })
 
+  it('the search button in the sidebar opens the command palette', async () => {
+    Element.prototype.scrollIntoView = () => {}
+    await mountApp()
+    expect(document.querySelector('[role=dialog]')).toBeNull()
+
+    document.querySelector<HTMLButtonElement>('.app-layout__sidebar button[name=search]')!.click()
+    await settle()
+
+    expect(document.querySelectorAll('[role=dialog]')).toHaveLength(1)
+    expect(document.activeElement?.getAttribute('role')).toBe('combobox')
+    expect(document.querySelector('[role=option][data-value="log:5"]')).not.toBeNull()
+  })
+
   describe('mobile drawer', () => {
     const toggle = () => document.querySelector<HTMLButtonElement>('button[name=open-sidebar]')!
     const drawer = () => document.querySelector<HTMLElement>('[role=dialog]')
@@ -233,6 +246,45 @@ describe('AppLayout', () => {
       await settle()
       expect(router.currentRoute.value.path).toBe('/')
       expect(drawer()).toBeNull()
+    })
+
+    async function expectOnlyPaletteOpen() {
+      expect(document.querySelectorAll('[role=dialog]')).toHaveLength(1)
+      expect(drawer()!.classList.contains('app-dialog--sheet-left')).toBe(false)
+      expect(toggle().getAttribute('aria-expanded')).toBe('false')
+      expect(document.activeElement?.getAttribute('role')).toBe('combobox')
+    }
+
+    it('the search button closes the drawer and opens the command palette', async () => {
+      Element.prototype.scrollIntoView = () => {}
+      await mountApp()
+      await openDrawer()
+
+      drawer()!.querySelector<HTMLButtonElement>('button[name=search]')!.click()
+      await settle()
+      await expectOnlyPaletteOpen()
+
+      document.querySelector<HTMLElement>('[role=option][data-value="theme:dark"]')!.click()
+      await settle()
+
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+      expect(document.querySelector('[role=dialog]')).toBeNull()
+    })
+
+    it('Ctrl K closes the drawer and opens the command palette', async () => {
+      Element.prototype.scrollIntoView = () => {}
+      const { router } = await mountApp()
+      await openDrawer()
+
+      document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, cancelable: true }))
+      await settle()
+      await expectOnlyPaletteOpen()
+
+      document.querySelector<HTMLElement>('[role=option][data-value="log:5"]')!.click()
+      await settle()
+
+      expect(router.currentRoute.value.path).toBe('/projects/5/log')
+      expect(document.querySelector('[role=dialog]')).toBeNull()
     })
 
     it('closes when the viewport becomes wide and stops listening on unmount', async () => {

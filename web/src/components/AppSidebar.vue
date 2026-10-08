@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { House } from '@lucide/vue'
+import { House, Search } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
@@ -9,7 +9,10 @@ import OrgSwitcher from './OrgSwitcher.vue'
 import UserMenu from './UserMenu.vue'
 import ProjectKey from './ui/ProjectKey.vue'
 
+defineEmits<{ search: [] }>()
+
 const { t } = useI18n()
+const isApple = /Mac|iPhone|iPad/.test(navigator.userAgent)
 const organization = useOrganizationStore()
 const projectsStore = useProjectsStore()
 const route = useRoute()
@@ -34,6 +37,18 @@ function currentFor(projectId: number): 'page' | undefined {
     <OrgSwitcher />
 
     <div class="app-sidebar__group">
+      <button
+        type="button"
+        name="search"
+        class="app-sidebar__link app-sidebar__search"
+        aria-haspopup="dialog"
+        :aria-keyshortcuts="isApple ? 'Meta+K' : 'Control+K'"
+        @click="$emit('search')"
+      >
+        <Search :size="17" aria-hidden="true" />
+        <span class="app-sidebar__name">{{ t('command.open') }}</span>
+        <kbd class="app-sidebar__kbd" aria-hidden="true">{{ isApple ? '⌘K' : 'Ctrl K' }}</kbd>
+      </button>
       <RouterLink :to="{ name: 'projects' }" class="app-sidebar__link">
         <House :size="17" aria-hidden="true" />
         <span>{{ t('sidebar.home') }}</span>
@@ -113,6 +128,29 @@ function currentFor(projectId: number): 'page' | undefined {
 
 .app-sidebar__project {
   min-height: 38px;
+}
+
+.app-sidebar__search {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-sidebar__search:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.app-sidebar__kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-chip);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--ink-3);
 }
 
 .app-sidebar__project--disabled {

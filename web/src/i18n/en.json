@@ -39,6 +39,14 @@
     "open": "Open navigation",
     "close": "Close navigation"
   },
+  "command": {
+    "open": "Search",
+    "title": "Command palette",
+    "placeholder": "Go to a project or change the theme",
+    "empty": "No results.",
+    "goTo": "Go to",
+    "theme": "Theme"
+  },
   "userMenu": {
     "label": "User menu",
     "theme": {

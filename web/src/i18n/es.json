@@ -39,6 +39,14 @@
     "open": "Abrir navegación",
     "close": "Cerrar navegación"
   },
+  "command": {
+    "open": "Buscar",
+    "title": "Paleta de comandos",
+    "placeholder": "Ir a un proyecto o cambiar el tema",
+    "empty": "Sin resultados.",
+    "goTo": "Ir a",
+    "theme": "Tema"
+  },
   "userMenu": {
     "label": "Menú de usuario",
     "theme": {

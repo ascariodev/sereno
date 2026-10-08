@@ -3,6 +3,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import AppSidebar from '../components/AppSidebar.vue'
+import CommandPalette from '../components/CommandPalette.vue'
 import MobileTopBar from '../components/MobileTopBar.vue'
 import AppDialog from '../components/ui/AppDialog.vue'
 import { useOrganizationStore } from '../stores/organization'
@@ -11,6 +12,12 @@ const { t } = useI18n()
 const organization = useOrganizationStore()
 const route = useRoute()
 const drawerOpen = ref(false)
+const paletteOpen = ref(false)
+
+watch(paletteOpen, (open) => {
+  if (open) drawerOpen.value = false
+})
+
 const loading = ref(false)
 const failed = ref(false)
 let latestLoad = 0
@@ -66,10 +73,11 @@ onBeforeUnmount(() => {
       :close-label="t('sidebar.close')"
     >
       <div @click="closeDrawerOnLink">
-        <AppSidebar />
+        <AppSidebar @search="paletteOpen = true" />
       </div>
     </AppDialog>
-    <AppSidebar class="app-layout__sidebar" />
+    <AppSidebar class="app-layout__sidebar" @search="paletteOpen = true" />
+    <CommandPalette v-model:open="paletteOpen" />
     <main class="app-layout__main">
       <p v-if="loading">{{ t('common.loading') }}</p>
       <p v-else-if="failed" role="alert">
