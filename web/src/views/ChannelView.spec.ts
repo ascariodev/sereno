@@ -451,6 +451,23 @@ describe('ChannelView group panel', () => {
     })
   })
 
+  it('toasts and closes the panel replacing the history entry when the group is not found', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') return channels as never
+      if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+      if (/log-groups\/(\d+)$/.test(path)) throw new ApiError(404, 'Not found')
+      return { data: [opened(1, 5)], meta: { next_cursor: null } } as never
+    })
+    toast.clear()
+    const wrapper = await mountView('/channels/7?group=99')
+    expect(wrapper.router.currentRoute.value.query.group).toBeUndefined()
+    expect(wrapper.find('aside').exists()).toBe(false)
+    expect(toasts.value.map((item) => item.message)).toEqual(['This log group does not exist or you cannot access it.'])
+    wrapper.router.back()
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query.group).toBeUndefined()
+  })
+
   it('ignores an invalid ?group= value', async () => {
     const spy = mockGroups([message(1)])
     const wrapper = await mountView('/channels/7?group=abc')

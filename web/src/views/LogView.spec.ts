@@ -253,6 +253,27 @@ describe('LogView', () => {
     expect(push).not.toHaveBeenCalled()
   })
 
+  it('loads once, not twice, when the organization changes with group and page in the URL', async () => {
+    const spy = mockApi((query) => page([group(1)], Number(query.page ?? 1), 3))
+    await mountView('/projects/5/log?status=all&group=1&page=2')
+    const listCalls = () => spy.mock.calls.filter(([path]) => path === '/api/projects/5/log-groups').length
+    const before = listCalls()
+    useOrganizationStore().$patch({ activeId: 2 })
+    await flushPromises()
+    expect(listCalls() - before).toBe(1)
+  })
+
+  it('loads once when the organization changes with only a group in the URL', async () => {
+    const spy = mockApi((query) => page([group(1)], Number(query.page ?? 1), 3))
+    const wrapper = await mountView('/projects/5/log?status=all&group=1')
+    const listCalls = () => spy.mock.calls.filter(([path]) => path === '/api/projects/5/log-groups').length
+    const before = listCalls()
+    useOrganizationStore().$patch({ activeId: 2 })
+    await flushPromises()
+    expect(listCalls() - before).toBe(1)
+    expect(wrapper.router.currentRoute.value.query).toEqual({ status: 'all' })
+  })
+
   it('closes the panel replacing the history entry when the group is not found', async () => {
     vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
       if (path === '/api/projects') return { data: [project], meta: { last_page: 1 } } as never

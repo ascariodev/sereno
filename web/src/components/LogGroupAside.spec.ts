@@ -87,6 +87,20 @@ describe('LogGroupAside', () => {
     expect(toasts.value.map((item) => item.message)).toEqual(['This log group does not exist or you cannot access it.'])
   })
 
+  it('does not repeat the toast or the close when another refresh arrives before unmount', async () => {
+    fakeMatchMedia(false)
+    toast.clear()
+    vi.mocked(api.get).mockRejectedValue(new ApiError(404, 'Not found'))
+    mountAside()
+    await flushPromises()
+    expect(wrapper!.emitted('close')).toEqual([[true]])
+    await wrapper!.setProps({ refreshToken: 1 })
+    await flushPromises()
+    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(2)
+    expect(wrapper!.emitted('close')).toEqual([[true]])
+    expect(toasts.value).toHaveLength(1)
+  })
+
   it('emits close with replace when the group is not found on a narrow viewport', async () => {
     fakeMatchMedia(true)
     vi.mocked(api.get).mockRejectedValue(new ApiError(404, 'Not found'))

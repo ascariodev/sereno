@@ -19,8 +19,16 @@ const { group, loading, loadError, setStatus } = useLogGroup(
   () => props.refreshToken,
 )
 
+let closed = false
+
+watch(
+  () => props.groupId,
+  () => (closed = false),
+)
+
 watch(loadError, (error) => {
-  if (error !== 'notFound') return
+  if (error !== 'notFound' || closed) return
+  closed = true
   toast.error(t('logGroup.notFound'))
   emit('close', true)
 })

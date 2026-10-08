@@ -132,7 +132,7 @@ async function load(): Promise<void> {
 }
 
 watch(
-  () => [organization.activeId, projectId.value, statusFilter.value, levelFilter.value, page.value] as const,
+  () => [projectId.value, statusFilter.value, levelFilter.value, page.value] as const,
   () => void load(),
   { immediate: true },
 )
@@ -140,8 +140,11 @@ watch(
 watch(
   () => organization.activeId,
   (_, previous) => {
-    if (previous === null) return
-    if (firstQuery('group') !== undefined || firstQuery('page') !== undefined) navigate({ group: undefined, page: undefined }, true)
+    const pageWillReset = previous !== null && page.value !== 1
+    if (previous !== null && (firstQuery('group') !== undefined || firstQuery('page') !== undefined)) {
+      navigate({ group: undefined, page: undefined }, true)
+    }
+    if (!pageWillReset) void load()
   },
 )
 
