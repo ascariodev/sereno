@@ -65,11 +65,35 @@ describe('theme preference', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
   })
 
+  it('syncs the theme-color metas with the chosen theme and restores the index.html values for system', () => {
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')
+    const parsed = new DOMParser().parseFromString(html, 'text/html')
+    const metas = [...parsed.querySelectorAll('meta[name="theme-color"]')]
+    expect(metas.length).toBe(2)
+    const original = metas.map((meta) => (meta as HTMLMetaElement).content)
+    metas.forEach((meta) => document.head.appendChild(document.importNode(meta, true)))
+    const contents = () =>
+      [...document.head.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')].map((meta) => meta.content)
+
+    try {
+      applyTheme('light')
+      expect(contents()).toEqual(['#FFFFFF', '#FFFFFF'])
+      applyTheme('dark')
+      expect(contents()).toEqual(['#171A1F', '#171A1F'])
+      applyTheme('system')
+      expect(contents()).toEqual(original)
+      expect(new Set(original).size).toBe(2)
+    } finally {
+      document.head.querySelectorAll('meta[name="theme-color"]').forEach((meta) => meta.remove())
+    }
+  })
+
   it('index.html inline script uses the same storage key', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')
     expect(html).toContain(`'${THEME_STORAGE_KEY}'`)
     expect(html).toContain(`setAttribute('data-theme'`)
     expect(html).toContain(`theme === 'light'`)
     expect(html).toContain(`theme === 'dark'`)
+    expect(html).toContain(`theme === 'dark' ? '#171A1F' : '#FFFFFF'`)
   })
 })

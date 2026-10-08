@@ -26,7 +26,7 @@ const THEME_COLORS = { light: '#FFFFFF', dark: '#171A1F' } as const
 
 function syncThemeColor(preference: ThemePreference): void {
   document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
-    const scheme = preference === 'system' ? (meta.media.includes('dark') ? 'dark' : 'light') : preference
+    const scheme = preference === 'system' ? (meta.getAttribute('media')?.includes('dark') ? 'dark' : 'light') : preference
     meta.content = THEME_COLORS[scheme]
   })
 }
