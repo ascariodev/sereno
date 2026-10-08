@@ -63,7 +63,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="app-layout">
+  <div :class="['app-layout', { 'app-layout--fixed': route.name === 'channel' }]">
     <MobileTopBar class="app-layout__top-bar" :open="drawerOpen" @toggle="drawerOpen = !drawerOpen" />
     <AppDialog
       v-model:open="drawerOpen"
@@ -118,6 +118,20 @@ onBeforeUnmount(() => {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
+}
+
+.app-layout--fixed {
+  flex-wrap: nowrap;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-layout--fixed .app-layout__main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 767px) {

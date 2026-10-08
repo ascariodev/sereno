@@ -1,14 +1,44 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Message } from '../api/types'
 import MessageItem from './MessageItem.vue'
 import SystemNotice from './SystemNotice.vue'
 
-const props = defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number }>()
+const props = defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number; ownUserId?: number }>()
 defineEmits<{ loadOlder: []; select: [groupId: number] }>()
 
 const { t, locale } = useI18n()
+
+const NEAR_BOTTOM_PX = 80
+const container = ref<HTMLElement | null>(null)
+
+function scrollToBottom(): void {
+  if (container.value) container.value.scrollTop = container.value.scrollHeight
+}
+
+onMounted(scrollToBottom)
+
+watch(
+  () => props.messages,
+  (next, previous) => {
+    const el = container.value
+    if (!el || previous.length === 0 || next.length === 0) {
+      void nextTick(scrollToBottom)
+      return
+    }
+    const appended = next[next.length - 1].id !== previous[previous.length - 1].id
+    const prepended = next[0].id < previous[0].id
+    const wasNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX
+    const heightBefore = el.scrollHeight
+    const own = appended && props.ownUserId !== undefined && next[next.length - 1].user?.id === props.ownUserId
+    void nextTick(() => {
+      if (appended && (own || wasNearBottom)) scrollToBottom()
+      else if (prepended) el.scrollTop += el.scrollHeight - heightBefore
+    })
+  },
+  { flush: 'pre' },
+)
 
 type Row =
   | { key: string; type: 'day'; label: string }
@@ -38,7 +68,7 @@ const rows = computed<Row[]>(() => {
 </script>
 
 <template>
-  <div class="message-list">
+  <div ref="container" class="message-list">
     <button v-if="hasMore" type="button" name="load-older" :disabled="loadingMore" @click="$emit('loadOlder')">
       {{ loadingMore ? t('common.loading') : t('channel.loadOlder') }}
     </button>
@@ -61,6 +91,13 @@ const rows = computed<Row[]>(() => {
 </template>
 
 <style scoped>
+.message-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-anchor: none;
+}
+
 .message-list__items {
   list-style: none;
   padding: 0;

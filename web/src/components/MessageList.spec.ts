@@ -1,3 +1,4 @@
+import { nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Message } from '../api/types'
@@ -43,6 +44,83 @@ describe('MessageList', () => {
     })
     await wrapper.find('li.message--system a').trigger('click')
     expect(wrapper.emitted('select')).toEqual([[9]])
+  })
+
+  describe('scroll', () => {
+    const box = { top: 0, client: 400 }
+    const ROW_PX = 300
+    const at = (id: number, userId = 1): Message => ({ ...message({ id: userId, name: 'U' }), id })
+
+    beforeEach(() => {
+      Object.assign(box, { top: 0, client: 400 })
+      Object.defineProperty(HTMLElement.prototype, 'scrollTop', {
+        configurable: true,
+        get: () => box.top,
+        set: (value: number) => {
+          box.top = value
+        },
+      })
+      Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
+        configurable: true,
+        get(this: HTMLElement) {
+          return this.querySelectorAll('li').length * ROW_PX
+        },
+      })
+      Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => box.client })
+    })
+    afterEach(() => {
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollTop
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollHeight
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientHeight
+    })
+
+    const mountList = (messages: Message[], ownUserId?: number) =>
+      mount(MessageList, { props: { messages, hasMore: false, loadingMore: false, ownUserId }, global: { plugins: [i18n] } })
+
+    it('starts at the bottom when mounted', () => {
+      mountList([at(1), at(2)])
+      expect(box.top).toBe(900)
+    })
+
+    it('follows a new message from someone else when near the bottom', async () => {
+      const wrapper = mountList([at(1), at(2)], 99)
+      box.top = 420
+      await wrapper.setProps({ messages: [at(1), at(2), at(3)] })
+      await nextTick()
+      expect(box.top).toBe(1200)
+    })
+
+    it('does not move when a message from someone else arrives while reading above', async () => {
+      const wrapper = mountList([at(1), at(2)], 99)
+      box.top = 100
+      await wrapper.setProps({ messages: [at(1), at(2), at(3)] })
+      await nextTick()
+      expect(box.top).toBe(100)
+    })
+
+    it('jumps to the bottom for an own message even when reading above', async () => {
+      const wrapper = mountList([at(1), at(2)], 7)
+      box.top = 100
+      await wrapper.setProps({ messages: [at(1), at(2), at(3, 7)] })
+      await nextTick()
+      expect(box.top).toBe(1200)
+    })
+
+    it('keeps the position when older messages are prepended', async () => {
+      const wrapper = mountList([at(5), at(6)], 99)
+      box.top = 30
+      await wrapper.setProps({ messages: [at(3), at(4), at(5), at(6)] })
+      await nextTick()
+      expect(box.top).toBe(630)
+    })
+
+    it('does not treat a replaced first id as pagination', async () => {
+      const wrapper = mountList([at(5), at(6)], 99)
+      box.top = 30
+      await wrapper.setProps({ messages: [at(8), at(9)] })
+      await nextTick()
+      expect(box.top).toBe(30)
+    })
   })
 
   describe('day separators and time', () => {

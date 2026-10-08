@@ -11,6 +11,7 @@ import MessageList from '../components/MessageList.vue'
 import ProjectHeader from '../components/ProjectHeader.vue'
 import { toast } from '../components/ui/toast'
 import { onReconnect, subscribeToChannel } from '../realtime/echo'
+import { useAuthStore } from '../stores/auth'
 import { useMessagesStore } from '../stores/messages'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
@@ -19,6 +20,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const organization = useOrganizationStore()
+const auth = useAuthStore()
 const messages = useMessagesStore()
 const projects = useProjectsStore()
 const channel = ref<Channel | null>(null)
@@ -156,6 +158,7 @@ onUnmounted(() => {
             :has-more="messages.nextCursor !== null"
             :loading-more="messages.loadingMore"
             :project-id="channel?.project_id"
+            :own-user-id="auth.user?.id"
             @load-older="messages.loadOlder()"
             @select="selectGroup"
           />
@@ -176,17 +179,29 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.channel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
 .channel__layout {
   display: flex;
-  flex-wrap: wrap;
+  flex: 1 1 auto;
+  min-height: 0;
   gap: var(--space-4);
 }
 .channel__main {
-  flex: 999 1 420px;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 420px;
   min-width: 0;
+  min-height: 0;
 }
 .channel__panel {
-  flex: 1 1 320px;
+  flex: 0 0 min(320px, 40%);
+  min-height: 0;
+  overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
 }
