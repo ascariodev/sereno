@@ -17,7 +17,7 @@ const props = withDefaults(
     title: string
     description?: string
     hideTitle?: boolean
-    variant?: 'center' | 'sheet-right' | 'sheet-bottom'
+    variant?: 'center' | 'sheet-left' | 'sheet-right' | 'sheet-bottom'
     closeLabel?: string
   }>(),
   { variant: 'center' },
@@ -85,6 +85,16 @@ const hasHeader = computed(() => !props.hideTitle || Boolean(props.closeLabel))
   border-radius: var(--radius-panel);
   transform: translate(-50%, -50%);
 }
+.app-dialog--sheet-left {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(320px, calc(100vw - 48px));
+  border-width: 0 1px 0 0;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+}
 .app-dialog--sheet-right {
   top: 0;
   right: 0;
@@ -107,6 +117,12 @@ const hasHeader = computed(() => !props.hideTitle || Boolean(props.closeLabel))
 }
 .app-dialog--center[data-state='closed'] {
   animation: app-dialog-center-out 120ms ease-in;
+}
+.app-dialog--sheet-left[data-state='open'] {
+  animation: app-dialog-left-in 200ms ease-out;
+}
+.app-dialog--sheet-left[data-state='closed'] {
+  animation: app-dialog-left-out 160ms ease-in;
 }
 .app-dialog--sheet-right[data-state='open'] {
   animation: app-dialog-right-in 200ms ease-out;
@@ -193,6 +209,14 @@ const hasHeader = computed(() => !props.hideTitle || Boolean(props.closeLabel))
 @keyframes app-dialog-center-out {
   from { opacity: 1; transform: translate(-50%, -50%); }
   to { opacity: 0; transform: translate(-50%, -48%) scale(0.98); }
+}
+@keyframes app-dialog-left-in {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+@keyframes app-dialog-left-out {
+  from { transform: none; }
+  to { transform: translateX(-100%); }
 }
 @keyframes app-dialog-right-in {
   from { transform: translateX(100%); }

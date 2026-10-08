@@ -186,4 +186,77 @@ describe('AppLayout', () => {
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false)
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('system')
   })
+
+  describe('mobile drawer', () => {
+    const toggle = () => document.querySelector<HTMLButtonElement>('button[name=open-sidebar]')!
+    const drawer = () => document.querySelector<HTMLElement>('[role=dialog]')
+
+    async function openDrawer() {
+      expect(drawer()).toBeNull()
+      toggle().click()
+      await settle()
+      expect(drawer()).not.toBeNull()
+    }
+
+    it('has an accessible opener that reflects the drawer state', async () => {
+      await mountApp()
+      expect(toggle().getAttribute('aria-label')).toBe('Open navigation')
+      expect(toggle().getAttribute('aria-expanded')).toBe('false')
+      await openDrawer()
+      expect(toggle().getAttribute('aria-expanded')).toBe('true')
+      expect(drawer()!.classList.contains('app-dialog--sheet-left')).toBe(true)
+      expect(drawer()!.querySelector('nav[aria-label="Main navigation"]')).not.toBeNull()
+    })
+
+    it('closes with Escape', async () => {
+      await mountApp()
+      await openDrawer()
+      key(document.activeElement ?? document.body, 'Escape')
+      await settle()
+      expect(drawer()).toBeNull()
+      expect(toggle().getAttribute('aria-expanded')).toBe('false')
+    })
+
+    it('closes when choosing a project', async () => {
+      const { router } = await mountApp()
+      await openDrawer()
+      drawer()!.querySelector<HTMLAnchorElement>('a[href="/channels/7"]')!.click()
+      await settle()
+      expect(router.currentRoute.value.path).toBe('/channels/7')
+      expect(drawer()).toBeNull()
+    })
+
+    it('closes when choosing Home while already there', async () => {
+      const { router } = await mountApp()
+      await openDrawer()
+      drawer()!.querySelector<HTMLAnchorElement>('a[href="/"]')!.click()
+      await settle()
+      expect(router.currentRoute.value.path).toBe('/')
+      expect(drawer()).toBeNull()
+    })
+
+    it('closes when the viewport becomes wide and stops listening on unmount', async () => {
+      let listener: ((event: { matches: boolean }) => void) | undefined
+      const removeEventListener = vi.fn()
+      window.matchMedia = vi.fn().mockReturnValue({
+        addEventListener: (_: string, fn: typeof listener) => (listener = fn),
+        removeEventListener,
+      })
+      try {
+        await mountApp()
+        await openDrawer()
+        listener!({ matches: false })
+        await settle()
+        expect(drawer()).not.toBeNull()
+        listener!({ matches: true })
+        await settle()
+        expect(drawer()).toBeNull()
+        mounted?.unmount()
+        mounted = undefined
+        expect(removeEventListener).toHaveBeenCalledWith('change', listener)
+      } finally {
+        delete (window as { matchMedia?: unknown }).matchMedia
+      }
+    })
+  })
 })

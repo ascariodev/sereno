@@ -35,7 +35,9 @@
   },
   "sidebar": {
     "label": "Main navigation",
-    "home": "Home"
+    "home": "Home",
+    "open": "Open navigation",
+    "close": "Close navigation"
   },
   "userMenu": {
     "label": "User menu",

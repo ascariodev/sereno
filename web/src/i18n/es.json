@@ -35,7 +35,9 @@
   },
   "sidebar": {
     "label": "Navegación principal",
-    "home": "Inicio"
+    "home": "Inicio",
+    "open": "Abrir navegación",
+    "close": "Cerrar navegación"
   },
   "userMenu": {
     "label": "Menú de usuario",
