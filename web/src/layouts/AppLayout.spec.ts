@@ -26,9 +26,9 @@ const orgs = [
   { id: 2, name: 'Two', slug: 'two', settings: null, roles: ['member'] },
 ]
 
-function sidebarData(path: string): unknown {
+function sidebarData(path: string, withChannel = true): unknown {
   if (path === '/api/projects') return { data: [project], meta: { last_page: 1 } }
-  if (path === '/api/channels') return { data: [{ id: 7, project_id: 5, name: 'general', project: { id: 5, name: 'posveapi' }, is_archived: false }] }
+  if (path === '/api/channels') return withChannel ? { data: [{ id: 7, project_id: 5, name: 'general', project: { id: 5, name: 'posveapi' }, is_archived: false }] } : { data: [] }
   if (path === '/api/channels/7/messages') return { data: [], meta: { next_cursor: null } }
   return undefined
 }
@@ -62,12 +62,13 @@ async function pick(value: string) {
 async function mountApp(
   organizations: () => Promise<unknown> = async () => ({ data: orgs }),
   path = '/',
+  withChannel = true,
 ) {
   localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
   const pinia = createPinia()
   setActivePinia(pinia)
   vi.spyOn(api, 'get').mockImplementation(async (url: string) =>
-    sidebarData(url) ?? (url === '/api/me' ? { data: user } : ((await organizations()) as never)),
+    sidebarData(url, withChannel) ?? (url === '/api/me' ? { data: user } : ((await organizations()) as never)),
   )
   const router = createAppRouter(createMemoryHistory())
   await router.push(path)
@@ -235,6 +236,28 @@ describe('AppLayout', () => {
     await toggle().trigger('click')
     expect(sidebar().text()).toContain('posveapi')
     expect(localStorage.getItem('workspace.sidebar')).toBe('expanded')
+  })
+
+  it('names the project without a channel in the collapsed sidebar', async () => {
+    localStorage.setItem('workspace.sidebar', 'collapsed')
+    const { wrapper } = await mountApp(undefined, '/', false)
+    const item = wrapper.find('.app-layout__sidebar span.app-sidebar__project--disabled')
+    expect(item.attributes('aria-label')).toBe('posveapi')
+    expect(item.attributes('aria-disabled')).toBe('true')
+  })
+
+  it('shows the project tooltip on focus only while the sidebar is collapsed', async () => {
+    const { wrapper } = await mountApp(undefined, '/channels/7')
+    const link = () => document.querySelector<HTMLAnchorElement>('.app-layout__sidebar a[href="/channels/7"]')!
+    link().focus()
+    await settle()
+    expect(document.querySelector('[role=tooltip]')).toBeNull()
+    link().blur()
+
+    await wrapper.find('.app-layout__sidebar button[name=sidebar-toggle]').trigger('click')
+    link().focus()
+    await settle()
+    expect(document.querySelector('[role=tooltip]')?.textContent).toBe('posveapi')
   })
 
   it('starts collapsed when the choice was saved', async () => {

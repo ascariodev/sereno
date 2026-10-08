@@ -105,6 +105,7 @@ function currentFor(projectId: number): 'page' | undefined {
             v-else
             class="app-sidebar__link app-sidebar__project app-sidebar__project--disabled"
             aria-disabled="true"
+            :aria-label="collapsed ? project.name : undefined"
             :aria-current="currentFor(project.id)"
           >
             <ProjectKey :value="project.key" />
