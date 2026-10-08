@@ -8,10 +8,12 @@ import { ApiError } from '../api/client'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
 import ChannelView from '../views/ChannelView.vue'
+import InviteView from '../views/InviteView.vue'
 import LogView from '../views/LogView.vue'
 import LoginView from '../views/LoginView.vue'
 import ProjectsView from '../views/ProjectsView.vue'
 import SessionErrorView from '../views/SessionErrorView.vue'
+import { whileLoadingSession } from './redirectToLogin'
 import { safeRedirect } from './safeRedirect'
 
 function redirectQuery(to: RouteLocationNormalized) {
@@ -25,6 +27,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
     routes: [
       { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
       { path: '/session-error', name: 'session-error', component: SessionErrorView },
+      { path: '/invite/:token', name: 'invite', component: InviteView, meta: { anySession: true } },
       {
         path: '/',
         component: AppLayout,
@@ -41,7 +44,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
     const auth = useAuthStore()
 
     if (!auth.isAuthenticated) {
-      if (to.meta.public) return true
+      if (to.meta.public || to.meta.anySession) return true
       return { name: 'login', query: redirectQuery(to) }
     }
 
@@ -51,11 +54,12 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
 
     if (!auth.user) {
       try {
-        await auth.fetchMe()
+        await whileLoadingSession(router, () => auth.fetchMe())
       } catch (error) {
         if (!(error instanceof ApiError)) throw error
       }
       if (!auth.isAuthenticated) {
+        if (to.meta.anySession) return true
         return { name: 'login', query: redirectQuery(to) }
       }
       if (!auth.user) {

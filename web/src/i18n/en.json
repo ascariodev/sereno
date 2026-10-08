@@ -37,6 +37,32 @@
     "retrying": "Retrying...",
     "failed": "Still failing. Try again in a moment."
   },
+  "invite": {
+    "title": "Invitation",
+    "heading": "You were invited to {organization}",
+    "email": "Email",
+    "role": "Role",
+    "expires": "Expires",
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member"
+    },
+    "accept": "Accept invitation",
+    "accepting": "Accepting...",
+    "joined": "You joined {organization}.",
+    "otherEmail": "You are signed in as {current}, but this invitation is for {invited}. Sign out to continue with that email.",
+    "signOut": "Sign out",
+    "wrongEmail": "This invitation was issued for a different email address.",
+    "network": "Could not reach the server.",
+    "acceptFailed": "Could not accept the invitation. Try again.",
+    "unusableTitle": "Invitation not available",
+    "unusable": "This invitation is invalid, has expired or was already used. Ask for a new one.",
+    "loadFailed": "Could not load the invitation.",
+    "home": "Go to the home page",
+    "sessionExpired": "Your session expired. Sign in again to accept the invitation.",
+    "signIn": "Sign in"
+  },
   "organization": {
     "label": "Organization",
     "none": "You do not belong to any organization yet.",

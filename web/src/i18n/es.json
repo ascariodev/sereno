@@ -37,6 +37,32 @@
     "retrying": "Reintentando...",
     "failed": "Sigue fallando. Inténtalo de nuevo en un momento."
   },
+  "invite": {
+    "title": "Invitación",
+    "heading": "Te invitaron a {organization}",
+    "email": "Email",
+    "role": "Rol",
+    "expires": "Vence",
+    "roles": {
+      "owner": "Propietario",
+      "admin": "Administrador",
+      "member": "Miembro"
+    },
+    "accept": "Aceptar invitación",
+    "accepting": "Aceptando...",
+    "joined": "Te uniste a {organization}.",
+    "otherEmail": "Iniciaste sesión como {current}, pero esta invitación es para {invited}. Cierra sesión para continuar con ese email.",
+    "signOut": "Cerrar sesión",
+    "wrongEmail": "Esta invitación se emitió para otro email.",
+    "network": "No se pudo conectar con el servidor.",
+    "acceptFailed": "No se pudo aceptar la invitación. Inténtalo de nuevo.",
+    "unusableTitle": "Invitación no disponible",
+    "unusable": "Esta invitación no es válida, venció o ya se usó. Pide una nueva.",
+    "loadFailed": "No se pudo cargar la invitación.",
+    "home": "Ir al inicio",
+    "sessionExpired": "Tu sesión venció. Inicia sesión de nuevo para aceptar la invitación.",
+    "signIn": "Iniciar sesión"
+  },
   "organization": {
     "label": "Organización",
     "none": "Aún no perteneces a ninguna organización.",

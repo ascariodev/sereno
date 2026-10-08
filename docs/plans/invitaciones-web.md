@@ -1,7 +1,7 @@
 # Plan: invitaciones-web
 
 **Objetivo:** que un owner o admin invite desde la web, que la persona invitada llegue por un enlace del correo, se registre o inicie sesión y acepte, y que el owner o admin vea y revoque las invitaciones pendientes.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -42,7 +42,7 @@
 - **Archivos:** `web/src/api/invitations.ts` (nuevo), `web/src/api/types.ts`, spec.
 - **Terminado cuando:** el spec cubre rutas, cuerpos y errores; typecheck limpio.
 
-### [ ] Fase 6 — Aceptar una invitación con sesión iniciada [riesgo]
+### [x] Fase 6 — Aceptar una invitación con sesión iniciada [riesgo]
 - **Alcance:** ruta `/invite/:token` accesible con y sin sesión (nuevo meta en el guard). `InviteView` muestra la vista previa; con sesión y el mismo email, botón Aceptar que acepta, recarga organizaciones, selecciona la nueva y va a projects. Con otro email, lo dice y ofrece cerrar sesión. Invitación no usable: mensaje y enlace al inicio.
 - **Archivos:** `web/src/router/index.ts`, `web/src/views/InviteView.vue` (nueva), `web/src/i18n/en.json`, `web/src/i18n/es.json`, specs.
 - **Terminado cuando:** specs del guard (la ruta no redirige con ni sin sesión) y de la vista (aceptar, otro email, no usable) pasan.
@@ -73,9 +73,10 @@
 - 2026-10-08 — Fase 3: `InvitationResource` = `{id, email, role, locale, invited_by: {id, name} | null, expires_at, created_at}` (envuelto en `data`; nunca el token). `invited_by` es null si el invitador fue borrado. `GET /api/invitations` sin paginar, ordenado por `created_at` e `id` desc. `store` responde 201 con el mismo resource.
 - 2026-10-08 — Fase 4: `DELETE /api/invitations/{invitation}` responde 204 sin cuerpo y borra la fila (`revokeInvitation` no espera JSON). Aceptada o vencida: 404 con "The invitation is invalid or has expired.". Otra organización: 404 por el binding con scope. `InvitationPolicy::delete` delega en `create` con el rol de la invitación.
 - 2026-10-08 — Fase 5: `web/src/api/invitations.ts` exporta `previewInvitation(token, signal?)`, `acceptInvitation(token)` (→ `{organization_id}`), `listInvitations(signal?)`, `createInvitation(email, role)`, `revokeInvitation(id)` (void), todas con `data` desenvuelto. Tipos `InvitationRole`, `Invitation`, `InvitationPreview`, `AcceptedInvitation` en `api/types.ts`. Errores del API: preview 404 si no es usable; accept 422 si inválida/vencida/invitador sin permiso y 403 si el email no coincide.
+- 2026-10-08 — Fase 6: meta `anySession: true` en `/invite/:token`. Sin sesión entra; con sesión pasa por `fetchMe` como ruta privada (5xx a `session-error?redirect=...`; 401 queda en la invitación sin sesión). `whileLoadingSession(router, fn)` en `redirectToLogin.ts` suspende la redirección del handler global de 401 mientras el guard carga la sesión (para cualquier ruta; el guard decide). InviteView compara emails sin distinguir mayúsculas; al aceptar hace `organization.load()` + `select(id)`, toast y projects (si `load` falla, `clear()` y guarda el id en `ORGANIZATION_STORAGE_KEY`). Errores de accept: 422 no usable, 403 otro email, 401 `invite.sessionExpired` con enlace a `/login?redirect=/invite/<token>`. Con otro email ofrece cerrar sesión y queda en la vista previa sin sesión.
 
 ## Notas para la próxima sesión
-- Fases 1 a 5 hechas. Sigue la fase 6 (riesgo, opus): InviteView trata los errores de accept según la decisión de la fase 5.
+- Fases 1 a 6 hechas. Sigue la fase 7: reutilizar el bloque de sesión vencida y su enlace a login de InviteView.
 - Con `APP_DEBUG` los 404 traen la traza: los tests revisan `message` con `assertJsonPath`, no `assertExactJson`.
 - Pendiente del usuario: agregar `FRONTEND_URL=http://localhost:5174` a `api/.env.example` (una regla de permisos impide al agente leerlo o editarlo) y al `.env` de producción al desplegar.
 
@@ -86,3 +87,5 @@
 - [ ] M-4 (baja, haiku): test de que un admin que lista ve también las invitaciones de rol owner.
 - [ ] M-5 (media, sonnet): paginar `GET /api/invitations` si el volumen crece.
 - [ ] M-6 (baja, haiku): `InvitationPolicy::delete` falla cerrado si `Role::tryFrom` devuelve null (hoy un admin pasaría con un rol inválido en BD).
+- [ ] M-7 (baja, haiku): test unitario de `whileLoadingSession` que compruebe que libera el bloqueo cuando la función lanza.
+- [ ] M-8 (baja, haiku): `InviteView.spec` lee `loadError` desde `vm` de la vista desmontada; afirmar por el DOM o por una señal pública para no depender del acceso a `script setup`.
