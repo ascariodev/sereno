@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { SendHorizontal } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { useMessagesStore } from '../stores/messages'
@@ -8,6 +8,7 @@ import { useMessagesStore } from '../stores/messages'
 const MAX_LENGTH = 4000
 
 const { t } = useI18n()
+const hintId = useId()
 const messages = useMessagesStore()
 const body = ref('')
 const sending = ref(false)
@@ -53,11 +54,11 @@ function onKeydown(event: KeyboardEvent): void {
         rows="2"
         :placeholder="t('channel.composer.placeholder')"
         :aria-label="t('channel.composer.placeholder')"
-        aria-describedby="composer-hint"
+        :aria-describedby="hintId"
         @keydown="onKeydown"
       />
       <div class="composer-bar">
-        <span id="composer-hint" class="composer-hint">{{ t('channel.composer.hint') }}</span>
+        <span :id="hintId" class="composer-hint">{{ t('channel.composer.hint') }}</span>
         <button
           type="submit"
           name="send"

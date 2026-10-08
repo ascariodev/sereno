@@ -192,7 +192,7 @@ async function submit(): Promise<void> {
   height: 30px;
   border-radius: 9px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .login__brand-name {
   font-size: 16px;

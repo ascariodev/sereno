@@ -107,4 +107,17 @@ describe('MessageComposer', () => {
     expect(post).not.toHaveBeenCalled()
     expect(wrapper.find('[role="alert"]').text()).toContain('4000')
   })
+
+  it('links each textarea to its own hint by a unique id', () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const wrapper = mount(
+      { components: { MessageComposer }, template: '<div><MessageComposer /><MessageComposer /></div>' },
+      { global: { plugins: [pinia, i18n] } },
+    )
+    const ids = wrapper.findAll('textarea').map((el) => el.attributes('aria-describedby')!)
+    expect(ids[0]).toBeTruthy()
+    expect(ids[0]).not.toBe(ids[1])
+    for (const id of ids) expect(wrapper.find(`[id="${id}"]`).exists()).toBe(true)
+  })
 })
