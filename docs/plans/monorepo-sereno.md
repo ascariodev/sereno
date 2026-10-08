@@ -2,7 +2,7 @@
 
 **Objetivo:** un solo repo `sereno` (Gitea) con `api/`, `web/` y `app/`, el historial de `workspace-api` y
 `workspace-web` conservado bajo su carpeta, y la raíz (compose, docs, CLAUDE.md, .claude) versionada.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 
 
 ## Contexto mínimo
@@ -47,7 +47,7 @@
 - **Terminado cuando:** `git status` limpio; `docker compose up -d` levanta todo; typecheck y tests de la web pasan;
   la suite del API pasa (en un subagente); `docker compose ps` muestra los mismos contenedores `workspace_*`.
 
-### [ ] Fase 3 — Grafo de graphify del monorepo
+### [x] Fase 3 — Grafo de graphify del monorepo
 - **Alcance:** copiar los hooks `post-commit`, `post-merge` y `post-checkout` a `.git/hooks`; mover el grafo a
   `../.graphify-workspace/workspace/` y reconstruirlo sobre la raíz (código de `api/` y `web/`); borrar el grafo
   viejo de dentro de la raíz.
