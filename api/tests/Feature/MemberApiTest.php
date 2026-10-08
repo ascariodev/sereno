@@ -323,3 +323,11 @@ it('requires authentication to remove a member', function () {
         ->deleteJson('/api/members/'.$this->owner->id)
         ->assertUnauthorized();
 });
+
+it('rejects a role sent as an array without a PHP warning', function () {
+    $member = memberWithRole($this->organization, Role::Member, 'Ana');
+
+    changeRole($this->owner, $this->organization, $member, ['admin'])->assertStatus(422)->assertJsonValidationErrors('role');
+    changeRole($member, $this->organization, $this->owner, ['admin'])->assertForbidden();
+    expect(roleIn($this->organization, $member))->toBe('member');
+});

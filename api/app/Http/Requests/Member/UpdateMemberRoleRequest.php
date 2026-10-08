@@ -15,7 +15,7 @@ class UpdateMemberRoleRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $role = Role::tryFrom((string) $this->input('role'));
+        $role = is_string($input = $this->input('role')) ? Role::tryFrom($input) : null;
 
         return Gate::allows('updateRole', [$this->route('user'), $role]);
     }

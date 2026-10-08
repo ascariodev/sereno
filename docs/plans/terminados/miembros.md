@@ -80,7 +80,7 @@
 - [x] M-3 (baja, sonnet): fijar `joined_at` con `toIso8601String()` en `MemberResource` y probar el formato.
 - [x] M-4 (baja, sonnet): test de que `MemberPolicy::viewAny` no concede sin team activo.
 - [x] M-5 (baja, sonnet) [descartada 2026-10-08: el orden del FOR UPDATE ya está probado; un test con dos conexiones exige salir de RefreshDatabase en una base compartida]: test de concurrencia real con dos conexiones para el lock de `mutateMembership` (hoy solo se prueba el orden del SQL).
-- [ ] M-6 (baja, sonnet): en `UpdateMemberRoleRequest::authorize()`, evitar el aviso por `(string)` si `role` llega como array (usar `$this->string('role')->value()` o `is_string`).
+- [x] M-6 (baja, sonnet): en `UpdateMemberRoleRequest::authorize()`, evitar el aviso por `(string)` si `role` llega como array (usar `$this->string('role')->value()` o `is_string`). Hecha con `is_string` (`$this->string()` también lanza con array).
 - [ ] M-7 (baja, sonnet): en el test de invitaciones del quitado, afirmar el mensaje del 422 con `assertJsonPath`, no solo `assertUnprocessable`.
 - [ ] M-8 (baja, sonnet): ordenar el import de `MembersView` en `web/src/router/index.ts` y parametrizar `mountView` en `MembersView.spec.ts` para el test de error con reintento.
 - [ ] M-9 (baja, sonnet): si `organization.load()` falla tras cambiar el propio rol, no restaurar el select ni mostrar `roleFailed`: separar el `load()` en su propio try.
