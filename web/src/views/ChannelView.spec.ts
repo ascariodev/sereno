@@ -293,6 +293,7 @@ describe('ChannelView', () => {
     }
     expect(toasts.value.map((item) => item.message)).toEqual(['Reconnected'])
 
+    expect(toasts.value[0].open).toBe(true)
     toast.dismiss(toasts.value[0].id)
     realtime.setStatus('connecting')
     realtime.setStatus('connected')
