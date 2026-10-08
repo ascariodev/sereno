@@ -60,7 +60,8 @@
     "loadFailed": "Could not load the messages.",
     "archived": "This channel is archived; you cannot write in it.",
     "composer": {
-      "placeholder": "Write a message (Enter to send, Shift+Enter for a new line)",
+      "placeholder": "Write a message",
+      "hint": "Enter sends · Shift+Enter for a new line",
       "send": "Send",
       "tooLong": "The message cannot exceed {max} characters.",
       "rateLimited": "You are sending messages too fast. Try again in a moment.",

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SendHorizontal } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
@@ -45,29 +46,101 @@ function onKeydown(event: KeyboardEvent): void {
 
 <template>
   <form class="composer" @submit.prevent="submit">
-    <textarea
-      v-model="body"
-      name="body"
-      rows="2"
-      :placeholder="t('channel.composer.placeholder')"
-      :aria-label="t('channel.composer.placeholder')"
-      @keydown="onKeydown"
-    />
-    <p v-if="tooLong" role="alert">{{ t('channel.composer.tooLong', { max: MAX_LENGTH }) }}</p>
-    <p v-else-if="errorText" role="alert">{{ errorText }}</p>
-    <button type="submit" name="send" :disabled="!canSend">{{ t('channel.composer.send') }}</button>
+    <div class="composer-box">
+      <textarea
+        v-model="body"
+        name="body"
+        rows="2"
+        :placeholder="t('channel.composer.placeholder')"
+        :aria-label="t('channel.composer.placeholder')"
+        @keydown="onKeydown"
+      />
+      <div class="composer-bar">
+        <span class="composer-hint">{{ t('channel.composer.hint') }}</span>
+        <button
+          type="submit"
+          name="send"
+          class="composer-send"
+          :disabled="!canSend"
+          :aria-label="t('channel.composer.send')"
+        >
+          <SendHorizontal :size="16" :stroke-width="2" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+    <p v-if="tooLong" role="alert" class="composer-error">{{ t('channel.composer.tooLong', { max: MAX_LENGTH }) }}</p>
+    <p v-else-if="errorText" role="alert" class="composer-error">{{ errorText }}</p>
   </form>
 </template>
 
 <style scoped>
 .composer {
   display: grid;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.composer-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 10px 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.composer-box:focus-within {
+  border-color: var(--accent);
 }
 
 .composer textarea {
-  resize: vertical;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--ink);
+  padding: 2px 0;
   font: inherit;
+}
+
+.composer-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.composer-hint {
+  flex: 1;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.composer-send {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.composer-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.composer-send:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
+.composer-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--level-error-fg);
 }
 </style>

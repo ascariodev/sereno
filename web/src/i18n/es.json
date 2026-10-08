@@ -60,7 +60,8 @@
     "loadFailed": "No se pudieron cargar los mensajes.",
     "archived": "Este canal está archivado; no se puede escribir en él.",
     "composer": {
-      "placeholder": "Escribe un mensaje (Enter para enviar, Shift+Enter para salto de línea)",
+      "placeholder": "Escribe un mensaje",
+      "hint": "Enter envía · Shift+Enter salto de línea",
       "send": "Enviar",
       "tooLong": "El mensaje no puede superar {max} caracteres.",
       "rateLimited": "Estás enviando mensajes demasiado rápido. Inténtalo de nuevo en un momento.",
