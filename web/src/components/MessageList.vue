@@ -13,8 +13,21 @@ const { t, locale } = useI18n()
 const NEAR_BOTTOM_PX = 80
 const container = ref<HTMLElement | null>(null)
 
+let pinnedToBottom = true
+
 function scrollToBottom(): void {
-  if (container.value) container.value.scrollTop = container.value.scrollHeight
+  if (!container.value) return
+  container.value.scrollTop = container.value.scrollHeight
+  pinnedToBottom = true
+}
+
+function trackPinned(): void {
+  const el = container.value
+  if (el) pinnedToBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX
+}
+
+function reanchorOnLateLoad(): void {
+  if (pinnedToBottom) scrollToBottom()
 }
 
 onMounted(scrollToBottom)
@@ -83,7 +96,7 @@ const rows = computed<Row[]>(() => {
 </script>
 
 <template>
-  <div ref="container" class="message-list">
+  <div ref="container" class="message-list" @scroll.passive="trackPinned" @load.capture="reanchorOnLateLoad">
     <button v-if="hasMore" type="button" name="load-older" :disabled="loadingMore" @click="$emit('loadOlder')">
       {{ loadingMore ? t('common.loading') : t('channel.loadOlder') }}
     </button>

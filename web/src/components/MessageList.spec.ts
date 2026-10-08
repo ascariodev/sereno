@@ -90,6 +90,29 @@ describe('MessageList', () => {
       expect(box.top).toBe(1200)
     })
 
+    it('does not follow when the distance to the bottom is 81 px', async () => {
+      const wrapper = mountList([at(1), at(2)], 99)
+      box.top = 419
+      await wrapper.setProps({ messages: [at(1), at(2), at(3)] })
+      await nextTick()
+      expect(box.top).toBe(419)
+    })
+
+    it('re-anchors to the bottom when an image loads late while pinned', async () => {
+      const wrapper = mountList([at(1), at(2)], 99)
+      box.top = 500
+      wrapper.find('li.message').element.dispatchEvent(new Event('load'))
+      expect(box.top).toBe(900)
+    })
+
+    it('does not re-anchor on a late load after scrolling up', async () => {
+      const wrapper = mountList([at(1), at(2)], 99)
+      box.top = 100
+      await wrapper.trigger('scroll')
+      wrapper.find('li.message').element.dispatchEvent(new Event('load'))
+      expect(box.top).toBe(100)
+    })
+
     it('does not move when a message from someone else arrives while reading above', async () => {
       const wrapper = mountList([at(1), at(2)], 99)
       box.top = 100
