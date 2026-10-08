@@ -32,8 +32,12 @@ function focusPanel(): void {
   void nextTick(() => panel.value?.$el.focus({ preventScroll: true }))
 }
 
+function isEditingField(element: Element | null): boolean {
+  return element instanceof HTMLElement && (element.isContentEditable || element.matches('input, textarea, select'))
+}
+
 onMounted(() => {
-  if (!narrow.value) focusPanel()
+  if (!narrow.value && !isEditingField(document.activeElement)) focusPanel()
 })
 watch(
   narrow,
