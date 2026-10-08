@@ -41,8 +41,13 @@ async function mountView() {
 function mockApi(messages: (cursor?: unknown) => unknown) {
   return vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: { query?: { cursor?: unknown } }) => {
     if (path === '/api/channels') return channels as never
+    if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
     return (await messages(options?.query?.cursor)) as never
   })
+}
+
+function viewCalls(spy: { mock: { calls: unknown[][] } }) {
+  return spy.mock.calls.filter(([path, options]) => path !== '/api/projects' && !(path === '/api/channels' && !options))
 }
 
 function fakeRealtime() {
@@ -106,8 +111,8 @@ describe('ChannelView', () => {
   it('ignores a stale channel request that fails after the organization changed', async () => {
     let rejectStale: (error: unknown) => void = () => {}
     let channelCalls = 0
-    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: unknown) => {
+      if (path === '/api/channels' && options) {
         channelCalls++
         if (channelCalls === 1) return new Promise((_, reject) => (rejectStale = reject)) as never
         return channels as never
@@ -142,10 +147,10 @@ describe('ChannelView', () => {
   it('reloads when the organization changes', async () => {
     const get = mockApi(() => ({ data: [message(1)], meta: { next_cursor: null } }))
     await mountView()
-    const before = get.mock.calls.length
+    const before = viewCalls(get).length
     useOrganizationStore().$patch({ activeId: 2 })
     await flushPromises()
-    expect(get.mock.calls.length).toBe(before + 2)
+    expect(viewCalls(get).length).toBe(before + 2)
   })
 
   it('shows the composer for an active channel and requests archived channels too', async () => {
@@ -222,12 +227,12 @@ describe('ChannelView', () => {
     const wrapper = await mountView()
     realtime.setStatus('connected')
     await flushPromises()
-    expect(spy.mock.calls.filter(([path]) => path !== '/api/channels')).toHaveLength(1)
+    expect(viewCalls(spy).filter(([path]) => path !== '/api/channels')).toHaveLength(1)
 
     realtime.setStatus('connecting')
     realtime.setStatus('connected')
     await flushPromises()
-    expect(spy.mock.calls.filter(([path]) => path !== '/api/channels')).toHaveLength(2)
+    expect(viewCalls(spy).filter(([path]) => path !== '/api/channels')).toHaveLength(2)
     expect(wrapper.findAll('li').map((li) => li.text())).toEqual([
       expect.stringContaining('body 1'),
       expect.stringContaining('body 2'),

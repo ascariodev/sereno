@@ -6,14 +6,17 @@ import { api } from '../api/client'
 import type { Channel } from '../api/types'
 import MessageComposer from '../components/MessageComposer.vue'
 import MessageList from '../components/MessageList.vue'
+import ProjectHeader from '../components/ProjectHeader.vue'
 import { onReconnect, subscribeToChannel } from '../realtime/echo'
 import { useMessagesStore } from '../stores/messages'
 import { useOrganizationStore } from '../stores/organization'
+import { useProjectsStore } from '../stores/projects'
 
 const { t } = useI18n()
 const route = useRoute()
 const organization = useOrganizationStore()
 const messages = useMessagesStore()
+const projects = useProjectsStore()
 const channel = ref<Channel | null>(null)
 const channelLoadFailed = ref(false)
 let generation = 0
@@ -21,6 +24,12 @@ let unsubscribe: (() => void) | null = null
 let unsubscribeReconnect: (() => void) | null = null
 
 const channelId = computed(() => Number(route.params.id))
+const project = computed(() => {
+  if (!channel.value) return null
+  const summary = channel.value.project
+  const full = projects.projects.find((item) => item.id === channel.value?.project_id)
+  return { name: full?.name ?? summary.name, key: full?.key ?? summary.key, description: full?.description ?? null }
+})
 const notFound = computed(() => messages.error?.status === 404)
 const firstLoadFailed = computed(() => messages.error !== null && !notFound.value && messages.messages.length === 0)
 
@@ -72,11 +81,14 @@ onUnmounted(() => {
 
 <template>
   <section class="channel">
-    <h1 v-if="channel">
-      {{ channel.name }}
-      <small class="channel__project">{{ channel.project.name }}</small>
-    </h1>
-    <h1 v-else>{{ t('channel.title') }}</h1>
+    <ProjectHeader
+      v-if="channel && project"
+      :name="project.name"
+      :project-key="project.key"
+      :description="project.description"
+      :channel-name="channel.name"
+    />
+    <h1 v-else class="channel__title">{{ t('channel.title') }}</h1>
     <p v-if="channelLoadFailed && !notFound" role="status">{{ t('channel.detailsFailed') }}</p>
     <p v-if="notFound" role="alert">{{ t('channel.notFound') }}</p>
     <p v-else-if="messages.loading">{{ t('common.loading') }}</p>
@@ -100,9 +112,9 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.channel__project {
-  margin-left: 0.5rem;
-  opacity: 0.6;
-  font-weight: normal;
+.channel__title {
+  margin: 0;
+  padding: 12px 20px;
+  font-size: 17px;
 }
 </style>
