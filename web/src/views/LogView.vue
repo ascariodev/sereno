@@ -204,9 +204,8 @@ function scheduleLiveReload(): void {
 
 function onLiveMessage(message: Message): void {
   const payload = message.payload
-  if (isLogGroupOpenedPayload(payload)) projects.refreshCounts()
+  if (isLogGroupOpenedPayload(payload) || isLogGroupStatusChangedPayload(payload)) projects.refreshCounts()
   if (!isLogGroupStatusChangedPayload(payload)) return
-  projects.refreshCounts()
   const row = groups.value.find((item) => item.id === payload.log_group_id)
   if (row?.status === payload.status) return
   scheduleLiveReload()
@@ -232,7 +231,10 @@ watch(
     leaveRealtime()
     if (organizationId === null || channel === null) return
     unsubscribe = subscribeToChannel(organizationId, channel, onLiveMessage)
-    unsubscribeReconnect = onReconnect(() => void load())
+    unsubscribeReconnect = onReconnect(() => {
+      void load()
+      projects.refreshCounts()
+    })
   },
   { immediate: true },
 )

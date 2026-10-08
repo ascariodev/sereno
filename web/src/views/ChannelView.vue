@@ -129,6 +129,7 @@ function reload(): void {
       const visible = toasts.value.some((item) => item.id === reconnectToastId && item.open)
       if (!visible) reconnectToastId = toast.success(t('channel.reconnected'))
       void messages.catchUp()
+      projects.refreshCounts()
     })
   }
 }
