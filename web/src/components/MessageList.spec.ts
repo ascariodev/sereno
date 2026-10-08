@@ -105,6 +105,93 @@ describe('MessageList', () => {
       expect(box.top).toBe(900)
     })
 
+    it('stays pinned at exactly 80 px from the bottom after a scroll event', async () => {
+      const wrapper = mountList([at(1), at(2)], 99)
+      box.top = 420
+      await wrapper.trigger('scroll')
+      wrapper.find('li.message').element.dispatchEvent(new Event('load'))
+      expect(box.top).toBe(900)
+    })
+
+    it('unpins at 81 px from the bottom after a scroll event', async () => {
+      const wrapper = mountList([at(1), at(2)], 99)
+      box.top = 419
+      await wrapper.trigger('scroll')
+      wrapper.find('li.message').element.dispatchEvent(new Event('load'))
+      expect(box.top).toBe(419)
+    })
+
+    describe('content resize', () => {
+      const observers: { callback: () => void; observe: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> }[] = []
+
+      beforeEach(() => {
+        observers.length = 0
+        vi.stubGlobal(
+          'ResizeObserver',
+          class {
+            observe = vi.fn()
+            unobserve = vi.fn()
+            disconnect = vi.fn()
+            callback: () => void
+            constructor(callback: () => void) {
+              this.callback = callback
+              observers.push(this)
+            }
+          },
+        )
+      })
+      afterEach(() => {
+        vi.unstubAllGlobals()
+      })
+
+      it('observes the items list, not the container', async () => {
+        const wrapper = mountList([at(1), at(2)], 99)
+        await nextTick()
+        expect(observers).toHaveLength(1)
+        expect(observers[0].observe).toHaveBeenCalledWith(wrapper.find('ul').element)
+      })
+
+      it('re-anchors when the content height changes while pinned', () => {
+        mountList([at(1), at(2)], 99)
+        box.top = 500
+        observers[0].callback()
+        expect(box.top).toBe(900)
+      })
+
+      it('does not re-anchor on resize after scrolling up', async () => {
+        const wrapper = mountList([at(1), at(2)], 99)
+        box.top = 100
+        await wrapper.trigger('scroll')
+        observers[0].callback()
+        expect(box.top).toBe(100)
+      })
+
+      it('keeps the prepend adjustment when the resize fires afterwards', async () => {
+        const wrapper = mountList([at(5), at(6)], 99)
+        box.top = 30
+        await wrapper.trigger('scroll')
+        await wrapper.setProps({ messages: [at(3), at(4), at(5), at(6)] })
+        await nextTick()
+        observers[0].callback()
+        expect(box.top).toBe(630)
+      })
+
+      it('keeps the prepend adjustment when pinned without a scroll event', async () => {
+        const wrapper = mountList([at(5), at(6)], 99)
+        box.top = 30
+        await wrapper.setProps({ messages: [at(3), at(4), at(5), at(6)] })
+        await nextTick()
+        observers[0].callback()
+        expect(box.top).toBe(630)
+      })
+
+      it('disconnects on unmount', () => {
+        const wrapper = mountList([at(1), at(2)], 99)
+        wrapper.unmount()
+        expect(observers[0].disconnect).toHaveBeenCalled()
+      })
+    })
+
     it('does not re-anchor on a late load after scrolling up', async () => {
       const wrapper = mountList([at(1), at(2)], 99)
       box.top = 100

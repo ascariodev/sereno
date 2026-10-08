@@ -30,7 +30,20 @@ function reanchorOnLateLoad(): void {
   if (pinnedToBottom) scrollToBottom()
 }
 
+const items = ref<HTMLElement | null>(null)
+const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(reanchorOnLateLoad)
+
+watch(
+  items,
+  (next, previous) => {
+    if (previous) resizeObserver?.unobserve(previous)
+    if (next) resizeObserver?.observe(next)
+  },
+  { flush: 'post' },
+)
+
 onMounted(scrollToBottom)
+onUnmounted(() => resizeObserver?.disconnect())
 
 watch(
   () => props.messages,
@@ -47,7 +60,10 @@ watch(
     const own = appended && props.ownUserId !== undefined && next[next.length - 1].user?.id === props.ownUserId
     void nextTick(() => {
       if (appended && (own || wasNearBottom)) scrollToBottom()
-      else if (prepended) el.scrollTop += el.scrollHeight - heightBefore
+      else if (prepended) {
+        el.scrollTop += el.scrollHeight - heightBefore
+        trackPinned()
+      }
     })
   },
   { flush: 'pre' },
@@ -101,7 +117,7 @@ const rows = computed<Row[]>(() => {
       {{ loadingMore ? t('common.loading') : t('channel.loadOlder') }}
     </button>
     <p v-if="messages.length === 0" class="message-list__empty">{{ t('channel.empty') }}</p>
-    <ul v-else class="message-list__items">
+    <ul v-else ref="items" class="message-list__items">
       <template v-for="row in rows" :key="row.key">
         <li v-if="row.type === 'day'" class="message-list__day">{{ row.label }}</li>
         <li v-else :class="['message', `message--${row.message.kind}`]">
