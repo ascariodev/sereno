@@ -2,7 +2,7 @@
 
 **Objetivo:** un solo repo `sereno` (Gitea) con `api/`, `web/` y `app/`, el historial de `workspace-api` y
 `workspace-web` conservado bajo su carpeta, y la raíz (compose, docs, CLAUDE.md, .claude) versionada.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 
 
 ## Contexto mínimo
@@ -37,7 +37,7 @@
   `git log --follow web/package.json` muestran la historia vieja, y el árbol coincide con los `HEAD` actuales
   (`git diff --stat` contra cada repo vacío).
 
-### [ ] Fase 2 — Montar el monorepo en la raíz [riesgo]
+### [x] Fase 2 — Montar el monorepo en la raíz [riesgo]
 - **Alcance:** `docker compose down`; mover los `.git` viejos a un respaldo; renombrar `workspace-api` a `api` y
   `workspace-web` a `web` (conservan `.env`, `vendor`, `storage`, `node_modules`); poner el `.git` del clon unido
   en la raíz; ajustar el `include` del compose raíz, el `.gitignore` raíz y las rutas de `.claude/launch.json`;
@@ -93,6 +93,12 @@
 
 ## Notas para la próxima sesión
 - El usuario aprobó `uvx git-filter-repo` (2026-10-08). Las mejoras pendientes de otros planes se aplican después de la fase 6.
+- Fases 1 y 2: commits `9fddbec` (merge de historiales, 242 commits) y `f7e4712` (raíz). Respaldo en
+  `Development/_respaldo-monorepo-2026-10-08/` (bundles y los `.git` viejos); borrarlo tras la fase 8.
+- Identidad git: no hay global; el repo tiene `user.name`/`user.email` locales copiados de los repos viejos.
+- `web/.gitattributes` fija `eol=lf`: 43 archivos tenían CRLF en disco con el mismo contenido y se reescribieron con
+  `git checkout`. Si `git status` vuelve a marcar archivos sin diff, es lo mismo.
+- Desde ahora, los commits van con `git` en la raíz; los skills todavía dicen `git -C workspace-*` hasta la fase 6.
 
 ## Mejoras propuestas
 - [ ] M-1: renombrar `name` de `web/package.json` a `sereno-web` (toca también `package-lock.json`).
