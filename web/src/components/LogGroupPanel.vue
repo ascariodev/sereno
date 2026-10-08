@@ -192,11 +192,15 @@ const eventText = computed(() => {
 }
 .log-group-panel__stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin: 0;
 }
 .log-group-panel__stats > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
   padding: 10px 12px;
   border-radius: 10px;
   background: var(--surface);
@@ -208,12 +212,12 @@ const eventText = computed(() => {
 }
 .log-group-panel__stats dd {
   margin: 0;
-  padding-top: 3px;
+  min-width: 0;
+  text-align: right;
   font-size: 14px;
   font-weight: 600;
 }
 .log-group-panel__stats dd.log-group-panel__count {
-  padding-top: 0;
   font-size: 18px;
   font-weight: 700;
 }

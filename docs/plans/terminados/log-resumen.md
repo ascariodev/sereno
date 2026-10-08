@@ -105,4 +105,4 @@
 - [x] M-21 (baja, sonnet): test con fake timers en `stores/projects.spec.ts` del re-armado de `refreshCounts` durante un `reload()` pendiente (viene de M-17).
 - [x] M-22 (baja, sonnet): tests en `ChannelView.spec.ts` y `LogView.spec.ts` de que `onReconnect` refresca los conteos de proyectos (viene de M-18).
 - [x] M-23 (baja, sonnet): estabilizar el test intermitente "refreshes the counts once, after 300 ms, for log notices but not for people messages" de `ChannelView.spec.ts` (falla también sin cambios); causa probable: toma `before` tras `mountView()` sin `flushPromises()`, y la carga inicial pendiente cae dentro de `advanceTimersByTimeAsync` (viene de M-22).
-- [ ] M-24 (baja, sonnet): en `LogGroupPanel` a 320 px, las tarjetas "Primera vez" y "Última vez" parten la fecha en tres líneas; usar formato corto o apilar las tarjetas (viene de M-19).
+- [x] M-24 (baja, sonnet): en `LogGroupPanel` a 320 px, las tarjetas "Primera vez" y "Última vez" parten la fecha en tres líneas; usar formato corto o apilar las tarjetas (viene de M-19).
