@@ -98,7 +98,8 @@
 - [x] M-14 (baja, sonnet): en `AppSidebar.vue`, extraer la píldora duplicada (enlace y span deshabilitado) a un subcomponente o calcular `openSummary(project)` una vez por fila; arreglar la línea en blanco del CSS.
 - [x] M-15 (baja, sonnet): con la barra contraída, el tooltip del proyecto muestra el mismo texto que el `aria-label` (conteo y nivel) cuando hay abiertos.
 - [x] M-16 (media, sonnet): extraer a `src/api/logLevels.ts` el mapa nivel a tono (`LOG_LEVELS.includes(level) ? level : 'debug'`) repetido en `AppSidebar`, `LevelPill`, `ProjectCard` (y Sparkline), con test del nivel desconocido.
-- [ ] M-17 (baja, sonnet): en `stores/projects.ts`, si `refreshCounts` dispara mientras `reload()` está en curso, re-armar el timer en vez de perder el refresco.
+- [x] M-17 (baja, sonnet): en `stores/projects.ts`, si `refreshCounts` dispara mientras `reload()` está en curso, re-armar el timer en vez de perder el refresco.
 - [ ] M-18 (baja, sonnet): refrescar los conteos en `onReconnect` de `ChannelView` y `LogView`, y simplificar `onLiveMessage` de `LogView` a un único `refreshCounts()`.
 - [ ] M-19 (media, sonnet): verificación visual en el navegador (L-22) de lo que jsdom no cubre: columna de LogView, panel (ancho y hoja), fila de actividad de `SystemNotice` (móvil), píldora de la barra lateral y línea de salud de `ProjectCard`, en ambos temas.
 - [ ] M-20 (baja, sonnet): test en `useHourlyCounts.spec.ts` del reintento tras fallo: `getHourlyCounts` rechaza y un `requestHourlyCounts` con el mismo `messageId` vuelve a pedir los datos (viene de M-12).
+- [ ] M-21 (baja, sonnet): test con fake timers en `stores/projects.spec.ts` del re-armado de `refreshCounts` durante un `reload()` pendiente (viene de M-17).

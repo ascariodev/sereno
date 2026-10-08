@@ -91,6 +91,10 @@ export const useProjectsStore = defineStore('projects', () => {
     if (countsTimer !== null) clearTimeout(countsTimer)
     countsTimer = setTimeout(() => {
       countsTimer = null
+      if (loading.value) {
+        refreshCounts()
+        return
+      }
       void fetchCounts()
     }, COUNTS_REFRESH_DELAY_MS)
   }
