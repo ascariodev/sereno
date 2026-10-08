@@ -86,7 +86,7 @@
 - [x] M-2 (baja, sonnet): test unitario de `LogLevel::bySeverity()` y `fromSeverityPosition()` que recorra todos los casos del enum.
 - [x] M-3 (baja, sonnet): cachear en una estática el orden de `LogLevel::fromSeverityPosition()` (hoy hace `usort` en cada llamada, una por proyecto).
 - [x] M-4 (baja, sonnet): la suite completa del API no carga: `ingest()` global está declarada en `tests/Feature/LogSourceAuthTest.php:32` y `RotateLogSourceKeyCommandTest.php:34` (viene de conectar-posveapi M-18/M-20, no de este plan). Renombrar o encapsular una de las dos.
-- [ ] M-5 (baja, sonnet): renombrar el caso de error de `getHourlyCounts` en `logGroups.spec.ts` para que diga que provoca el 422 con `ids` vacío.
+- [x] M-5 (baja, sonnet): renombrar el caso de error de `getHourlyCounts` en `logGroups.spec.ts` para que diga que provoca el 422 con `ids` vacío.
 - [ ] M-6 (baja, sonnet): en `Sparkline.vue`, `emergency` usa `--level-emergency-fg` (~2:1 de contraste en tema claro); pasar a `-bg` como critical y alert, y revisar los colores en el navegador en ambos temas.
 - [ ] M-7 (baja, sonnet): fundir las dos reglas `.sparkline` de `Sparkline.vue` y derivar ancho/alto del CSS de las constantes `WIDTH`/`HEIGHT` (p. ej. `v-bind`).
 - [ ] M-8 (media, sonnet): clase global `sr-only` en `style.css` y usarla en `Sparkline.vue` (y donde se repita) en vez de CSS local.

@@ -99,7 +99,7 @@ describe('getHourlyCounts', () => {
     expect(result.counts).toEqual({})
   })
 
-  it('rejects when the API answers an error', async () => {
+  it('rejects with the 422 the API returns for empty ids', async () => {
     stubFetch({ message: 'The given data was invalid.' }, 422)
 
     await expect(getHourlyCounts(3, [])).rejects.toMatchObject({ status: 422 })
