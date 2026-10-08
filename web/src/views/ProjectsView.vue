@@ -1,56 +1,12 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
-import { api } from '../api/client'
-import type { Channel, Paginated, Project } from '../api/types'
-import { useOrganizationStore } from '../stores/organization'
-
-const PER_PAGE = 100
+import { useProjectsStore } from '../stores/projects'
 
 const { t } = useI18n()
-const organization = useOrganizationStore()
-const projects = ref<Project[]>([])
-const channelByProject = ref<Record<number, number>>({})
-const loading = ref(false)
-const failed = ref(false)
-let generation = 0
-
-async function fetchProjects(): Promise<Project[]> {
-  const all: Project[] = []
-  let page = 1
-  let lastPage = 1
-  do {
-    const response = await api.get<Paginated<Project>>('/api/projects', { query: { per_page: PER_PAGE, page } })
-    all.push(...response.data)
-    lastPage = response.meta.last_page
-    page++
-  } while (page <= lastPage)
-  return all
-}
-
-async function reload(): Promise<void> {
-  const current = ++generation
-  projects.value = []
-  channelByProject.value = {}
-  failed.value = false
-  loading.value = true
-  try {
-    const [loadedProjects, channels] = await Promise.all([
-      fetchProjects(),
-      api.get<{ data: Channel[] }>('/api/channels'),
-    ])
-    if (current !== generation) return
-    projects.value = loadedProjects.filter((project) => project.archived_at === null)
-    channelByProject.value = Object.fromEntries(channels.data.map((channel) => [channel.project_id, channel.id]))
-  } catch {
-    if (current !== generation) return
-    failed.value = true
-  } finally {
-    if (current === generation) loading.value = false
-  }
-}
-
-watch(() => organization.activeId, reload, { immediate: true })
+const store = useProjectsStore()
+const { projects, channelByProject, loading, failed } = storeToRefs(store)
+const reload = store.reload
 </script>
 
 <template>
