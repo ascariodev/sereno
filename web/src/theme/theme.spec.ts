@@ -68,5 +68,8 @@ describe('theme preference', () => {
   it('index.html inline script uses the same storage key', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')
     expect(html).toContain(`'${THEME_STORAGE_KEY}'`)
+    expect(html).toContain(`setAttribute('data-theme'`)
+    expect(html).toContain(`theme === 'light'`)
+    expect(html).toContain(`theme === 'dark'`)
   })
 })
