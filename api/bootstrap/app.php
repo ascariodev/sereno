@@ -22,8 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // In production TLS ends at the host proxy, the only peer of nginx (bound to 127.0.0.1). Trusting just
         // the immediate peer gives https URLs and the real client IP for the per-IP limiters, while an
-        // X-Forwarded-For forged by the client is ignored.
-        $middleware->trustProxies(at: 'REMOTE_ADDR');
+        // X-Forwarded-For forged by the client is ignored. Host, port and prefix are not trusted, so a client
+        // cannot rewrite url() through X-Forwarded-Host/Port/Prefix headers the host proxy does not overwrite.
+        $middleware->trustProxies(
+            at: 'REMOTE_ADDR',
+            headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO,
+        );
         $middleware->api(append: [
             SetLocale::class,
         ]);
