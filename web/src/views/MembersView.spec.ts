@@ -5,9 +5,11 @@ import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { toast, toasts } from '../components/ui/toast'
 import { i18n, setLocale } from '../i18n'
+import { MEMBERSHIP_REVOKED_EVENT, setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import MembersView from './MembersView.vue'
 
 const user = { id: 1, name: 'Ada', email: 'ada@e.com', locale: 'en' }
@@ -307,6 +309,65 @@ describe('MembersView', () => {
       expect(organization.activeId).toBe(2)
       expect(router.currentRoute.value.name).toBe('projects')
       expect(toasts.value.map((item) => item.kind)).toEqual(['success'])
+    })
+
+    describe('with its own membership.revoked notice', () => {
+      const other = { id: 2, name: 'Other', slug: 'other', settings: null, roles: ['member'] }
+      let fake: ReturnType<typeof createFakeRealtimeClient>
+
+      beforeEach(() => {
+        fake = createFakeRealtimeClient()
+        setRealtimeClientFactory(() => fake.client)
+      })
+
+      afterEach(() => {
+        wrapper?.unmount()
+        wrapper = undefined
+        setRealtimeClientFactory(() => null)
+      })
+
+      function revoke() {
+        fake.listeners.get(`users.1|${MEMBERSHIP_REVOKED_EVENT}`)!({ organization_id: 1 })
+      }
+
+      it('arriving before the response does not notify or navigate twice', async () => {
+        const { router, get } = await mountApp(['member'], [member(1, 'member')], [other])
+        const replace = vi.spyOn(router, 'replace')
+        let resolveDelete: () => void = () => undefined
+        vi.spyOn(api, 'delete').mockImplementation(
+          () => new Promise<never>((resolve) => (resolveDelete = () => resolve(undefined as never))),
+        )
+        await wrapper!.find('[data-test=leave]').trigger('click')
+        await flushPromises()
+        dialogButton('confirm')!.click()
+        await flushPromises()
+        get.mockImplementation(async (path: string) => (path === '/api/organizations' ? { data: [other] } : { data: [] }))
+        revoke()
+        await flushPromises()
+        resolveDelete()
+        await flushPromises()
+        expect(fake.client.leave).not.toHaveBeenCalledWith('users.1')
+        expect(useOrganizationStore().activeId).toBe(2)
+        expect(router.currentRoute.value.name).toBe('projects')
+        expect(replace).toHaveBeenCalledTimes(1)
+        expect(toasts.value.map((item) => item.message)).toEqual(['You left the organization.'])
+      })
+
+      it('arriving after the leave finished changes nothing', async () => {
+        const { router, get } = await mountApp(['member'], [member(1, 'member')], [other])
+        await wrapper!.find('[data-test=leave]').trigger('click')
+        await flushPromises()
+        dialogButton('confirm')!.click()
+        await flushPromises()
+        expect(router.currentRoute.value.name).toBe('projects')
+        const replace = vi.spyOn(router, 'replace')
+        const loads = get.mock.calls.length
+        revoke()
+        await flushPromises()
+        expect(get.mock.calls.length).toBeGreaterThan(loads)
+        expect(replace).not.toHaveBeenCalled()
+        expect(toasts.value.map((item) => item.message)).toEqual(['You left the organization.'])
+      })
     })
 
     it('reloads organizations after leaving even if the organization changed during the request', async () => {

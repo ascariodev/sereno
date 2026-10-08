@@ -7,6 +7,7 @@ import { listMembers, removeMember, updateMemberRole } from '../api/members'
 import type { InvitationRole, Member } from '../api/types'
 import AppDialog from '../components/ui/AppDialog.vue'
 import { toast } from '../components/ui/toast'
+import { expectOwnLeave } from '../realtime/useMembershipWatch'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 
@@ -135,6 +136,7 @@ async function confirmRemove(): Promise<void> {
   if (!target || removing.value) return
   const current = generation
   const self = isSelf(target)
+  const releaseOwnLeave = self && organization.activeId !== null ? expectOwnLeave(organization.activeId) : null
   removing.value = true
   roleError.value = null
   try {
@@ -164,6 +166,7 @@ async function confirmRemove(): Promise<void> {
       }
     }
   } finally {
+    releaseOwnLeave?.()
     removing.value = false
     if (current === generation) pending.value = null
   }

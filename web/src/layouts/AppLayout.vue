@@ -6,6 +6,7 @@ import AppSidebar from '../components/AppSidebar.vue'
 import CommandPalette from '../components/CommandPalette.vue'
 import MobileTopBar from '../components/MobileTopBar.vue'
 import AppDialog from '../components/ui/AppDialog.vue'
+import { useMembershipWatch } from '../realtime/useMembershipWatch'
 import { useOrganizationStore } from '../stores/organization'
 
 const { t } = useI18n()
@@ -13,6 +14,8 @@ const organization = useOrganizationStore()
 const route = useRoute()
 const drawerOpen = ref(false)
 const paletteOpen = ref(false)
+
+useMembershipWatch()
 
 const SIDEBAR_STORAGE_KEY = 'workspace.sidebar'
 

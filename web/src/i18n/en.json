@@ -80,7 +80,9 @@
     "label": "Organization",
     "none": "You do not belong to any organization yet.",
     "noneHint": "Ask an owner or admin of your team to send you an invitation.",
-    "loadFailed": "Could not load your organizations."
+    "loadFailed": "Could not load your organizations.",
+    "revoked": "You no longer belong to {organization}.",
+    "revokedUnknown": "You no longer belong to that organization."
   },
   "sidebar": {
     "menu": "Menu",

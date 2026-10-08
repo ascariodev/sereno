@@ -34,7 +34,7 @@
 - **Archivos:** `web/src/stores/organization.ts`, `web/src/stores/organization.spec.ts`.
 - **Terminado cuando:** specs de revocar la activa (con otra y sin otras), revocar una no activa, y `clear()` durante la carga, pasan.
 
-### [ ] Fase 5 — Conectar el aviso en la sesión [riesgo]
+### [x] Fase 5 — Conectar el aviso en la sesión [riesgo]
 - **Alcance:** al tener usuario en sesión, suscribirse a `users.{id}` y soltarlo en `clearSession()`; al recibir `membership.revoked`, `handleMembershipRevoked` y, si la activa cambió, toast traducido y volver a `projects` (si no quedan organizaciones, el estado vacío de AppLayout). En `onReconnect`, recargar organizaciones para cubrir avisos perdidos. Que salir desde `MembersView` no duplique la navegación ni el toast al recibir su propio aviso. Verificación en el navegador con Reverb real: dos sesiones, quitar a una y ver que deja de recibir mensajes del canal.
 - **Archivos:** `web/src/stores/auth.ts` (o un composable `web/src/realtime/useMembershipWatch.ts` montado en `AppLayout.vue`; decidir y anotar), `web/src/i18n/en.json`, `web/src/i18n/es.json`, specs.
 - **Terminado cuando:** specs de recibir el aviso de la activa y de otra, logout que suelta el canal, reconexión que recarga y salida propia sin doble toast pasan, y la verificación en vivo lo confirma.
@@ -48,9 +48,10 @@
 - 2026-10-08 — Fase 2: `removeMember` despacha `MembershipRevoked($userId, $organizationId)` dentro del closure de `mutateMembership`, tras el `detach`; `ShouldDispatchAfterCommit` lo retiene hasta el commit. El evento guarda solo ids.
 - 2026-10-08 — Fase 3: `subscribeToChannel` y `subscribeToUser(userId, cb)` comparten el helper interno `subscribe`; el callback de `subscribeToUser` recibe el `organization_id`. `leaveOrganization(orgId)` corta los canales con prefijo `organizations.{orgId}.` y borra sus entradas del Map. El unsubscribe solo hace `leave` si su entrada sigue vigente en el Map: tras `leaveOrganization`, `disconnectRealtime` o cambio de cliente es un no-op, y no corta una suscripción nueva del mismo nombre.
 - 2026-10-08 — Fase 4: `handleMembershipRevoked(orgId): Promise<boolean>` llama a `leaveOrganization` y `load()`, espera a la última carga en vuelo (`latestLoad`, por si `onReconnect` lanza otra a la vez) y devuelve `activeId !== activa previa`; devuelve false solo si hubo `clear()` (contador propio `clearCount`). Si una carga rechaza, el error se propaga: en la fase 5 quien la llame lleva `catch`.
+- 2026-10-08 — Fase 5: composable `web/src/realtime/useMembershipWatch.ts` montado en `AppLayout.vue` (no en `stores/auth.ts`: necesita router, toast e i18n). Vigila `auth.user?.id` (`immediate`), suelta la suscripción al cambiar de usuario y al desmontar; `onReconnect` recarga organizaciones. Si la activa cambió: `toast.info` `organization.revoked` (o `revokedUnknown`) y `router.replace({name:'projects'})`. Salida propia: `expectOwnLeave(orgId)` (conteo por organización, liberador idempotente) que `MembersView` marca durante el DELETE; con la marca, el aviso solo llama a `leaveOrganization`. Verificado en vivo con Reverb: el quitado recibe el toast, vuelve a proyectos y deja de recibir mensajes del canal.
 
 ## Notas para la próxima sesión
-- Fases 1 a 4 hechas. Seguir con la fase 5 [riesgo]: suscribir `users.{id}` en la sesión y reaccionar con `handleMembershipRevoked` (con `catch`), toast y navegación; verificación en vivo con Reverb (el worker `queue` ya se reinició con `MembershipRevoked`).
+- Plan completo. Datos de prueba de la verificación en vivo en la base local: usuario `rt-verify@example.test`, organización `rt-verify` y dos tokens Sanctum (`rt-a`, `rt-b`).
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): corte forzado del lado servidor: que el cliente se una a un canal de presencia propio para que la conexión lleve `user_id` y llamar a `terminate_connections` (`Pusher::terminateUserConnections`) al quitar; el cliente reconecta y `/broadcasting/auth` rechaza la organización quitada.
@@ -60,3 +61,5 @@
 - [ ] M-5 (baja, sonnet): simplificar la validación del id en `UserChannel` (`ctype_digit` y la comparación del string canónico se solapan con `FILTER_VALIDATE_INT`), cuidando que los casos de `BroadcastingAuthTest` sigan rechazados.
 - [ ] M-6 (baja, sonnet): en `MembershipBroadcastTest`, el test de rollback usa `Event::fake()` sin argumentos; pasar a `Event::fake([MembershipRevoked::class])` como el `beforeEach`.
 - [ ] M-7 (baja, sonnet): en `web/src/realtime/echo.ts`, tipar el Map de suscriptores sin el casteo `Subscriber = (value: never) => void` y sacar el prefijo de `leaveOrganization` a un helper junto a `channelName`.
+- [ ] M-8 (baja, sonnet): en `useMembershipWatch`, registrar `onReconnect` dentro del watch junto a la suscripción, para que un cliente nuevo tras `disconnectRealtime` con AppLayout montado no quede sin listener; y acortar el docblock de `expectOwnLeave` a una línea.
+- [ ] M-9 (baja, sonnet): `src/views/SessionErrorView.spec.ts` deja 18 "Unhandled Rejection" (`organizations.value.find is not a function` en `stores/organization.ts`): el mock devuelve una forma que no es lista; corregir el mock para que la suite quede sin errores.
