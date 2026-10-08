@@ -26,6 +26,8 @@ export interface Project {
   archived_at: string | null
   created_at: string
   updated_at: string
+  open_groups_count?: number
+  open_max_level?: string | null
 }
 
 export interface Channel {

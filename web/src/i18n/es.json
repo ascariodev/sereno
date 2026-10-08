@@ -45,7 +45,9 @@
     "open": "Abrir navegación",
     "close": "Cerrar navegación",
     "collapse": "Contraer barra lateral",
-    "expand": "Expandir barra lateral"
+    "expand": "Expandir barra lateral",
+    "openGroups": "{n} grupo de logs abierto | {n} grupos de logs abiertos",
+    "projectOpen": "{name}: {groups}, nivel máximo {level}"
   },
   "command": {
     "open": "Buscar",

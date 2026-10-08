@@ -45,7 +45,9 @@
     "open": "Open navigation",
     "close": "Close navigation",
     "collapse": "Collapse sidebar",
-    "expand": "Expand sidebar"
+    "expand": "Expand sidebar",
+    "openGroups": "{n} open log group | {n} open log groups",
+    "projectOpen": "{name}: {groups}, highest level {level}"
   },
   "command": {
     "open": "Search",

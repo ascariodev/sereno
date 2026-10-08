@@ -3,6 +3,8 @@ import { House, PanelLeftClose, PanelLeftOpen, Search } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
+import { LOG_LEVELS } from '../api/logLevels'
+import type { Project } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
 import { isApple } from '../platform'
 import { useProjectsStore } from '../stores/projects'
@@ -11,7 +13,7 @@ import UserMenu from './UserMenu.vue'
 import AppTooltip from './ui/AppTooltip.vue'
 import ProjectKey from './ui/ProjectKey.vue'
 
-defineProps<{ collapsed?: boolean; collapsible?: boolean }>()
+const props = defineProps<{ collapsed?: boolean; collapsible?: boolean }>()
 defineEmits<{ search: []; toggle: [] }>()
 
 const { t } = useI18n()
@@ -26,6 +28,25 @@ const activeProjectId = computed<number | null>(() => {
   const entry = Object.entries(projectsStore.channelByProject).find(([, id]) => id === channelId)
   return entry ? Number(entry[0]) : null
 })
+
+interface OpenSummary {
+  count: number
+  tone: string
+  label: string
+}
+
+function openSummary(project: Project): OpenSummary | null {
+  const count = project.open_groups_count
+  if (typeof count !== 'number' || count <= 0) return null
+  const level = project.open_max_level
+  const tone = level && LOG_LEVELS.includes(level) ? level : 'debug'
+  const groups = t('sidebar.openGroups', { n: count }, count)
+  return { count, tone, label: t('sidebar.projectOpen', { name: project.name, groups, level: t(`notice.level.${tone}`) }) }
+}
+
+function linkLabel(project: Project): string | undefined {
+  return openSummary(project)?.label ?? (props.collapsed ? project.name : undefined)
+}
 
 function currentFor(projectId: number): 'page' | undefined {
   return activeProjectId.value === projectId ? 'page' : undefined
@@ -95,22 +116,34 @@ function currentFor(projectId: number): 'page' | undefined {
             v-if="projectsStore.channelByProject[project.id] !== undefined"
             :to="{ name: 'channel', params: { id: projectsStore.channelByProject[project.id] } }"
             class="app-sidebar__link app-sidebar__project"
-            :aria-label="collapsed ? project.name : undefined"
+            :aria-label="linkLabel(project)"
             :aria-current="currentFor(project.id)"
           >
             <ProjectKey :value="project.key" />
             <span v-if="!collapsed" class="app-sidebar__name">{{ project.name }}</span>
+            <span
+              v-if="openSummary(project)"
+              :class="['app-sidebar__open', `app-sidebar__open--${openSummary(project)!.tone}`]"
+              aria-hidden="true"
+              >{{ openSummary(project)!.count }}</span
+            >
           </RouterLink>
           <span
             v-else
             class="app-sidebar__link app-sidebar__project app-sidebar__project--disabled"
             role="link"
             aria-disabled="true"
-            :aria-label="collapsed ? project.name : undefined"
+            :aria-label="linkLabel(project)"
             :aria-current="currentFor(project.id)"
           >
             <ProjectKey :value="project.key" />
             <span v-if="!collapsed" class="app-sidebar__name">{{ project.name }}</span>
+            <span
+              v-if="openSummary(project)"
+              :class="['app-sidebar__open', `app-sidebar__open--${openSummary(project)!.tone}`]"
+              aria-hidden="true"
+              >{{ openSummary(project)!.count }}</span
+            >
           </span>
         </AppTooltip>
       </template>
@@ -266,6 +299,69 @@ function currentFor(projectId: number): 'page' | undefined {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.app-sidebar__open {
+  flex: none;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.app-sidebar--collapsed .app-sidebar__project {
+  position: relative;
+}
+
+.app-sidebar--collapsed .app-sidebar__open {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+}
+.app-sidebar__open--debug {
+  background: var(--level-debug-bg);
+  color: var(--level-debug-fg);
+}
+
+.app-sidebar__open--info {
+  background: var(--level-info-bg);
+  color: var(--level-info-fg);
+}
+
+.app-sidebar__open--notice {
+  background: var(--level-notice-bg);
+  color: var(--level-notice-fg);
+}
+
+.app-sidebar__open--warning {
+  background: var(--level-warning-bg);
+  color: var(--level-warning-fg);
+}
+
+.app-sidebar__open--error {
+  background: var(--level-error-bg);
+  color: var(--level-error-fg);
+}
+
+.app-sidebar__open--critical {
+  background: var(--level-critical-bg);
+  color: var(--level-critical-fg);
+}
+
+.app-sidebar__open--alert {
+  background: var(--level-alert-bg);
+  color: var(--level-alert-fg);
+}
+
+.app-sidebar__open--emergency {
+  background: var(--level-emergency-bg);
+  color: var(--level-emergency-fg);
 }
 
 .app-sidebar__note {

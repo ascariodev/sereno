@@ -26,8 +26,10 @@ const orgs = [
   { id: 2, name: 'Two', slug: 'two', settings: null, roles: ['member'] },
 ]
 
+let projectExtra: Record<string, unknown> = {}
+
 function sidebarData(path: string, withChannel = true): unknown {
-  if (path === '/api/projects') return { data: [project], meta: { last_page: 1 } }
+  if (path === '/api/projects') return { data: [{ ...project, ...projectExtra }], meta: { last_page: 1 } }
   if (path === '/api/channels') return withChannel ? { data: [{ id: 7, project_id: 5, name: 'general', project: { id: 5, name: 'posveapi' }, is_archived: false }] } : { data: [] }
   if (path === '/api/channels/7/messages') return { data: [], meta: { next_cursor: null } }
   return undefined
@@ -82,6 +84,7 @@ async function mountApp(
 describe('AppLayout', () => {
   beforeEach(() => {
     localStorage.clear()
+    projectExtra = {}
     vi.restoreAllMocks()
     document.documentElement.removeAttribute('data-theme')
   })
@@ -151,6 +154,72 @@ describe('AppLayout', () => {
     expect(link.text()).toContain('posveapi')
     expect(link.attributes('aria-current')).toBe('page')
     expect(wrapper.find('a[href="/"]').attributes('aria-current')).toBeUndefined()
+  })
+
+  describe('open log groups', () => {
+    it('shows the count and the highest level next to the project', async () => {
+      projectExtra = { open_groups_count: 3, open_max_level: 'error' }
+      const { wrapper } = await mountApp(undefined, '/')
+      const link = wrapper.find('a[href="/channels/7"]')
+      const badge = link.find('.app-sidebar__open')
+      expect(badge.text()).toBe('3')
+      expect(badge.classes()).toContain('app-sidebar__open--error')
+      expect(link.attributes('aria-label')).toBe('posveapi: 3 open log groups, highest level error')
+    })
+
+    it('uses the singular for one open group', async () => {
+      projectExtra = { open_groups_count: 1, open_max_level: 'warning' }
+      const { wrapper } = await mountApp(undefined, '/')
+      expect(wrapper.find('a[href="/channels/7"]').attributes('aria-label')).toBe(
+        'posveapi: 1 open log group, highest level warning',
+      )
+    })
+
+    it('shows nothing without open groups', async () => {
+      projectExtra = { open_groups_count: 0, open_max_level: null }
+      const { wrapper } = await mountApp(undefined, '/')
+      const link = wrapper.find('a[href="/channels/7"]')
+      expect(link.find('.app-sidebar__open').exists()).toBe(false)
+      expect(link.attributes('aria-label')).toBeUndefined()
+    })
+
+    it('shows nothing when the fields are missing', async () => {
+      const { wrapper } = await mountApp(undefined, '/')
+      expect(wrapper.find('.app-sidebar__open').exists()).toBe(false)
+      expect(wrapper.find('a[href="/channels/7"]').attributes('aria-label')).toBeUndefined()
+    })
+
+    it('keeps the indicator and an accessible name when collapsed', async () => {
+      localStorage.setItem('workspace.sidebar', 'collapsed')
+      projectExtra = { open_groups_count: 2, open_max_level: 'critical' }
+      const { wrapper } = await mountApp(undefined, '/')
+      expect(wrapper.find('.app-layout--collapsed').exists()).toBe(true)
+      const link = wrapper.find('.app-layout__sidebar a[href="/channels/7"]')
+      expect(link.find('.app-sidebar__open').text()).toBe('2')
+      expect(link.attributes('aria-label')).toBe('posveapi: 2 open log groups, highest level critical')
+    })
+
+    it('names the open groups in the project without a channel', async () => {
+      projectExtra = { open_groups_count: 2, open_max_level: 'info' }
+      const { wrapper } = await mountApp(undefined, '/', false)
+      const item = wrapper.find('.app-layout__sidebar span.app-sidebar__project--disabled')
+      expect(item.find('.app-sidebar__open').text()).toBe('2')
+      expect(item.attributes('aria-label')).toBe('posveapi: 2 open log groups, highest level info')
+    })
+
+    it('translates the label to Spanish', async () => {
+      projectExtra = { open_groups_count: 2, open_max_level: 'error' }
+      try {
+        const { wrapper } = await mountApp(undefined, '/')
+        i18n.global.locale.value = 'es'
+        await nextTick()
+        expect(wrapper.find('a[href="/channels/7"]').attributes('aria-label')).toBe(
+          'posveapi: 2 grupos de logs abiertos, nivel máximo error',
+        )
+      } finally {
+        i18n.global.locale.value = 'en'
+      }
+    })
   })
 
   it('marks the project as current on its log page', async () => {
