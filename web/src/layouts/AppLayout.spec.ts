@@ -10,20 +10,39 @@ import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 
 const user = { id: 1, name: 'Ada', email: 'a@e.com', locale: 'en' }
+const project = {
+  id: 5,
+  name: 'posveapi',
+  key: 'POSVE',
+  description: null,
+  archived_at: null,
+  created_at: '',
+  updated_at: '',
+}
 const orgs = [
   { id: 1, name: 'One', slug: 'one', settings: null, roles: ['owner'] },
   { id: 2, name: 'Two', slug: 'two', settings: null, roles: ['member'] },
 ]
 
-async function mountApp(organizations: () => Promise<unknown> = async () => ({ data: orgs })) {
+function sidebarData(path: string): unknown {
+  if (path === '/api/projects') return { data: [project], meta: { last_page: 1 } }
+  if (path === '/api/channels') return { data: [{ id: 7, project_id: 5, name: 'general', project: { id: 5, name: 'posveapi' }, is_archived: false }] }
+  if (path === '/api/channels/7/messages') return { data: [], meta: { next_cursor: null } }
+  return undefined
+}
+
+async function mountApp(
+  organizations: () => Promise<unknown> = async () => ({ data: orgs }),
+  path = '/',
+) {
   localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
   const pinia = createPinia()
   setActivePinia(pinia)
-  vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
-    path === '/api/me' ? { data: user } : ((await organizations()) as never),
+  vi.spyOn(api, 'get').mockImplementation(async (url: string) =>
+    sidebarData(url) ?? (url === '/api/me' ? { data: user } : ((await organizations()) as never)),
   )
   const router = createAppRouter(createMemoryHistory())
-  await router.push('/')
+  await router.push(path)
   await router.isReady()
   const wrapper = mount({ template: '<RouterView />' }, { global: { plugins: [pinia, i18n, router] } })
   await flushPromises()
@@ -81,6 +100,21 @@ describe('AppLayout', () => {
     await flushPromises()
     expect(wrapper.find('.app-layout__main > p').exists()).toBe(false)
     expect(wrapper.text()).toContain('Projects')
+  })
+
+  it('lists the projects and marks the active one with aria-current', async () => {
+    const { wrapper } = await mountApp(undefined, '/channels/7')
+    const link = wrapper.find('a[href="/channels/7"]')
+    expect(link.text()).toContain('POSVE')
+    expect(link.text()).toContain('posveapi')
+    expect(link.attributes('aria-current')).toBe('page')
+    expect(wrapper.find('a[href="/"]').attributes('aria-current')).toBeUndefined()
+  })
+
+  it('marks Home as current on the home page', async () => {
+    const { wrapper } = await mountApp()
+    expect(wrapper.find('a[href="/"]').attributes('aria-current')).toBe('page')
+    expect(wrapper.find('a[href="/channels/7"]').attributes('aria-current')).toBeUndefined()
   })
 
   it('logout clears the session and goes to login', async () => {

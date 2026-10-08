@@ -28,6 +28,10 @@
     "none": "You do not belong to any organization yet.",
     "loadFailed": "Could not load your organizations."
   },
+  "sidebar": {
+    "label": "Main navigation",
+    "home": "Home"
+  },
   "layout": {
     "logout": "Sign out"
   },

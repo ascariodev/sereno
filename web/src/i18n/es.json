@@ -28,6 +28,10 @@
     "none": "Aún no perteneces a ninguna organización.",
     "loadFailed": "No se pudieron cargar tus organizaciones."
   },
+  "sidebar": {
+    "label": "Navegación principal",
+    "home": "Inicio"
+  },
   "layout": {
     "logout": "Cerrar sesión"
   },
