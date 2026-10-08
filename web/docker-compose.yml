@@ -1,0 +1,28 @@
+services:
+  web-init:
+    image: node:24
+    user: root
+    volumes:
+      - web-node-modules:/app/node_modules
+    entrypoint: ["sh", "-c", "[ -z \"$$(find /app/node_modules ! -user node -print -quit)\" ] || chown -R node:node /app/node_modules"]
+
+  web:
+    image: node:24
+    user: node
+    depends_on:
+      web-init:
+        condition: service_completed_successfully
+    container_name: workspace_web
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - web-node-modules:/app/node_modules
+    ports:
+      - "5174:5174"
+    environment:
+      DEV_HOST: "0.0.0.0"
+      DEV_POLLING: "true"
+    entrypoint: ["sh", "-c", "[ -f node_modules/.bin/vite ] || npm install; exec npm run dev"]
+
+volumes:
+  web-node-modules:

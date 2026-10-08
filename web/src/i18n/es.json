@@ -1,0 +1,191 @@
+{
+  "common": {
+    "localeSaveFailed": "No se pudo guardar tu idioma. Se aplicó solo en este dispositivo.",
+    "loading": "Cargando...",
+    "retry": "Reintentar"
+  },
+  "toast": {
+    "region": "Notificaciones",
+    "close": "Descartar notificación"
+  },
+  "pwa": {
+    "updateReady": "Hay una versión nueva de Sereno.",
+    "reload": "Recargar"
+  },
+  "app": {
+    "name": "Sereno"
+  },
+  "login": {
+    "subtitle": "Inicia sesión para ver los canales de tus proyectos.",
+    "language": "Idioma",
+    "heroTitle": "Tus sistemas te avisan donde ya conversas.",
+    "heroText": "El aviso, la conversación y la tarea viven en el mismo canal del proyecto.",
+    "invited": "¿Te invitaron a una organización? Abre el enlace de tu correo.",
+    "title": "Iniciar sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "submit": "Iniciar sesión",
+    "submitting": "Iniciando sesión...",
+    "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo iniciar sesión. Inténtalo de nuevo."
+  },
+  "sessionError": {
+    "title": "No se pudo cargar tu sesión.",
+    "message": "El servidor no respondió correctamente. Tu sesión se conserva; inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "retrying": "Reintentando...",
+    "failed": "Sigue fallando. Inténtalo de nuevo en un momento."
+  },
+  "organization": {
+    "label": "Organización",
+    "none": "Aún no perteneces a ninguna organización.",
+    "loadFailed": "No se pudieron cargar tus organizaciones."
+  },
+  "sidebar": {
+    "menu": "Menú",
+    "label": "Navegación principal",
+    "home": "Inicio",
+    "open": "Abrir navegación",
+    "close": "Cerrar navegación",
+    "collapse": "Contraer barra lateral",
+    "expand": "Expandir barra lateral",
+    "openGroups": "{n} grupo de logs abierto | {n} grupos de logs abiertos",
+    "projectOpen": "{name}: {groups}, nivel máximo {level}"
+  },
+  "command": {
+    "open": "Buscar",
+    "title": "Paleta de comandos",
+    "placeholder": "Ir a un proyecto o cambiar el tema o el idioma",
+    "empty": "Sin resultados.",
+    "goTo": "Ir a",
+    "theme": "Tema",
+    "language": "Idioma"
+  },
+  "userMenu": {
+    "label": "Menú de usuario",
+    "theme": {
+      "system": "Tema del sistema",
+      "light": "Tema claro",
+      "dark": "Tema oscuro"
+    }
+  },
+  "layout": {
+    "logout": "Cerrar sesión"
+  },
+  "projects": {
+    "greeting": "Hola, {name}",
+    "title": "Proyectos",
+    "loadFailed": "No se pudieron cargar los proyectos.",
+    "empty": "Aún no hay proyectos.",
+    "emptyHint": "Los proyectos a los que perteneces aparecen aquí.",
+    "healthOpen": "{n} abierto | {n} abiertos",
+    "healthCalm": "Todo en calma"
+  },
+  "channel": {
+    "title": "Canal",
+    "empty": "Aún no hay mensajes.",
+    "today": "Hoy",
+    "reconnected": "Reconectado",
+    "loadOlder": "Cargar mensajes anteriores",
+    "systemNotice": "Aviso del sistema",
+    "unknownUser": "Usuario desconocido",
+    "detailsFailed": "No se pudieron cargar los datos del canal.",
+    "notFound": "Este canal no existe o no tienes acceso.",
+    "loadFailed": "No se pudieron cargar los mensajes.",
+    "archived": "Este canal está archivado; no se puede escribir en él.",
+    "composer": {
+      "placeholder": "Escribe un mensaje",
+      "hint": "Enter envía · Shift+Enter salto de línea",
+      "send": "Enviar",
+      "tooLong": "El mensaje no puede superar {max} caracteres.",
+      "rateLimited": "Estás enviando mensajes demasiado rápido. Inténtalo de nuevo en un momento.",
+      "sendFailed": "No se pudo enviar el mensaje."
+    }
+  },
+  "logGroup": {
+    "label": "Detalle del grupo de logs",
+    "heading": "Grupo de logs #{id}",
+    "close": "Cerrar detalle",
+    "events": "Eventos",
+    "firstSeen": "Primera vez",
+    "lastSeen": "Última vez",
+    "lastEvent": "Último evento",
+    "activity": "Últimas 24 h",
+    "noEvents": "No hay eventos disponibles.",
+    "loadFailed": "No se pudo cargar el grupo de logs.",
+    "notFound": "Este grupo de logs no existe o no tienes acceso."
+  },
+  "sparkline": {
+    "total": "{n} evento en las últimas 24 horas | {n} eventos en las últimas 24 horas"
+  },
+  "notice": {
+    "openedLabel": "Nuevo grupo de logs",
+    "reopenedLabel": "Grupo de logs reabierto",
+    "eventsWord": "evento | eventos",
+    "statusChanged": "{actor} marcó el grupo de logs como {status}",
+    "statusChangedTitled": "{actor} marcó {title} como {status}",
+    "actions": {
+      "resolve": "Resolver",
+      "ignore": "Ignorar",
+      "forbidden": "No tienes permiso para cambiar este grupo de logs.",
+      "failed": "No se pudo actualizar el grupo de logs.",
+      "marked": "Marcado como {status}"
+    },
+    "unknownActor": "Alguien",
+    "level": {
+      "debug": "depuración",
+      "info": "información",
+      "notice": "aviso",
+      "warning": "advertencia",
+      "error": "error",
+      "critical": "crítico",
+      "alert": "alerta",
+      "emergency": "emergencia"
+    },
+    "status": {
+      "open": "abierto",
+      "resolved": "resuelto",
+      "ignored": "ignorado"
+    }
+  },
+  "projectTabs": {
+    "label": "Vistas del proyecto",
+    "channel": "Canal",
+    "log": "Log"
+  },
+  "log": {
+    "title": "Log",
+    "loadFailed": "No se pudieron cargar los grupos de log.",
+    "notFound": "Este proyecto no existe o no tienes acceso.",
+    "empty": "Ningún grupo de log coincide con estos filtros.",
+    "filters": "Filtros",
+    "statusFilter": {
+      "label": "Estado",
+      "open": "Abiertos",
+      "resolved": "Resueltos",
+      "ignored": "Ignorados",
+      "all": "Todos"
+    },
+    "level": {
+      "label": "Nivel",
+      "all": "Todos los niveles",
+      "atLeast": "{level} o más"
+    },
+    "table": {
+      "label": "Grupos de log",
+      "level": "Nivel",
+      "group": "Grupo",
+      "events": "Eventos",
+      "activity": "Últimas 24 h",
+      "lastSeen": "Última vez",
+      "status": "Estado"
+    },
+    "pagination": {
+      "label": "Paginación",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "page": "Página {page} de {last}"
+    }
+  }
+}

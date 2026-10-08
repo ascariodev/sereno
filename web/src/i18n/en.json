@@ -1,0 +1,191 @@
+{
+  "common": {
+    "localeSaveFailed": "Could not save your language. It was applied on this device only.",
+    "loading": "Loading...",
+    "retry": "Retry"
+  },
+  "toast": {
+    "region": "Notifications",
+    "close": "Dismiss notification"
+  },
+  "pwa": {
+    "updateReady": "A new version of Sereno is available.",
+    "reload": "Reload"
+  },
+  "app": {
+    "name": "Sereno"
+  },
+  "login": {
+    "subtitle": "Sign in to see your projects' channels.",
+    "language": "Language",
+    "heroTitle": "Your systems alert you where you already talk.",
+    "heroText": "The alert, the conversation and the task live in the same project channel.",
+    "invited": "Were you invited to an organization? Open the link in your email.",
+    "title": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in...",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not sign in. Try again."
+  },
+  "sessionError": {
+    "title": "Could not load your session.",
+    "message": "The server did not respond correctly. Your session is kept; try again.",
+    "retry": "Retry",
+    "retrying": "Retrying...",
+    "failed": "Still failing. Try again in a moment."
+  },
+  "organization": {
+    "label": "Organization",
+    "none": "You do not belong to any organization yet.",
+    "loadFailed": "Could not load your organizations."
+  },
+  "sidebar": {
+    "menu": "Menu",
+    "label": "Main navigation",
+    "home": "Home",
+    "open": "Open navigation",
+    "close": "Close navigation",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "openGroups": "{n} open log group | {n} open log groups",
+    "projectOpen": "{name}: {groups}, highest level {level}"
+  },
+  "command": {
+    "open": "Search",
+    "title": "Command palette",
+    "placeholder": "Go to a project or change the theme or language",
+    "empty": "No results.",
+    "goTo": "Go to",
+    "theme": "Theme",
+    "language": "Language"
+  },
+  "userMenu": {
+    "label": "User menu",
+    "theme": {
+      "system": "System theme",
+      "light": "Light theme",
+      "dark": "Dark theme"
+    }
+  },
+  "layout": {
+    "logout": "Sign out"
+  },
+  "projects": {
+    "greeting": "Hello, {name}",
+    "title": "Projects",
+    "loadFailed": "Could not load the projects.",
+    "empty": "No projects yet.",
+    "emptyHint": "Projects you belong to appear here.",
+    "healthOpen": "{n} open | {n} open",
+    "healthCalm": "All calm"
+  },
+  "channel": {
+    "title": "Channel",
+    "empty": "No messages yet.",
+    "today": "Today",
+    "reconnected": "Reconnected",
+    "loadOlder": "Load older messages",
+    "systemNotice": "System notice",
+    "unknownUser": "Unknown user",
+    "detailsFailed": "Could not load the channel details.",
+    "notFound": "This channel does not exist or you cannot access it.",
+    "loadFailed": "Could not load the messages.",
+    "archived": "This channel is archived; you cannot write in it.",
+    "composer": {
+      "placeholder": "Write a message",
+      "hint": "Enter sends · Shift+Enter for a new line",
+      "send": "Send",
+      "tooLong": "The message cannot exceed {max} characters.",
+      "rateLimited": "You are sending messages too fast. Try again in a moment.",
+      "sendFailed": "Could not send the message."
+    }
+  },
+  "logGroup": {
+    "label": "Log group details",
+    "heading": "Log group #{id}",
+    "close": "Close details",
+    "events": "Events",
+    "firstSeen": "First seen",
+    "lastSeen": "Last seen",
+    "lastEvent": "Latest event",
+    "activity": "Last 24 h",
+    "noEvents": "No events available.",
+    "loadFailed": "Could not load the log group.",
+    "notFound": "This log group does not exist or you cannot access it."
+  },
+  "sparkline": {
+    "total": "{n} event in the last 24 hours | {n} events in the last 24 hours"
+  },
+  "notice": {
+    "openedLabel": "New log group",
+    "reopenedLabel": "Log group reopened",
+    "eventsWord": "event | events",
+    "statusChanged": "{actor} marked the log group as {status}",
+    "statusChangedTitled": "{actor} marked {title} as {status}",
+    "actions": {
+      "resolve": "Resolve",
+      "ignore": "Ignore",
+      "forbidden": "You are not allowed to change this log group.",
+      "failed": "Could not update the log group.",
+      "marked": "Marked as {status}"
+    },
+    "unknownActor": "Someone",
+    "level": {
+      "debug": "debug",
+      "info": "info",
+      "notice": "notice",
+      "warning": "warning",
+      "error": "error",
+      "critical": "critical",
+      "alert": "alert",
+      "emergency": "emergency"
+    },
+    "status": {
+      "open": "open",
+      "resolved": "resolved",
+      "ignored": "ignored"
+    }
+  },
+  "projectTabs": {
+    "label": "Project views",
+    "channel": "Channel",
+    "log": "Log"
+  },
+  "log": {
+    "title": "Log",
+    "loadFailed": "Could not load the log groups.",
+    "notFound": "This project does not exist or you cannot access it.",
+    "empty": "No log groups match these filters.",
+    "filters": "Filters",
+    "statusFilter": {
+      "label": "Status",
+      "open": "Open",
+      "resolved": "Resolved",
+      "ignored": "Ignored",
+      "all": "All"
+    },
+    "level": {
+      "label": "Level",
+      "all": "All levels",
+      "atLeast": "{level} or higher"
+    },
+    "table": {
+      "label": "Log groups",
+      "level": "Level",
+      "group": "Group",
+      "events": "Events",
+      "activity": "Last 24 h",
+      "lastSeen": "Last seen",
+      "status": "Status"
+    },
+    "pagination": {
+      "label": "Pagination",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {page} of {last}"
+    }
+  }
+}
