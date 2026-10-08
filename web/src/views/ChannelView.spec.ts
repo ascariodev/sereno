@@ -11,6 +11,7 @@ import { setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { useProjectsStore } from '../stores/projects'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import ChannelView from './ChannelView.vue'
 
@@ -65,6 +66,8 @@ describe('ChannelView', () => {
     toast.clear()
     setRealtimeClientFactory(() => null)
   })
+
+  afterEach(() => useProjectsStore().clear())
 
   it('shows messages oldest first and a generic notice for system messages', async () => {
     mockApi(() => ({ data: [message(3), message(2, 'system'), message(1)], meta: { next_cursor: null } }))

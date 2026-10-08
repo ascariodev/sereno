@@ -36,6 +36,7 @@
 - L-25: Un cambio de comportamiento visible (foco inicial, atributos ARIA nuevos) trae su test aunque la mejora no lo pida: sin él, el revisor lo devuelve. — aplicada en: test (LoginView.spec, AppSegmented.spec)
 - L-26: Tras mover el scroll por código (`scrollTop += delta` al anteponer), se recalcula el estado derivado del scroll (anclado al fondo): un observer que lo lee después actúa con el valor viejo y salta. — aplicada en: test (MessageList.spec)
 - L-29: Un helper global en un test de Pest lleva un nombre propio del archivo: uno repetido (`ingest`) rompe la carga de la suite completa aunque cada archivo pase solo. — aplicada en: pendiente
+- L-30: Un `setTimeout` real que un store deja armado sobrevive al test y se dispara en el siguiente: se cancela de forma determinista en `afterEach` (p. ej. `useProjectsStore().clear()`), no con una espera real. — aplicada en: test (ChannelView.spec)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
