@@ -75,7 +75,7 @@ watch(
 )
 
 watch(
-  () => messages.messages.length,
+  () => messages.messages,
   () => {
     if (messages.loading) return
     const previous = seenMessageId

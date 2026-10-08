@@ -1,5 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick, watch } from 'vue'
 import { api, ApiError } from '../api/client'
 import type { Message } from '../api/types'
 import { CATCH_UP_MAX_PAGES, useMessagesStore } from './messages'
@@ -52,7 +53,34 @@ describe('messages store', () => {
     expect(store.insert(message(3))).toBe(true)
     expect(store.insert(message(3))).toBe(false)
     expect(store.insert(message(9, 6))).toBe(false)
+    await nextTick()
     expect(store.messages.map((m) => m.id)).toEqual([2, 3, 4, 5])
+  })
+
+  it('groups a burst of inserts in the same tick into a single update', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([1, 100, 400], null) as never)
+    const store = useMessagesStore()
+    await store.open(5)
+    let updates = 0
+    watch(
+      () => store.messages,
+      () => updates++,
+      { flush: 'sync' },
+    )
+    const ids = Array.from({ length: 200 }, (_, index) => ((index * 37) % 200) * 2 + 3)
+    const accepted = ids.map((id) => store.insert(message(id)))
+    expect(accepted.every(Boolean)).toBe(true)
+    expect(store.insert(message(ids[0]))).toBe(false)
+    expect(store.insert(message(100))).toBe(false)
+    expect(updates).toBe(0)
+    await nextTick()
+    expect(updates).toBe(1)
+    const result = store.messages.map((m) => m.id)
+    expect(result).toHaveLength(203)
+    expect(new Set(result).size).toBe(result.length)
+    expect(result).toEqual([...result].sort((a, b) => a - b))
+    expect(result[0]).toBe(1)
+    expect(result).toContain(400)
   })
 
   it('stores the error and discards stale responses after clear', async () => {
