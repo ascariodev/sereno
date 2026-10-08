@@ -43,7 +43,9 @@ describe('AppSegmented', () => {
     const group = document.querySelector('[role=group]')!
     expect(group.getAttribute('aria-label')).toBe('Status')
     expect(buttons().map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false'])
-    expect(buttons()[0].textContent?.replace(/\s+/g, ' ').trim()).toBe('Open4')
+    expect(buttons()[0].textContent?.replace(/\s+/g, ' ').trim()).toBe('Open, 4')
+    expect(buttons()[0].textContent).toContain('Open')
+    expect(buttons()[0].querySelector('.app-segmented__sep')?.textContent).toBe(', ')
     expect(buttons()[2].disabled).toBe(true)
   })
 
@@ -63,7 +65,7 @@ describe('AppSegmented', () => {
     expect(buttons()[0].getAttribute('aria-pressed')).toBe('true')
   })
 
-  it('arrows move the focus skipping disabled options and wrap, Enter selects', async () => {
+  it('arrows move the focus skipping disabled options and wrap, a click selects', async () => {
     const segmented = mountSegmented()
     await settle()
     await settle()

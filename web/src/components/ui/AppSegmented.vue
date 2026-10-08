@@ -37,7 +37,9 @@ function onUpdate(value: unknown) {
       :disabled="option.disabled"
     >
       <span>{{ option.label }}</span>
-      <span v-if="option.count !== undefined" class="app-segmented__count">{{ option.count }}</span>
+      <span v-if="option.count !== undefined" class="app-segmented__count">
+        <span class="app-segmented__sep">, </span>{{ option.count }}
+      </span>
     </ToggleGroupItem>
   </ToggleGroupRoot>
 </template>
@@ -76,6 +78,14 @@ function onUpdate(value: unknown) {
 .app-segmented__item:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+.app-segmented__sep {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .app-segmented__count {
   color: var(--ink-3);
