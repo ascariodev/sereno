@@ -122,3 +122,35 @@ it('uses the user locale on a 403 from /broadcasting/auth without Accept-Languag
         ->assertForbidden()
         ->assertHeader('Content-Language', 'es');
 });
+
+it('authorizes the user on their own channel without X-Organization-Id', function () {
+    Sanctum::actingAs($this->member);
+
+    authorizeChannel("users.{$this->member->id}")
+        ->assertOk()
+        ->assertJsonStructure(['auth']);
+});
+
+it('rejects a user on the channel of another user', function () {
+    Sanctum::actingAs($this->member);
+
+    authorizeChannel("users.{$this->outsider->id}")->assertForbidden();
+});
+
+it('rejects malformed user channel ids', function (string $suffix) {
+    Sanctum::actingAs($this->member);
+
+    authorizeChannel('users.'.str_replace('{id}', (string) $this->member->id, $suffix))->assertForbidden();
+})->with([
+    'letters' => 'abc',
+    'zero' => '0',
+    'leading zero' => '0{id}',
+    'bigint overflow' => '9223372036854775808',
+    'huge' => '99999999999999999999',
+]);
+
+it('requires a token on the user channel', function () {
+    authorizeChannel("users.{$this->member->id}")
+        ->assertUnauthorized()
+        ->assertJsonPath('message', 'Unauthenticated.');
+});
