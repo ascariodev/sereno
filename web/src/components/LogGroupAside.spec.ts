@@ -196,6 +196,19 @@ describe('LogGroupAside', () => {
     expect(document.activeElement).toBe(field)
   })
 
+  it('does not steal focus from a role=textbox field', async () => {
+    fakeMatchMedia(false)
+    const field = document.createElement('div')
+    field.setAttribute('role', 'textbox')
+    field.tabIndex = 0
+    document.body.appendChild(field)
+    field.focus()
+    expect(document.activeElement).toBe(field)
+    mountAside()
+    await flushPromises()
+    expect(document.activeElement).toBe(field)
+  })
+
   it('keeps focus in the panel when the sheet becomes the aside', async () => {
     fakeMatchMedia(true)
     mountAside()

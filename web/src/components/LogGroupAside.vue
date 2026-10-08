@@ -33,7 +33,7 @@ function focusPanel(): void {
 }
 
 function isEditingField(element: Element | null): boolean {
-  return element instanceof HTMLElement && (element.isContentEditable || element.matches('input, textarea, select'))
+  return element instanceof HTMLElement && (element.isContentEditable || element.matches('input, textarea, select, [role="textbox"]'))
 }
 
 onMounted(() => {

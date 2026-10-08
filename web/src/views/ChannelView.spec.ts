@@ -380,6 +380,77 @@ describe('ChannelView group panel', () => {
     expect(wrapper.find('aside h2').text()).toBe('Group 5')
   })
 
+  it('keeps the same panel element while the channel reloads', async () => {
+    let failing = true
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') return channels as never
+      if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+      const group = /log-groups\/(\d+)$/.exec(path)
+      if (group) return detail(Number(group[1])) as never
+      if (failing) throw new ApiError(500, 'Server error')
+      return { data: [opened(1, 5)], meta: { next_cursor: null } } as never
+    })
+    const wrapper = await mountView('/channels/7?group=5')
+    const aside = wrapper.find('aside').element
+    expect(aside).toBeDefined()
+    failing = false
+    await wrapper.find('button[name="retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('aside').element).toBe(aside)
+  })
+
+  describe('closing on context change', () => {
+    const twoChannels = {
+      data: [
+        ...channels.data,
+        { id: 8, project_id: 2, name: 'OTHER', archived_at: null, created_at: '', project: { id: 2, name: 'Other', key: 'O' } },
+      ],
+    }
+
+    it('closes the panel when navigating to another channel and uses the new project afterwards', async () => {
+      const spy = vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/channels') return twoChannels as never
+        if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+        const group = /log-groups\/(\d+)$/.exec(path)
+        if (group) return detail(Number(group[1])) as never
+        return { data: [], meta: { next_cursor: null } } as never
+      })
+      const wrapper = await mountView('/channels/7?group=5')
+      expect(wrapper.find('aside').exists()).toBe(true)
+      await wrapper.router.push('/channels/8')
+      await flushPromises()
+      expect(wrapper.find('aside').exists()).toBe(false)
+
+      await wrapper.router.push('/channels/8?group=6')
+      await flushPromises()
+      expect(wrapper.find('aside').exists()).toBe(true)
+      expect(spy.mock.calls.some(([path]) => path === '/api/projects/2/log-groups/6')).toBe(true)
+    })
+
+    it('closes the panel while the channel reloads after an organization change', async () => {
+      let pendingChannels = false
+      let release: (value: unknown) => void = () => {}
+      vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/channels') {
+          if (!pendingChannels) return channels as never
+          return (await new Promise<never>((resolve) => (release = resolve as (value: unknown) => void)))
+        }
+        if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+        const group = /log-groups\/(\d+)$/.exec(path)
+        if (group) return detail(Number(group[1])) as never
+        return { data: [], meta: { next_cursor: null } } as never
+      })
+      const wrapper = await mountView('/channels/7?group=5')
+      expect(wrapper.find('aside').exists()).toBe(true)
+      pendingChannels = true
+      useOrganizationStore().$patch({ activeId: 2 })
+      await flushPromises()
+      expect(wrapper.find('aside').exists()).toBe(false)
+      release(channels)
+      await flushPromises()
+    })
+  })
+
   it('ignores an invalid ?group= value', async () => {
     const spy = mockGroups([message(1)])
     const wrapper = await mountView('/channels/7?group=abc')

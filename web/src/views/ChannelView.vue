@@ -26,6 +26,7 @@ const projects = useProjectsStore()
 const channel = ref<Channel | null>(null)
 const channelLoadFailed = ref(false)
 const panelRefresh = ref(0)
+const panelProjectId = ref<number | null>(null)
 let seenMessageId = 0
 let generation = 0
 let unsubscribe: (() => void) | null = null
@@ -51,6 +52,7 @@ async function loadChannel(id: number, current: number): Promise<void> {
     const response = await api.get<{ data: Channel[] }>('/api/channels', { query: { include_archived: 1 } })
     if (current !== generation) return
     channel.value = response.data.find((item) => item.id === id) ?? null
+    if (channel.value) panelProjectId.value = channel.value.project_id
   } catch {
     if (current === generation) {
       channel.value = null
@@ -123,7 +125,14 @@ function reload(): void {
   }
 }
 
-watch(() => [organization.activeId, route.params.id], reload, { immediate: true })
+watch(
+  () => [organization.activeId, route.params.id],
+  () => {
+    panelProjectId.value = null
+    reload()
+  },
+  { immediate: true },
+)
 
 onUnmounted(() => {
   generation++
@@ -169,9 +178,9 @@ onUnmounted(() => {
         </template>
       </div>
       <LogGroupAside
-        v-if="channel && groupId !== null"
+        v-if="panelProjectId !== null && groupId !== null"
         class="channel__panel"
-        :project-id="channel.project_id"
+        :project-id="panelProjectId"
         :group-id="groupId"
         :refresh-token="panelRefresh"
         @close="selectGroup(null)"
