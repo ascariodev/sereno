@@ -66,7 +66,7 @@ describe('ChannelView', () => {
   it('shows messages oldest first and a generic notice for system messages', async () => {
     mockApi(() => ({ data: [message(3), message(2, 'system'), message(1)], meta: { next_cursor: null } }))
     const wrapper = await mountView()
-    const items = wrapper.findAll('li')
+    const items = wrapper.findAll('li.message')
     expect(items).toHaveLength(3)
     expect(items[0].text()).toContain('body 1')
     expect(items[1].text()).toContain('System notice')
@@ -81,7 +81,7 @@ describe('ChannelView', () => {
     const wrapper = await mountView()
     await wrapper.find('button[name="load-older"]').trigger('click')
     await flushPromises()
-    expect(wrapper.findAll('li').map((li) => li.text())).toEqual([
+    expect(wrapper.findAll('li.message').map((li) => li.text())).toEqual([
       expect.stringContaining('body 1'),
       expect.stringContaining('body 2'),
       expect.stringContaining('body 3'),
@@ -105,7 +105,7 @@ describe('ChannelView', () => {
     })
     const wrapper = await mountView()
     expect(wrapper.text()).toContain('Could not load the channel details.')
-    expect(wrapper.findAll('li')).toHaveLength(1)
+    expect(wrapper.findAll('li.message')).toHaveLength(1)
   })
 
   it('ignores a stale channel request that fails after the organization changed', async () => {
@@ -183,7 +183,7 @@ describe('ChannelView', () => {
     realtime.emit('organizations.1.channels.7', message(2))
     realtime.emit('organizations.1.channels.7', { ...message(4), channel_id: 8 })
     await flushPromises()
-    expect(wrapper.findAll('li').map((li) => li.text())).toEqual([
+    expect(wrapper.findAll('li.message').map((li) => li.text())).toEqual([
       expect.stringContaining('body 1'),
       expect.stringContaining('body 2'),
       expect.stringContaining('body 3'),
@@ -198,7 +198,7 @@ describe('ChannelView', () => {
     realtime.emit('organizations.1.channels.7', message(5))
     resolvePage({ data: [message(4)], meta: { next_cursor: null } })
     await flushPromises()
-    expect(wrapper.findAll('li')).toHaveLength(2)
+    expect(wrapper.findAll('li.message')).toHaveLength(2)
   })
 
   it('leaves the channel on unmount and when the organization changes', async () => {
@@ -233,7 +233,7 @@ describe('ChannelView', () => {
     realtime.setStatus('connected')
     await flushPromises()
     expect(viewCalls(spy).filter(([path]) => path !== '/api/channels')).toHaveLength(2)
-    expect(wrapper.findAll('li').map((li) => li.text())).toEqual([
+    expect(wrapper.findAll('li.message').map((li) => li.text())).toEqual([
       expect.stringContaining('body 1'),
       expect.stringContaining('body 2'),
       expect.stringContaining('body 3'),
@@ -258,7 +258,7 @@ describe('ChannelView', () => {
     await flushPromises()
     resolveCatchUp({ data: [message(9)], meta: { next_cursor: null } })
     await flushPromises()
-    expect(wrapper.findAll('li').map((li) => li.text())).toEqual([expect.stringContaining('body 1')])
+    expect(wrapper.findAll('li.message').map((li) => li.text())).toEqual([expect.stringContaining('body 1')])
   })
 
   it('stops listening for reconnections on unmount', async () => {

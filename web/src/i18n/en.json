@@ -51,6 +51,7 @@
   "channel": {
     "title": "Channel",
     "empty": "No messages yet.",
+    "today": "Today",
     "loadOlder": "Load older messages",
     "systemNotice": "System notice",
     "unknownUser": "Unknown user",

@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Message } from '../api/types'
 import { i18n } from '../i18n'
 import MessageList from './MessageList.vue'
@@ -27,5 +27,54 @@ describe('MessageList', () => {
     const wrapper = mountList(null)
     expect(wrapper.find('strong').text()).toBe('Unknown user')
     expect(wrapper.text()).toContain('hello')
+  })
+
+  describe('day separators and time', () => {
+    const originalTz = process.env.TZ
+
+    beforeAll(() => {
+      process.env.TZ = 'UTC'
+    })
+    afterAll(() => {
+      if (originalTz === undefined) delete process.env.TZ
+      else process.env.TZ = originalTz
+    })
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-03-10T15:00:00Z'))
+      i18n.global.locale.value = 'en'
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+      i18n.global.locale.value = 'en'
+    })
+
+    const at = (id: number, createdAt: string): Message => ({ ...message({ id: 1, name: 'Ana' }), id, created_at: createdAt })
+    const mountMessages = (messages: Message[]) =>
+      mount(MessageList, { props: { messages, hasMore: false, loadingMore: false }, global: { plugins: [i18n] } })
+
+    it('labels today and older days, one separator per day', () => {
+      const wrapper = mountMessages([
+        at(1, '2026-03-08T09:12:00Z'),
+        at(2, '2026-03-08T10:00:00Z'),
+        at(3, '2026-03-10T09:12:00Z'),
+      ])
+      const days = wrapper.findAll('.message-list__day').map((day) => day.text())
+      expect(days).toEqual(['March 8, 2026', 'Today'])
+      expect(wrapper.findAll('strong')).toHaveLength(3)
+    })
+
+    it('uses the i18n locale for the separator', () => {
+      i18n.global.locale.value = 'es'
+      const wrapper = mountMessages([at(1, '2026-03-08T09:12:00Z'), at(2, '2026-03-10T09:12:00Z')])
+      expect(wrapper.findAll('.message-list__day').map((day) => day.text())).toEqual(['8 de marzo de 2026', 'Hoy'])
+    })
+
+    it('shows the short time in the browser zone', () => {
+      const wrapper = mountMessages([at(1, '2026-03-10T09:12:00Z')])
+      const time = wrapper.find('time')
+      expect(time.text()).toMatch(/9:12/)
+      expect(time.attributes('datetime')).toBe('2026-03-10T09:12:00Z')
+    })
   })
 })
