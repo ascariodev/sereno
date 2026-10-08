@@ -122,7 +122,7 @@ async function submit(): Promise<void> {
         <p
           v-for="(message, index) in fieldErrors.email"
           :id="`invite-email-error-${index}`"
-          :key="message"
+          :key="`${index}-${message}`"
           class="invite-dialog__error"
           data-test="error-email"
         >
@@ -144,7 +144,7 @@ async function submit(): Promise<void> {
         <p
           v-for="(message, index) in fieldErrors.role"
           :id="`invite-role-error-${index}`"
-          :key="message"
+          :key="`${index}-${message}`"
           class="invite-dialog__error"
           data-test="error-role"
         >

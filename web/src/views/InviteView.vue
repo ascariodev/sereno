@@ -190,7 +190,7 @@ async function signOut(): Promise<void> {
       <template v-else-if="loadError === 'unusable'">
         <h1>{{ t('invite.unusableTitle') }}</h1>
         <p role="alert" data-test="unusable">{{ t('invite.unusable') }}</p>
-        <p v-if="registered" role="alert" data-test="registered-unusable">{{ t('invite.accountCreatedUnusable') }}</p>
+        <p v-if="registered" role="status" data-test="registered-unusable">{{ t('invite.accountCreatedUnusable') }}</p>
         <RouterLink to="/" class="invite__link" data-test="home">{{ t('invite.home') }}</RouterLink>
       </template>
 
@@ -280,7 +280,7 @@ async function signOut(): Promise<void> {
             <p
               v-for="(message, index) in fieldErrors.name"
               :id="`invite-name-error-${index}`"
-              :key="message"
+              :key="`${index}-${message}`"
               class="invite__error"
               data-test="error-name"
             >
@@ -303,7 +303,7 @@ async function signOut(): Promise<void> {
             <p
               v-for="(message, index) in fieldErrors.email"
               :id="`invite-email-error-${index}`"
-              :key="message"
+              :key="`${index}-${message}`"
               class="invite__error"
               data-test="error-email"
             >
@@ -329,7 +329,7 @@ async function signOut(): Promise<void> {
             <p
               v-for="(message, index) in fieldErrors.password"
               :id="`invite-password-error-${index}`"
-              :key="message"
+              :key="`${index}-${message}`"
               class="invite__error"
               data-test="error-password"
             >

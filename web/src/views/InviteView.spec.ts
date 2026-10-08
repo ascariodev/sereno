@@ -415,6 +415,7 @@ describe('InviteView', () => {
       await fill(wrapper)
 
       expect(useAuthStore().isAuthenticated).toBe(true)
+      expect(wrapper.find('[data-test=registered-not-joined]').attributes('role')).toBe('status')
       expect(wrapper.find('[data-test=registered-not-joined]').text()).toBe(
         'Your account was created, but you have not joined the organization yet.',
       )
@@ -439,6 +440,7 @@ describe('InviteView', () => {
       await fill(wrapper)
 
       expect(wrapper.find('[data-test=unusable]').exists()).toBe(true)
+      expect(wrapper.find('[data-test=registered-unusable]').attributes('role')).toBe('status')
       expect(wrapper.find('[data-test=registered-unusable]').text()).toBe(
         'Your account was created, but the invitation could not be accepted.',
       )
