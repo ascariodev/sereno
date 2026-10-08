@@ -67,6 +67,18 @@
       "sendFailed": "Could not send the message."
     }
   },
+  "logGroup": {
+    "label": "Log group details",
+    "heading": "Log group #{id}",
+    "close": "Close details",
+    "events": "Events",
+    "firstSeen": "First seen",
+    "lastSeen": "Last seen",
+    "lastEvent": "Latest event",
+    "noEvents": "No events available.",
+    "loadFailed": "Could not load the log group.",
+    "notFound": "This log group does not exist or you cannot access it."
+  },
   "notice": {
     "openedLabel": "New log group",
     "reopenedLabel": "Log group reopened",

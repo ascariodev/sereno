@@ -26,16 +26,16 @@ const channels = {
   data: [{ id: 7, project_id: 1, name: 'DEMO', archived_at: null, created_at: '', project: { id: 1, name: 'Demo', key: 'D' } }],
 }
 
-async function mountView() {
+async function mountView(path = '/channels/7') {
   const pinia = createPinia()
   setActivePinia(pinia)
   useAuthStore().$patch({ token: 't', user: { id: 1, name: 'Ana', email: 'a@b.c', locale: null } })
   useOrganizationStore().$patch({ activeId: 1 })
   const router = createAppRouter(createMemoryHistory())
-  await router.push('/channels/7')
+  await router.push(path)
   const wrapper = mount(ChannelView, { global: { plugins: [pinia, i18n, router] } })
   await flushPromises()
-  return wrapper
+  return Object.assign(wrapper, { router })
 }
 
 function mockApi(messages: (cursor?: unknown) => unknown) {
@@ -276,5 +276,89 @@ describe('ChannelView', () => {
     await mountView()
     useAuthStore().clearSession()
     expect(realtime.client.disconnect).toHaveBeenCalledOnce()
+  })
+})
+
+describe('ChannelView group panel', () => {
+  const opened = (id: number, groupId: number): Message => ({
+    ...message(id, 'system'),
+    payload: { type: 'log.group_opened', log_group_id: groupId, level: 'error', title: `Group ${groupId}`, events_count: 2 },
+  })
+  const changed = (id: number, groupId: number): Message => ({
+    ...message(id, 'system'),
+    payload: { type: 'log.group_status_changed', log_group_id: groupId, status: 'resolved', previous_status: 'open' },
+  })
+  const detail = (id: number) => ({
+    data: {
+      id,
+      project_id: 1,
+      level: 'error',
+      title: `Group ${id}`,
+      status: 'open',
+      events_count: 2,
+      first_seen_at: '2026-10-01T10:00:00Z',
+      last_seen_at: '2026-10-02T10:00:00Z',
+      events: [],
+    },
+  })
+
+  function mockGroups(messages: Message[]) {
+    return vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') return channels as never
+      if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+      const group = /log-groups\/(\d+)$/.exec(path)
+      if (group) return detail(Number(group[1])) as never
+      return { data: messages, meta: { next_cursor: null } } as never
+    })
+  }
+  const groupCalls = (spy: { mock: { calls: unknown[][] } }) =>
+    spy.mock.calls.filter(([path]) => String(path).includes('/log-groups/'))
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    setRealtimeClientFactory(() => null)
+  })
+
+  it('opens the panel from ?group= and closes it by removing the param', async () => {
+    mockGroups([opened(1, 5)])
+    const wrapper = await mountView('/channels/7?group=5')
+    expect(wrapper.find('aside h2').text()).toBe('Group 5')
+    await wrapper.find('button[name="close-group"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('aside').exists()).toBe(false)
+    expect(wrapper.router.currentRoute.value.query.group).toBeUndefined()
+  })
+
+  it('opens the panel when the notice title is clicked', async () => {
+    const spy = mockGroups([opened(1, 5)])
+    const wrapper = await mountView()
+    expect(wrapper.find('aside').exists()).toBe(false)
+    await wrapper.find('.system-notice__title a').trigger('click')
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query.group).toBe('5')
+    expect(groupCalls(spy)).toHaveLength(1)
+    expect(wrapper.find('aside h2').text()).toBe('Group 5')
+  })
+
+  it('ignores an invalid ?group= value', async () => {
+    const spy = mockGroups([message(1)])
+    const wrapper = await mountView('/channels/7?group=abc')
+    expect(wrapper.find('aside').exists()).toBe(false)
+    expect(groupCalls(spy)).toHaveLength(0)
+  })
+
+  it('reloads the panel when a status change for that group arrives in real time', async () => {
+    const realtime = fakeRealtime()
+    const spy = mockGroups([opened(1, 5)])
+    await mountView('/channels/7?group=5')
+    expect(groupCalls(spy)).toHaveLength(1)
+
+    realtime.emit('organizations.1.channels.7', changed(2, 9))
+    await flushPromises()
+    expect(groupCalls(spy)).toHaveLength(1)
+
+    realtime.emit('organizations.1.channels.7', changed(3, 5))
+    await flushPromises()
+    expect(groupCalls(spy)).toHaveLength(2)
   })
 })
