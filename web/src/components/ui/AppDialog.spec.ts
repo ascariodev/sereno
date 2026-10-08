@@ -88,7 +88,7 @@ describe('AppDialog', () => {
     expect(trigger().getAttribute('aria-expanded')).toBe('true')
     const title = document.getElementById(el.getAttribute('aria-labelledby')!)
     expect(title?.textContent).toBe('Project settings')
-    expect(title?.classList.contains('app-dialog__hidden')).toBe(false)
+    expect(title?.classList.contains('sr-only')).toBe(false)
     expect(el.contains(document.activeElement)).toBe(true)
     expect(el.classList.contains('app-dialog--center')).toBe(true)
   })
@@ -146,7 +146,7 @@ describe('AppDialog', () => {
     await settle()
     const title = document.getElementById(dialog()!.getAttribute('aria-labelledby')!)
     expect(title?.textContent).toBe('Search')
-    expect(title?.classList.contains('app-dialog__hidden')).toBe(true)
+    expect(title?.classList.contains('sr-only')).toBe(true)
     expect(dialog()!.classList.contains('app-dialog--sheet-right')).toBe(true)
   })
 

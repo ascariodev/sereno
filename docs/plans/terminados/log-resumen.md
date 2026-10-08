@@ -89,7 +89,7 @@
 - [x] M-5 (baja, sonnet): renombrar el caso de error de `getHourlyCounts` en `logGroups.spec.ts` para que diga que provoca el 422 con `ids` vacío.
 - [x] M-6 (baja, sonnet): en `Sparkline.vue`, `emergency` usa `--level-emergency-fg` (~2:1 de contraste en tema claro); pasar a `-bg` como critical y alert, y revisar los colores en el navegador en ambos temas. (revisión visual pasa a M-19.)
 - [x] M-7 (baja, sonnet): fundir las dos reglas `.sparkline` de `Sparkline.vue` y derivar ancho/alto del CSS de las constantes `WIDTH`/`HEIGHT` (p. ej. `v-bind`).
-- [ ] M-8 (media, sonnet): clase global `sr-only` en `style.css` y usarla en `Sparkline.vue` (y donde se repita) en vez de CSS local.
+- [x] M-8 (media, sonnet): clase global `sr-only` en `style.css` y usarla en `Sparkline.vue` (y donde se repita) en vez de CSS local.
 - [ ] M-9 (baja, sonnet): en `LogView.vue`, `loadHourly` con página vacía limpia `hourly` antes de retornar, y extraer `hourly[String(group.id)]` del template a un helper.
 - [ ] M-10 (baja, sonnet): el test de respuesta vieja de `LogView.spec.ts` respeta el `signal` en el mock para cubrir también el abort.
 - [ ] M-11 (baja, sonnet): caso en `LogGroupAside.spec.ts` que verifique que `hourly` llega a `LogGroupPanel`, y unificar el filtro de llamadas `hourly` entre los specs de Aside y ChannelView.

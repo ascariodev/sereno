@@ -32,7 +32,7 @@ describe('MessageItem', () => {
 
   it('keeps the full date readable for screen readers while hiding the short time', () => {
     const time = render().get('time')
-    const full = time.get('.message-item__full-date')
+    const full = time.get('.sr-only')
     expect(full.text()).toContain('2026')
     expect(full.attributes('aria-hidden')).toBeUndefined()
     expect(time.get('[aria-hidden=true]').text()).not.toContain('2026')

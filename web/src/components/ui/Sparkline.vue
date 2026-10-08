@@ -32,7 +32,7 @@ const points = computed(() => {
     <svg :width="WIDTH" :height="HEIGHT" :viewBox="`0 0 ${WIDTH} ${HEIGHT}`" aria-hidden="true" focusable="false">
       <polyline v-if="counts.length" :points="points" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />
     </svg>
-    <span class="sparkline__text">{{ t('sparkline.total', { n: total }, total) }}</span>
+    <span class="sr-only">{{ t('sparkline.total', { n: total }, total) }}</span>
   </span>
 </template>
 
@@ -46,14 +46,6 @@ const points = computed(() => {
   line-height: 0;
 }
 .sparkline svg { display: block; }
-.sparkline__text {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
 .sparkline--debug { color: var(--level-debug-fg); }
 .sparkline--info { color: var(--level-info-fg); }
 .sparkline--notice { color: var(--level-notice-fg); }

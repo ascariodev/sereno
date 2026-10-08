@@ -38,12 +38,12 @@ const hasHeader = computed(() => !props.hideTitle || Boolean(props.closeLabel))
       <DialogOverlay class="app-dialog-overlay" />
       <DialogContent class="app-dialog" :class="`app-dialog--${variant}`" v-bind="describedBy">
         <div v-if="hasHeader" class="app-dialog__header">
-          <DialogTitle class="app-dialog__title" :class="{ 'app-dialog__hidden': hideTitle }">{{ title }}</DialogTitle>
+          <DialogTitle class="app-dialog__title" :class="{ 'sr-only': hideTitle }">{{ title }}</DialogTitle>
           <DialogClose v-if="closeLabel" class="app-dialog__close" :aria-label="closeLabel" name="close-dialog">
             <X :size="18" aria-hidden="true" />
           </DialogClose>
         </div>
-        <DialogTitle v-else class="app-dialog__hidden">{{ title }}</DialogTitle>
+        <DialogTitle v-else class="sr-only">{{ title }}</DialogTitle>
         <DialogDescription v-if="description" class="app-dialog__description">{{ description }}</DialogDescription>
         <div class="app-dialog__body">
           <slot />
@@ -184,17 +184,6 @@ const hasHeader = computed(() => !props.hideTitle || Boolean(props.closeLabel))
   min-height: 0;
   overflow-y: auto;
   padding: var(--space-2) var(--space-4) var(--space-4);
-}
-.app-dialog__hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 @keyframes app-dialog-fade-in {
   from { opacity: 0; }
