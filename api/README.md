@@ -1,6 +1,6 @@
 # workspace-api
 
-API (solo JSON) de Workspace: espacio de trabajo multi-tenant con chat, plan y log alrededor del proyecto.
+API (solo JSON) de Sereno: espacio de trabajo multi-tenant con chat, plan y log alrededor del proyecto.
 Laravel 13, PHP 8.4, PostgreSQL 18, Sanctum, spatie/laravel-permission (teams = organización) y Pest.
 
 ## Todo corre en Docker
