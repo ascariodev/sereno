@@ -16,8 +16,8 @@ plan tenga muchas fases.
 
 ## Antes de empezar
 1. Lee el plan una vez (Contexto mínimo, Decisiones, lista de fases) y `docs/lecciones.md`.
-2. Comprueba que el árbol de git de cada repo afectado está limpio (`git -C workspace-api status --short`,
-   igual con `workspace-web`; la raíz no es repo). Si no, pregunta antes de seguir.
+2. Comprueba que el árbol de git del monorepo está limpio (`git status --short` en la raíz). Si no, pregunta
+   antes de seguir.
 3. Anuncia en 2–3 líneas: cuántas fases pendientes hay y el orden.
 
 ## Bucle — por cada fase pendiente (`### [ ]`), en orden
@@ -30,7 +30,7 @@ plan tenga muchas fases.
    - `CONSULTA` o `BLOQUEADO` → detente y consulta al usuario (ver "Cuándo parar").
 3. **Verificar:** corre los tests afectados y el formato con salida resumida
    (`docker compose exec api php artisan test --compact <archivos>`, `docker compose exec api ./vendor/bin/pint --test -q`;
-   en `workspace-web`, cuando exista, la verificación de CLAUDE.md). Nunca dos corridas de tests a la vez.
+   en `web/`, la verificación de CLAUDE.md). Nunca dos corridas de tests a la vez.
 4. **Revisar:** despacha el subagente `revisor-fase` con la ruta del plan.
    - `LISTO` → sigue al paso 5.
    - `CAMBIOS NECESARIOS` → vuelve a despachar `implementador-fase` pasándole los problemas.
@@ -38,7 +38,7 @@ plan tenga muchas fases.
 5. **Cerrar** (lo haces tú, siguiendo los pasos de `.claude/skills/cerrar-fase/SKILL.md` salvo la revisión, que ya hiciste):
    marca la fase `[x]`, actualiza la línea de Estado, "Decisiones" y "Notas para la próxima sesión"
    con lo que reportó el subagente, registra una lección si hubo retrabajo, y haz **un commit por fase**
-   en cada repo afectado (`git -C workspace-api` / `git -C workspace-web`) con un mensaje que nombre la tarea y la fase.
+   en la raíz del monorepo (`git`), con el plan incluido, y un mensaje que nombre la tarea y la fase.
 6. **Registra las mejoras no aplicadas:** las "Sugerencias menores" del revisor y los pendientes del
    implementador que no son parte del plan van a `## Mejoras propuestas` del plan, numeradas `M-<n>`
    y clasificadas con los criterios de `.claude/skills/aplicar-mejoras/SKILL.md`. No las implementes.
@@ -55,7 +55,7 @@ Al parar: deja el plan actualizado con dónde quedaste, explica en máximo 5 lí
 y espera. Cuando el usuario responda, retoma desde la fase pendiente.
 
 ## Al terminar el plan
-Antes de cerrar, corre la suite completa del API en un subagente (si el plan tocó `workspace-api`).
+Antes de cerrar, corre la suite completa del API en un subagente (si el plan tocó `api/`).
 Pon el Estado en `terminado`, mueve el plan a `docs/plans/terminados/` y resume en máximo
 8 líneas: fases completadas, commits, decisiones relevantes, lecciones nuevas y qué conviene
 actualizar en "Orden del MVP" de CLAUDE.md. Si hay mejoras propuestas,

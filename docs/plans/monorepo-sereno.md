@@ -2,7 +2,7 @@
 
 **Objetivo:** un solo repo `sereno` (Gitea) con `api/`, `web/` y `app/`, el historial de `workspace-api` y
 `workspace-web` conservado bajo su carpeta, y la raíz (compose, docs, CLAUDE.md, .claude) versionada.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 
 
 ## Contexto mínimo
@@ -67,7 +67,7 @@
   `.claude/rules/database.md`, `.claude/rules/tests-api.md`.
 - **Terminado cuando:** el mismo `grep` sobre `.claude/agents` y `.claude/rules` no devuelve nada.
 
-### [ ] Fase 6 — Skills y plantilla de planes con las rutas nuevas
+### [x] Fase 6 — Skills y plantilla de planes con las rutas nuevas
 - **Archivos:** los 5 `SKILL.md` de `.claude/skills/` y `docs/plans/_plantilla.md` (cambios mecánicos de texto).
 - **Terminado cuando:** el mismo `grep` sobre `.claude/skills` y la plantilla no devuelve nada.
 

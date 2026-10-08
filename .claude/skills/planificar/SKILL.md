@@ -10,7 +10,7 @@ Vamos a planificar esta tarea: $ARGUMENTS
 
 Si no llegaron argumentos (la skill se activó desde la conversación), toma la tarea de lo que el usuario acaba de pedir y propón un nombre corto en kebab-case para el plan. Si la tarea no está clara, pregunta antes de explorar.
 
-1. Si necesitas entender código existente, usa un subagente para explorarlo y quédate solo con un resumen (archivos relevantes y cómo encajan). El subagente explora primero con el grafo del repo (`--graph .graphify-workspace/workspace-api/graphify-out/graph.json` o el de `workspace-web`; si falta o no coincide, avisa y sigue con `grep`, sin reconstruirlo) y usa `graphify affected` para dimensionar qué toca cada fase. Consulta el modelo de datos en `.claude/rules/database.md` y el "Orden del MVP" de CLAUDE.md para ubicar la tarea.
+1. Si necesitas entender código existente, usa un subagente para explorarlo y quédate solo con un resumen (archivos relevantes y cómo encajan). El subagente explora primero con el grafo del monorepo (`--graph ../.graphify-workspace/workspace/graphify-out/graph.json`, cubre `api/` y `web/`; si falta o no coincide, avisa y sigue con `grep`, sin reconstruirlo) y usa `graphify affected` para dimensionar qué toca cada fase. Consulta el modelo de datos en `.claude/rules/database.md` y el "Orden del MVP" de CLAUDE.md para ubicar la tarea.
 2. Crea `docs/plans/<nombre-de-la-tarea>.md` a partir de `docs/plans/_plantilla.md`.
 3. Divide el trabajo en fases que cumplan TODOS estos criterios de tamaño:
    - Modifica como máximo ~5 archivos (sin contar tests).

@@ -8,7 +8,7 @@
 
 ## Contexto mínimo
 <!-- Solo lo que una sesión nueva necesita saber para arrancar. -->
-- Repos afectados: `workspace-api` | `workspace-web` (los commits van con `git -C <repo>`)
+- Apps afectadas: `api/` | `web/` | `app/` (los commits van con `git` en la raíz del monorepo)
 - Archivos principales: `...`
 - Dependencias / restricciones: ...
 

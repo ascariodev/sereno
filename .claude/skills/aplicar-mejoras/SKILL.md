@@ -35,8 +35,7 @@ La mejora toma el **nivel más alto** que alcance en cualquier criterio. Ante la
 | Alta y más de ~5 archivos | No la implementes: propón convertirla en un plan con `/planificar` |
 
 ## Antes de empezar
-Comprueba que el árbol de git de los repos afectados está limpio (`git -C workspace-api status --short`,
-igual con `workspace-web`). Muestra una tabla corta (id, mejora, nivel, modelo) de lo que
+Comprueba que el árbol de git del monorepo está limpio (`git status --short` en la raíz). Muestra una tabla corta (id, mejora, nivel, modelo) de lo que
 vas a aplicar. Si alguna requiere plan nuevo, dilo ahí. Luego sigue sin esperar, salvo que la selección
 incluya mejoras de nivel alto: en ese caso confirma antes.
 
@@ -47,7 +46,7 @@ incluya mejoras de nivel alto: en ese caso confirma antes.
 2. Corre los tests afectados y el formato con salida resumida (comandos en CLAUDE.md, "Comandos").
 3. Despacha `revisor-fase` con la ruta del plan y el id. Máximo 2 rondas de corrección; si no pasa, detente.
 4. Marca la mejora `[x]` en el plan, registra una lección si hubo retrabajo y haz **un commit por mejora**
-   en el repo afectado (`git -C <repo>`) con un mensaje que nombre la tarea y el id.
+   en la raíz del monorepo (`git`), con el plan incluido, y un mensaje que nombre la tarea y el id.
 5. Informa en una línea (`M-<n> aplicada (<modelo>, <commit>)`) y sigue.
 
 Las sugerencias nuevas que salgan del revisor se agregan como nuevas `M-<n>` clasificadas; no se aplican
