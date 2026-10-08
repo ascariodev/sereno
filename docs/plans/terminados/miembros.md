@@ -78,7 +78,7 @@
 - [ ] M-1 (alta, plan nuevo): cortar en vivo las suscripciones Reverb de un miembro quitado (requiere un canal privado por usuario u organización).
 - [ ] M-2 (media, sonnet): transferir la propiedad (owner) en un paso, sin pasar por dos owners.
 - [x] M-3 (baja, sonnet): fijar `joined_at` con `toIso8601String()` en `MemberResource` y probar el formato.
-- [ ] M-4 (baja, sonnet): test de que `MemberPolicy::viewAny` no concede sin team activo.
+- [x] M-4 (baja, sonnet): test de que `MemberPolicy::viewAny` no concede sin team activo.
 - [ ] M-5 (baja, sonnet): test de concurrencia real con dos conexiones para el lock de `mutateMembership` (hoy solo se prueba el orden del SQL).
 - [ ] M-6 (baja, sonnet): en `UpdateMemberRoleRequest::authorize()`, evitar el aviso por `(string)` si `role` llega como array (usar `$this->string('role')->value()` o `is_string`).
 - [ ] M-7 (baja, sonnet): en el test de invitaciones del quitado, afirmar el mensaje del 422 con `assertJsonPath`, no solo `assertUnprocessable`.

@@ -5,6 +5,7 @@ use App\Models\Invitation;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -93,6 +94,22 @@ it('requires the organization header', function () {
     Sanctum::actingAs($this->owner);
 
     $this->getJson('/api/members')->assertStatus(400);
+});
+
+it('does not grant viewAny without an active permission team', function () {
+    $previous = getPermissionsTeamId();
+    $this->owner->unsetRelation('roles');
+
+    try {
+        setPermissionsTeamId($this->organization->id);
+        expect(Gate::forUser($this->owner)->allows('viewAny', User::class))->toBeTrue();
+
+        setPermissionsTeamId(null);
+        $this->owner->unsetRelation('roles');
+        expect(Gate::forUser($this->owner)->allows('viewAny', User::class))->toBeFalse();
+    } finally {
+        setPermissionsTeamId($previous);
+    }
 });
 
 function changeRole(User $actor, Organization $organization, User|int $target, mixed $role)
