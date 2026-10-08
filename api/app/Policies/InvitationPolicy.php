@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\Role;
+use App\Models\Invitation;
 use App\Models\User;
 
 /**
@@ -23,5 +24,10 @@ class InvitationPolicy
         }
 
         return $user->hasRole(Role::Admin->value) && $role !== Role::Owner;
+    }
+
+    public function delete(User $user, Invitation $invitation): bool
+    {
+        return $this->create($user, Role::tryFrom($invitation->role));
     }
 }

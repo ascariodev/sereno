@@ -1,7 +1,7 @@
 # Plan: invitaciones-web
 
 **Objetivo:** que un owner o admin invite desde la web, que la persona invitada llegue por un enlace del correo, se registre o inicie sesión y acepte, y que el owner o admin vea y revoque las invitaciones pendientes.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -32,7 +32,7 @@
 - **Archivos:** `api/routes/api.php`, `InvitationController.php`, `InvitationPolicy.php`, `api/app/Http/Resources/InvitationResource.php` (nuevo), tests.
 - **Terminado cuando:** tests de listado (solo pendientes, solo de la organización activa, member recibe 403) pasan y los de `store` siguen igual.
 
-### [ ] Fase 4 — Revocar una invitación pendiente
+### [x] Fase 4 — Revocar una invitación pendiente
 - **Alcance:** `DELETE /api/invitations/{invitation}`; `InvitationPolicy::delete` (owner cualquiera; admin salvo invitaciones de rol owner).
 - **Archivos:** `api/routes/api.php`, `InvitationController.php`, `InvitationPolicy.php`, tests.
 - **Terminado cuando:** tests de revocar, 403 por rol, 404 de otra organización, y que el token revocado ya no se acepta, pasan.
@@ -71,10 +71,10 @@
 - 2026-10-08 — Fase 1: la clave "Your invitation token is: :token" se reemplazó por "Accept invitation" (botón). La URL usa `rtrim(frontend_url, '/')`. Producción lee el `.env` del servidor (no declara variables una a una en `docker-compose.prod.yml`): `FRONTEND_URL` se agrega en ese `.env` al desplegar.
 - 2026-10-08 — Fase 2: `GET /api/invitations/{token}` responde `{data:{organization:{name}, email, role, expires_at}}` (organization es objeto anidado: tiparlo así en la fase 5). Throttle con limitador con nombre `invitation-preview` (30/min por IP) en `AppServiceProvider`, en vez de tocar `lang/*.json`: el 404 reutiliza "The invitation is invalid or has expired.".
 - 2026-10-08 — Fase 3: `InvitationResource` = `{id, email, role, locale, invited_by: {id, name} | null, expires_at, created_at}` (envuelto en `data`; nunca el token). `invited_by` es null si el invitador fue borrado. `GET /api/invitations` sin paginar, ordenado por `created_at` e `id` desc. `store` responde 201 con el mismo resource.
+- 2026-10-08 — Fase 4: `DELETE /api/invitations/{invitation}` responde 204 sin cuerpo y borra la fila (`revokeInvitation` no espera JSON). Aceptada o vencida: 404 con "The invitation is invalid or has expired.". Otra organización: 404 por el binding con scope. `InvitationPolicy::delete` delega en `create` con el rol de la invitación.
 
 ## Notas para la próxima sesión
-- Fases 1 a 3 hechas. Sigue la fase 4 (`DELETE` después de las rutas GET, con middleware `organization`).
-- Fases 3 y 4: la ruta pública `GET invitations/{token}` está fuera del grupo `auth:sanctum`; al agregar `GET /invitations` y `DELETE /invitations/{invitation}` cuidar el orden para que no se pisen.
+- Fases 1 a 4 hechas (API completa). Sigue la fase 5 (web): tipos según las Decisiones de las fases 2 a 4 (L-09).
 - Con `APP_DEBUG` los 404 traen la traza: los tests revisan `message` con `assertJsonPath`, no `assertExactJson`.
 - Pendiente del usuario: agregar `FRONTEND_URL=http://localhost:5174` a `api/.env.example` (una regla de permisos impide al agente leerlo o editarlo) y al `.env` de producción al desplegar.
 
@@ -84,3 +84,4 @@
 - [ ] M-3 (baja, haiku): `InvitationController::show` carga `organization` con una consulta aparte; usar `load('organization')` o equivalente.
 - [ ] M-4 (baja, haiku): test de que un admin que lista ve también las invitaciones de rol owner.
 - [ ] M-5 (media, sonnet): paginar `GET /api/invitations` si el volumen crece.
+- [ ] M-6 (baja, haiku): `InvitationPolicy::delete` falla cerrado si `Role::tryFrom` devuelve null (hoy un admin pasaría con un rol inválido en BD).

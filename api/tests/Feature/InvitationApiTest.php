@@ -436,3 +436,75 @@ it('rejects listing invitations of an organization the user does not belong to',
 it('requires authentication to list invitations', function () {
     $this->getJson('/api/invitations')->assertUnauthorized();
 });
+
+function revokeInvitation(User $user, Organization $organization, Invitation|int $invitation)
+{
+    Sanctum::actingAs($user);
+
+    return test()->withHeader('X-Organization-Id', (string) $organization->id)
+        ->deleteJson('/api/invitations/'.($invitation instanceof Invitation ? $invitation->id : $invitation));
+}
+
+it('lets an owner revoke a pending invitation and the token no longer works', function () {
+    $invitation = createPreviewInvitation($this->organization, $this->owner, ['role' => 'owner']);
+
+    revokeInvitation($this->owner, $this->organization, $invitation)->assertNoContent();
+
+    expect(Invitation::query()->withoutGlobalScopes()->whereKey($invitation->id)->exists())->toBeFalse();
+
+    $invitee = User::factory()->create(['email' => 'invitee@example.com']);
+    Sanctum::actingAs($invitee);
+    $this->postJson('/api/invitations/accept', ['token' => 'plain'])->assertUnprocessable();
+    $this->getJson('/api/invitations/plain')->assertNotFound();
+    expect($this->organization->users()->whereKey($invitee->id)->exists())->toBeFalse();
+});
+
+it('lets an admin revoke invitations below owner but not owner ones', function () {
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+    $member = createPreviewInvitation($this->organization, $this->owner, ['role' => 'member', 'email' => 'm@example.com']);
+    $owner = Invitation::factory()->create(['organization_id' => $this->organization->id, 'invited_by' => $this->owner->id, 'role' => 'owner']);
+
+    revokeInvitation($admin, $this->organization, $owner)->assertForbidden();
+    expect(Invitation::query()->withoutGlobalScopes()->whereKey($owner->id)->exists())->toBeTrue();
+
+    revokeInvitation($admin, $this->organization, $member)->assertNoContent();
+});
+
+it('forbids plain members from revoking invitations', function () {
+    $member = User::factory()->create();
+    $this->organization->addMember($member, [Role::Member]);
+    $invitation = createPreviewInvitation($this->organization, $this->owner);
+
+    revokeInvitation($member, $this->organization, $invitation)->assertForbidden();
+    expect(Invitation::query()->withoutGlobalScopes()->whereKey($invitation->id)->exists())->toBeTrue();
+});
+
+it('answers 404 when revoking an invitation of another organization', function () {
+    $other = Organization::factory()->create();
+    $otherOwner = User::factory()->create();
+    $other->addMember($otherOwner, [Role::Owner]);
+    $foreign = Invitation::factory()->create(['organization_id' => $other->id, 'invited_by' => $otherOwner->id]);
+
+    revokeInvitation($this->owner, $this->organization, $foreign)->assertNotFound();
+    expect(Invitation::query()->withoutGlobalScopes()->whereKey($foreign->id)->exists())->toBeTrue();
+});
+
+it('answers 404 when revoking an accepted or expired invitation', function () {
+    $accepted = createPreviewInvitation($this->organization, $this->owner, ['accepted_at' => now()]);
+    $expired = Invitation::factory()->create(['organization_id' => $this->organization->id, 'invited_by' => $this->owner->id, 'expires_at' => now()->subDay()]);
+
+    revokeInvitation($this->owner, $this->organization, $accepted)->assertNotFound();
+    revokeInvitation($this->owner, $this->organization, $expired)->assertNotFound();
+    revokeInvitation($this->owner, $this->organization, 999999)->assertNotFound();
+});
+
+it('rejects revoking with an organization the user does not belong to and requires authentication', function () {
+    $invitation = createPreviewInvitation($this->organization, $this->owner);
+    $other = Organization::factory()->create();
+
+    revokeInvitation($this->owner, $other, $invitation)->assertForbidden();
+
+    app('auth')->forgetGuards();
+    $this->deleteJson("/api/invitations/{$invitation->id}")->assertUnauthorized();
+});

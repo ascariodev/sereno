@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('invitations/accept', [InvitationController::class, 'accept']);
     Route::get('invitations', [InvitationController::class, 'index'])->middleware('organization');
     Route::post('invitations', [InvitationController::class, 'store'])->middleware('organization');
+    Route::delete('invitations/{invitation}', [InvitationController::class, 'destroy'])->middleware('organization');
 });
 
 Route::middleware(['auth:sanctum', 'organization'])->group(function () {

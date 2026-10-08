@@ -13,6 +13,7 @@ use App\Support\CurrentOrganization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
@@ -67,6 +68,19 @@ class InvitationController extends Controller
         );
 
         return (new InvitationResource($invitation->load('inviter')))->response()->setStatusCode(201);
+    }
+
+    public function destroy(Invitation $invitation): Response
+    {
+        Gate::authorize('delete', $invitation);
+
+        if (! $invitation->isUsable()) {
+            abort(404, __('The invitation is invalid or has expired.'));
+        }
+
+        $invitation->delete();
+
+        return response()->noContent();
     }
 
     /**
