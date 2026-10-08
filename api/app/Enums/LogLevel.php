@@ -42,10 +42,14 @@ enum LogLevel: string
      */
     public static function bySeverity(): array
     {
-        $levels = self::cases();
-        usort($levels, fn (self $a, self $b) => $a->severity() <=> $b->severity());
+        static $ordered = null;
 
-        return $levels;
+        if ($ordered === null) {
+            $ordered = self::cases();
+            usort($ordered, fn (self $a, self $b) => $a->severity() <=> $b->severity());
+        }
+
+        return $ordered;
     }
 
     /**
