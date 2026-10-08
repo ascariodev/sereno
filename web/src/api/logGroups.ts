@@ -3,6 +3,7 @@ import type { DataEnvelope, LogGroup, LogGroupStatus, Paginated } from './types'
 
 export interface ListLogGroupsParams {
   status?: LogGroupStatus
+  /** Minimum level: returns groups at this level or more severe. */
   level?: string
   page?: number
   perPage?: number
@@ -24,6 +25,7 @@ export async function getLogGroup(projectId: number, groupId: number, signal?: A
   return response.data
 }
 
-export function updateLogGroupStatus(projectId: number, groupId: number, status: LogGroupStatus): Promise<unknown> {
-  return api.patch(`/api/projects/${projectId}/log-groups/${groupId}`, { status })
+export async function updateLogGroupStatus(projectId: number, groupId: number, status: LogGroupStatus): Promise<LogGroup> {
+  const response = await api.patch<DataEnvelope<LogGroup>>(`/api/projects/${projectId}/log-groups/${groupId}`, { status })
+  return response.data
 }

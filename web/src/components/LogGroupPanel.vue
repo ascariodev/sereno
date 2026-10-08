@@ -59,9 +59,8 @@ onUnmounted(() => {
   controller?.abort()
 })
 
-function statusFrom(response: unknown): LogGroupStatus | null {
-  const status = (response as { data?: { status?: unknown } } | null)?.data?.status
-  return isLogGroupStatus(status) ? status : null
+function statusFrom(updated: LogGroup | undefined): LogGroupStatus | null {
+  return isLogGroupStatus(updated?.status) ? updated.status : null
 }
 
 async function act(status: LogGroupStatus): Promise<void> {

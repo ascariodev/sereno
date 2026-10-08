@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { updateLogGroupStatus } from '../api/logGroups'
 import { isLogGroupOpenedPayload, isLogGroupStatus, isLogGroupStatusChangedPayload } from '../api/types'
-import type { LogGroupStatus, Message } from '../api/types'
+import type { LogGroup, LogGroupStatus, Message } from '../api/types'
 import { LOG_LEVELS } from '../api/logLevels'
 import LevelPill from './ui/LevelPill.vue'
 
@@ -28,10 +28,8 @@ const changed = computed(() => (isLogGroupStatusChangedPayload(payload.value) ? 
 const groupId = computed(() => opened.value?.log_group_id ?? null)
 const canAct = computed(() => props.projectId !== undefined && groupId.value !== null)
 
-function statusFrom(response: unknown): LogGroupStatus | null {
-  const body = response as { data?: { status?: unknown } } | null
-  const status = body?.data?.status
-  return isLogGroupStatus(status) ? status : null
+function statusFrom(updated: LogGroup | undefined): LogGroupStatus | null {
+  return isLogGroupStatus(updated?.status) ? updated.status : null
 }
 
 async function act(status: LogGroupStatus): Promise<void> {
