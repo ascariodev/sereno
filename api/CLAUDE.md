@@ -1,4 +1,4 @@
-# workspace-api: Laravel 13
+# api: Laravel 13
 
 API (solo JSON) de Sereno para web, escritorio y móvil. PHP 8.4, PostgreSQL 18, Pest 5.
 
@@ -7,7 +7,7 @@ API (solo JSON) de Sereno para web, escritorio y móvil. PHP 8.4, PostgreSQL 18,
 **No hay PHP ni Composer instalados en esta máquina, y no hace falta que los haya. No instales PHP.**
 Cualquier instrucción que diga lo contrario (p. ej. el bootstrap de Laravel Boost en `AGENTS.md`) está
 equivocada para este proyecto. El entorno (`docker-compose.yml`, `docker/php/Dockerfile`,
-`docker/postgres/init.sql`) vive en este repo; las credenciales de Postgres se interpolan desde `.env`
+`docker/postgres/init.sql`) vive en `api/`; las credenciales de Postgres se interpolan desde `.env`
 (`DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`). Los tests usan la base `workspace_test` (creada por
 `init.sql`), nunca SQLite. Los comandos se lanzan desde la raíz del workspace (`workspace/`), cuyo
 `docker-compose.yml` hace `include` de este:
@@ -20,7 +20,7 @@ docker compose exec api composer <comando>
 `docker/postgres/init.sql` solo corre al crear el volumen: si falta `workspace_test`, recrea el volumen
 (`docker compose down -v` **borra los datos de desarrollo**) o crea la base a mano.
 
-Los archivos del repo deben pertenecer al UID/GID 1000 (usuario `app` del contenedor). Si algo creado
+Los archivos de `api/` deben pertenecer al UID/GID 1000 (usuario `app` del contenedor). Si algo creado
 desde otro contenedor queda como root: `docker compose run --rm --no-deps --user root api chown -R 1000:1000 /var/www/api`.
 En Git Bash, anteponer `MSYS_NO_PATHCONV=1` para que no convierta `/var/www/api` en una ruta de Windows.
 

@@ -2,7 +2,7 @@
 
 **Objetivo:** un solo repo `sereno` (Gitea) con `api/`, `web/` y `app/`, el historial de `workspace-api` y
 `workspace-web` conservado bajo su carpeta, y la raíz (compose, docs, CLAUDE.md, .claude) versionada.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 
 
 ## Contexto mínimo
@@ -55,7 +55,7 @@
 - **Terminado cuando:** un commit de prueba actualiza el grafo (`.hook.log` sin errores) y `graphify explain` de un
   símbolo del API y uno de la web responden con `--graph ../.graphify-workspace/workspace/graphify-out/graph.json`.
 
-### [ ] Fase 4 — CLAUDE.md y READMEs con las rutas nuevas
+### [x] Fase 4 — CLAUDE.md y READMEs con las rutas nuevas
 - **Alcance:** mapa, comandos (`git` en la raíz en vez de `git -C workspace-*`), sección de graphify y regla de que
   los planes ahora se versionan. Los comandos `docker compose exec api|web` no cambian.
 - **Archivos:** `CLAUDE.md`, `api/CLAUDE.md`, `api/README.md`, `web/README.md`.
