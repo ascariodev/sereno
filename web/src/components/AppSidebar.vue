@@ -45,9 +45,12 @@ function openSummary(project: Project): OpenSummary | null {
   return { count, tone, label: t('sidebar.projectOpen', { name: project.name, groups, level: t(`notice.level.${tone}`) }) }
 }
 
-function linkLabel(project: Project): string | undefined {
-  return openSummary(project)?.label ?? (props.collapsed ? project.name : undefined)
-}
+const projectRows = computed(() =>
+  projectsStore.projects.map((project) => {
+    const summary = openSummary(project)
+    return { project, summary, label: summary?.label ?? (props.collapsed ? project.name : undefined) }
+  }),
+)
 
 function currentFor(projectId: number): 'page' | undefined {
   return activeProjectId.value === projectId ? 'page' : undefined
@@ -115,22 +118,22 @@ function currentFor(projectId: number): 'page' | undefined {
 
     <div v-if="organization.activeId !== null" class="app-sidebar__group">
       <span v-if="!collapsed" class="app-sidebar__heading">{{ t('projects.title') }}</span>
-      <template v-for="project in projectsStore.projects" :key="project.id">
+      <template v-for="{ project, summary, label } in projectRows" :key="project.id">
         <AppTooltip :text="project.name" side="right" :disabled="!collapsed">
           <RouterLink
             v-if="projectsStore.channelByProject[project.id] !== undefined"
             :to="{ name: 'channel', params: { id: projectsStore.channelByProject[project.id] } }"
             class="app-sidebar__link app-sidebar__project"
-            :aria-label="linkLabel(project)"
+            :aria-label="label"
             :aria-current="currentFor(project.id)"
           >
             <ProjectKey :value="project.key" />
             <span v-if="!collapsed" class="app-sidebar__name">{{ project.name }}</span>
             <span
-              v-if="openSummary(project)"
-              :class="['app-sidebar__open', `app-sidebar__open--${openSummary(project)!.tone}`]"
+              v-if="summary"
+              :class="['app-sidebar__open', `app-sidebar__open--${summary.tone}`]"
               aria-hidden="true"
-              >{{ openSummary(project)!.count }}</span
+              >{{ summary.count }}</span
             >
           </RouterLink>
           <span
@@ -138,16 +141,16 @@ function currentFor(projectId: number): 'page' | undefined {
             class="app-sidebar__link app-sidebar__project app-sidebar__project--disabled"
             role="link"
             aria-disabled="true"
-            :aria-label="linkLabel(project)"
+            :aria-label="label"
             :aria-current="currentFor(project.id)"
           >
             <ProjectKey :value="project.key" />
             <span v-if="!collapsed" class="app-sidebar__name">{{ project.name }}</span>
             <span
-              v-if="openSummary(project)"
-              :class="['app-sidebar__open', `app-sidebar__open--${openSummary(project)!.tone}`]"
+              v-if="summary"
+              :class="['app-sidebar__open', `app-sidebar__open--${summary.tone}`]"
               aria-hidden="true"
-              >{{ openSummary(project)!.count }}</span
+              >{{ summary.count }}</span
             >
           </span>
         </AppTooltip>
@@ -334,6 +337,7 @@ function currentFor(projectId: number): 'page' | undefined {
   padding: 0 4px;
   font-size: 10px;
 }
+
 .app-sidebar__open--debug {
   background: var(--level-debug-bg);
   color: var(--level-debug-fg);

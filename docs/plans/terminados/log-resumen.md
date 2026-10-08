@@ -95,7 +95,7 @@
 - [x] M-11 (baja, sonnet): caso en `LogGroupAside.spec.ts` que verifique que `hourly` llega a `LogGroupPanel`, y unificar el filtro de llamadas `hourly` entre los specs de Aside y ChannelView.
 - [x] M-12 (baja, sonnet): en `useHourlyCounts.ts`, si un `fetchChunk` falla por algo distinto de un aborto, quitar de `newestNotice` los ids del trozo para que se reintenten al volver a montarse.
 - [x] M-13 (baja, sonnet): que el mock de `useHourlyCounts.spec.ts` respete el `AbortSignal` y un test cubra el aborto en `resetHourlyCounts`.
-- [ ] M-14 (baja, sonnet): en `AppSidebar.vue`, extraer la píldora duplicada (enlace y span deshabilitado) a un subcomponente o calcular `openSummary(project)` una vez por fila; arreglar la línea en blanco del CSS.
+- [x] M-14 (baja, sonnet): en `AppSidebar.vue`, extraer la píldora duplicada (enlace y span deshabilitado) a un subcomponente o calcular `openSummary(project)` una vez por fila; arreglar la línea en blanco del CSS.
 - [ ] M-15 (baja, sonnet): con la barra contraída, el tooltip del proyecto muestra el mismo texto que el `aria-label` (conteo y nivel) cuando hay abiertos.
 - [ ] M-16 (media, sonnet): extraer a `src/api/logLevels.ts` el mapa nivel a tono (`LOG_LEVELS.includes(level) ? level : 'debug'`) repetido en `AppSidebar`, `LevelPill`, `ProjectCard` (y Sparkline), con test del nivel desconocido.
 - [ ] M-17 (baja, sonnet): en `stores/projects.ts`, si `refreshCounts` dispara mientras `reload()` está en curso, re-armar el timer en vez de perder el refresco.
