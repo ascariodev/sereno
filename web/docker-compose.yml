@@ -1,0 +1,17 @@
+services:
+  web:
+    image: node:24
+    container_name: workspace_web
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - web-node-modules:/app/node_modules
+    ports:
+      - "5174:5174"
+    environment:
+      DEV_HOST: "0.0.0.0"
+      DEV_POLLING: "true"
+    entrypoint: ["sh", "-c", "[ -f node_modules/.bin/vite ] || npm install; exec npm run dev"]
+
+volumes:
+  web-node-modules:
