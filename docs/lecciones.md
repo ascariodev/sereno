@@ -38,6 +38,7 @@
 - L-29: Un helper global en un test de Pest lleva un nombre propio del archivo: uno repetido (`ingest`) rompe la carga de la suite completa aunque cada archivo pase solo. — aplicada en: pendiente
 - L-31: Un test del guard que depende de un 401 instala el handler real (`installAuthOnApi` + `redirectToLogin`): con el handler simulado no se ve el `router.push` que cancela la navegación en curso. — aplicada en: test (router/index.spec)
 - L-32: En una cadena async (register y luego accept), cada paso tras un `await` revisa la generación también en el camino de éxito, no solo en el `catch`: si no, el paso siguiente corre tras desmontar o cambiar de ruta. — aplicada en: test (InviteView.spec)
+- L-33: Un mensaje nuevo bajo un campo (error o aviso) lleva `id` y entra en el `aria-describedby` del campo, con `aria-invalid`, igual que los demás campos del formulario, y el spec lo afirma. — aplicada en: test (InviteView.spec)
 - L-30: Un `setTimeout` real que un store deja armado sobrevive al test y se dispara en el siguiente: se cancela de forma determinista en `afterEach` (p. ej. `useProjectsStore().clear()`), no con una espera real. — aplicada en: test (ChannelView.spec)
 
 <!-- Ejemplo:

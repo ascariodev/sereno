@@ -68,6 +68,7 @@
     "passwordConfirmation": "Confirm password",
     "createAccount": "Create account and join",
     "creating": "Creating account...",
+    "emailTaken": "This email already has an account. Use the sign in link below to accept the invitation.",
     "haveAccount": "Already have an account?",
     "signInInstead": "Sign in to accept",
     "tooManyAttempts": "Too many attempts. Try again in a minute.",

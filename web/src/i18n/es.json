@@ -68,6 +68,7 @@
     "passwordConfirmation": "Confirmar contraseña",
     "createAccount": "Crear cuenta y unirme",
     "creating": "Creando cuenta...",
+    "emailTaken": "Este correo ya tiene una cuenta. Usa el enlace de iniciar sesión de abajo para aceptar la invitación.",
     "haveAccount": "¿Ya tienes cuenta?",
     "signInInstead": "Inicia sesión para aceptar",
     "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",

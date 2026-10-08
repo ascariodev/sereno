@@ -93,7 +93,7 @@
 - [x] M-6 (baja, haiku): `InvitationPolicy::delete` falla cerrado si `Role::tryFrom` devuelve null (hoy un admin pasaría con un rol inválido en BD).
 - [x] M-7 (baja, haiku): test unitario de `whileLoadingSession` que compruebe que libera el bloqueo cuando la función lanza.
 - [ ] M-8 (baja, haiku): `InviteView.spec` lee `loadError` desde `vm` de la vista desmontada; afirmar por el DOM o por una señal pública para no depender del acceso a `script setup`.
-- [ ] M-9 (baja, haiku): en InviteView, un 422 de register en `email` (ya registrado) muestra solo el mensaje del API; agregar un texto que lleve a "Iniciar sesión".
+- [x] M-9 (baja, haiku): en InviteView, un 422 de register en `email` (ya registrado) muestra solo el mensaje del API; agregar un texto que lleve a "Iniciar sesión".
 - [ ] M-10 (baja, haiku): unificar `role="alert"`/`role="status"` en los avisos de "cuenta creada" de InviteView, y usar una key con índice en los `v-for` de errores.
 - [ ] M-11 (baja, haiku): mover `canManageInvitations` a `organizationStore` para quitar el duplicado entre UserMenu e InvitationsView.
 - [ ] M-12 (baja, haiku): en InvitationsView, el 404 al revocar (ya no existe) muestra un toast informativo, no de error; y limpiar `pending` en la rama que redirige a projects.

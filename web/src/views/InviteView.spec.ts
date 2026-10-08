@@ -305,6 +305,37 @@ describe('InviteView', () => {
       expect(useAuthStore().isAuthenticated).toBe(false)
     })
 
+    it('points to the sign in link when the email is already registered', async () => {
+      mockGet()
+      vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'invalid', { email: ['Taken'] }))
+      const { wrapper } = await mountInvite()
+
+      expect(wrapper.find('[data-test=email-taken-hint]').exists()).toBe(false)
+      expect(wrapper.find('#invite-email').attributes('aria-invalid')).toBeUndefined()
+
+      await fill(wrapper)
+
+      expect(wrapper.find('[data-test=error-email]').text()).toBe('Taken')
+      expect(wrapper.find('#invite-email').attributes('aria-invalid')).toBe('true')
+      expect(wrapper.find('#invite-email').attributes('aria-describedby')).toBe(
+        'invite-email-error-0 invite-email-hint',
+      )
+      expect(wrapper.find('#invite-email-error-0').text()).toBe('Taken')
+      expect(wrapper.find('#invite-email-hint').exists()).toBe(true)
+      expect(wrapper.find('[data-test=email-taken-hint]').text()).toContain('already has an account')
+      expect(wrapper.findAll('[data-test=sign-in-instead]')).toHaveLength(1)
+    })
+
+    it('does not show the sign in hint for other field errors', async () => {
+      mockGet()
+      vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'invalid', { name: ['Name is required'] }))
+      const { wrapper } = await mountInvite()
+
+      await fill(wrapper)
+
+      expect(wrapper.find('[data-test=email-taken-hint]').exists()).toBe(false)
+    })
+
     it('clears both passwords after a 422 on the password', async () => {
       mockGet()
       vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'invalid', { password: ['Too short'] }))

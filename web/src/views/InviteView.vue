@@ -33,7 +33,7 @@ const password = ref('')
 const passwordConfirmation = ref('')
 const fieldErrors = ref<Record<string, string[]>>({})
 const formError = ref<string | null>(null)
-type RegisterField = 'name' | 'password'
+type RegisterField = 'name' | 'email' | 'password'
 let generation = 0
 let controller: AbortController | null = null
 
@@ -127,6 +127,7 @@ function errorIds(field: RegisterField): string[] {
 
 function describedBy(field: RegisterField): string | undefined {
   const ids = errorIds(field)
+  if (field === 'email' && ids.length) ids.push('invite-email-hint')
   return ids.length ? ids.join(' ') : undefined
 }
 
@@ -289,9 +290,27 @@ async function signOut(): Promise<void> {
 
           <div class="invite__field">
             <label for="invite-email">{{ t('invite.email') }}</label>
-            <input id="invite-email" type="email" name="email" autocomplete="username" readonly :value="preview.email" />
-            <p v-for="message in fieldErrors.email" :key="message" class="invite__error" data-test="error-email">
+            <input
+              id="invite-email"
+              type="email"
+              name="email"
+              autocomplete="username"
+              readonly
+              :value="preview.email"
+              :aria-invalid="describedBy('email') ? 'true' : undefined"
+              :aria-describedby="describedBy('email')"
+            />
+            <p
+              v-for="(message, index) in fieldErrors.email"
+              :id="`invite-email-error-${index}`"
+              :key="message"
+              class="invite__error"
+              data-test="error-email"
+            >
               {{ message }}
+            </p>
+            <p v-if="fieldErrors.email?.length" id="invite-email-hint" class="invite__error" data-test="email-taken-hint">
+              {{ t('invite.emailTaken') }}
             </p>
           </div>
 
