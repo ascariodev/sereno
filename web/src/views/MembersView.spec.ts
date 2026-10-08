@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
+import { toast, toasts } from '../components/ui/toast'
 import { i18n, setLocale } from '../i18n'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
@@ -38,6 +39,7 @@ async function mountView(members: unknown[] = [], roles: string[] = ['member']) 
 beforeEach(() => {
   localStorage.clear()
   vi.restoreAllMocks()
+  toast.clear()
   setLocale('en')
 })
 
@@ -169,6 +171,153 @@ describe('MembersView', () => {
       await flushPromises()
       expect(organization.active?.roles).toEqual(['member'])
       expect(wrapper!.find('select').exists()).toBe(false)
+    })
+  })
+
+  describe('remove and leave', () => {
+    function dialogButton(name: string): HTMLButtonElement | null {
+      return document.querySelector(`[role=dialog] [data-test=${name}]`)
+    }
+
+    async function mountApp(roles: string[], members: unknown[], organizationsAfterLeave: unknown[]) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, 'tok')
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      let current: unknown[] = [{ ...organizations()[0], roles }]
+      const get = vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/me') return { data: user }
+        if (path === '/api/organizations') return { data: current }
+        if (path === '/api/members') return { data: members }
+        return { data: [] }
+      })
+      const remove = vi.spyOn(api, 'delete').mockImplementation(async () => {
+        current = organizationsAfterLeave
+        return undefined as never
+      })
+      const router = createAppRouter(createMemoryHistory())
+      await router.push('/settings/members')
+      await router.isReady()
+      wrapper = mount({ template: '<RouterView />' }, { attachTo: document.body, global: { plugins: [pinia, i18n, router] } })
+      await flushPromises()
+      return { router, get, remove, organization: useOrganizationStore() }
+    }
+
+    it('offers remove by rank and leave on the own row', async () => {
+      await mountView([member(1, 'owner'), member(2, 'owner'), member(3, 'member')], ['owner'])
+      let rows = wrapper!.findAll('[data-test=member]')
+      expect(rows[0].find('[data-test=leave]').attributes('aria-label')).toBe('Leave organization')
+      expect(rows[0].find('[data-test=remove]').exists()).toBe(false)
+      expect(rows[1].find('[data-test=remove]').attributes('aria-label')).toBe('Remove User 2')
+      expect(rows[2].find('[data-test=remove]').exists()).toBe(true)
+      wrapper!.unmount()
+
+      await mountView([member(1, 'admin'), member(2, 'owner'), member(3, 'member')], ['admin'])
+      rows = wrapper!.findAll('[data-test=member]')
+      expect(rows[0].find('[data-test=leave]').exists()).toBe(true)
+      expect(rows[1].find('[data-test=remove]').exists()).toBe(false)
+      expect(rows[2].find('[data-test=remove]').exists()).toBe(true)
+      wrapper!.unmount()
+
+      await mountView([member(1, 'member'), member(2, 'member')], ['member'])
+      rows = wrapper!.findAll('[data-test=member]')
+      expect(rows[0].find('[data-test=leave]').exists()).toBe(true)
+      expect(wrapper!.find('[data-test=remove]').exists()).toBe(false)
+    })
+
+    it('asks for confirmation, removes the member and drops the row', async () => {
+      await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      const remove = vi.spyOn(api, 'delete').mockResolvedValue(undefined as never)
+      await wrapper!.find('[data-test=remove]').trigger('click')
+      await flushPromises()
+      expect(document.querySelector('[data-test=confirm-text]')!.textContent).toContain('User 2')
+      expect(remove).not.toHaveBeenCalled()
+      dialogButton('confirm')!.click()
+      await flushPromises()
+      expect(remove).toHaveBeenCalledWith('/api/members/2')
+      expect(wrapper!.findAll('[data-test=name]').map((el) => el.text())).toEqual(['User 1'])
+      expect(toasts.value.map((item) => item.kind)).toEqual(['success'])
+      expect(document.querySelector('[role=dialog]')).toBeNull()
+    })
+
+    it('cancels without removing', async () => {
+      await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      const remove = vi.spyOn(api, 'delete')
+      await wrapper!.find('[data-test=remove]').trigger('click')
+      await flushPromises()
+      expect(document.querySelector('[role=dialog]')).not.toBeNull()
+      dialogButton('cancel')!.click()
+      await flushPromises()
+      expect(document.querySelector('[role=dialog]')).toBeNull()
+      expect(remove).not.toHaveBeenCalled()
+      expect(wrapper!.findAll('[data-test=member]')).toHaveLength(2)
+    })
+
+    it('shows the last owner 422 in the own row and stays', async () => {
+      const { router } = await mountApp(['owner'], [member(1, 'owner'), member(2, 'member')], [])
+      vi.spyOn(api, 'delete').mockRejectedValue(new ApiError(422, 'The organization needs at least one owner.', {}))
+      await wrapper!.find('[data-test=leave]').trigger('click')
+      await flushPromises()
+      expect(document.querySelector('[data-test=confirm-text]')!.textContent).toContain('Acme')
+      dialogButton('confirm')!.click()
+      await flushPromises()
+      const error = wrapper!.find('[data-test=role-error]')
+      expect(error.text()).toBe('The organization needs at least one owner.')
+      expect(wrapper!.find('[data-test=leave]').attributes('aria-describedby')).toBe(error.attributes('id'))
+      expect(router.currentRoute.value.name).toBe('members')
+      expect(document.querySelector('[role=dialog]')).toBeNull()
+    })
+
+    it('leaves, selects another organization and goes to projects', async () => {
+      const other = { id: 2, name: 'Other', slug: 'other', settings: null, roles: ['member'] }
+      const { router, remove, organization } = await mountApp(['member'], [member(1, 'member')], [other])
+      await wrapper!.find('[data-test=leave]').trigger('click')
+      await flushPromises()
+      dialogButton('confirm')!.click()
+      await flushPromises()
+      expect(remove).toHaveBeenCalledWith('/api/members/1')
+      expect(organization.activeId).toBe(2)
+      expect(router.currentRoute.value.name).toBe('projects')
+      expect(toasts.value.map((item) => item.kind)).toEqual(['success'])
+    })
+
+    it('reloads organizations after leaving even if the organization changed during the request', async () => {
+      const other = { id: 2, name: 'Other', slug: 'other', settings: null, roles: ['member'] }
+      const { router, get, organization } = await mountApp(['member'], [member(1, 'member')], [other])
+      organization.organizations = [...organization.organizations, other]
+      let resolveDelete: () => void = () => undefined
+      vi.spyOn(api, 'delete').mockImplementation(
+        () => new Promise<never>((resolve) => (resolveDelete = () => resolve(undefined as never))),
+      )
+      await wrapper!.find('[data-test=leave]').trigger('click')
+      await flushPromises()
+      dialogButton('confirm')!.click()
+      await flushPromises()
+      organization.select(2)
+      await flushPromises()
+      const before = get.mock.calls.filter(([path]) => path === '/api/organizations').length
+      get.mockImplementation(async (path: string) => {
+        if (path === '/api/organizations') return { data: [other] }
+        return { data: [] }
+      })
+      resolveDelete()
+      await flushPromises()
+      expect(get.mock.calls.filter(([path]) => path === '/api/organizations').length).toBe(before + 1)
+      expect(organization.organizations.map((o) => o.id)).toEqual([2])
+      expect(organization.activeId).toBe(2)
+      expect(router.currentRoute.value.name).toBe('members')
+      expect(toasts.value).toHaveLength(0)
+    })
+
+        it('leaves the last organization and shows the empty state', async () => {
+      const { router, organization } = await mountApp(['member'], [member(1, 'member')], [])
+      await wrapper!.find('[data-test=leave]').trigger('click')
+      await flushPromises()
+      dialogButton('confirm')!.click()
+      await flushPromises()
+      expect(organization.activeId).toBeNull()
+      expect(router.currentRoute.value.name).toBe('projects')
+      expect(wrapper!.text()).toContain('You do not belong to any organization yet.')
+      expect(wrapper!.find('[data-test=member]').exists()).toBe(false)
     })
   })
 })

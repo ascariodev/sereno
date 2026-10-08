@@ -1,23 +1,47 @@
 <script setup lang="ts">
-import { onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
-import { listMembers, updateMemberRole } from '../api/members'
+import { listMembers, removeMember, updateMemberRole } from '../api/members'
 import type { InvitationRole, Member } from '../api/types'
+import AppDialog from '../components/ui/AppDialog.vue'
+import { toast } from '../components/ui/toast'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 
 const { t, locale } = useI18n()
 const organization = useOrganizationStore()
 const auth = useAuthStore()
+const router = useRouter()
 
 const members = ref<Member[]>([])
 const loading = ref(false)
 const failed = ref(false)
 const savingId = ref<number | null>(null)
 const roleError = ref<{ id: number; message: string } | null>(null)
+const pending = ref<Member | null>(null)
+const removing = ref(false)
+let leaving = false
 let generation = 0
 let controller: AbortController | null = null
+
+const confirmOpen = computed({
+  get: () => pending.value !== null,
+  set: (open: boolean) => {
+    if (!open && !removing.value) pending.value = null
+  },
+})
+
+const pendingIsSelf = computed(() => pending.value !== null && pending.value.id === auth.user?.id)
+
+function isSelf(member: Member): boolean {
+  return member.id === auth.user?.id
+}
+
+function canRemove(member: Member): boolean {
+  return isSelf(member) || organization.canRemoveMember(member.role)
+}
 
 function formatDate(value: string | null): string {
   if (!value) return '-'
@@ -32,6 +56,7 @@ async function load(): Promise<void> {
   failed.value = false
   savingId.value = null
   roleError.value = null
+  pending.value = null
   loading.value = true
   try {
     const result = await listMembers(controller.signal)
@@ -77,9 +102,72 @@ async function changeRole(member: Member, event: Event): Promise<void> {
   }
 }
 
+/**
+ * Reloads organizations even if the user switched organization during the DELETE, so the one just left
+ * disappears everywhere. Only the toast and the navigation depend on the screen still being current.
+ */
+async function leave(stillCurrent: boolean): Promise<void> {
+  leaving = true
+  try {
+    try {
+      await organization.load()
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error
+      if (stillCurrent) toast.error(t('members.leftReloadFailed'))
+      return
+    }
+    if (!stillCurrent) return
+    toast.success(t('members.left'))
+    if (router.currentRoute.value.name !== 'members') return
+    await router.replace({ name: 'projects' })
+  } finally {
+    leaving = false
+  }
+}
+
+async function confirmRemove(): Promise<void> {
+  const target = pending.value
+  if (!target || removing.value) return
+  const current = generation
+  const self = isSelf(target)
+  removing.value = true
+  roleError.value = null
+  try {
+    await removeMember(target.id)
+    if (self) {
+      const stillCurrent = current === generation
+      if (stillCurrent) pending.value = null
+      await leave(stillCurrent)
+      return
+    }
+    if (current !== generation) return
+    members.value = members.value.filter((m) => m.id !== target.id)
+    toast.success(t('members.removed', { name: target.name }))
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error
+    if (current !== generation) return
+    if (error.status === 404) {
+      members.value = members.value.filter((m) => m.id !== target.id)
+      toast.info(t('members.removeGone'))
+    } else {
+      roleError.value = {
+        id: target.id,
+        message:
+          error.status === 422 || error.status === 403
+            ? error.message
+            : t(self ? 'members.leaveFailed' : 'members.removeFailed'),
+      }
+    }
+  } finally {
+    removing.value = false
+    if (current === generation) pending.value = null
+  }
+}
+
 watch(
   () => organization.activeId,
   (activeId) => {
+    if (leaving) return
     if (activeId !== null) {
       void load()
       return
@@ -89,6 +177,7 @@ watch(
     members.value = []
     savingId.value = null
     roleError.value = null
+    pending.value = null
     loading.value = false
     failed.value = false
   },
@@ -151,11 +240,49 @@ onUnmounted(() => {
             <dd data-test="joined">{{ formatDate(member.joined_at) }}</dd>
           </div>
         </dl>
+        <button
+          v-if="canRemove(member)"
+          type="button"
+          class="members__remove"
+          :data-test="isSelf(member) ? 'leave' : 'remove'"
+          :aria-label="isSelf(member) ? t('members.leaveTitle') : t('members.removeFor', { name: member.name })"
+          :aria-describedby="roleError?.id === member.id ? `role-error-${member.id}` : undefined"
+          :disabled="savingId === member.id || removing"
+          @click="pending = member"
+        >
+          {{ isSelf(member) ? t('members.leave') : t('members.remove') }}
+        </button>
         <p v-if="roleError?.id === member.id" :id="`role-error-${member.id}`" class="members__error" role="alert" data-test="role-error">
           {{ roleError.message }}
         </p>
       </li>
     </ul>
+
+    <AppDialog
+      v-model:open="confirmOpen"
+      :title="pendingIsSelf ? t('members.leaveTitle') : t('members.removeTitle')"
+      :close-label="t('members.cancel')"
+    >
+      <p v-if="pending" data-test="confirm-text">
+        {{
+          pendingIsSelf
+            ? t('members.leaveConfirm', { organization: organization.active?.name ?? '' })
+            : t('members.removeConfirm', { name: pending.name })
+        }}
+      </p>
+      <div class="members__actions">
+        <button type="button" class="members__cancel" data-test="cancel" :disabled="removing" @click="pending = null">
+          {{ t('members.cancel') }}
+        </button>
+        <button type="button" class="members__confirm" data-test="confirm" :disabled="removing" @click="confirmRemove">
+          {{
+            removing
+              ? t(pendingIsSelf ? 'members.leaving' : 'members.removing')
+              : t(pendingIsSelf ? 'members.leaveAction' : 'members.removeAction')
+          }}
+        </button>
+      </div>
+    </AppDialog>
   </section>
 </template>
 
@@ -269,6 +396,52 @@ onUnmounted(() => {
 .members__details dd {
   margin: 0;
   color: var(--ink-2);
+}
+
+.members__remove,
+.members__cancel,
+.members__confirm {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.members__remove {
+  min-width: 96px;
+  color: var(--level-error-fg);
+}
+
+.members__confirm {
+  border-color: var(--level-error-fg);
+  background: var(--level-error-bg);
+  color: var(--level-error-fg);
+}
+
+.members__remove:disabled,
+.members__confirm:disabled,
+.members__cancel:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.members__remove:focus-visible,
+.members__cancel:focus-visible,
+.members__confirm:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.members__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 @media (max-width: 600px) {

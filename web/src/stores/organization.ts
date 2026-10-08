@@ -32,6 +32,11 @@ export const useOrganizationStore = defineStore('organization', () => {
     return []
   })
 
+  /** Mirrors MemberPolicy::remove for another member; removing oneself (leaving) is always allowed. */
+  const canRemoveMember = computed(() => (targetRole: InvitationRole | null): boolean =>
+    isOwner.value || (isAdmin.value && targetRole !== 'owner'),
+  )
+
   function setActive(id: number | null): void {
     if (id === activeId.value) return
     activeId.value = id
@@ -62,7 +67,7 @@ export const useOrganizationStore = defineStore('organization', () => {
     setActive(null)
   }
 
-  return { organizations, activeId, active, isOwner, isAdmin, assignableRolesFor, canManageInvitations, loaded, version, load, select, clear }
+  return { organizations, activeId, active, isOwner, isAdmin, assignableRolesFor, canRemoveMember, canManageInvitations, loaded, version, load, select, clear }
 })
 
 export function installOrganizationOnApi(): void {

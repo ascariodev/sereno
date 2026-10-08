@@ -51,7 +51,7 @@
 - **Archivos:** `web/src/views/MembersView.vue`, `web/src/stores/organization.ts`, `web/src/i18n/en.json`, `web/src/i18n/es.json`, specs.
 - **Terminado cuando:** specs de opciones por rol, cambio con éxito, 422 y degradarse a sí mismo pasan.
 
-### [ ] Fase 8 — Quitar un miembro o salir desde la pantalla [riesgo]
+### [x] Fase 8 — Quitar un miembro o salir desde la pantalla [riesgo]
 - **Alcance:** "Quitar" por fila y "Salir de la organización" en la fila propia, con confirmación (`AppDialog`). Al salir: recargar organizaciones, seleccionar otra y volver a projects; si no queda ninguna, el estado que muestre AppLayout sin organizaciones. Verificación visual en el navegador (L-22) de la pantalla y los diálogos, en escritorio y móvil y en ambos temas.
 - **Archivos:** `web/src/views/MembersView.vue`, `web/src/i18n/en.json`, `web/src/i18n/es.json`, specs.
 - **Terminado cuando:** specs de quitar, salir con otra organización, salir sin otras, 422 de último owner y cancelar pasan, y la revisión visual no deja defectos.
@@ -68,10 +68,11 @@
 - 2026-10-08 — Web: `Member = {id, name, email, role: InvitationRole | null, joined_at: string | null}`; `joined_at` es ISO 8601 UTC con Z (verificado). Firmas: `listMembers(signal?)`, `updateMemberRole(id, role)`, `removeMember(id)`.
 - 2026-10-08 — Web: ruta `members` (`/settings/members`) visible para todo miembro; `MembersView` carga solo con `activeId` (generación + AbortController, L-10); "tú" = `auth.user.id === member.id`; roles con `invite.roles.*`; textos en `members.*` y `userMenu.members`; `joined_at` null se muestra "-"; fecha en zona local del navegador (intencional).
 - 2026-10-08 — `organizationStore` expone `isAdmin` y `assignableRolesFor(targetRole)` (espejo de `MemberPolicy::updateRole`). `MembersView` muestra `<select>` solo si hay roles asignables; error por fila `roleError` (`role="alert"`, `aria-describedby`) con el `message` de 403/422, reutilizable para quitar; si cambia su propio rol hace `organization.load()` y revisa la generación (L-32).
+- 2026-10-08 — `organizationStore.canRemoveMember(targetRole)` es espejo de `MemberPolicy::remove` para otros; la fila propia siempre ofrece "Salir" (`aria-label` completo). Excepción deliberada a L-32 al salir: tras un DELETE propio exitoso, `organization.load()` corre siempre; solo toast y navegación a `projects` dependen de la generación. Flag `leaving` (reseteado en `finally`) suprime el watch de `activeId`. 404 al quitar: quita la fila y toast informativo. AppLayout no se tocó: su estado sin organizaciones ya funciona.
 - 2026-10-08 — No se cortan las suscripciones Reverb ya autorizadas del miembro quitado (queda como mejora).
 
 ## Notas para la próxima sesión
-- Fases 1 a 7 hechas. Empezar por la fase 8 (riesgo): "Quitar"/"Salir" en `MembersView.vue` reutilizando `roleError` por fila y `AppDialog`; explorar AppLayout con cero organizaciones (si hay que tocarlo, dividir); verificación visual L-22. Leer `docs/lecciones.md` antes.
+- Plan completo (fases 1 a 8).
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): cortar en vivo las suscripciones Reverb de un miembro quitado (requiere un canal privado por usuario u organización).
@@ -84,3 +85,5 @@
 - [ ] M-8 (baja, sonnet): ordenar el import de `MembersView` en `web/src/router/index.ts` y parametrizar `mountView` en `MembersView.spec.ts` para el test de error con reintento.
 - [ ] M-9 (baja, sonnet): si `organization.load()` falla tras cambiar el propio rol, no restaurar el select ni mostrar `roleFailed`: separar el `load()` en su propio try.
 - [ ] M-10 (baja, sonnet): spec de L-10/L-32 para el cambio de rol: cambiar de organización con la petición en vuelo no aplica la respuesta.
+- [ ] M-11 (baja, sonnet): spec de `organization.load()` fallido tras salir (toast `leftReloadFailed`) y del reset de `leaving` cuando `router.replace` no navega.
+- [ ] M-12 (media, sonnet): dar estilo al estado vacío de `AppLayout` sin organizaciones (hoy texto plano).

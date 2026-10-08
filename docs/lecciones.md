@@ -40,6 +40,7 @@
 - L-32: En una cadena async (register y luego accept), cada paso tras un `await` revisa la generación también en el camino de éxito, no solo en el `catch`: si no, el paso siguiente corre tras desmontar o cambiar de ruta. — aplicada en: test (InviteView.spec)
 - L-33: Un mensaje nuevo bajo un campo (error o aviso) lleva `id` y entra en el `aria-describedby` del campo, con `aria-invalid`, igual que los demás campos del formulario, y el spec lo afirma. — aplicada en: test (InviteView.spec)
 - L-30: Un `setTimeout` real que un store deja armado sobrevive al test y se dispara en el siguiente: se cancela de forma determinista en `afterEach` (p. ej. `useProjectsStore().clear()`), no con una espera real. — aplicada en: test (ChannelView.spec)
+- L-34: Si una operación ya confirmada en el servidor cambia el estado global (salir de la organización), el refresco del store global corre siempre; solo lo local (toast, navegación) depende de la generación. — aplicada en: test (MembersView.spec)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

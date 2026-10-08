@@ -134,4 +134,20 @@ describe('organization store', () => {
     store.select(3)
     expect([store.isOwner, store.canManageInvitations]).toEqual([false, false])
   })
+
+  it('canRemoveMember mirrors MemberPolicy::remove by the active role', async () => {
+    const store = setup([
+      { id: 1, name: 'One', slug: 'one', settings: null, roles: ['owner'] },
+      { id: 2, name: 'Two', slug: 'two', settings: null, roles: ['admin'] },
+      { id: 3, name: 'Three', slug: 'three', settings: null, roles: ['member'] },
+    ])
+    const targets = ['owner', 'admin', 'member', null] as const
+    expect(targets.map((role) => store.canRemoveMember(role))).toEqual([false, false, false, false])
+    await store.load()
+    expect(targets.map((role) => store.canRemoveMember(role))).toEqual([true, true, true, true])
+    store.select(2)
+    expect(targets.map((role) => store.canRemoveMember(role))).toEqual([false, true, true, true])
+    store.select(3)
+    expect(targets.map((role) => store.canRemoveMember(role))).toEqual([false, false, false, false])
+  })
 })
