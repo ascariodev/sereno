@@ -31,7 +31,7 @@ function failureOutput(array $arguments): string
     return preg_replace('/\s+/', ' ', Artisan::output());
 }
 
-function ingest(object $test, string $key): int
+function ingestStatus(object $test, string $key): int
 {
     return $test->withToken($key)
         ->postJson('/api/ingest/events', ['events' => [['level' => 'error', 'message' => 'Boom']]])
@@ -44,8 +44,8 @@ it('rotates the key by name: the new one ingests and the old one is rejected', f
     $newKey = rotatedKey();
 
     expect($newKey)->not->toBe('')->not->toBe($this->oldKey)
-        ->and(ingest($this, $newKey))->toBe(202)
-        ->and(ingest($this, $this->oldKey))->toBe(401);
+        ->and(ingestStatus($this, $newKey))->toBe(202)
+        ->and(ingestStatus($this, $this->oldKey))->toBe(401);
 });
 
 it('rotates by id', function () {
