@@ -57,7 +57,8 @@ function currentFor(projectId: number): 'page' | undefined {
 <template>
   <nav :class="['app-sidebar', { 'app-sidebar--collapsed': collapsed }]" :aria-label="t('sidebar.label')">
     <div class="app-sidebar__top">
-      <strong v-if="!collapsed" class="app-sidebar__brand">
+      <BrandMark v-if="collapsed" :size="24" />
+      <strong v-else class="app-sidebar__brand">
         <BrandMark :size="24" />
         {{ t('app.name') }}
       </strong>
@@ -198,7 +199,9 @@ function currentFor(projectId: number): 'page' | undefined {
 }
 
 .app-sidebar--collapsed .app-sidebar__top {
+  flex-direction: column;
   justify-content: center;
+  gap: 10px;
   padding-right: 0;
 }
 
