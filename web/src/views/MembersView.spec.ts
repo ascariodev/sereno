@@ -21,13 +21,13 @@ function organizations() {
 
 let wrapper: VueWrapper | undefined
 
-async function mountView(members: unknown[] = []) {
+async function mountView(members: unknown[] = [], roles: string[] = ['member']) {
   localStorage.setItem(TOKEN_STORAGE_KEY, 'tok')
   const pinia = createPinia()
   setActivePinia(pinia)
   useAuthStore().$patch({ user })
   const organization = useOrganizationStore()
-  organization.$patch({ organizations: organizations(), activeId: 1, loaded: true })
+  organization.$patch({ organizations: [{ ...organizations()[0], roles }], activeId: 1, loaded: true })
   const get = vi.spyOn(api, 'get').mockResolvedValue({ data: members })
   const router = createAppRouter(createMemoryHistory())
   wrapper = mount(MembersView, { attachTo: document.body, global: { plugins: [pinia, i18n, router] } })
@@ -110,5 +110,65 @@ describe('MembersView', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0].find('[data-test=name]').text()).toBe('User 5')
     expect(get.mock.calls.filter(([path]) => path === '/api/members')).toHaveLength(3)
+  })
+
+  describe('role change', () => {
+    const options = (row: { findAll: (s: string) => { element: unknown }[] }) =>
+      row.findAll('option').map((o) => (o.element as HTMLOptionElement).value)
+
+    it('offers every role to an owner, admin/member to an admin on non-owners, nothing to a member', async () => {
+      await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      let rows = wrapper!.findAll('[data-test=member]')
+      expect(options(rows[1])).toEqual(['owner', 'admin', 'member'])
+      wrapper!.unmount()
+
+      await mountView([member(1, 'owner'), member(2, 'admin'), member(3, 'member')], ['admin'])
+      rows = wrapper!.findAll('[data-test=member]')
+      expect(rows[0].find('select').exists()).toBe(false)
+      expect(rows[0].find('[data-test=role]').text()).toBe('Owner')
+      expect(options(rows[1])).toEqual(['admin', 'member'])
+      expect(options(rows[2])).toEqual(['admin', 'member'])
+      wrapper!.unmount()
+
+      await mountView([member(1, 'owner'), member(2, 'member')], ['member'])
+      expect(wrapper!.find('select').exists()).toBe(false)
+      expect(wrapper!.findAll('[data-test=role]')).toHaveLength(2)
+    })
+
+    it('changes the role and updates the row', async () => {
+      await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      const patch = vi.spyOn(api, 'patch').mockResolvedValue({ data: member(2, 'admin') })
+      await wrapper!.findAll('select')[1].setValue('admin')
+      await flushPromises()
+      expect(patch).toHaveBeenCalledWith('/api/members/2', { role: 'admin' })
+      expect((wrapper!.findAll('select')[1].element as HTMLSelectElement).value).toBe('admin')
+      expect(wrapper!.find('[data-test=role-error]').exists()).toBe(false)
+    })
+
+    it('shows the API message on 422 and restores the previous role', async () => {
+      await mountView([member(1, 'owner'), member(2, 'owner')], ['owner'])
+      vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(422, 'Cannot remove the last owner.', {}))
+      await wrapper!.findAll('select')[0].setValue('member')
+      await flushPromises()
+      const error = wrapper!.find('[data-test=role-error]')
+      expect(error.text()).toBe('Cannot remove the last owner.')
+      expect(wrapper!.findAll('select')[0].attributes('aria-invalid')).toBe('true')
+      expect(wrapper!.findAll('select')[0].attributes('aria-describedby')).toBe(error.attributes('id'))
+      expect((wrapper!.findAll('select')[0].element as HTMLSelectElement).value).toBe('owner')
+    })
+
+    it('reloads organizations when the own role changes and the screen adapts', async () => {
+      const { organization } = await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      vi.spyOn(api, 'patch').mockResolvedValue({ data: member(1, 'member') })
+      vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
+        path === '/api/organizations'
+          ? { data: [{ ...organizations()[0], roles: ['member'] }] }
+          : { data: [] },
+      )
+      await wrapper!.findAll('select')[0].setValue('member')
+      await flushPromises()
+      expect(organization.active?.roles).toEqual(['member'])
+      expect(wrapper!.find('select').exists()).toBe(false)
+    })
   })
 })

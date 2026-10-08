@@ -126,6 +126,8 @@
     "title": "Miembros",
     "empty": "No hay miembros.",
     "loadFailed": "No se pudieron cargar los miembros.",
+    "roleFailed": "No se pudo cambiar el rol. Inténtalo de nuevo.",
+    "changeRoleFor": "Cambiar el rol de {name}",
     "role": "Rol",
     "noRole": "Sin rol",
     "joined": "Ingresó",

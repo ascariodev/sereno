@@ -2,8 +2,8 @@
 import { onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
-import { listMembers } from '../api/members'
-import type { Member } from '../api/types'
+import { listMembers, updateMemberRole } from '../api/members'
+import type { InvitationRole, Member } from '../api/types'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 
@@ -14,6 +14,8 @@ const auth = useAuthStore()
 const members = ref<Member[]>([])
 const loading = ref(false)
 const failed = ref(false)
+const savingId = ref<number | null>(null)
+const roleError = ref<{ id: number; message: string } | null>(null)
 let generation = 0
 let controller: AbortController | null = null
 
@@ -28,6 +30,8 @@ async function load(): Promise<void> {
   controller = new AbortController()
   members.value = []
   failed.value = false
+  savingId.value = null
+  roleError.value = null
   loading.value = true
   try {
     const result = await listMembers(controller.signal)
@@ -42,6 +46,37 @@ async function load(): Promise<void> {
   }
 }
 
+async function changeRole(member: Member, event: Event): Promise<void> {
+  const select = event.target as HTMLSelectElement
+  const role = select.value as InvitationRole
+  if (savingId.value !== null || role === member.role) {
+    select.value = member.role ?? ''
+    return
+  }
+  const current = generation
+  savingId.value = member.id
+  roleError.value = null
+  try {
+    const updated = await updateMemberRole(member.id, role)
+    if (current !== generation) return
+    members.value = members.value.map((m) => (m.id === updated.id ? updated : m))
+    if (member.id === auth.user?.id) {
+      await organization.load()
+      if (current !== generation) return
+    }
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error
+    if (current !== generation) return
+    select.value = member.role ?? ''
+    roleError.value = {
+      id: member.id,
+      message: error.status === 422 || error.status === 403 ? error.message : t('members.roleFailed'),
+    }
+  } finally {
+    if (current === generation) savingId.value = null
+  }
+}
+
 watch(
   () => organization.activeId,
   (activeId) => {
@@ -52,6 +87,8 @@ watch(
     generation++
     controller?.abort()
     members.value = []
+    savingId.value = null
+    roleError.value = null
     loading.value = false
     failed.value = false
   },
@@ -89,13 +126,34 @@ onUnmounted(() => {
         <dl class="members__details">
           <div>
             <dt>{{ t('members.role') }}</dt>
-            <dd data-test="role">{{ member.role ? t(`invite.roles.${member.role}`) : t('members.noRole') }}</dd>
+            <dd v-if="organization.assignableRolesFor(member.role).length === 0" data-test="role">
+              {{ member.role ? t(`invite.roles.${member.role}`) : t('members.noRole') }}
+            </dd>
+            <dd v-else>
+              <select
+                data-test="role-select"
+                :aria-label="t('members.changeRoleFor', { name: member.name })"
+                :aria-invalid="roleError?.id === member.id || undefined"
+                :aria-describedby="roleError?.id === member.id ? `role-error-${member.id}` : undefined"
+                :disabled="savingId === member.id"
+                :value="member.role ?? ''"
+                @change="changeRole(member, $event)"
+              >
+                <option v-if="!member.role" value="" disabled>{{ t('members.noRole') }}</option>
+                <option v-for="role in organization.assignableRolesFor(member.role)" :key="role" :value="role">
+                  {{ t(`invite.roles.${role}`) }}
+                </option>
+              </select>
+            </dd>
           </div>
           <div>
             <dt>{{ t('members.joined') }}</dt>
             <dd data-test="joined">{{ formatDate(member.joined_at) }}</dd>
           </div>
         </dl>
+        <p v-if="roleError?.id === member.id" :id="`role-error-${member.id}`" class="members__error" role="alert" data-test="role-error">
+          {{ roleError.message }}
+        </p>
       </li>
     </ul>
   </section>
@@ -200,6 +258,12 @@ onUnmounted(() => {
 
 .members__details dt {
   color: var(--ink-3);
+}
+
+.members__error {
+  flex: 1 1 100%;
+  color: var(--level-error-fg);
+  font-size: 13px;
 }
 
 .members__details dd {

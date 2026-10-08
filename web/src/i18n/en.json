@@ -126,6 +126,8 @@
     "title": "Members",
     "empty": "There are no members.",
     "loadFailed": "Could not load the members.",
+    "roleFailed": "Could not change the role. Try again.",
+    "changeRoleFor": "Change role of {name}",
     "role": "Role",
     "noRole": "No role",
     "joined": "Joined",

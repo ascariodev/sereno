@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '../api/client'
-import type { Organization } from '../api/types'
+import type { InvitationRole, Organization } from '../api/types'
 
 export const ORGANIZATION_STORAGE_KEY = 'workspace.organization'
 
@@ -22,6 +22,15 @@ export const useOrganizationStore = defineStore('organization', () => {
 
   const isOwner = computed(() => !!active.value?.roles.includes('owner'))
   const canManageInvitations = computed(() => isOwner.value || !!active.value?.roles.includes('admin'))
+
+  const isAdmin = computed(() => !!active.value?.roles.includes('admin'))
+
+  /** Mirrors MemberPolicy::updateRole: roles the active user may give to a member currently holding `targetRole`. */
+  const assignableRolesFor = computed(() => (targetRole: InvitationRole | null): InvitationRole[] => {
+    if (isOwner.value) return ['owner', 'admin', 'member']
+    if (isAdmin.value && targetRole !== 'owner') return ['admin', 'member']
+    return []
+  })
 
   function setActive(id: number | null): void {
     if (id === activeId.value) return
@@ -53,7 +62,7 @@ export const useOrganizationStore = defineStore('organization', () => {
     setActive(null)
   }
 
-  return { organizations, activeId, active, isOwner, canManageInvitations, loaded, version, load, select, clear }
+  return { organizations, activeId, active, isOwner, isAdmin, assignableRolesFor, canManageInvitations, loaded, version, load, select, clear }
 })
 
 export function installOrganizationOnApi(): void {
