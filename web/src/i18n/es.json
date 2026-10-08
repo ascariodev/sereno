@@ -3,6 +3,10 @@
     "loading": "Cargando...",
     "retry": "Reintentar"
   },
+  "toast": {
+    "region": "Notificaciones",
+    "close": "Descartar notificación"
+  },
   "app": {
     "name": "Workspace"
   },
