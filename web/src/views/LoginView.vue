@@ -3,10 +3,12 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
+import AppSegmented from '../components/ui/AppSegmented.vue'
+import { chooseLocale, type Locale } from '../i18n'
 import { safeRedirect } from '../router/safeRedirect'
 import { useAuthStore } from '../stores/auth'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
@@ -24,6 +26,15 @@ function errorIds(field: 'email' | 'password'): string[] {
 function describedBy(field: 'email' | 'password'): string | undefined {
   const ids = errorIds(field)
   return ids.length ? ids.join(' ') : undefined
+}
+
+const languageOptions = [
+  { value: 'es', label: 'ES' },
+  { value: 'en', label: 'EN' },
+]
+
+function onLanguage(value: string): void {
+  chooseLocale(value as Locale)
 }
 
 async function submit(): Promise<void> {
@@ -56,89 +67,246 @@ async function submit(): Promise<void> {
 
 <template>
   <main class="login">
-    <form class="login__form" novalidate @submit.prevent="submit">
-      <h1>{{ t('login.title') }}</h1>
+    <section class="login__main">
+      <header class="login__top">
+        <div class="login__brand">
+          <span class="login__logo" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><path d="M14 17.5h7M17.5 14v7" /></svg>
+          </span>
+          <span class="login__brand-name">Workspace</span>
+        </div>
+        <AppSegmented
+          :model-value="locale"
+          :options="languageOptions"
+          :label="t('login.language')"
+          @update:model-value="onLanguage"
+        />
+      </header>
 
-      <label for="login-email">{{ t('login.email') }}</label>
-      <input
-        id="login-email"
-        v-model="email"
-        type="email"
-        name="email"
-        autocomplete="username"
-        required
-        :aria-invalid="describedBy('email') ? 'true' : undefined"
-        :aria-describedby="describedBy('email')"
-      />
-      <p
-        v-for="(message, index) in fieldErrors.email"
-        :id="`login-email-error-${index}`"
-        :key="message"
-        class="login__error"
-        data-test="error-email"
-      >
-        {{ message }}
-      </p>
+      <div class="login__center">
+        <form class="login__form" novalidate @submit.prevent="submit">
+          <div class="login__heading">
+            <h1>{{ t('login.title') }}</h1>
+            <p class="login__subtitle">{{ t('login.subtitle') }}</p>
+          </div>
 
-      <label for="login-password">{{ t('login.password') }}</label>
-      <input
-        id="login-password"
-        v-model="password"
-        type="password"
-        name="password"
-        autocomplete="current-password"
-        required
-        :aria-invalid="describedBy('password') ? 'true' : undefined"
-        :aria-describedby="describedBy('password')"
-      />
-      <p
-        v-for="(message, index) in fieldErrors.password"
-        :id="`login-password-error-${index}`"
-        :key="message"
-        class="login__error"
-        data-test="error-password"
-      >
-        {{ message }}
-      </p>
+          <div class="login__field">
+            <label for="login-email">{{ t('login.email') }}</label>
+            <input
+              id="login-email"
+              v-model="email"
+              type="email"
+              name="email"
+              autocomplete="username"
+              required
+              :aria-invalid="describedBy('email') ? 'true' : undefined"
+              :aria-describedby="describedBy('email')"
+            />
+            <p
+              v-for="(message, index) in fieldErrors.email"
+              :id="`login-email-error-${index}`"
+              :key="message"
+              class="login__error"
+              data-test="error-email"
+            >
+              {{ message }}
+            </p>
+          </div>
 
-      <p v-if="formError" class="login__error" role="alert" data-test="error-form">{{ formError }}</p>
+          <div class="login__field">
+            <label for="login-password">{{ t('login.password') }}</label>
+            <input
+              id="login-password"
+              v-model="password"
+              type="password"
+              name="password"
+              autocomplete="current-password"
+              required
+              :aria-invalid="describedBy('password') ? 'true' : undefined"
+              :aria-describedby="describedBy('password')"
+            />
+            <p
+              v-for="(message, index) in fieldErrors.password"
+              :id="`login-password-error-${index}`"
+              :key="message"
+              class="login__error"
+              data-test="error-password"
+            >
+              {{ message }}
+            </p>
+          </div>
 
-      <button type="submit" :disabled="submitting">
-        {{ submitting ? t('login.submitting') : t('login.submit') }}
-      </button>
-    </form>
+          <p v-if="formError" class="login__error" role="alert" data-test="error-form">{{ formError }}</p>
+
+          <button class="login__submit" type="submit" :disabled="submitting">
+            {{ submitting ? t('login.submitting') : t('login.submit') }}
+          </button>
+          <p class="login__hint">{{ t('login.invited') }}</p>
+        </form>
+      </div>
+    </section>
+
+    <section class="login__hero" aria-labelledby="login-hero-title">
+      <div class="login__hero-inner">
+        <p id="login-hero-title" class="login__hero-title">{{ t('login.heroTitle') }}</p>
+        <p class="login__hero-text">{{ t('login.heroText') }}</p>
+      </div>
+    </section>
   </main>
 </template>
 
 <style scoped>
 .login {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   min-height: 100vh;
-  place-items: center;
+  background: var(--surface);
+  color: var(--ink);
 }
-
+.login__main {
+  flex: 1 1 440px;
+  display: flex;
+  flex-direction: column;
+  padding: 32px 40px;
+}
+.login__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.login__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.login__logo {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+}
+.login__brand-name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.login__center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+}
 .login__form {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  width: min(22rem, 90vw);
+  gap: 22px;
+  width: 100%;
+  max-width: 360px;
 }
-
-.login__form input {
-  padding: 0.5rem;
-  font: inherit;
+.login__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-
-.login__form button {
-  margin-top: 0.5rem;
-  padding: 0.6rem;
-  font: inherit;
+.login__heading h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.login__subtitle {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+.login__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.login__field label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.login__field input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.login__field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.login__submit {
+  min-height: 46px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
 }
-
+.login__submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.login__submit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.login__hint {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 13px;
+  text-align: center;
+}
 .login__error {
   margin: 0;
-  color: #c0392b;
-  font-size: 0.875rem;
+  color: var(--level-error-fg);
+  font-size: 13px;
+}
+.login__hero {
+  flex: 1 1 520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 8px;
+  padding: 48px 40px;
+  border-radius: 18px;
+  background: var(--bg);
+}
+.login__hero-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 480px;
+}
+.login__hero-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.login__hero-text {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+@media (max-width: 600px) {
+  .login__main {
+    padding: 24px 20px;
+  }
 }
 </style>

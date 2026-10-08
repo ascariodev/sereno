@@ -7,6 +7,11 @@
     "name": "Workspace"
   },
   "login": {
+    "subtitle": "Sign in to see your projects' channels.",
+    "language": "Language",
+    "heroTitle": "Your systems alert you where you already talk.",
+    "heroText": "The alert, the conversation and the task live in the same project channel.",
+    "invited": "Were you invited to an organization? Open the link in your email.",
     "title": "Sign in",
     "email": "Email",
     "password": "Password",

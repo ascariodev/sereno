@@ -7,6 +7,11 @@
     "name": "Workspace"
   },
   "login": {
+    "subtitle": "Inicia sesión para ver los canales de tus proyectos.",
+    "language": "Idioma",
+    "heroTitle": "Tus sistemas te avisan donde ya conversas.",
+    "heroText": "El aviso, la conversación y la tarea viven en el mismo canal del proyecto.",
+    "invited": "¿Te invitaron a una organización? Abre el enlace de tu correo.",
     "title": "Iniciar sesión",
     "email": "Correo electrónico",
     "password": "Contraseña",

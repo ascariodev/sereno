@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import en from './en.json'
 import es from './es.json'
-import { getLocale, resolveLocale, setLocale } from './index'
+import { chooseLocale, getLocale, LOCALE_STORAGE_KEY, resolveLocale, setLocale } from './index'
 
 function flatten(tree: Record<string, unknown>, prefix = ''): Record<string, unknown> {
   return Object.entries(tree).reduce<Record<string, unknown>>((acc, [key, value]) => {
@@ -53,6 +53,43 @@ describe('setLocale', () => {
   })
 })
 
+describe('stored choice', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    localStorage.clear()
+    setLocale('en')
+  })
+
+  it('chooseLocale saves and applies the locale', () => {
+    expect(chooseLocale('es')).toBe('es')
+    expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('es')
+    expect(getLocale()).toBe('es')
+  })
+
+  it('applies the stored choice when there is no user locale, but the user locale wins', () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'es')
+    expect(setLocale(null)).toBe('es')
+    expect(setLocale('en')).toBe('en')
+    expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('es')
+  })
+
+  it('ignores an invalid stored value', () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'xx')
+    expect(setLocale(null)).toBe('en')
+  })
+
+  it('survives a storage that throws', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('denied')
+    })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('denied')
+    })
+    expect(setLocale(null)).toBe('en')
+    expect(chooseLocale('es')).toBe('es')
+  })
+})
+
 describe('startup', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -65,6 +102,15 @@ describe('startup', () => {
     vi.resetModules()
     await import('./index')
     expect(document.documentElement.lang).toBe('es')
+  })
+
+  it('prefers the stored choice over the browser language on load', async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'en')
+    vi.stubGlobal('navigator', { languages: ['es-MX'] })
+    vi.resetModules()
+    await import('./index')
+    expect(document.documentElement.lang).toBe('en')
+    localStorage.clear()
   })
 })
 

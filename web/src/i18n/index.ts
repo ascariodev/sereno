@@ -7,6 +7,29 @@ export const SUPPORTED_LOCALES = ['en', 'es'] as const
 export type Locale = (typeof SUPPORTED_LOCALES)[number]
 
 const DEFAULT_LOCALE: Locale = 'en'
+export const LOCALE_STORAGE_KEY = 'workspace.locale'
+
+export function readStoredLocale(): Locale | null {
+  try {
+    return toSupported(localStorage.getItem(LOCALE_STORAGE_KEY))
+  } catch {
+    return null
+  }
+}
+
+function writeStoredLocale(locale: Locale): void {
+  try {
+    localStorage.setItem(LOCALE_STORAGE_KEY, locale)
+  } catch {
+    // storage unavailable: the choice only lasts for this page load
+  }
+}
+
+function preferredLanguages(): string[] {
+  const stored = readStoredLocale()
+  const browser = typeof navigator === 'undefined' ? [] : navigator.languages
+  return stored ? [stored, ...browser] : [...browser]
+}
 
 function toSupported(tag: string | null | undefined): Locale | null {
   const base = tag?.toLowerCase().split(/[-_]/)[0]
@@ -28,7 +51,7 @@ export function resolveLocale(
 
 export const i18n = createI18n({
   legacy: false,
-  locale: resolveLocale(null, typeof navigator === 'undefined' ? [] : navigator.languages),
+  locale: resolveLocale(null, preferredLanguages()),
   fallbackLocale: DEFAULT_LOCALE,
   messages: { en, es },
 })
@@ -44,13 +67,15 @@ function syncDocumentLang(locale: Locale): void {
 syncDocumentLang(getLocale())
 
 export function setLocale(userLocale?: string | null): Locale {
-  const locale = resolveLocale(
-    userLocale,
-    typeof navigator === 'undefined' ? [] : navigator.languages,
-  )
+  const locale = resolveLocale(userLocale, preferredLanguages())
   i18n.global.locale.value = locale
   syncDocumentLang(locale)
   return locale
+}
+
+export function chooseLocale(locale: Locale): Locale {
+  writeStoredLocale(locale)
+  return setLocale(locale)
 }
 
 export function installI18nOnApi(): void {

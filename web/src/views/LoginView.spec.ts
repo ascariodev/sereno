@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
-import { i18n } from '../i18n'
+import { i18n, LOCALE_STORAGE_KEY, setLocale } from '../i18n'
 import { createAppRouter } from '../router'
 
 const user = { id: 1, name: 'Test', email: 't@e.com', locale: 'en' }
@@ -30,6 +30,29 @@ describe('LoginView', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.restoreAllMocks()
+    setLocale('en')
+  })
+
+  it('saves the language chosen before signing in and updates the page', async () => {
+    const { wrapper } = await mountLogin()
+    const buttons = wrapper.findAll('[aria-label="Language"] button')
+    expect(buttons.map((b) => b.text())).toEqual(['ES', 'EN'])
+    await buttons[0]!.trigger('click')
+    await flushPromises()
+    expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('es')
+    expect(document.documentElement.lang).toBe('es')
+    expect(wrapper.find('h1').text()).toBe('Iniciar sesión')
+    expect(wrapper.find('[aria-label="Idioma"] button[data-state=on]').text()).toBe('ES')
+  })
+
+  it('lets the user locale win over the saved choice after signing in', async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'es')
+    setLocale(null)
+    vi.spyOn(api, 'post').mockResolvedValue({ token: 'abc', user })
+    const { wrapper } = await mountLogin()
+    await submit(wrapper)
+    expect(i18n.global.locale.value).toBe('en')
+    expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('es')
   })
 
   it('submits and redirects to projects', async () => {
