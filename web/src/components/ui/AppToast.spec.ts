@@ -107,6 +107,7 @@ describe('AppToast', () => {
   it('does not let a stale remove timer drop a toast after clear', async () => {
     const first = toast.success('First')
     await settle(50)
+    // reka-ui keeps its own self-expiring timers (ToastRoot/Presence); only the delta from toast.ts is asserted
     const before = vi.getTimerCount()
     toast.dismiss(first)
     expect(vi.getTimerCount()).toBe(before + 1)
