@@ -16,7 +16,7 @@ class MemberResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->roles->first()?->name,
-            'joined_at' => $this->pivot->created_at,
+            'joined_at' => $this->pivot->created_at?->toIso8601String(),
         ];
     }
 }

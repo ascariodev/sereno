@@ -35,7 +35,7 @@ it('lets any member list the members ordered by name with their role', function 
         ->assertJsonMissingPath('data.0.password');
     expect($response->json('data.1.id'))->toBe($this->owner->id)
         ->and($response->json('data.1.email'))->toBe($this->owner->email)
-        ->and($response->json('data.1.joined_at'))->not->toBeNull();
+        ->and($response->json('data.1.joined_at'))->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/');
 })->with([Role::Owner, Role::Admin, Role::Member]);
 
 it('lists only the members of the active organization with the role they have there', function () {
