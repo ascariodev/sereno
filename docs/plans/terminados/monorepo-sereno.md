@@ -2,7 +2,7 @@
 
 **Objetivo:** un solo repo `sereno` (Gitea) con `api/`, `web/` y `app/`, el historial de `workspace-api` y
 `workspace-web` conservado bajo su carpeta, y la raíz (compose, docs, CLAUDE.md, .claude) versionada.
-**Estado:** en curso · Fase actual: 8
+**Estado:** terminado
 
 
 ## Contexto mínimo
@@ -77,7 +77,7 @@
 - **Archivos:** `docs/plans/web-docker.md`.
 - **Terminado cuando:** el plan ya no menciona los repos separados y cada fase indica su filtro `paths`.
 
-### [ ] Fase 8 — Publicar en Gitea [riesgo]
+### [x] Fase 8 — Publicar en Gitea [riesgo]
 - **Requiere:** que el usuario cree el repo vacío `sereno` en Gitea y pida el push.
 - **Alcance:** `git remote add origin`, push de `main`, verificar historial y archivos en Gitea. Después, el usuario
   archiva `workspace-api` y `workspace-web` y borra o archiva `workspace-app`.
@@ -98,7 +98,8 @@
 - Identidad git: no hay global; el repo tiene `user.name`/`user.email` locales copiados de los repos viejos.
 - `web/.gitattributes` fija `eol=lf`: 43 archivos tenían CRLF en disco con el mismo contenido y se reescribieron con
   `git checkout`. Si `git status` vuelve a marcar archivos sin diff, es lo mismo.
-- Desde ahora, los commits van con `git` en la raíz; los skills todavía dicen `git -C workspace-*` hasta la fase 6.
+- Fase 8: push de `main` a `origin` (2026-10-08), `main...origin/main` al día. Queda del lado del usuario: archivar
+  `workspace-api` y `workspace-web` en Gitea, borrar o archivar `workspace-app`, y decidir si se borra el respaldo.
 
 ## Mejoras propuestas
 - [ ] M-1: renombrar `name` de `web/package.json` a `sereno-web` (toca también `package-lock.json`).
