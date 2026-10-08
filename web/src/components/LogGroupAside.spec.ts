@@ -44,7 +44,7 @@ function mountAside() {
 
 const sheet = () => document.querySelector('[role="dialog"]')
 
-const groupCalls = (): number => vi.mocked(api.get).mock.calls.filter(([path]) => !String(path).endsWith('/hourly')).length
+const groupCalls = (): number => vi.mocked(api.get).mock.calls.filter(([path]) => /log-groups\/\d+$/.test(String(path))).length
 
 beforeEach(() => {
   resetGroupStatuses()
@@ -137,6 +137,16 @@ describe('LogGroupAside', () => {
     expect(sheet()!.querySelector('.log-group-panel h2')!.textContent).toBe('Timeout in webhook')
     expect(wrapper!.find('aside.wide-panel').exists()).toBe(false)
     expect(groupCalls()).toBe(1)
+  })
+
+  it('passes the hourly counts to the panel', async () => {
+    fakeMatchMedia(false)
+    vi.mocked(api.get).mockImplementation(
+      async (path: string) => (path.endsWith('/hourly') ? { data: { counts: { '5': [1, 2, 3] } } } : loaded) as never,
+    )
+    mountAside()
+    await flushPromises()
+    expect(wrapper!.find('[data-test="group-activity"]').exists()).toBe(true)
   })
 
   it('reloads the group when the refresh token changes', async () => {

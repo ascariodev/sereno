@@ -92,7 +92,7 @@
 - [x] M-8 (media, sonnet): clase global `sr-only` en `style.css` y usarla en `Sparkline.vue` (y donde se repita) en vez de CSS local.
 - [x] M-9 (baja, sonnet): en `LogView.vue`, `loadHourly` con página vacía limpia `hourly` antes de retornar, y extraer `hourly[String(group.id)]` del template a un helper.
 - [x] M-10 (baja, sonnet): el test de respuesta vieja de `LogView.spec.ts` respeta el `signal` en el mock para cubrir también el abort.
-- [ ] M-11 (baja, sonnet): caso en `LogGroupAside.spec.ts` que verifique que `hourly` llega a `LogGroupPanel`, y unificar el filtro de llamadas `hourly` entre los specs de Aside y ChannelView.
+- [x] M-11 (baja, sonnet): caso en `LogGroupAside.spec.ts` que verifique que `hourly` llega a `LogGroupPanel`, y unificar el filtro de llamadas `hourly` entre los specs de Aside y ChannelView.
 - [ ] M-12 (baja, sonnet): en `useHourlyCounts.ts`, si un `fetchChunk` falla por algo distinto de un aborto, quitar de `newestNotice` los ids del trozo para que se reintenten al volver a montarse.
 - [ ] M-13 (baja, sonnet): que el mock de `useHourlyCounts.spec.ts` respete el `AbortSignal` y un test cubra el aborto en `resetHourlyCounts`.
 - [ ] M-14 (baja, sonnet): en `AppSidebar.vue`, extraer la píldora duplicada (enlace y span deshabilitado) a un subcomponente o calcular `openSummary(project)` una vez por fila; arreglar la línea en blanco del CSS.
