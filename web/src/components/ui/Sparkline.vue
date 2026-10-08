@@ -40,8 +40,9 @@ const points = computed(() => {
 .sparkline {
   display: inline-block;
   flex: none;
-  width: 96px;
-  height: 24px;
+  position: relative;
+  width: calc(v-bind(WIDTH) * 1px);
+  height: calc(v-bind(HEIGHT) * 1px);
   line-height: 0;
 }
 .sparkline svg { display: block; }
@@ -53,7 +54,6 @@ const points = computed(() => {
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.sparkline { position: relative; }
 .sparkline--debug { color: var(--level-debug-fg); }
 .sparkline--info { color: var(--level-info-fg); }
 .sparkline--notice { color: var(--level-notice-fg); }
