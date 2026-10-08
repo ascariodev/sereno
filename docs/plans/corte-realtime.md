@@ -1,0 +1,54 @@
+# Plan: corte-realtime
+
+**Objetivo:** que un miembro quitado de una organización deje de recibir en vivo los mensajes de sus canales: el API avisa por un canal privado del usuario y el cliente corta sus suscripciones de esa organización, recarga las organizaciones y sale de sus pantallas.
+**Estado:** en curso · Fase actual: 1
+<!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
+
+## Contexto mínimo
+- Apps afectadas: `api/` y `web/` (commits con `git` en la raíz). Viene de la M-1 de `docs/plans/terminados/miembros.md`.
+- Hoy hay un solo canal privado, `organizations.{organization}.channels.{channel}` (`api/routes/channels.php`, autoriza `App\Broadcasting\ChannelChannel::join`, sin `X-Organization-Id`), y un solo evento, `App\Events\MessageCreated` (`ShouldBroadcast` + `ShouldDispatchAfterCommit`, payload resuelto en el constructor porque el worker no tiene organización activa). `join()` solo se evalúa al suscribirse: el quitado sigue recibiendo `message.created` hasta reconectar.
+- Quitar: `MemberController::destroy` → `Organization::removeMember` → `mutateMembership` (transacción con `lockForUpdate`). No despacha eventos.
+- Reverb 1.12 no implementa `pusher:signin`; `terminate_connections` solo encuentra conexiones con `user_id`, que se rellena al unirse a un canal de presencia. No hay API para desuscribir a alguien de un canal concreto.
+- Tests: `phpunit.xml` usa `BROADCAST_CONNECTION=null`; patrón en `tests/Feature/BroadcastingAuthTest.php` y `MessageBroadcastTest.php`.
+- Web: `web/src/realtime/echo.ts` (`subscribeToChannel` con refcount por canal, L-28; `onReconnect`; `disconnectRealtime`; `createAuthorizer` sin header de organización), doble `web/src/test/fakeRealtimeClient.ts`. Consumidores: `ChannelView.vue`, `LogView.vue` (se van al cambiar `activeId`). `stores/auth.ts` llama a `disconnectRealtime()` en `clearSession()`. El 403 de "no perteneces" no tiene manejo global (`api/client.ts` solo trata el 401). Salir de una organización desde `MembersView` ya hace `organization.load()` y vuelve a projects (L-34).
+
+## Fases
+
+### [ ] Fase 1 — Canal privado del usuario
+- **Alcance:** canal `users.{user}` en `routes/channels.php` con su clase `App\Broadcasting\UserChannel`: solo lo autoriza el propio usuario; mismo rechazo de ids mal formados que `ChannelChannel` (L-08).
+- **Archivos:** `api/routes/channels.php`, `api/app/Broadcasting/UserChannel.php` (nuevo), tests en `api/tests/Feature/BroadcastingAuthTest.php`.
+- **Terminado cuando:** tests de autorizar al propio usuario (sin `X-Organization-Id`), rechazar a otro usuario, ids mal formados y 401 sin token pasan.
+
+### [ ] Fase 2 — Evento de membresía revocada
+- **Alcance:** `App\Events\MembershipRevoked` (`ShouldBroadcast`, `ShouldDispatchAfterCommit`) al canal `users.{id}` del quitado, `broadcastAs` `membership.revoked`, payload `{organization_id}`. Se despacha desde `Organization::removeMember` (cubre quitar y salir); no sale si la operación lanza (último owner, no miembro).
+- **Archivos:** `api/app/Events/MembershipRevoked.php` (nuevo), `api/app/Models/Organization.php`, tests en `api/tests/Feature/MembershipBroadcastTest.php` (nuevo).
+- **Terminado cuando:** tests de canal, nombre y payload, que no se emite si la transacción hace rollback o lanza `LastOwnerException`, y que `changeMemberRole` no lo emite, pasan.
+
+### [ ] Fase 3 — Suscripción al canal del usuario en el cliente
+- **Alcance:** en `echo.ts`, `subscribeToUser(userId, callback)` para `users.{id}` y el evento `.membership.revoked`, con el mismo refcount y la misma protección ante cliente viejo que `subscribeToChannel`; y `leaveOrganization(orgId)` que corta todas las suscripciones `organizations.{orgId}.*` del Map (para no seguir recibiendo aunque una vista no se desmonte).
+- **Archivos:** `web/src/realtime/echo.ts`, `web/src/test/fakeRealtimeClient.ts` (si hace falta), `web/src/realtime/echo.spec.ts`.
+- **Terminado cuando:** specs de suscribir y recibir, refcount, `leaveOrganization` que solo corta los canales de esa organización, y nada tras `disconnectRealtime`, pasan; typecheck limpio.
+
+### [ ] Fase 4 — Reacción del store a la membresía revocada
+- **Alcance:** acción `organization.handleMembershipRevoked(orgId)`: llama a `leaveOrganization(orgId)` y a `load()`; si era la activa, `load()` elige otra o deja `activeId` en null. Descarta lo viejo si hubo `clear()` o una carga más nueva (L-10). Devuelve si la activa cambió, para que quien la llame decida navegar.
+- **Archivos:** `web/src/stores/organization.ts`, `web/src/stores/organization.spec.ts`.
+- **Terminado cuando:** specs de revocar la activa (con otra y sin otras), revocar una no activa, y `clear()` durante la carga, pasan.
+
+### [ ] Fase 5 — Conectar el aviso en la sesión [riesgo]
+- **Alcance:** al tener usuario en sesión, suscribirse a `users.{id}` y soltarlo en `clearSession()`; al recibir `membership.revoked`, `handleMembershipRevoked` y, si la activa cambió, toast traducido y volver a `projects` (si no quedan organizaciones, el estado vacío de AppLayout). En `onReconnect`, recargar organizaciones para cubrir avisos perdidos. Que salir desde `MembersView` no duplique la navegación ni el toast al recibir su propio aviso. Verificación en el navegador con Reverb real: dos sesiones, quitar a una y ver que deja de recibir mensajes del canal.
+- **Archivos:** `web/src/stores/auth.ts` (o un composable `web/src/realtime/useMembershipWatch.ts` montado en `AppLayout.vue`; decidir y anotar), `web/src/i18n/en.json`, `web/src/i18n/es.json`, specs.
+- **Terminado cuando:** specs de recibir el aviso de la activa y de otra, logout que suelta el canal, reconexión que recarga y salida propia sin doble toast pasan, y la verificación en vivo lo confirma.
+- **Riesgo:** ciclo de vida de la suscripción frente a login/logout/reconexión y choque con el flujo de salir de `MembersView`; si crece, dividir en "suscribir en la sesión" y "reaccionar al aviso".
+
+## Decisiones
+- 2026-10-08 — El corte es cooperativo: el servidor avisa y el cliente oficial deja los canales. Un cliente modificado que ignore el aviso sigue recibiendo los mensajes de los canales ya autorizados hasta reconectar (al reconectar, `/broadcasting/auth` lo rechaza). Forzarlo del lado servidor exigiría identificar el socket por usuario, y Reverb 1.12 solo lo hace con canales de presencia (ver M-1). Aprobado por el usuario.
+- 2026-10-08 — El canal es por usuario (`users.{id}`), no por organización: el aviso le llega al quitado aunque ya no pueda autorizar canales de esa organización, y servirá luego para menciones y avisos personales (paso 6 del MVP).
+- 2026-10-08 — Cambiar el rol no emite evento en este plan (ver M-2).
+
+## Notas para la próxima sesión
+- Empezar por la fase 1. Leer `docs/lecciones.md` antes.
+
+## Mejoras propuestas
+- [ ] M-1 (alta, plan nuevo): corte forzado del lado servidor: que el cliente se una a un canal de presencia propio para que la conexión lleve `user_id` y llamar a `terminate_connections` (`Pusher::terminateUserConnections`) al quitar; el cliente reconecta y `/broadcasting/auth` rechaza la organización quitada.
+- [ ] M-2 (media, sonnet): evento `membership.role_changed` al mismo canal para que la pantalla de miembros y los permisos se actualicen en vivo.
+- [ ] M-3 (media, sonnet): manejo global del 403 "no perteneces a esta organización" en el cliente (recargar organizaciones), como respaldo si se perdió el aviso.

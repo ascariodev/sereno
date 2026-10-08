@@ -75,7 +75,7 @@
 - Plan completo (fases 1 a 8).
 
 ## Mejoras propuestas
-- [ ] M-1 (alta, plan nuevo): cortar en vivo las suscripciones Reverb de un miembro quitado (requiere un canal privado por usuario u organización).
+- [x] M-1 (alta, plan nuevo): cortar en vivo las suscripciones Reverb de un miembro quitado (requiere un canal privado por usuario u organización). Pasó a `docs/plans/corte-realtime.md`.
 - [ ] M-2 (media, sonnet): transferir la propiedad (owner) en un paso, sin pasar por dos owners.
 - [x] M-3 (baja, sonnet): fijar `joined_at` con `toIso8601String()` en `MemberResource` y probar el formato.
 - [x] M-4 (baja, sonnet): test de que `MemberPolicy::viewAny` no concede sin team activo.
