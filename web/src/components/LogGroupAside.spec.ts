@@ -131,4 +131,30 @@ describe('LogGroupAside', () => {
     wrapper = undefined
     expect(removeEventListener).toHaveBeenCalledWith('change', listener)
   })
+
+  it('moves focus to the aside on open and returns it to the opener on close', async () => {
+    fakeMatchMedia(false)
+    const card = document.createElement('button')
+    document.body.appendChild(card)
+    card.focus()
+    expect(document.activeElement).toBe(card)
+    mountAside()
+    await flushPromises()
+    const aside = wrapper!.find('aside.wide-panel').element
+    expect(document.activeElement).toBe(aside)
+    wrapper!.unmount()
+    wrapper = undefined
+    expect(document.activeElement).toBe(card)
+  })
+
+  it('does not steal focus back from the sheet on narrow viewports', async () => {
+    fakeMatchMedia(true)
+    const card = document.createElement('button')
+    document.body.appendChild(card)
+    card.focus()
+    mountAside()
+    await flushPromises()
+    expect(sheet()!.contains(document.activeElement)).toBe(true)
+    expect(document.activeElement).not.toBe(card)
+  })
 })

@@ -106,14 +106,14 @@ const eventText = computed(() => {
 </script>
 
 <template>
-  <aside class="log-group-panel" :aria-label="t('logGroup.label')">
+  <aside class="log-group-panel" tabindex="-1" :aria-label="t('logGroup.label')">
     <div class="log-group-panel__top">
       <span class="log-group-panel__heading">{{ t('logGroup.heading', { id: groupId }) }}</span>
       <button type="button" name="close-group" class="log-group-panel__close" :aria-label="t('logGroup.close')" @click="$emit('close')">
         <X :size="16" :stroke-width="1.8" aria-hidden="true" />
       </button>
     </div>
-    <p v-if="loading">{{ t('common.loading') }}</p>
+    <p v-if="loading" role="status">{{ t('common.loading') }}</p>
     <p v-else-if="loadError && !group" role="alert" class="log-group-panel__error">
       {{ loadError === 'notFound' ? t('logGroup.notFound') : t('logGroup.loadFailed') }}
     </p>
@@ -183,6 +183,9 @@ const eventText = computed(() => {
   background: var(--bg);
   box-sizing: border-box;
   min-width: 0;
+}
+.log-group-panel:focus {
+  outline: none;
 }
 .log-group-panel__top {
   display: flex;

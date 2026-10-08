@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LogGroupPanel from './LogGroupPanel.vue'
 import AppDialog from './ui/AppDialog.vue'
@@ -18,7 +18,25 @@ function followViewport(event: MediaQueryListEvent): void {
 }
 
 narrowQuery?.addEventListener('change', followViewport)
-onBeforeUnmount(() => narrowQuery?.removeEventListener('change', followViewport))
+
+const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+const panel = ref<{ $el: HTMLElement } | null>(null)
+
+function focusPanel(): void {
+  void nextTick(() => panel.value?.$el.focus({ preventScroll: true }))
+}
+
+onMounted(() => {
+  if (!narrow.value) focusPanel()
+})
+watch(narrow, (isNarrow) => {
+  if (!isNarrow) focusPanel()
+})
+
+onBeforeUnmount(() => {
+  narrowQuery?.removeEventListener('change', followViewport)
+  if (!narrow.value && opener?.isConnected && opener !== document.body) opener.focus({ preventScroll: true })
+})
 
 function onOpenChange(open: boolean): void {
   if (!open) emit('close')
@@ -37,6 +55,7 @@ function onOpenChange(open: boolean): void {
   </AppDialog>
   <LogGroupPanel
     v-else
+    ref="panel"
     v-bind="$attrs"
     :project-id="projectId"
     :group-id="groupId"

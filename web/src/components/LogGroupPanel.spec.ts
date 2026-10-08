@@ -47,6 +47,14 @@ describe('LogGroupPanel', () => {
     expect(event).not.toContain('older boom')
   })
 
+  it('announces the loading text as a status until the group arrives', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: group() } as never)
+    const wrapper = mountPanel()
+    expect(wrapper.find('[role="status"]').exists()).toBe(true)
+    await flushPromises()
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+  })
+
   it('shows a not-found message on 404', async () => {
     vi.spyOn(api, 'get').mockRejectedValue(new ApiError(404, 'Not found'))
     const wrapper = mountPanel()
