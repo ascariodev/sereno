@@ -97,4 +97,29 @@ describe('AppMenu', () => {
     expect(menuWrapper.emitted('select')).toBeUndefined()
     expect(document.activeElement).toBe(trigger())
   })
+
+  it('opens with a click on the trigger and selects an item with a click', async () => {
+    const menuWrapper = mountMenu()
+    expect(menu()).toBeNull()
+    trigger().click()
+    await settle()
+    expect(menu()).not.toBeNull()
+    expect(trigger().getAttribute('aria-expanded')).toBe('true')
+    const settings = [...menu()!.querySelectorAll<HTMLElement>('[role=menuitem]')].find((el) => el.textContent?.trim() === 'Settings')!
+    settings.click()
+    await settle()
+    expect(menuWrapper.emitted('select')).toEqual([['settings']])
+    expect(menu()).toBeNull()
+  })
+
+  it('does not select a disabled item on click', async () => {
+    const menuWrapper = mountMenu()
+    trigger().click()
+    await settle()
+    expect(menu()).not.toBeNull()
+    const archived = [...menu()!.querySelectorAll<HTMLElement>('[role=menuitem]')].find((el) => el.textContent?.trim() === 'Archived')!
+    archived.click()
+    await settle()
+    expect(menuWrapper.emitted('select')).toBeUndefined()
+  })
 })
