@@ -101,6 +101,7 @@
     "language": "Language"
   },
   "invitations": {
+    "invite": "Invite",
     "title": "Pending invitations",
     "empty": "There are no pending invitations.",
     "loadFailed": "Could not load the invitations.",
@@ -119,6 +120,19 @@
     "revokeGone": "That invitation no longer exists.",
     "revokeForbidden": "You are not allowed to revoke this invitation.",
     "revokeFailed": "Could not revoke the invitation. Try again."
+  },
+  "inviteDialog": {
+    "title": "Invite someone",
+    "email": "Email",
+    "role": "Role",
+    "submit": "Send invitation",
+    "sending": "Sending...",
+    "cancel": "Cancel",
+    "sent": "Invitation sent to {email}.",
+    "forbidden": "You are not allowed to invite with that role.",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not send the invitation. Try again."
   },
   "userMenu": {
     "invitations": "Invitations",

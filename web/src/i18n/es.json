@@ -101,6 +101,7 @@
     "language": "Idioma"
   },
   "invitations": {
+    "invite": "Invitar",
     "title": "Invitaciones pendientes",
     "empty": "No hay invitaciones pendientes.",
     "loadFailed": "No se pudieron cargar las invitaciones.",
@@ -119,6 +120,19 @@
     "revokeGone": "Esa invitación ya no existe.",
     "revokeForbidden": "No tienes permiso para revocar esta invitación.",
     "revokeFailed": "No se pudo revocar la invitación. Inténtalo de nuevo."
+  },
+  "inviteDialog": {
+    "title": "Invitar a alguien",
+    "email": "Correo",
+    "role": "Rol",
+    "submit": "Enviar invitación",
+    "sending": "Enviando...",
+    "cancel": "Cancelar",
+    "sent": "Invitación enviada a {email}.",
+    "forbidden": "No tienes permiso para invitar con ese rol.",
+    "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo enviar la invitación. Inténtalo de nuevo."
   },
   "userMenu": {
     "invitations": "Invitaciones",

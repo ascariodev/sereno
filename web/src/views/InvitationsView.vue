@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import { listInvitations, revokeInvitation } from '../api/invitations'
 import type { Invitation } from '../api/types'
+import InviteDialog from '../components/InviteDialog.vue'
 import AppDialog from '../components/ui/AppDialog.vue'
 import { toast } from '../components/ui/toast'
 import { useOrganizationStore } from '../stores/organization'
@@ -18,6 +19,7 @@ const loading = ref(false)
 const failed = ref(false)
 const pending = ref<Invitation | null>(null)
 const revoking = ref(false)
+const inviteOpen = ref(false)
 let generation = 0
 let controller: AbortController | null = null
 
@@ -46,6 +48,7 @@ async function load(): Promise<void> {
   controller = new AbortController()
   invitations.value = []
   pending.value = null
+  inviteOpen.value = false
   failed.value = false
   loading.value = true
   try {
@@ -81,6 +84,11 @@ onUnmounted(() => {
   controller?.abort()
 })
 
+function onCreated(created: Invitation): void {
+  const email = created.email.toLowerCase()
+  invitations.value = [created, ...invitations.value.filter((item) => item.email.toLowerCase() !== email)]
+}
+
 async function confirmRevoke(): Promise<void> {
   const target = pending.value
   if (!target || revoking.value) return
@@ -111,7 +119,12 @@ async function confirmRevoke(): Promise<void> {
 
 <template>
   <section v-if="canManage" class="invitations">
-    <h1 class="invitations__title">{{ t('invitations.title') }}</h1>
+    <header class="invitations__header">
+      <h1 class="invitations__title">{{ t('invitations.title') }}</h1>
+      <button type="button" class="invitations__invite" data-test="invite" @click="inviteOpen = true">
+        {{ t('invitations.invite') }}
+      </button>
+    </header>
     <p v-if="loading" data-test="loading">{{ t('common.loading') }}</p>
     <p v-else-if="failed" role="alert" data-test="load-failed">
       {{ t('invitations.loadFailed') }}
@@ -149,6 +162,8 @@ async function confirmRevoke(): Promise<void> {
       </li>
     </ul>
 
+    <InviteDialog v-model:open="inviteOpen" :is-owner="isOwner" @created="onCreated" />
+
     <AppDialog v-model:open="confirmOpen" :title="t('invitations.revokeTitle')" :close-label="t('invitations.cancel')">
       <p v-if="pending" data-test="confirm-text">{{ t('invitations.revokeConfirm', { email: pending.email }) }}</p>
       <div class="invitations__actions">
@@ -177,8 +192,34 @@ async function confirmRevoke(): Promise<void> {
   margin: 0;
 }
 
+.invitations__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.invitations__invite {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.invitations__invite:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .invitations__title {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.02em;
