@@ -22,8 +22,11 @@ async function fetchChunk(projectId: number, ids: number[], versions: Map<number
       const series = received[String(id)]
       if (Array.isArray(series)) counts.set(id, series)
     }
-  } catch {
-    // Without hourly counts the notice simply shows no sparkline.
+  } catch (error) {
+    if (current !== generation || (error instanceof DOMException && error.name === 'AbortError')) return
+    for (const id of ids) {
+      if (requestVersion.get(id) === versions.get(id)) newestNotice.delete(id)
+    }
   }
 }
 
