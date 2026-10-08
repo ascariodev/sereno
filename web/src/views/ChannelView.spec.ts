@@ -146,6 +146,20 @@ describe('ChannelView', () => {
     expect(wrapper.text()).not.toContain('channel details')
   })
 
+  it('shows the project key and description from the projects store', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') return channels as never
+      if (path === '/api/projects') {
+        const project = { id: 1, name: 'Demo', key: 'DMO', description: 'Full project description', archived_at: null, created_at: '', updated_at: '' }
+        return { data: [project], meta: { last_page: 1 } } as never
+      }
+      return { data: [message(1)], meta: { next_cursor: null } } as never
+    })
+    const wrapper = await mountView()
+    expect(wrapper.find('.project-key').text()).toBe('DMO')
+    expect(wrapper.find('.project-header__description').text()).toBe('Full project description')
+  })
+
   it('reloads when the organization changes', async () => {
     const get = mockApi(() => ({ data: [message(1)], meta: { next_cursor: null } }))
     await mountView()

@@ -68,6 +68,9 @@ const { t } = useI18n()
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.01em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
