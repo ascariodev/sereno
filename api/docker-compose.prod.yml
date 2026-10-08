@@ -20,7 +20,7 @@ services:
   nginx:
     image: nginx:alpine
     restart: unless-stopped
-    # Solo el proxy del host debe llegar aquí: Laravel confía en X-Forwarded-* de su par inmediato.
+    # Solo el proxy del host debe llegar aquí: Laravel confía en X-Forwarded-For y -Proto de su par inmediato; el host sale del Host recibido.
     ports:
       - "${API_BIND:-127.0.0.1}:${API_PORT:-8003}:80"
     volumes:
