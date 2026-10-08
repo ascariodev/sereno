@@ -2,7 +2,7 @@
 
 **Objetivo:** un solo repo `sereno` (Gitea) con `api/`, `web/` y `app/`, el historial de `workspace-api` y
 `workspace-web` conservado bajo su carpeta, y la raíz (compose, docs, CLAUDE.md, .claude) versionada.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 
 
 ## Contexto mínimo
@@ -62,7 +62,7 @@
 - **Terminado cuando:** `grep -rn "workspace-api\|workspace-web\|git -C"` sobre esos archivos solo deja menciones
   históricas intencionales.
 
-### [ ] Fase 5 — Agentes y reglas de .claude con las rutas nuevas
+### [x] Fase 5 — Agentes y reglas de .claude con las rutas nuevas
 - **Archivos:** `.claude/agents/implementador-fase.md`, `.claude/agents/revisor-fase.md`,
   `.claude/rules/database.md`, `.claude/rules/tests-api.md`.
 - **Terminado cuando:** el mismo `grep` sobre `.claude/agents` y `.claude/rules` no devuelve nada.

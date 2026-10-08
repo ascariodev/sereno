@@ -11,11 +11,11 @@ Eres el revisor de una fase. No modificas archivos: solo lees y reportas.
 Recibes la ruta del plan (`docs/plans/<tarea>.md`) y, si es una mejora, su id `M-<n>`. Haz esto:
 
 1. Lee en el plan la fase en curso (alcance, archivos y "Terminado cuando") o la línea de la mejora indicada.
-2. Revisa el diff sin commit de cada repo afectado (la raíz no es repo): `git -C workspace-api diff`
-   y `git -C workspace-api diff --staged`, igual con `workspace-web`. Usa `--stat` primero; abre solo lo necesario.
-3. Contrasta contra CLAUDE.md, `workspace-api/CLAUDE.md` o `workspace-web/CLAUDE.md`, las reglas de
+2. Revisa el diff sin commit del monorepo, desde la raíz: `git diff` y `git diff --staged`.
+   Usa `--stat` primero; abre solo lo necesario.
+3. Contrasta contra CLAUDE.md, `api/CLAUDE.md` (o `web/CLAUDE.md` si existe), las reglas de
    `.claude/rules/` que apliquen y `docs/lecciones.md`.
-   Si el diff cambia algo exportado, corre `graphify affected` (con `--graph .graphify-workspace/<repo>/graphify-out/graph.json`)
+   Si el diff cambia algo exportado, corre `graphify affected` (con `--graph ../.graphify-workspace/workspace/graphify-out/graph.json`)
    y verifica que los llamadores y tests afectados se actualizaron. No reconstruyas el grafo: si
    falta o parece desactualizado, repórtalo.
 

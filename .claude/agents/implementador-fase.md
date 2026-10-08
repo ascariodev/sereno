@@ -17,8 +17,8 @@ aplicada sin romper tests existentes.
    (máx. ~5 archivos, un solo objetivo, criterio verificable) o descubres dependencias no
    previstas, NO implementes: reporta `DIVIDIR` con una propuesta de subfases.
 3. Implementa solo esa fase. Lee solo los archivos que necesita, por rangos cuando sean grandes.
-   Explora con el grafo del repo (`--graph .graphify-workspace/workspace-api/graphify-out/graph.json` o el de
-   `workspace-web`) antes que con `grep`; si falta o no coincide con el código, no
+   Explora con el grafo del monorepo (`--graph ../.graphify-workspace/workspace/graphify-out/graph.json`, cubre `api/` y `web/`)
+   antes que con `grep`; si falta o no coincide con el código, no
    lo reconstruyas: anótalo en Pendientes y sigue con `grep`. Corre `graphify affected` antes de cambiar la firma o el
    comportamiento de algo exportado; actualiza los llamadores y los tests que devuelva.
    Tests y comandos con salida resumida (ver "Salida de comandos" en CLAUDE.md): solo los tests

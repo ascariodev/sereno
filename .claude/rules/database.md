@@ -1,13 +1,13 @@
 ---
 paths:
-  - "workspace-api/database/**"
-  - "workspace-api/app/Models/**"
+  - "api/database/**"
+  - "api/app/Models/**"
 ---
 
 # Base de datos
 
 - **Motor:** PostgreSQL 18 en Docker (servicio `postgres`, contenedor `workspace_postgres`, puerto host 5435).
-  Bases: `workspace` (desarrollo) y `workspace_test` (tests, creada por `workspace-api/docker/postgres/init.sql`).
+  Bases: `workspace` (desarrollo) y `workspace_test` (tests, creada por `api/docker/postgres/init.sql`).
 - **Migraciones:** crear con `docker compose exec api php artisan make:migration <name>`, aplicar con
   `docker compose exec api php artisan migrate`, desde cero con `... migrate:fresh --seed`.
 

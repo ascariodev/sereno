@@ -1,7 +1,7 @@
 ---
 paths:
-  - "workspace-api/tests/**"
-  - "workspace-api/phpunit.xml"
+  - "api/tests/**"
+  - "api/phpunit.xml"
 ---
 
 # Tests del API
