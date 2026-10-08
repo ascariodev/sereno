@@ -22,7 +22,10 @@ const fullDate = computed(() => date.value.toLocaleString(locale.value, { dateSt
       <p class="message-item__meta">
         <strong>{{ author }}</strong>
         <AppTooltip :text="fullDate">
-          <time :datetime="message.created_at" tabindex="0">{{ shortTime }}</time>
+          <time :datetime="message.created_at">
+            <span aria-hidden="true">{{ shortTime }}</span>
+            <span class="message-item__full-date">{{ fullDate }}</span>
+          </time>
         </AppTooltip>
       </p>
       <p class="message-item__body">{{ message.body }}</p>
@@ -56,8 +59,18 @@ const fullDate = computed(() => date.value.toLocaleString(locale.value, { dateSt
 }
 
 .message-item__meta time {
+  position: relative;
   font-size: 12px;
   color: var(--ink-3);
+}
+
+.message-item__full-date {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .message-item__body {
