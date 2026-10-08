@@ -248,3 +248,51 @@ it('rejects rotating keys in an archived project without changing them', functio
     asSourceUser($this->users['member'], $this->organization)->postJson(rotateKeyUrl($this->project, $source))->assertForbidden();
     expect($source->fresh()->key_hash)->toBe($source->key_hash);
 });
+
+it('answers 409 when another rotation won the race and keeps the winning key', function () {
+    Queue::fake();
+    $source = LogSource::factory()->for($this->project)->withPlainKey(LogSource::newPlainKey())->create();
+    $stale = LogSource::withoutGlobalScopes()->findOrFail($source->id);
+
+    $winningKey = $source->rotateKey();
+    $key = 'The log source key was changed or revoked by another request. Reload and try again.';
+
+    $route = app('router');
+    $route->bind('source', fn () => $stale);
+
+    asSourceUser($this->users['owner'], $this->organization)
+        ->withHeader('Accept-Language', 'es')
+        ->postJson(rotateKeyUrl($this->project, $source))
+        ->assertStatus(409)
+        ->assertJsonPath('message', __($key, [], 'es'));
+
+    expect($source->fresh()->key_hash)->toBe(LogSource::hashKey($winningKey));
+    ingestWith($winningKey)->assertStatus(202);
+});
+
+it('returns null from rotateKey on a stale instance and succeeds on a fresh one', function () {
+    Queue::fake();
+    $source = LogSource::factory()->for($this->project)->withPlainKey(LogSource::newPlainKey())->create();
+    $stale = LogSource::withoutGlobalScopes()->findOrFail($source->id);
+
+    $winningKey = $source->rotateKey();
+
+    expect($stale->rotateKey())->toBeNull()
+        ->and($source->fresh()->key_hash)->toBe(LogSource::hashKey($winningKey));
+
+    $newKey = $source->rotateKey();
+    expect($newKey)->not->toBeNull()->and($source->fresh()->key_hash)->toBe(LogSource::hashKey($newKey));
+    ingestWith($winningKey)->assertUnauthorized();
+    ingestWith($newKey)->assertStatus(202);
+});
+
+it('does not rotate a source revoked between read and write', function () {
+    $source = LogSource::factory()->for($this->project)->create();
+    $stale = LogSource::withoutGlobalScopes()->findOrFail($source->id);
+    $hash = $source->key_hash;
+
+    LogSource::withoutGlobalScopes()->whereKey($source->id)->toBase()->update(['revoked_at' => now()]);
+
+    expect($stale->rotateKey())->toBeNull()
+        ->and($source->fresh()->key_hash)->toBe($hash);
+});

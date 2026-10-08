@@ -68,12 +68,29 @@ class LogSource extends Model
         return [$source, $plainKey];
     }
 
-    /** Replaces the key in place: the previous one stops authenticating as soon as this is saved. */
-    public function rotateKey(): string
+    /**
+     * Replaces the key in place: the previous one stops authenticating as soon as this is saved.
+     * The UPDATE is conditioned on the key hash this instance read and on the source not being
+     * revoked, so a concurrent rotation or revocation wins and this one returns null.
+     */
+    public function rotateKey(): ?string
     {
         $plainKey = static::newPlainKey();
+        $attributes = [...static::keyAttributes($plainKey), $this->getUpdatedAtColumn() => $this->freshTimestamp()];
 
-        $this->fill(static::keyAttributes($plainKey))->save();
+        $updated = static::query()
+            ->withoutGlobalScope(OrganizationScope::class)
+            ->whereKey($this->getKey())
+            ->where('key_hash', $this->getOriginal('key_hash'))
+            ->whereNull('revoked_at')
+            ->toBase()
+            ->update($attributes);
+
+        if ($updated === 0) {
+            return null;
+        }
+
+        $this->forceFill($attributes)->syncOriginalAttributes(array_keys($attributes));
 
         return $plainKey;
     }

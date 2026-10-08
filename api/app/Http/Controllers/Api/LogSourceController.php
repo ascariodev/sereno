@@ -36,6 +36,8 @@ class LogSourceController extends Controller
     {
         $plainKey = $source->rotateKey();
 
+        abort_if($plainKey === null, 409, __('The log source key was changed or revoked by another request. Reload and try again.'));
+
         return response()->json([
             'data' => [...(new LogSourceResource($source))->resolve(), 'key' => $plainKey],
         ]);

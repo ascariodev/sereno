@@ -244,6 +244,7 @@
     "This project is archived and cannot have new log sources.": "Este proyecto está archivado y no admite nuevas fuentes de log.",
     "This project is archived and its log source keys cannot be rotated.": "Este proyecto está archivado y no se pueden rotar las keys de sus fuentes de log.",
     "This log source is revoked and its key cannot be rotated.": "Esta fuente de log está revocada y no se puede rotar su key.",
+    "The log source key was changed or revoked by another request. Reload and try again.": "La key de la fuente de log fue cambiada o revocada por otra petición. Recarga e inténtalo de nuevo.",
     "owner": "propietario",
     "admin": "administrador",
     "member": "miembro",
