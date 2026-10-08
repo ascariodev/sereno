@@ -87,7 +87,7 @@
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): gestión de miembros (listar, cambiar rol, quitar), que hoy no existe en el API.
 - [ ] M-2 (media, sonnet): componentes `AppInput` y `AppButton` para no copiar los estilos de `LoginView` en cada formulario.
-- [ ] M-3 (baja, haiku): `InvitationController::show` carga `organization` con una consulta aparte; usar `load('organization')` o equivalente.
+- [x] M-3 (baja, haiku): `InvitationController::show` carga `organization` con una consulta aparte; usar `load('organization')` o equivalente.
 - [ ] M-4 (baja, haiku): test de que un admin que lista ve también las invitaciones de rol owner.
 - [ ] M-5 (media, sonnet): paginar `GET /api/invitations` si el volumen crece.
 - [ ] M-6 (baja, haiku): `InvitationPolicy::delete` falla cerrado si `Role::tryFrom` devuelve null (hoy un admin pasaría con un rol inválido en BD).

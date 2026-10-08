@@ -89,7 +89,7 @@ class InvitationController extends Controller
      */
     public function show(string $token): JsonResponse
     {
-        $invitation = Invitation::findByPlainToken($token);
+        $invitation = Invitation::findByPlainToken($token)?->load('organization');
 
         if ($invitation === null || ! $invitation->isUsable() || ! $invitation->inviterCanStillGrantRole()) {
             abort(404, __('The invitation is invalid or has expired.'));
