@@ -53,10 +53,11 @@ function onKeydown(event: KeyboardEvent): void {
         rows="2"
         :placeholder="t('channel.composer.placeholder')"
         :aria-label="t('channel.composer.placeholder')"
+        aria-describedby="composer-hint"
         @keydown="onKeydown"
       />
       <div class="composer-bar">
-        <span class="composer-hint">{{ t('channel.composer.hint') }}</span>
+        <span id="composer-hint" class="composer-hint">{{ t('channel.composer.hint') }}</span>
         <button
           type="submit"
           name="send"
@@ -92,6 +93,7 @@ function onKeydown(event: KeyboardEvent): void {
 
 .composer-box:focus-within {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .composer textarea {
@@ -122,7 +124,7 @@ function onKeydown(event: KeyboardEvent): void {
   border: 0;
   border-radius: var(--radius-control);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   display: grid;
   place-items: center;
   cursor: pointer;
