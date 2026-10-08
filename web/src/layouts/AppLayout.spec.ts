@@ -245,6 +245,17 @@ describe('AppLayout', () => {
     expect(item.attributes('aria-label')).toBe('posveapi')
     expect(item.attributes('aria-disabled')).toBe('true')
     expect(item.attributes('role')).toBe('link')
+    expect(item.attributes('tabindex')).toBeUndefined()
+  })
+
+  it('keeps the project without a channel out of the tab order and as a link when expanded', async () => {
+    const { wrapper } = await mountApp(undefined, '/', false)
+    expect(wrapper.find('.app-layout--collapsed').exists()).toBe(false)
+    const item = wrapper.find('.app-layout__sidebar span.app-sidebar__project--disabled')
+    expect(item.text()).toContain('posveapi')
+    expect(item.attributes('role')).toBe('link')
+    expect(item.attributes('aria-disabled')).toBe('true')
+    expect(item.attributes('tabindex')).toBeUndefined()
   })
 
   it('shows the project tooltip on focus only while the sidebar is collapsed', async () => {
