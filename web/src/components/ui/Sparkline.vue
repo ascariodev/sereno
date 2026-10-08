@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { LOG_LEVELS } from '../../api/logLevels'
+import { levelTone } from '../../api/logLevels'
 
 const WIDTH = 96
 const HEIGHT = 24
@@ -11,7 +11,7 @@ const props = defineProps<{ counts: number[]; level?: string }>()
 const { t } = useI18n()
 
 const total = computed(() => props.counts.reduce((sum, value) => sum + value, 0))
-const tone = computed(() => (props.level && LOG_LEVELS.includes(props.level) ? props.level : 'debug'))
+const tone = computed(() => levelTone(props.level))
 
 const points = computed(() => {
   const series = props.counts

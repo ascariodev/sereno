@@ -3,7 +3,7 @@ import { House, PanelLeftClose, PanelLeftOpen, Search } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { LOG_LEVELS } from '../api/logLevels'
+import { levelTone } from '../api/logLevels'
 import type { Project } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
 import { isApple } from '../platform'
@@ -40,7 +40,7 @@ function openSummary(project: Project): OpenSummary | null {
   const count = project.open_groups_count
   if (typeof count !== 'number' || count <= 0) return null
   const level = project.open_max_level
-  const tone = level && LOG_LEVELS.includes(level) ? level : 'debug'
+  const tone = levelTone(level)
   const groups = t('sidebar.openGroups', { n: count }, count)
   return { count, tone, label: t('sidebar.projectOpen', { name: project.name, groups, level: t(`notice.level.${tone}`) }) }
 }

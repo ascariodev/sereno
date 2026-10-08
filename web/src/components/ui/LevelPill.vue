@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { LOG_LEVELS } from '../../api/logLevels'
+import { LOG_LEVELS, levelTone } from '../../api/logLevels'
 
 const props = defineProps<{ level: string }>()
 const { t, te } = useI18n()
 
 const known = computed(() => LOG_LEVELS.includes(props.level))
 const label = computed(() => (known.value && te(`notice.level.${props.level}`) ? t(`notice.level.${props.level}`) : props.level))
-const tone = computed(() => (known.value ? props.level : 'debug'))
+const tone = computed(() => levelTone(props.level))
 </script>
 
 <template>

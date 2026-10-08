@@ -6,7 +6,7 @@ import { ApiError } from '../api/client'
 import { statusFrom, updateLogGroupStatus } from '../api/logGroups'
 import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
 import type { LogGroupStatus, Message } from '../api/types'
-import { LOG_LEVELS } from '../api/logLevels'
+import { levelTone as toneOf } from '../api/logLevels'
 import { hourlyCountsOf, requestHourlyCounts } from '../composables/useHourlyCounts'
 import { setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
 import LevelPill from './ui/LevelPill.vue'
@@ -65,7 +65,7 @@ function known(prefix: string, value: string): string {
   return te(`${prefix}.${value}`) ? t(`${prefix}.${value}`) : value
 }
 
-const levelTone = computed(() => (opened.value && LOG_LEVELS.includes(opened.value.level) ? opened.value.level : 'debug'))
+const levelTone = computed(() => toneOf(opened.value?.level))
 const strong = computed(() => STRONG_LEVELS.includes(levelTone.value))
 const levelIcon = computed(() => {
   if (opened.value?.type === 'log.group_reopened') return RotateCcw

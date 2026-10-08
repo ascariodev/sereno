@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
-import { LOG_LEVELS } from '../api/logLevels'
+import { levelTone } from '../api/logLevels'
 import type { Project } from '../api/types'
 import ProjectKey from './ui/ProjectKey.vue'
 
@@ -14,7 +14,7 @@ const health = computed(() => {
   if (typeof count !== 'number') return null
   if (count <= 0) return { tone: 'calm', text: t('projects.healthCalm') }
   const level = props.project.open_max_level
-  const tone = level && LOG_LEVELS.includes(level) ? level : 'debug'
+  const tone = levelTone(level)
   return { tone, text: `${t('projects.healthOpen', { n: count }, count)} · ${t(`notice.level.${tone}`)}` }
 })
 
