@@ -337,7 +337,38 @@ describe('MembersView', () => {
       expect(toasts.value).toHaveLength(0)
     })
 
-        it('leaves the last organization and shows the empty state', async () => {
+    it('warns and stays when the organizations reload fails after leaving', async () => {
+      const { router, get } = await mountApp(['member'], [member(1, 'member')], [])
+      get.mockImplementation(async (path: string) => {
+        if (path === '/api/organizations') throw new ApiError(500, 'boom', {})
+        return { data: [] }
+      })
+      await wrapper!.find('[data-test=leave]').trigger('click')
+      await flushPromises()
+      dialogButton('confirm')!.click()
+      await flushPromises()
+      expect(toasts.value.map((item) => item.kind)).toEqual(['error'])
+      expect(toasts.value[0].message).toContain('Reload the page')
+      expect(router.currentRoute.value.name).toBe('members')
+    })
+
+    it('resets leaving when the navigation to projects does not happen', async () => {
+      const other = { id: 2, name: 'Other', slug: 'other', settings: null, roles: ['member'] }
+      const third = { id: 3, name: 'Third', slug: 'third', settings: null, roles: ['member'] }
+      const { router, get, organization } = await mountApp(['member'], [member(1, 'member')], [other, third])
+      router.beforeEach((to) => (to.name === 'projects' ? false : true))
+      await wrapper!.find('[data-test=leave]').trigger('click')
+      await flushPromises()
+      dialogButton('confirm')!.click()
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('members')
+      const before = get.mock.calls.filter(([path]) => path === '/api/members').length
+      organization.select(3)
+      await flushPromises()
+      expect(get.mock.calls.filter(([path]) => path === '/api/members').length).toBe(before + 1)
+    })
+
+    it('leaves the last organization and shows the empty state', async () => {
       const { router, organization } = await mountApp(['member'], [member(1, 'member')], [])
       await wrapper!.find('[data-test=leave]').trigger('click')
       await flushPromises()
