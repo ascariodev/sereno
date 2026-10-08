@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Locale;
 use App\Enums\Role;
+use App\Events\MembershipRevoked;
 use App\Exceptions\LastOwnerException;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -126,6 +127,8 @@ class Organization extends Model
 
             $user->syncRoles([]);
             $this->users()->detach($user->id);
+
+            MembershipRevoked::dispatch($user->id, $this->id);
         });
     }
 

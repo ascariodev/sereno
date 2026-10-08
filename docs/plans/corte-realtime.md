@@ -1,7 +1,7 @@
 # Plan: corte-realtime
 
 **Objetivo:** que un miembro quitado de una organización deje de recibir en vivo los mensajes de sus canales: el API avisa por un canal privado del usuario y el cliente corta sus suscripciones de esa organización, recarga las organizaciones y sale de sus pantallas.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -19,7 +19,7 @@
 - **Archivos:** `api/routes/channels.php`, `api/app/Broadcasting/UserChannel.php` (nuevo), tests en `api/tests/Feature/BroadcastingAuthTest.php`.
 - **Terminado cuando:** tests de autorizar al propio usuario (sin `X-Organization-Id`), rechazar a otro usuario, ids mal formados y 401 sin token pasan.
 
-### [ ] Fase 2 — Evento de membresía revocada
+### [x] Fase 2 — Evento de membresía revocada
 - **Alcance:** `App\Events\MembershipRevoked` (`ShouldBroadcast`, `ShouldDispatchAfterCommit`) al canal `users.{id}` del quitado, `broadcastAs` `membership.revoked`, payload `{organization_id}`. Se despacha desde `Organization::removeMember` (cubre quitar y salir); no sale si la operación lanza (último owner, no miembro).
 - **Archivos:** `api/app/Events/MembershipRevoked.php` (nuevo), `api/app/Models/Organization.php`, tests en `api/tests/Feature/MembershipBroadcastTest.php` (nuevo).
 - **Terminado cuando:** tests de canal, nombre y payload, que no se emite si la transacción hace rollback o lanza `LastOwnerException`, y que `changeMemberRole` no lo emite, pasan.
@@ -45,9 +45,10 @@
 - 2026-10-08 — El canal es por usuario (`users.{id}`), no por organización: el aviso le llega al quitado aunque ya no pueda autorizar canales de esa organización, y servirá luego para menciones y avisos personales (paso 6 del MVP).
 - 2026-10-08 — Cambiar el rol no emite evento en este plan (ver M-2).
 - 2026-10-08 — Fase 1: el canal se registra en el servidor como `users.{userId}`, no `users.{user}`: con `{user}` Laravel hace binding implícito porque el primer parámetro de `join()` es `$user` (el autenticado), y daba 403 al propio usuario y 500 con ids mal formados. Ningún canal del servidor usa el placeholder `{user}`. En el cliente el nombre sigue siendo `users.{id}`.
+- 2026-10-08 — Fase 2: `removeMember` despacha `MembershipRevoked($userId, $organizationId)` dentro del closure de `mutateMembership`, tras el `detach`; `ShouldDispatchAfterCommit` lo retiene hasta el commit. El evento guarda solo ids.
 
 ## Notas para la próxima sesión
-- Fase 1 hecha: `App\Broadcasting\UserChannel` autoriza `users.{userId}` solo al propio usuario. Seguir con la fase 2 (`MembershipRevoked`).
+- Fases 1 y 2 hechas (API lista): canal `users.{id}`, evento `.membership.revoked` con `{organization_id}`. Seguir con la fase 3 (`subscribeToUser` y `leaveOrganization` en `echo.ts`).
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): corte forzado del lado servidor: que el cliente se una a un canal de presencia propio para que la conexión lleve `user_id` y llamar a `terminate_connections` (`Pusher::terminateUserConnections`) al quitar; el cliente reconecta y `/broadcasting/auth` rechaza la organización quitada.
@@ -55,3 +56,4 @@
 - [ ] M-3 (media, sonnet): manejo global del 403 "no perteneces a esta organización" en el cliente (recargar organizaciones), como respaldo si se perdió el aviso.
 - [ ] M-4 (baja, sonnet): quitar el docblock de `api/app/Broadcasting/UserChannel.php` que solo repite el nombre de la clase.
 - [ ] M-5 (baja, sonnet): simplificar la validación del id en `UserChannel` (`ctype_digit` y la comparación del string canónico se solapan con `FILTER_VALIDATE_INT`), cuidando que los casos de `BroadcastingAuthTest` sigan rechazados.
+- [ ] M-6 (baja, sonnet): en `MembershipBroadcastTest`, el test de rollback usa `Event::fake()` sin argumentos; pasar a `Event::fake([MembershipRevoked::class])` como el `beforeEach`.
