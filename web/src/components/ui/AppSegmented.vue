@@ -57,6 +57,7 @@ function onUpdate(value: unknown) {
   border-radius: 10px;
 }
 .app-segmented__item {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
