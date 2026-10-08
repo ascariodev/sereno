@@ -15,4 +15,15 @@ class MemberPolicy
     {
         return $user->hasAnyRole(array_column(Role::cases(), 'value'));
     }
+
+    public function updateRole(User $actor, User $target, ?Role $role): bool
+    {
+        if ($actor->hasRole(Role::Owner->value)) {
+            return true;
+        }
+
+        return $actor->hasRole(Role::Admin->value)
+            && $role !== Role::Owner
+            && ! $target->hasRole(Role::Owner->value);
+    }
 }

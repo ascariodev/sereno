@@ -50,6 +50,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::get('projects/{project}/log-groups/{group}', [LogGroupController::class, 'show']);
     Route::patch('projects/{project}/log-groups/{group}', [LogGroupController::class, 'update']);
     Route::get('members', [MemberController::class, 'index']);
+    Route::patch('members/{user}', [MemberController::class, 'update']);
     Route::get('channels', [ChannelController::class, 'index']);
     Route::get('channels/{channel}/messages', [MessageController::class, 'index']);
     Route::post('channels/{channel}/messages', [MessageController::class, 'store'])->middleware('throttle:channel-messages');
