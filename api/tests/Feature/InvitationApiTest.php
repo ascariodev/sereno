@@ -9,6 +9,7 @@ use App\Providers\AppServiceProvider;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
@@ -481,6 +482,17 @@ it('lets an admin revoke invitations below owner but not owner ones', function (
     expect(Invitation::query()->withoutGlobalScopes()->whereKey($owner->id)->exists())->toBeTrue();
 
     revokeInvitation($admin, $this->organization, $member)->assertNoContent();
+});
+
+it('forbids revoking an invitation whose stored role is not a known role', function () {
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+    $invitation = createPreviewInvitation($this->organization, $this->owner);
+    DB::statement('ALTER TABLE invitations DROP CONSTRAINT invitations_role_check');
+    DB::table('invitations')->where('id', $invitation->id)->update(['role' => 'legacy']);
+
+    revokeInvitation($admin, $this->organization, $invitation)->assertForbidden();
+    expect(Invitation::query()->withoutGlobalScopes()->whereKey($invitation->id)->exists())->toBeTrue();
 });
 
 it('forbids plain members from revoking invitations', function () {

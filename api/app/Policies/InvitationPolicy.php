@@ -28,6 +28,8 @@ class InvitationPolicy
 
     public function delete(User $user, Invitation $invitation): bool
     {
-        return $this->create($user, Role::tryFrom($invitation->role));
+        $role = Role::tryFrom($invitation->role);
+
+        return $role !== null && $this->create($user, $role);
     }
 }
