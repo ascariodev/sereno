@@ -4,13 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import type { Message } from '../api/types'
+import { toast, toasts } from '../components/ui/toast'
 import { i18n } from '../i18n'
 import { setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
-import { toast, toasts } from '../components/ui/toast'
 import ChannelView from './ChannelView.vue'
 
 const message = (id: number, kind: Message['kind'] = 'user'): Message => ({
@@ -277,6 +277,27 @@ describe('ChannelView', () => {
     resolveCatchUp({ data: [message(9)], meta: { next_cursor: null } })
     await flushPromises()
     expect(wrapper.findAll('li.message').map((li) => li.text())).toEqual([expect.stringContaining('body 1')])
+  })
+
+  it('does not stack a new reconnected toast while one is still visible', async () => {
+    const realtime = fakeRealtime()
+    mockApi(() => ({ data: [message(1)], meta: { next_cursor: null } }))
+    await mountView()
+    realtime.setStatus('connected')
+    await flushPromises()
+
+    for (let i = 0; i < 2; i++) {
+      realtime.setStatus('connecting')
+      realtime.setStatus('connected')
+      await flushPromises()
+    }
+    expect(toasts.value.map((item) => item.message)).toEqual(['Reconnected'])
+
+    toast.dismiss(toasts.value[0].id)
+    realtime.setStatus('connecting')
+    realtime.setStatus('connected')
+    await flushPromises()
+    expect(toasts.value.filter((item) => item.open).map((item) => item.message)).toEqual(['Reconnected'])
   })
 
   it('stops listening for reconnections on unmount', async () => {

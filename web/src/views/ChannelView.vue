@@ -9,7 +9,7 @@ import LogGroupAside from '../components/LogGroupAside.vue'
 import MessageComposer from '../components/MessageComposer.vue'
 import MessageList from '../components/MessageList.vue'
 import ProjectHeader from '../components/ProjectHeader.vue'
-import { toast } from '../components/ui/toast'
+import { toast, toasts } from '../components/ui/toast'
 import { onReconnect, subscribeToChannel } from '../realtime/echo'
 import { useAuthStore } from '../stores/auth'
 import { useMessagesStore } from '../stores/messages'
@@ -30,6 +30,7 @@ let seenMessageId = 0
 let generation = 0
 let unsubscribe: (() => void) | null = null
 let unsubscribeReconnect: (() => void) | null = null
+let reconnectToastId: number | null = null
 
 const channelId = computed(() => Number(route.params.id))
 const project = computed(() => {
@@ -115,7 +116,8 @@ function reload(): void {
   if (organization.activeId !== null) {
     unsubscribe = subscribeToChannel(organization.activeId, channelId.value, messages.insert)
     unsubscribeReconnect = onReconnect(() => {
-      toast.success(t('channel.reconnected'))
+      const visible = toasts.value.some((item) => item.id === reconnectToastId && item.open)
+      if (!visible) reconnectToastId = toast.success(t('channel.reconnected'))
       void messages.catchUp()
     })
   }
