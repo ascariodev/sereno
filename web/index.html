@@ -14,6 +14,9 @@
         var theme = localStorage.getItem('workspace.theme')
         if (theme === 'light' || theme === 'dark') {
           document.documentElement.setAttribute('data-theme', theme)
+          document.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
+            meta.content = theme === 'dark' ? '#171A1F' : '#FFFFFF'
+          })
         }
       } catch (e) {}
     </script>

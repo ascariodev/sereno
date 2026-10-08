@@ -21,6 +21,16 @@ export function readThemePreference(): ThemePreference {
 
 export const themePreference = ref<ThemePreference>(readThemePreference())
 
+// Same values as --surface in style.css and the theme-color metas in index.html.
+const THEME_COLORS = { light: '#FFFFFF', dark: '#171A1F' } as const
+
+function syncThemeColor(preference: ThemePreference): void {
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
+    const scheme = preference === 'system' ? (meta.media.includes('dark') ? 'dark' : 'light') : preference
+    meta.content = THEME_COLORS[scheme]
+  })
+}
+
 export function applyTheme(preference: ThemePreference): void {
   const root = document.documentElement
   if (preference === 'system') {
@@ -28,6 +38,7 @@ export function applyTheme(preference: ThemePreference): void {
   } else {
     root.setAttribute('data-theme', preference)
   }
+  syncThemeColor(preference)
 }
 
 export function saveThemePreference(preference: ThemePreference): void {
