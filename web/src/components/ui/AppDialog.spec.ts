@@ -2,6 +2,7 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, describe, expect, it } from 'vitest'
 import { h, nextTick } from 'vue'
 import AppDialog from './AppDialog.vue'
+import AppMenu from './AppMenu.vue'
 
 let wrapper: VueWrapper | undefined
 
@@ -147,6 +148,56 @@ describe('AppDialog', () => {
     expect(title?.textContent).toBe('Search')
     expect(title?.classList.contains('app-dialog__hidden')).toBe(true)
     expect(dialog()!.classList.contains('app-dialog--sheet-right')).toBe(true)
+  })
+
+  it('locks the body scroll while open and releases it on close', async () => {
+    mountControlled()
+    await settle()
+    expect(dialog()).not.toBeNull()
+    expect(document.body.style.overflow).toBe('hidden')
+    key(document.activeElement!, 'Escape')
+    await settle()
+    expect(dialog()).toBeNull()
+    expect(document.body.style.overflow).not.toBe('hidden')
+  })
+
+  it('keeps the dialog open when choosing from a menu inside it, and Escape closes the menu first', async () => {
+    const selected: string[] = []
+    wrapper = mount(AppDialog, {
+      props: { title: 'Settings', open: true },
+      slots: {
+        default: () =>
+          h(
+            AppMenu,
+            { items: [{ value: 'one', label: 'One' }, { value: 'two', label: 'Two' }], onSelect: (v: string) => selected.push(v) },
+            () => h('button', { type: 'button', name: 'open-menu' }, 'Menu'),
+          ),
+      },
+      attachTo: document.body,
+    })
+    await settle()
+    const menuTrigger = () => document.querySelector<HTMLButtonElement>('button[name=open-menu]')!
+    const menu = () => document.querySelector('[role=menu]')
+    expect(dialog()).not.toBeNull()
+
+    menuTrigger().focus()
+    key(menuTrigger(), 'ArrowDown')
+    await settle()
+    expect(menu()).not.toBeNull()
+    key(document.activeElement!, 'Escape')
+    await settle()
+    expect(menu()).toBeNull()
+    expect(dialog()).not.toBeNull()
+
+    menuTrigger().focus()
+    key(menuTrigger(), 'ArrowDown')
+    await settle()
+    expect(menu()).not.toBeNull()
+    key(document.activeElement!, 'Enter')
+    await settle()
+    expect(selected).toEqual(['one'])
+    expect(menu()).toBeNull()
+    expect(dialog()).not.toBeNull()
   })
 
   it('points aria-describedby to the description only when there is one', async () => {

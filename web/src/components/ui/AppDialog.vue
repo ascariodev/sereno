@@ -101,6 +101,8 @@ const hasHeader = computed(() => !props.hideTitle || Boolean(props.closeLabel))
   bottom: 0;
   width: min(360px, calc(100vw - 48px));
   border-width: 0 0 0 1px;
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
   padding-bottom: env(safe-area-inset-bottom);
 }
 .app-dialog--sheet-bottom {
