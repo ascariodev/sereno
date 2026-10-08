@@ -352,7 +352,7 @@ describe('ChannelView group panel', () => {
     })
   }
   const groupCalls = (spy: { mock: { calls: unknown[][] } }) =>
-    spy.mock.calls.filter(([path]) => String(path).includes('/log-groups/'))
+    spy.mock.calls.filter(([path]) => /log-groups\/\d+$/.test(String(path)))
 
   beforeEach(() => {
     vi.restoreAllMocks()

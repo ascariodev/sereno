@@ -6,6 +6,7 @@ import { ApiError } from '../api/client'
 import { statusFrom, updateLogGroupStatus } from '../api/logGroups'
 import type { LogGroup, LogGroupStatus } from '../api/types'
 import { toast } from './ui/toast'
+import Sparkline from './ui/Sparkline.vue'
 import LevelPill from './ui/LevelPill.vue'
 import StatusPill from './ui/StatusPill.vue'
 
@@ -15,6 +16,7 @@ const props = defineProps<{
   group: LogGroup | null
   loading: boolean
   loadError: 'failed' | 'notFound' | null
+  hourly?: number[] | null
 }>()
 const emit = defineEmits<{ close: []; status: [status: LogGroupStatus] }>()
 
@@ -99,6 +101,10 @@ const eventText = computed(() => {
           <dd>{{ formatDate(group.last_seen_at) }}</dd>
         </div>
       </dl>
+      <section v-if="hourly" class="log-group-panel__activity" data-test="group-activity">
+        <h3>{{ t('logGroup.activity') }}</h3>
+        <Sparkline :counts="hourly" :level="group.level" />
+      </section>
       <section class="log-group-panel__event">
         <h3>{{ t('logGroup.lastEvent') }}</h3>
         <pre v-if="latestEvent" data-test="latest-event">{{ eventText }}</pre>
@@ -216,6 +222,12 @@ const eventText = computed(() => {
   flex-direction: column;
   gap: 8px;
 }
+.log-group-panel__activity {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.log-group-panel__activity h3,
 .log-group-panel__event h3 {
   margin: 0;
   font-size: 12px;

@@ -13,7 +13,7 @@ const props = defineProps<{ projectId: number; groupId: number; refreshToken?: n
 const emit = defineEmits<{ close: [replace?: boolean]; status: [status: LogGroupStatus] }>()
 
 const { t } = useI18n()
-const { group, loading, loadError, setStatus } = useLogGroup(
+const { group, loading, loadError, hourly, setStatus } = useLogGroup(
   () => props.projectId,
   () => props.groupId,
   () => props.refreshToken,
@@ -97,6 +97,7 @@ function onOpenChange(open: boolean): void {
       :group="group"
       :loading="loading"
       :load-error="loadError"
+      :hourly="hourly"
       @status="applyStatus"
       @close="emit('close')"
     />
@@ -110,6 +111,7 @@ function onOpenChange(open: boolean): void {
     :group="group"
     :loading="loading"
     :load-error="loadError"
+    :hourly="hourly"
     @status="applyStatus"
     @close="emit('close')"
   />

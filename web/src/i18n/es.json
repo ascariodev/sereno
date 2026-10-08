@@ -103,6 +103,7 @@
     "firstSeen": "Primera vez",
     "lastSeen": "Última vez",
     "lastEvent": "Último evento",
+    "activity": "Últimas 24 h",
     "noEvents": "No hay eventos disponibles.",
     "loadFailed": "No se pudo cargar el grupo de logs.",
     "notFound": "Este grupo de logs no existe o no tienes acceso."

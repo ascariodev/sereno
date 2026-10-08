@@ -103,6 +103,7 @@
     "firstSeen": "First seen",
     "lastSeen": "Last seen",
     "lastEvent": "Latest event",
+    "activity": "Last 24 h",
     "noEvents": "No events available.",
     "loadFailed": "Could not load the log group.",
     "notFound": "This log group does not exist or you cannot access it."

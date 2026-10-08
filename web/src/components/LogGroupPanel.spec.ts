@@ -22,7 +22,7 @@ const group = (overrides: Partial<LogGroup> = {}): LogGroup => ({
   ...overrides,
 })
 
-type Props = { groupId: number; group: LogGroup | null; loading: boolean; loadError: 'failed' | 'notFound' | null }
+type Props = { groupId: number; group: LogGroup | null; loading: boolean; loadError: 'failed' | 'notFound' | null; hourly: number[] | null }
 
 function mountPanel(props: Partial<Props> = {}) {
   return mount(LogGroupPanel, {
@@ -47,6 +47,18 @@ describe('LogGroupPanel', () => {
     expect(event).toContain('newest boom')
     expect(event).toContain('order_id  88412')
     expect(event).not.toContain('older boom')
+  })
+
+  it('shows the sparkline of the last 24 h only when the series is available', async () => {
+    const counts = Array.from({ length: 24 }, (_, index) => (index === 23 ? 4 : 0))
+    const wrapper = mountPanel({ hourly: counts })
+    const activity = wrapper.find('[data-test="group-activity"]')
+    expect(activity.text()).toContain('Last 24 h')
+    expect(activity.find('[data-level="error"]').exists()).toBe(true)
+    expect(activity.find('polyline').exists()).toBe(true)
+    await wrapper.setProps({ hourly: null })
+    expect(wrapper.find('[data-test="group-activity"]').exists()).toBe(false)
+    expect(wrapper.find('h2').exists()).toBe(true)
   })
 
   it('announces the loading text as a status while loading', async () => {

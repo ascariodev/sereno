@@ -44,6 +44,8 @@ function mountAside() {
 
 const sheet = () => document.querySelector('[role="dialog"]')
 
+const groupCalls = (): number => vi.mocked(api.get).mock.calls.filter(([path]) => !String(path).endsWith('/hourly')).length
+
 beforeEach(() => {
   resetGroupStatuses()
   vi.spyOn(api, 'get').mockResolvedValue(loaded as never)
@@ -96,7 +98,7 @@ describe('LogGroupAside', () => {
     expect(wrapper!.emitted('close')).toEqual([[true]])
     await wrapper!.setProps({ refreshToken: 1 })
     await flushPromises()
-    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(2)
+    expect(groupCalls()).toBe(2)
     expect(wrapper!.emitted('close')).toEqual([[true]])
     expect(toasts.value).toHaveLength(1)
   })
@@ -134,18 +136,18 @@ describe('LogGroupAside', () => {
     expect(sheet()!.className).toContain('app-dialog--sheet-bottom')
     expect(sheet()!.querySelector('.log-group-panel h2')!.textContent).toBe('Timeout in webhook')
     expect(wrapper!.find('aside.wide-panel').exists()).toBe(false)
-    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(1)
+    expect(groupCalls()).toBe(1)
   })
 
   it('reloads the group when the refresh token changes', async () => {
     fakeMatchMedia(false)
     mountAside()
     await flushPromises()
-    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(1)
+    expect(groupCalls()).toBe(1)
     vi.mocked(api.get).mockResolvedValue({ data: { ...loaded.data, title: 'Renamed' } } as never)
     await wrapper!.setProps({ refreshToken: 1 })
     await flushPromises()
-    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(2)
+    expect(groupCalls()).toBe(2)
     expect(wrapper!.find('aside.wide-panel h2').text()).toBe('Renamed')
   })
 
@@ -207,7 +209,7 @@ describe('LogGroupAside', () => {
     listener!({ matches: false })
     await flushPromises()
     expect(wrapper!.find('aside.wide-panel h2').text()).toBe('Timeout in webhook')
-    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(1)
+    expect(groupCalls()).toBe(1)
   })
 
   it('keeps the resolved status after crossing the breakpoint', async () => {
@@ -220,7 +222,7 @@ describe('LogGroupAside', () => {
     listener!({ matches: true })
     await flushPromises()
     expect(sheet()!.querySelector('[data-status="resolved"]')).not.toBeNull()
-    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(1)
+    expect(groupCalls()).toBe(1)
   })
 
   it('moves focus to the aside on open and returns it to the opener on close', async () => {
