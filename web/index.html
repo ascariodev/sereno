@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Workspace</title>
+    <script>
+      try {
+        var theme = localStorage.getItem('workspace.theme')
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.setAttribute('data-theme', theme)
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="app"></div>
