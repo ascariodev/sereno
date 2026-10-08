@@ -6,9 +6,11 @@ import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import type { LogGroup } from '../api/types'
 import { i18n } from '../i18n'
+import { setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import { toast, toasts } from '../components/ui/toast'
 import LogView from './LogView.vue'
 
@@ -63,8 +65,12 @@ async function mountView(path = '/projects/5/log') {
 }
 
 describe('LogView', () => {
-  beforeEach(() => vi.restoreAllMocks())
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    setRealtimeClientFactory(() => null)
+  })
   afterEach(() => {
+    vi.useRealTimers()
     mounted?.unmount()
     mounted = undefined
     document.body.innerHTML = ''
@@ -312,5 +318,82 @@ describe('LogView', () => {
     await tabs[0].trigger('click')
     await flushPromises()
     expect(wrapper.router.currentRoute.value.name).toBe('channel')
+  })
+
+  describe('realtime', () => {
+    const statusMessage = (id: number, channelId = 7) => ({
+      id,
+      channel_id: channelId,
+      kind: 'system' as const,
+      body: null,
+      payload: { type: 'log.group_status_changed', log_group_id: 1, status: 'resolved', previous_status: 'open' },
+      log_group_id: 1,
+      user: null,
+      created_at: '2026-10-02T10:00:00Z',
+    })
+
+    function fakeRealtime() {
+      const { client, listeners, setStatus } = createFakeRealtimeClient()
+      setRealtimeClientFactory(() => client)
+      const emit = (message: unknown) => listeners.get('organizations.1.channels.7|.message.created')?.({ message } as never)
+      return { client, emit, setStatus }
+    }
+
+    it('reloads the list once, debounced, when another person changes a group status', async () => {
+      const realtime = fakeRealtime()
+      const spy = mockApi(() => page([group(1)]))
+      await mountView()
+      expect(realtime.client.private).toHaveBeenCalledWith('organizations.1.channels.7')
+      const before = groupCalls(spy).length
+      vi.useFakeTimers()
+      realtime.emit(statusMessage(10))
+      realtime.emit(statusMessage(11))
+      await vi.advanceTimersByTimeAsync(299)
+      expect(groupCalls(spy)).toHaveLength(before)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(groupCalls(spy)).toHaveLength(before + 1)
+    })
+
+    it('does not reload when the listed row already has the announced status', async () => {
+      const realtime = fakeRealtime()
+      const spy = mockApi(() => page([group(1, { status: 'resolved' })]))
+      await mountView()
+      const before = groupCalls(spy).length
+      vi.useFakeTimers()
+      realtime.emit(statusMessage(10))
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(groupCalls(spy)).toHaveLength(before)
+    })
+
+    it('ignores other messages and reloads after a reconnection', async () => {
+      const realtime = fakeRealtime()
+      const spy = mockApi(() => page([group(1)]))
+      await mountView()
+      const before = groupCalls(spy).length
+      vi.useFakeTimers()
+      realtime.emit({ ...statusMessage(10), payload: { type: 'log.group_opened', log_group_id: 1 } })
+      realtime.emit({ ...statusMessage(11), kind: 'user', payload: null })
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(groupCalls(spy)).toHaveLength(before)
+      realtime.setStatus('connected')
+      realtime.setStatus('disconnected')
+      realtime.setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(groupCalls(spy)).toHaveLength(before + 1)
+    })
+
+    it('leaves the channel and drops a pending reload on unmount', async () => {
+      const realtime = fakeRealtime()
+      const spy = mockApi(() => page([group(1)]))
+      const wrapper = await mountView()
+      const before = groupCalls(spy).length
+      vi.useFakeTimers()
+      realtime.emit(statusMessage(10))
+      wrapper.unmount()
+      mounted = undefined
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(realtime.client.leave).toHaveBeenCalledWith('organizations.1.channels.7')
+      expect(groupCalls(spy)).toHaveLength(before)
+    })
   })
 })

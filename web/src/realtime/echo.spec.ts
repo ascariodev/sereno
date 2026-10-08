@@ -32,6 +32,65 @@ describe('realtime', () => {
     expect(client.leave).toHaveBeenCalledWith('organizations.3.channels.7')
   })
 
+  it('keeps the channel open until the last subscriber to it leaves', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const first: number[] = []
+    const second: number[] = []
+    const leaveFirst = subscribeToChannel(3, 7, (message) => first.push(message.id))
+    const leaveSecond = subscribeToChannel(3, 7, (message) => second.push(message.id))
+    const emit = (id: number) =>
+      listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id } as Message })
+
+    emit(1)
+    leaveFirst()
+    leaveFirst()
+    expect(client.leave).not.toHaveBeenCalled()
+    emit(2)
+    expect(first).toEqual([1])
+    expect(second).toEqual([1, 2])
+
+    leaveSecond()
+    expect(client.leave).toHaveBeenCalledTimes(1)
+    expect(client.leave).toHaveBeenCalledWith('organizations.3.channels.7')
+  })
+
+  it('delivers to the other subscribers when one callback throws, and rethrows asynchronously', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const received: number[] = []
+    subscribeToChannel(3, 7, () => {
+      throw new Error('boom')
+    })
+    subscribeToChannel(3, 7, (message) => received.push(message.id))
+    const deferred: Array<() => void> = []
+    const spy = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation((task) => void deferred.push(task))
+    listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 5 } as Message })
+    spy.mockRestore()
+    expect(received).toEqual([5])
+    expect(deferred).toHaveLength(1)
+    expect(() => deferred[0]()).toThrow('boom')
+  })
+
+  it('creates a new listener after disconnect and the old unsubscribe does not close the new one', () => {
+    const first = createFakeRealtimeClient()
+    const second = createFakeRealtimeClient()
+    const clients = [first.client, second.client]
+    setRealtimeClientFactory(() => clients.shift() ?? null)
+    const leaveOld = subscribeToChannel(3, 7, () => {})
+    disconnectRealtime()
+    const received: number[] = []
+    const leaveNew = subscribeToChannel(3, 7, (message) => received.push(message.id))
+    expect(second.client.private).toHaveBeenCalledWith('organizations.3.channels.7')
+
+    leaveOld()
+    second.listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 8 } as Message })
+    expect(received).toEqual([8])
+    expect(second.client.leave).not.toHaveBeenCalled()
+    leaveNew()
+    expect(second.client.leave).toHaveBeenCalledTimes(1)
+  })
+
   it('reuses one client and creates a new one after disconnect', () => {
     const factory = vi.fn(() => createFakeRealtimeClient().client)
     setRealtimeClientFactory(factory)

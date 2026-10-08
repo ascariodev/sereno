@@ -19,6 +19,7 @@ type Fetch = typeof fetch
 
 let getToken: () => string | null | undefined = () => null
 let client: RealtimeClient | null = null
+const subscriptions = new Map<string, { client: RealtimeClient; callbacks: Set<(message: Message) => void> }>()
 let factory: () => RealtimeClient | null = createEchoClient
 
 export function setRealtimeTokenProvider(provider: () => string | null | undefined): void {
@@ -43,10 +44,32 @@ export function subscribeToChannel(
   const current = client
   if (current === null) return () => {}
   const name = channelName(organizationId, channelId)
-  current.private(name).listen(MESSAGE_CREATED_EVENT, (data) => {
-    if (data?.message) onMessage(data.message)
-  })
-  return () => current.leave(name)
+  let entry = subscriptions.get(name)
+  if (!entry || entry.client !== current) {
+    const callbacks = new Set<(message: Message) => void>()
+    current.private(name).listen(MESSAGE_CREATED_EVENT, (data) => {
+      if (!data?.message) return
+      for (const callback of [...callbacks]) {
+        try {
+          callback(data.message)
+        } catch (error) {
+          queueMicrotask(() => {
+            throw error
+          })
+        }
+      }
+    })
+    entry = { client: current, callbacks }
+    subscriptions.set(name, entry)
+  }
+  const { callbacks } = entry
+  const subscriber = (message: Message) => onMessage(message)
+  callbacks.add(subscriber)
+  return () => {
+    if (!callbacks.delete(subscriber) || callbacks.size > 0) return
+    if (subscriptions.get(name)?.callbacks === callbacks) subscriptions.delete(name)
+    current.leave(name)
+  }
 }
 
 export function onReconnect(callback: () => void): () => void {
@@ -69,6 +92,7 @@ export function onReconnect(callback: () => void): () => void {
 export function disconnectRealtime(): void {
   const current = client
   client = null
+  subscriptions.clear()
   current?.disconnect()
 }
 

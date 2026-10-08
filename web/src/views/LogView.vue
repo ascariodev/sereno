@@ -4,16 +4,19 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import { listLogGroups } from '../api/logGroups'
-import type { LogGroup, LogGroupStatus, Paginated } from '../api/types'
+import { isLogGroupStatusChangedPayload } from '../api/types'
+import type { LogGroup, LogGroupStatus, Message, Paginated } from '../api/types'
 import LogGroupAside from '../components/LogGroupAside.vue'
 import ProjectHeader from '../components/ProjectHeader.vue'
 import AppSegmented from '../components/ui/AppSegmented.vue'
 import LevelPill from '../components/ui/LevelPill.vue'
 import { LOG_LEVELS } from '../api/logLevels'
 import StatusPill from '../components/ui/StatusPill.vue'
+import { onReconnect, subscribeToChannel } from '../realtime/echo'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 
+const LIVE_RELOAD_DELAY_MS = 300
 const STATUSES: LogGroupStatus[] = ['open', 'resolved', 'ignored']
 const ALL = 'all'
 const DEFAULT_STATUS = 'open'
@@ -148,7 +151,48 @@ watch(
   },
 )
 
+let reloadTimer: ReturnType<typeof setTimeout> | null = null
+let unsubscribe: (() => void) | null = null
+let unsubscribeReconnect: (() => void) | null = null
+
+function scheduleLiveReload(): void {
+  if (reloadTimer !== null) clearTimeout(reloadTimer)
+  reloadTimer = setTimeout(() => {
+    reloadTimer = null
+    void load()
+  }, LIVE_RELOAD_DELAY_MS)
+}
+
+function onLiveMessage(message: Message): void {
+  const payload = message.payload
+  if (!isLogGroupStatusChangedPayload(payload)) return
+  const row = groups.value.find((item) => item.id === payload.log_group_id)
+  if (row?.status === payload.status) return
+  scheduleLiveReload()
+}
+
+function leaveRealtime(): void {
+  unsubscribe?.()
+  unsubscribe = null
+  unsubscribeReconnect?.()
+  unsubscribeReconnect = null
+  if (reloadTimer !== null) clearTimeout(reloadTimer)
+  reloadTimer = null
+}
+
+watch(
+  () => [organization.activeId, channelId.value] as const,
+  ([organizationId, channel]) => {
+    leaveRealtime()
+    if (organizationId === null || channel === null) return
+    unsubscribe = subscribeToChannel(organizationId, channel, onLiveMessage)
+    unsubscribeReconnect = onReconnect(() => void load())
+  },
+  { immediate: true },
+)
+
 onUnmounted(() => {
+  leaveRealtime()
   generation++
   controller?.abort()
 })
