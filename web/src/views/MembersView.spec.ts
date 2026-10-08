@@ -167,6 +167,26 @@ describe('MembersView', () => {
       expect(organization.active?.roles).toEqual(['member'])
       expect(wrapper!.find('select').exists()).toBe(false)
     })
+
+    it('does not apply the response nor show errors when the organization changes during the request', async () => {
+      const { get, organization } = await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      let resolvePatch: (value: unknown) => void = () => undefined
+      vi.spyOn(api, 'patch').mockImplementation(() => new Promise((resolve) => (resolvePatch = resolve)))
+      await wrapper!.findAll('select')[1].setValue('admin')
+      await flushPromises()
+      get.mockResolvedValue({ data: [member(1, 'owner'), member(2, 'member')] })
+      organization.organizations = [
+        ...organization.organizations,
+        { id: 2, name: 'Other', slug: 'other', settings: null, roles: ['owner'] },
+      ]
+      organization.select(2)
+      await flushPromises()
+      resolvePatch({ data: member(2, 'admin') })
+      await flushPromises()
+      expect((wrapper!.findAll('select')[1].element as HTMLSelectElement).value).toBe('member')
+      expect(wrapper!.find('[data-test=role-error]').exists()).toBe(false)
+      expect(toasts.value).toHaveLength(0)
+    })
   })
 
   describe('own role change with failed reload', () => {
