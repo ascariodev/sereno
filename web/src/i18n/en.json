@@ -74,7 +74,9 @@
     "title": "Projects",
     "loadFailed": "Could not load the projects.",
     "empty": "No projects yet.",
-    "emptyHint": "Projects you belong to appear here."
+    "emptyHint": "Projects you belong to appear here.",
+    "healthOpen": "{n} open | {n} open",
+    "healthCalm": "All calm"
   },
   "channel": {
     "title": "Channel",

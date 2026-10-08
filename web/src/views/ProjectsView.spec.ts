@@ -146,4 +146,40 @@ describe('ProjectsView', () => {
     expect(link.find('#project-1-name').text()).toBe('Alpha')
     expect(link.find('#project-1-description').text()).toBe('Does things')
   })
+
+  const withChannel = (extra: Record<string, unknown>) =>
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
+      path === '/api/projects'
+        ? ({ data: [{ ...project(1, 'Alpha'), ...extra }], meta: { current_page: 1, last_page: 1, per_page: 100, total: 1 } } as never)
+        : ({ data: [channel(7, 1)] } as never),
+    )
+
+  it('shows open groups and the highest level on the card', async () => {
+    withChannel({ open_groups_count: 3, open_max_level: 'error' })
+    const wrapper = await mountView()
+    const health = wrapper.find('#project-1-health')
+    expect(health.text()).toBe('3 open · error')
+    expect(health.attributes('data-tone')).toBe('error')
+    expect(wrapper.find('a').attributes('aria-describedby')).toBe('project-1-health')
+  })
+
+  it('uses the singular form for one open group', async () => {
+    withChannel({ open_groups_count: 1, open_max_level: 'warning' })
+    const wrapper = await mountView()
+    expect(wrapper.find('#project-1-health').text()).toBe('1 open · warning')
+  })
+
+  it('shows all calm without open groups', async () => {
+    withChannel({ description: 'Does things', open_groups_count: 0, open_max_level: null })
+    const wrapper = await mountView()
+    expect(wrapper.find('#project-1-health').text()).toBe('All calm')
+    expect(wrapper.find('a').attributes('aria-describedby')).toBe('project-1-description project-1-health')
+  })
+
+  it('shows no health line when the fields are absent', async () => {
+    withChannel({})
+    const wrapper = await mountView()
+    expect(wrapper.find('#project-1-health').exists()).toBe(false)
+    expect(wrapper.find('a').attributes('aria-describedby')).toBeUndefined()
+  })
 })

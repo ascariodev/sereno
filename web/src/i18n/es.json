@@ -74,7 +74,9 @@
     "title": "Proyectos",
     "loadFailed": "No se pudieron cargar los proyectos.",
     "empty": "Aún no hay proyectos.",
-    "emptyHint": "Los proyectos a los que perteneces aparecen aquí."
+    "emptyHint": "Los proyectos a los que perteneces aparecen aquí.",
+    "healthOpen": "{n} abierto | {n} abiertos",
+    "healthCalm": "Todo en calma"
   },
   "channel": {
     "title": "Canal",
