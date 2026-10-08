@@ -1,10 +1,10 @@
 <script lang="ts">
-import type { Component } from 'vue'
+import type { LucideIcon } from '@lucide/vue'
 
 export interface AppMenuItem {
   value: string
   label: string
-  icon?: Component
+  icon?: LucideIcon
   disabled?: boolean
   danger?: boolean
 }

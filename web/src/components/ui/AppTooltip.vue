@@ -1,15 +1,26 @@
 <script setup lang="ts">
-import { TooltipContent, TooltipPortal, TooltipProvider, TooltipRoot, TooltipTrigger } from 'reka-ui'
+import {
+  injectTooltipProviderContext,
+  TooltipContent,
+  TooltipPortal,
+  TooltipProvider,
+  TooltipRoot,
+  TooltipTrigger,
+} from 'reka-ui'
+import type { FunctionalComponent } from 'vue'
 
 withDefaults(defineProps<{ text: string; side?: 'top' | 'right' | 'bottom' | 'left'; delay?: number }>(), {
   side: 'top',
   delay: 400,
 })
+
+const hasProvider = injectTooltipProviderContext(null) !== null
+const Passthrough: FunctionalComponent = (_, { slots }) => slots.default?.()
 </script>
 
 <template>
-  <TooltipProvider :delay-duration="delay">
-    <TooltipRoot>
+  <component :is="hasProvider ? Passthrough : TooltipProvider">
+    <TooltipRoot :delay-duration="delay">
       <TooltipTrigger as-child>
         <slot />
       </TooltipTrigger>
@@ -19,7 +30,7 @@ withDefaults(defineProps<{ text: string; side?: 'top' | 'right' | 'bottom' | 'le
         </TooltipContent>
       </TooltipPortal>
     </TooltipRoot>
-  </TooltipProvider>
+  </component>
 </template>
 
 <style>
