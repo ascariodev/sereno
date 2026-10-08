@@ -101,6 +101,22 @@ describe('useLogGroup', () => {
     expect(state.group.value?.status).toBe('resolved')
   })
 
+  it('keeps the previous group with a loadError when a refresh fails', async () => {
+    const get = vi
+      .spyOn(api, 'get')
+      .mockResolvedValueOnce({ data: group() } as never)
+      .mockRejectedValueOnce(new ApiError(500, 'Boom'))
+    const wrapper = mountComposable({ groupId: 5, refreshToken: 0 })
+    await flushPromises()
+    await wrapper.setProps({ refreshToken: 1 })
+    await flushPromises()
+    expect(get).toHaveBeenCalledTimes(2)
+    expect(state.group.value?.title).toBe('Timeout in webhook')
+    expect(state.group.value?.status).toBe('open')
+    expect(state.loadError.value).toBe('failed')
+    expect(state.loading.value).toBe(false)
+  })
+
   it('applies a status locally and ignores responses after unmount', async () => {
     let resolveGet: (value: unknown) => void = () => {}
     vi.spyOn(api, 'get').mockImplementation(() => new Promise((resolve) => (resolveGet = resolve)) as never)

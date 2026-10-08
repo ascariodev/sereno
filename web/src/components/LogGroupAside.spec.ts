@@ -85,6 +85,18 @@ describe('LogGroupAside', () => {
     expect(vi.mocked(api.get)).toHaveBeenCalledTimes(1)
   })
 
+  it('reloads the group when the refresh token changes', async () => {
+    fakeMatchMedia(false)
+    mountAside()
+    await flushPromises()
+    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(1)
+    vi.mocked(api.get).mockResolvedValue({ data: { ...loaded.data, title: 'Renamed' } } as never)
+    await wrapper!.setProps({ refreshToken: 1 })
+    await flushPromises()
+    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(2)
+    expect(wrapper!.find('aside.wide-panel h2').text()).toBe('Renamed')
+  })
+
   it('emits close from the panel button inside the sheet', async () => {
     fakeMatchMedia(true)
     mountAside()
