@@ -89,6 +89,25 @@ it('rejects a person message without body nor attachments when the transaction e
     DB::statement('SET CONSTRAINTS messages_body_or_attachments IMMEDIATE');
 })->throws(QueryException::class, 'messages_body_or_attachments');
 
+it('checks a person message again when its body is removed', function () {
+    $message = Message::factory()->for($this->channel)->create(['body' => 'hi']);
+
+    DB::table('messages')->where('id', $message->id)->update(['body' => null]);
+
+    DB::statement('SET CONSTRAINTS messages_body_or_attachments IMMEDIATE');
+})->throws(QueryException::class, 'messages_body_or_attachments');
+
+it('does not queue the content check for a system message', function () {
+    insertSystemMessage($this->channel, '{"type": "log.group_opened"}');
+    // Turned into a bare person message without touching body: only a check queued by the insert
+    // would see it and fail.
+    DB::table('messages')->where('kind', 'system')->update(['kind' => 'user', 'payload' => null]);
+
+    DB::statement('SET CONSTRAINTS messages_body_or_attachments IMMEDIATE');
+
+    expect(Message::where('kind', 'user')->whereNull('body')->count())->toBe(1);
+});
+
 it('keeps the message when the user is deleted', function () {
     $user = User::factory()->create();
     $message = Message::factory()->for($this->channel)->create(['user_id' => $user->id]);

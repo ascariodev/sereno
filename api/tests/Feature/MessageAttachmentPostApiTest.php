@@ -186,6 +186,7 @@ it('rejects repeated and malformed attachment ids', function (mixed $ids, string
 ]);
 
 it('rolls the whole message back when another message takes an attachment first', function () {
+    Event::fake([MessageCreated::class, MentionCreated::class]);
     $taken = pendingAttachment($this->channel, $this->author);
     $free = pendingAttachment($this->channel, $this->author);
     $rival = DB::table('messages')->insertGetId([
@@ -214,6 +215,8 @@ it('rolls the whole message back when another message takes an attachment first'
         ->and(linkedTo($free))->toBeNull()
         // The simulated rival runs inside the same transaction, so the rollback also undoes it.
         ->and(linkedTo($taken))->toBeNull();
+    Event::assertNotDispatched(MessageCreated::class);
+    Event::assertNotDispatched(MentionCreated::class);
 });
 
 it('attaches files to a thread reply and lists them in the replies', function () {

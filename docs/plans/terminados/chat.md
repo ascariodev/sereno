@@ -435,7 +435,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [x] M-30 (baja, sonnet): `serve => false` en el disco `local` de `api/config/filesystems.php` (nadie usa
   `/storage/{path}`); al truncar `original_name` quitar espacios o puntos antes de la extensión; test que compare el
   404 de un canal ajeno con el de un id inexistente.
-- [ ] M-31 (baja, sonnet): cláusulas `WHEN` en los constraint triggers (`NEW.kind = 'user' AND NEW.body IS NULL`,
+- [x] M-31 (baja, sonnet): cláusulas `WHEN` en los constraint triggers (`NEW.kind = 'user' AND NEW.body IS NULL`,
   `OLD.message_id IS NOT NULL`) para que los avisos de log no encolen un chequeo diferido; test de la carrera con
   `Event::fake` que afirme que no salen `MessageCreated` ni `MentionCreated`; ordenar los ids del `UPDATE` para evitar
   un deadlock entre dos envíos con los mismos ids.
@@ -462,3 +462,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-41 (media, sonnet): el 404 de un modelo no encontrado devuelve el texto fijo del framework con la clase y el id
   (`No query results for model [App\Models\Channel] 5`), sin `__()`; renderizarlo en `withExceptions` de
   `api/bootstrap/app.php` con un mensaje traducido igual para cualquier modelo (afecta a todo el API, no solo al chat).
+- [ ] M-42 (baja, sonnet): el `SELECT ... FOR UPDATE` de `linkAttachments` filtra también por `channel_id` y
+  `uploaded_by` (hoy ids ajenos bloquean filas de otro autor durante la transacción), quitar el `sort($ids)` que sobra,
+  y test de que borrar un adjunto pendiente no encola el chequeo.
