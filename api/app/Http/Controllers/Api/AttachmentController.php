@@ -143,7 +143,9 @@ class AttachmentController extends Controller
         $extension = pathinfo($name, PATHINFO_EXTENSION);
         $suffix = $extension !== '' && mb_strlen($extension) <= self::MAX_EXTENSION_LENGTH ? '.'.$extension : '';
 
-        return mb_substr($name, 0, self::MAX_NAME_LENGTH - mb_strlen($suffix)).$suffix;
+        $base = rtrim(mb_substr($name, 0, self::MAX_NAME_LENGTH - mb_strlen($suffix)), ' .');
+
+        return ($base === '' ? 'file' : $base).$suffix;
     }
 
     // Detected from the content, never from the Content-Type the client sent.

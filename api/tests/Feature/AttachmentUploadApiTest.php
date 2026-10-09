@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Providers\AppServiceProvider;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
@@ -105,6 +106,7 @@ it('builds the path only from server data and sanitizes the original name', func
     'surrounding spaces' => ['  report.pdf  ', 'report.pdf'],
     'too long keeps the extension' => [str_repeat('a', 300).'.txt', str_repeat('a', 251).'.txt'],
     'too long multibyte' => [str_repeat('ñ', 300), str_repeat('ñ', 255)],
+    'too long cut before spaces and dots' => [str_repeat('a', 249).' . .'.str_repeat('b', 60).'.txt', str_repeat('a', 249).'.txt'],
 ]);
 
 it('detects the MIME type from the content, not from the client', function () {
@@ -193,6 +195,24 @@ it('hides channels of other organizations and requires membership before validat
     'invalid input' => [[]],
 ]);
 
+it('answers a channel of another organization exactly like a missing one', function () {
+    config(['app.debug' => false]);
+
+    $foreign = uploadingAs($this->outsider, $this->other)
+        ->postJson($this->url, ['file' => uploadFixture('x')]);
+
+    $missingId = Channel::query()->withoutGlobalScopes()->max('id') + 1;
+    $missing = uploadingAs($this->outsider, $this->other)
+        ->postJson("/api/channels/{$missingId}/attachments", ['file' => uploadFixture('x')]);
+
+    // The framework echoes the requested id in the message: only that id may differ.
+    $body = fn ($response, int $id) => json_decode(str_replace((string) $id, ':id', $response->getContent()), true);
+
+    $foreign->assertNotFound();
+    expect($foreign->status())->toBe($missing->status())
+        ->and($body($foreign, $this->channel->id))->toBe($body($missing, $missingId));
+});
+
 it('requires authentication', function () {
     $this->withHeader('X-Organization-Id', (string) $this->organization->id)
         ->postJson($this->url, ['file' => uploadFixture('x')])
@@ -230,7 +250,9 @@ it('does not expose the file under public storage or by direct URL', function ()
     expect(Storage::disk('public')->allFiles())->toBe([])
         ->and(Storage::disk('local')->exists($path))->toBeTrue();
 
-    expect($this->get("/storage/{$path}")->status())->toBeIn([403, 404]);
+    expect(Route::has('storage.local'))->toBeFalse();
+
+    $this->get("/storage/{$path}")->assertNotFound();
 });
 
 it('removes the stored file when the row cannot be written', function () {

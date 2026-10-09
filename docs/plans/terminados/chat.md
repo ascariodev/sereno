@@ -432,7 +432,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   borrado de canal o de mensaje (la fase 22 solo limpia huérfanos sin mensaje); se suma a M-4.
 - [ ] M-29 (baja, sonnet): documentar las variables `CHAT_ATTACHMENT*` en `api/.env.example`.
   Pendiente: en la sesión en la nube los permisos no dejan leer `api/.env.example`; aplicarla en local.
-- [ ] M-30 (baja, sonnet): `serve => false` en el disco `local` de `api/config/filesystems.php` (nadie usa
+- [x] M-30 (baja, sonnet): `serve => false` en el disco `local` de `api/config/filesystems.php` (nadie usa
   `/storage/{path}`); al truncar `original_name` quitar espacios o puntos antes de la extensión; test que compare el
   404 de un canal ajeno con el de un id inexistente.
 - [ ] M-31 (baja, sonnet): cláusulas `WHEN` en los constraint triggers (`NEW.kind = 'user' AND NEW.body IS NULL`,
@@ -459,3 +459,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   depende de que no exista "marcar no leída".
 - [ ] M-40 (baja, sonnet): `subscribeToUser` con objeto de opciones en vez de callbacks posicionales (actualizar
   `useMembershipWatch`, `stores/mentions.ts` y `echo.spec`).
+- [ ] M-41 (media, sonnet): el 404 de un modelo no encontrado devuelve el texto fijo del framework con la clase y el id
+  (`No query results for model [App\\Models\\Channel] 5`), sin `__()`; renderizarlo en `withExceptions` de
+  `api/bootstrap/app.php` con un mensaje traducido igual para cualquier modelo (afecta a todo el API, no solo al chat).
