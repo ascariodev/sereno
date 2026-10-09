@@ -35,6 +35,7 @@ const panelRefresh = ref(0)
 const editingMessageId = ref<number | null>(null)
 const deletingMessage = ref<Message | null>(null)
 const deleting = ref(false)
+let deleteFromThread = false
 const deleteOpen = computed({
   get: () => deletingMessage.value !== null,
   set: (open) => {
@@ -50,7 +51,8 @@ provide(messageActionsKey, {
   edit: (message) => {
     editingMessageId.value = message.id
   },
-  remove: (message) => {
+  remove: (message, origin) => {
+    deleteFromThread = origin === 'thread'
     deletingMessage.value = message
   },
 })
@@ -234,6 +236,15 @@ async function confirmDelete(): Promise<void> {
   }
 }
 
+// The menu item that opened the dialog is gone, so focus goes to the composer of the panel it came from.
+function focusAfterDelete(event: Event): void {
+  const scope = deleteFromThread ? '.thread-aside' : '.channel__main'
+  const field = document.querySelector<HTMLTextAreaElement>(`${scope} textarea[name=body]`)
+  if (!field) return
+  event.preventDefault()
+  field.focus()
+}
+
 function leaveRealtime(): void {
   unsubscribe?.()
   unsubscribe = null
@@ -365,7 +376,7 @@ defineExpose({ openThread })
         />
       </template>
     </div>
-    <AppDialog v-model:open="deleteOpen" :title="t('message.deleteTitle')" :close-label="t('message.deleteCancel')">
+    <AppDialog v-model:open="deleteOpen" :title="t('message.deleteTitle')" :close-label="t('message.deleteCancel')" @close-auto-focus="focusAfterDelete">
       <p data-test="delete-text">{{ t('message.deleteConfirm') }}</p>
       <div class="channel__dialog-actions">
         <button type="button" class="channel__cancel" data-test="delete-cancel" :disabled="deleting" @click="deleteOpen = false">

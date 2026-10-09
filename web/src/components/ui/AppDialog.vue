@@ -23,6 +23,8 @@ const props = withDefaults(
   { variant: 'center' },
 )
 
+const emit = defineEmits<{ closeAutoFocus: [event: Event] }>()
+
 const open = defineModel<boolean>('open', { default: false })
 
 const describedBy = computed(() => (props.description ? {} : { 'aria-describedby': undefined }))
@@ -36,7 +38,7 @@ const hasHeader = computed(() => !props.hideTitle || Boolean(props.closeLabel))
     </DialogTrigger>
     <DialogPortal>
       <DialogOverlay class="app-dialog-overlay" />
-      <DialogContent class="app-dialog" :class="`app-dialog--${variant}`" v-bind="describedBy">
+      <DialogContent class="app-dialog" :class="`app-dialog--${variant}`" v-bind="describedBy" @close-auto-focus="emit('closeAutoFocus', $event)">
         <div v-if="hasHeader" class="app-dialog__header">
           <DialogTitle class="app-dialog__title" :class="{ 'sr-only': hideTitle }">{{ title }}</DialogTitle>
           <DialogClose v-if="closeLabel" class="app-dialog__close" :aria-label="closeLabel" name="close-dialog">

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { X } from '@lucide/vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, inject, onMounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Message } from '../api/types'
 import { useMessagesStore } from '../stores/messages'
 import { useThreadStore } from '../stores/thread'
+import { messageActionsKey } from './messageActions'
 import MessageComposer from './MessageComposer.vue'
 import MessageItem from './MessageItem.vue'
 import MessageList from './MessageList.vue'
@@ -23,6 +24,9 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const thread = useThreadStore()
 const messages = useMessagesStore()
+
+const parentActions = inject(messageActionsKey, null)
+if (parentActions) provide(messageActionsKey, { ...parentActions, remove: (message) => parentActions.remove(message, 'thread') })
 
 const rootMessage = computed<Message | null>(
   () =>

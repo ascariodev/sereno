@@ -912,6 +912,88 @@ describe('ChannelView delete confirmation', () => {
     await settle()
     expect(dialog()).toBeNull()
     expect(del).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(wrapper.find('.channel__main textarea[name=body]').element)
+    wrapper.unmount()
+  })
+
+  it('returns focus to the channel composer after deleting', async () => {
+    vi.spyOn(api, 'delete').mockResolvedValue({ data: { ...root, body: null, deleted_at: '2026-01-02T00:00:00Z' } } as never)
+    const wrapper = await mountView('/channels/7', true)
+    await openDelete(wrapper)
+    confirmButton().click()
+    await settle()
+    expect(dialog()).toBeNull()
+    expect(document.activeElement).toBe(wrapper.find('.channel__main textarea[name=body]').element)
+    wrapper.unmount()
+  })
+
+  const threadMock = () =>
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') return channels as never
+      if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+      if (/replies$/.test(path)) return { data: [reply], meta: { next_cursor: null } } as never
+      return { data: [{ ...root, replies_count: 1 }], meta: { next_cursor: null } } as never
+    })
+
+  async function openThreadRootDelete(wrapper: Awaited<ReturnType<typeof mountView>>) {
+    const triggers = Array.from(document.querySelectorAll<HTMLButtonElement>('.thread-aside .message-item__actions-trigger'))
+    const trigger = triggers[0]
+    trigger.focus()
+    key(trigger, 'ArrowDown')
+    await settle()
+    key(document.activeElement!, 'ArrowDown')
+    key(document.activeElement!, 'Enter')
+    await settle()
+    return wrapper
+  }
+
+  it('returns focus to the thread composer after deleting the root from the thread panel', async () => {
+    threadMock()
+    vi.spyOn(api, 'delete').mockResolvedValue({
+      data: { ...root, body: null, deleted_at: '2026-01-02T00:00:00Z' },
+      meta: { root: { id: 1, replies_count: 1, last_reply_at: null } },
+    } as never)
+    const wrapper = await mountView('/channels/7?thread=1', true)
+    await openThreadRootDelete(wrapper)
+    expect(dialog()).not.toBeNull()
+    confirmButton().click()
+    await settle()
+    expect(dialog()).toBeNull()
+    expect(document.activeElement).toBe(wrapper.find('.thread-aside textarea[name=body]').element)
+    wrapper.unmount()
+  })
+
+  it('returns focus to the thread composer when the delete dialog stacks on the narrow thread sheet', async () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })
+    threadMock()
+    const wrapper = await mountView('/channels/7?thread=1', true)
+    expect(document.querySelectorAll('[role=dialog]')).toHaveLength(1)
+    await openThreadRootDelete(wrapper)
+    expect(document.querySelectorAll('[role=dialog]')).toHaveLength(2)
+    document.querySelector<HTMLButtonElement>('[data-test=delete-cancel]')!.click()
+    await settle()
+    expect(document.querySelectorAll('[role=dialog]')).toHaveLength(1)
+    const field = document.querySelector('[role=dialog] .thread-aside textarea[name=body]')
+    expect(field).not.toBeNull()
+    expect(document.activeElement).toBe(field)
+    wrapper.unmount()
+    delete (window as { matchMedia?: unknown }).matchMedia
+  })
+
+  it('returns focus to the thread composer when the delete came from the thread panel', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') return channels as never
+      if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+      if (/replies$/.test(path)) return { data: [reply], meta: { next_cursor: null } } as never
+      return { data: [{ ...root, replies_count: 1 }], meta: { next_cursor: null } } as never
+    })
+    const wrapper = await mountView('/channels/7?thread=1', true)
+    const actions = wrapper.findAll('.message-item__actions-trigger')
+    await openDelete(wrapper, actions.length - 1)
+    expect(dialog()).not.toBeNull()
+    document.querySelector<HTMLButtonElement>('[data-test=delete-cancel]')!.click()
+    await settle()
+    expect(document.activeElement).toBe(wrapper.find('.thread-aside textarea[name=body]').element)
     wrapper.unmount()
   })
 
