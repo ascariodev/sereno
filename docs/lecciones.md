@@ -48,6 +48,7 @@
 - L-39: Un estado de fallo de un recurso con URL temporal (firmada) se guarda por URL, no por id: el id se reutiliza con una URL nueva y quedaría en fallo para siempre. — aplicada en: test (MessageAttachments.spec)
 - L-40: Un spec que monta componentes con un reloj compartido (`useSharedNow`) los desmonta en `afterEach` (`enableAutoUnmount`): un intervalo real que queda armado de un test anterior hace fallar al siguiente que usa temporizadores falsos. — aplicada en: test (MentionsView.spec, ThreadSummary.spec)
 - L-37: Todo endpoint o evento que devuelve un `MessageResource` carga lo mismo que `index` (`RELATIONS` y `loadParticipants`): el resource rellena con `[]` lo que falta y el cliente lo toma como dato. — aplicada en: test (MessageUpdateApiTest)
+- L-38: Un evento a `users.{id}` sobre un cambio que puede afectar a quien ya no es miembro (mención quitada, revocación) lleva solo ids, nunca el contenido del mensaje. — aplicada en: test (MentionRemovedBroadcastTest)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

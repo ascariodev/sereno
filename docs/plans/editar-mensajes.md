@@ -2,7 +2,7 @@
 
 **Objetivo:** que el autor de un mensaje pueda editar su texto (con menciones) y borrarlo, con el cambio en vivo
 para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de M-1 de `terminados/chat.md`.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -79,9 +79,9 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - `index` omite raíces borradas sin respuestas (las que tienen quedan como marcador); `replies` omite respuestas
   borradas y sigue sirviendo una raíz borrada; `loadParticipants` ignora respuestas borradas.
 
-### [ ] Fase 8 — Eventos en vivo del borrado (api)
+### [x] Fase 8 — Eventos en vivo del borrado (api)
 - `MessageDeleted` (`message.deleted`: `id`, `channel_id`, `parent_id` y `root` con `replies_count` y `last_reply_at`
-  ya recalculados) en el canal, y `MentionRemoved` (`mention.removed`, `users.{id}`, con organización y mensaje) para
+  ya recalculados) en el canal, y `MentionRemoved` (`mention.removed`, `users.{id}`, con organización, canal, `parent_id` e id del mensaje, sin contenido) para
   cada mención quitada por edición o borrado.
 
 ### Web
@@ -144,8 +144,8 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
   cliente aplica aunque bajen) y `mention.removed`. Mismo throttle `channel-messages` para editar y borrar.
 
 ## Notas para la próxima sesión
-- Fases 1 a 7 hechas. `edited_at`/`deleted_at` existen (cast `datetime`, fuera de Fillable: asignar por propiedad o `DB::table`); la función de contenido ignora mensajes con `deleted_at`. `MessagePolicy` (`update`, `delete`) se autodescubre; no cubre canal archivado. En tests, `Channel::factory()->for(Project::factory()->for($org))`.
-- `App\Chat\MessageMentions` (`target`, `diff`, `sync`). PATCH `channels/{channel}/messages/{message}` (`UpdateMessageRequest`, `throttle:channel-messages`): 404 si el mensaje no es del canal (en `authorize()`), `edited_at` solo si cambia el body (precisión de segundos), body vacío solo con adjuntos, no acepta `attachment_ids`; la respuesta carga `RELATIONS` y `loadParticipants`. `MessageUpdated` (`message.updated`, payload `{message}` con RELATIONS + `loadParticipants`) solo se emite si cambió el body. DELETE `channels/{channel}/messages/{message}` (`DeleteMessageRequest`, lógica en `App\Chat\MessageDeletion`): 200 con el resource del borrado (body null, sin menciones ni adjuntos) y, si es respuesta, `meta.root` con `id`, `replies_count` y `last_reply_at`; ya borrado da 403 (policy), borrado en carrera 404. Lock raíz y luego respuesta, resta 1 y recalcula `last_reply_at`; archivos tras el commit. `MessageDeletion::delete()` devuelve `removed_mentions` para `MentionRemoved` (fase 8). `index` lista raíces con `deleted_at IS NULL OR replies_count > 0`; `replies` omite respuestas borradas y sirve la raíz borrada (`meta.root.deleted_at`); `loadParticipants` ignora borradas. Siguiente: fase 8 (eventos `message.deleted` y `mention.removed`).
+- Fases 1 a 8 hechas (API completa). `edited_at`/`deleted_at` existen (cast `datetime`, fuera de Fillable: asignar por propiedad o `DB::table`); la función de contenido ignora mensajes con `deleted_at`. `MessagePolicy` (`update`, `delete`) se autodescubre; no cubre canal archivado. En tests, `Channel::factory()->for(Project::factory()->for($org))`.
+- `App\Chat\MessageMentions` (`target`, `diff`, `sync`). PATCH `channels/{channel}/messages/{message}` (`UpdateMessageRequest`, `throttle:channel-messages`): 404 si el mensaje no es del canal (en `authorize()`), `edited_at` solo si cambia el body (precisión de segundos), body vacío solo con adjuntos, no acepta `attachment_ids`; la respuesta carga `RELATIONS` y `loadParticipants`. `MessageUpdated` (`message.updated`, payload `{message}` con RELATIONS + `loadParticipants`) solo se emite si cambió el body. DELETE `channels/{channel}/messages/{message}` (`DeleteMessageRequest`, lógica en `App\Chat\MessageDeletion`): 200 con el resource del borrado (body null, sin menciones ni adjuntos) y, si es respuesta, `meta.root` con `id`, `replies_count` y `last_reply_at`; ya borrado da 403 (policy), borrado en carrera 404. Lock raíz y luego respuesta, resta 1 y recalcula `last_reply_at`; archivos tras el commit. `MessageDeletion::delete()` devuelve `removed_mentions` para `MentionRemoved` (fase 8). `index` lista raíces con `deleted_at IS NULL OR replies_count > 0`; `replies` omite respuestas borradas y sirve la raíz borrada (`meta.root.deleted_at`); `loadParticipants` ignora borradas. Eventos: `message.deleted` `{id, channel_id, parent_id, deleted_at, root:{id, replies_count, last_reply_at}}` (en una raíz, `root` es ella misma); `mention.removed` `{organization_id, channel_id, parent_id, message_id}` sin contenido (puede ir a un ex miembro), emitido desde PATCH y DELETE tras la transacción. La web (fase 19) quita la fila de la bandeja por `message_id`. Siguiente: fase 9 (web: tipos, API y suscripción).
 
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): owner y admin pueden borrar mensajes de otros (moderación), con el actor en el evento.
@@ -156,3 +156,4 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - [ ] M-6 (baja, sonnet): en `MessageUpdated`, dejar explícito (o forzar con `load`) que el payload depende de que el controlador cargue antes `recentParticipants`, porque `loadMissing` no recarga.
 - [ ] M-7 (media, sonnet): test de concurrencia real con dos conexiones (borrar una respuesta mientras otra se inserta) en vez del hook `created` en la misma conexión; documentar el deadlock teórico (reusar ids de adjuntos de la respuesta que se borra), que Postgres aborta.
 - [ ] M-8 (baja, sonnet): tests de listas con borrados: `DELETE` de la última respuesta de una raíz ya borrada la saca de `index`, y recorrido por cursor de dos páginas con borrados intercalados.
+- [ ] M-9 (media, sonnet): `mention.created` manda el mensaje completo a `users.{id}`; si la membresía cae antes de que la cola lo procese, llega a un ex miembro. Verificar la membresía al emitir (`broadcastWhen`) o reducir el payload.

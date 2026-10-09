@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Chat\MessageDeletion;
 use App\Chat\MessageMentions;
+use App\Events\MentionRemoved;
+use App\Events\MessageDeleted;
 use App\Events\MessageUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Channel\DeleteMessageRequest;
@@ -139,7 +141,9 @@ class MessageController extends Controller
 
         $edited = false;
 
-        DB::transaction(function () use ($request, $channel, $message, $mentions, $body, &$edited) {
+        $removed = [];
+
+        DB::transaction(function () use ($request, $channel, $message, $mentions, $body, &$edited, &$removed) {
             if (($message->body ?? '') !== ($body ?? '')) {
                 $edited = true;
                 $message->body = $body;
@@ -147,7 +151,7 @@ class MessageController extends Controller
                 $message->save();
             }
 
-            $mentions->sync($message, $mentions->target($channel, $body, $request->user()->id));
+            $removed = $mentions->sync($message, $mentions->target($channel, $body, $request->user()->id))['removed'];
         });
 
         $message->load(self::RELATIONS);
@@ -155,6 +159,10 @@ class MessageController extends Controller
 
         if ($edited) {
             MessageUpdated::dispatch($message);
+        }
+
+        foreach ($removed as $userId) {
+            MentionRemoved::dispatch($userId, $message);
         }
 
         return new MessageResource($message);
@@ -167,6 +175,11 @@ class MessageController extends Controller
 
         $deleted = $result['message']->load(self::RELATIONS);
         $this->loadParticipants([$deleted]);
+
+        MessageDeleted::dispatch($deleted, $result['root']);
+        foreach ($result['removed_mentions'] as $userId) {
+            MentionRemoved::dispatch($userId, $deleted);
+        }
 
         $resource = new MessageResource($deleted);
         if ($result['root'] !== null) {
