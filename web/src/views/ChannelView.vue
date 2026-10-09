@@ -2,7 +2,8 @@
 import { computed, onBeforeUnmount, onUnmounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { api } from '../api/client'
+import { api, ApiError } from '../api/client'
+import { deleteMessage } from '../api/messages'
 import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
 import type { Channel, Message, MessageDeletedEvent } from '../api/types'
 import { messageActionsKey } from '../components/messageActions'
@@ -31,9 +32,16 @@ const thread = useThreadStore()
 const channel = ref<Channel | null>(null)
 const channelLoadFailed = ref(false)
 const panelRefresh = ref(0)
-// Prepared state for the delete confirmation and the inline editor (later phases).
+// `editingMessageId` is prepared for the inline editor (later phase).
 const editingMessageId = ref<number | null>(null)
 const deletingMessage = ref<Message | null>(null)
+const deleting = ref(false)
+const deleteOpen = computed({
+  get: () => deletingMessage.value !== null,
+  set: (open) => {
+    if (!open && !deleting.value) deletingMessage.value = null
+  },
+})
 provide(messageActionsKey, {
   edit: (message) => {
     editingMessageId.value = message.id
@@ -176,6 +184,51 @@ function onLiveDeleted(event: MessageDeletedEvent): void {
   thread.remove(event)
 }
 
+async function confirmDelete(): Promise<void> {
+  const target = deletingMessage.value
+  if (!target || deleting.value) return
+  const current = generation
+  deleting.value = true
+  try {
+    const response = await deleteMessage(target.channel_id, target.id)
+    // The server already deleted it; the stores belong to this channel, so skip them if we left it (L-32).
+    if (current !== generation) return
+    const deleted = response.data
+    onLiveDeleted({
+      id: deleted.id,
+      channel_id: deleted.channel_id,
+      parent_id: deleted.parent_id,
+      deleted_at: deleted.deleted_at ?? new Date().toISOString(),
+      root: response.meta?.root ?? {
+        id: deleted.id,
+        replies_count: deleted.replies_count,
+        last_reply_at: deleted.last_reply_at,
+      },
+    })
+  } catch (caught) {
+    if (current !== generation) return
+    const status = caught instanceof ApiError ? caught.status : 0
+    const key =
+      status === 403
+        ? 'message.deleteForbidden'
+        : status === 404
+          ? 'message.deleteGone'
+          : status === 422
+            ? 'message.deleteArchived'
+            : status === 429
+              ? 'message.deleteThrottled'
+              : 'message.deleteFailed'
+    toast[status === 404 ? 'info' : 'error'](t(key))
+    if (status === 404) {
+      void messages.catchUp()
+      if (threadId.value !== null) void thread.catchUp()
+    }
+  } finally {
+    deleting.value = false
+    if (current === generation) deletingMessage.value = null
+  }
+}
+
 function leaveRealtime(): void {
   unsubscribe?.()
   unsubscribe = null
@@ -188,6 +241,7 @@ function reload(): void {
   channel.value = null
   channelLoadFailed.value = false
   leaveRealtime()
+  deletingMessage.value = null
   thread.clear()
   if (!Number.isInteger(channelId.value) || channelId.value < 1) {
     messages.clear()
@@ -298,6 +352,17 @@ defineExpose({ openThread })
         />
       </template>
     </div>
+    <AppDialog v-model:open="deleteOpen" :title="t('message.deleteTitle')" :close-label="t('message.deleteCancel')">
+      <p data-test="delete-text">{{ t('message.deleteConfirm') }}</p>
+      <div class="channel__dialog-actions">
+        <button type="button" class="channel__cancel" data-test="delete-cancel" :disabled="deleting" @click="deleteOpen = false">
+          {{ t('message.deleteCancel') }}
+        </button>
+        <button type="button" class="channel__confirm" data-test="delete-confirm" :disabled="deleting" @click="confirmDelete">
+          {{ deleting ? t('message.deleting') : t('message.delete') }}
+        </button>
+      </div>
+    </AppDialog>
   </section>
 </template>
 
@@ -332,5 +397,38 @@ defineExpose({ openThread })
   margin: 0;
   padding: 12px 20px;
   font-size: 17px;
+}
+.channel__dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: var(--space-4);
+}
+.channel__cancel,
+.channel__confirm {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.channel__confirm {
+  border-color: var(--level-error-fg);
+  background: var(--level-error-bg);
+  color: var(--level-error-fg);
+}
+.channel__cancel:disabled,
+.channel__confirm:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.channel__cancel:focus-visible,
+.channel__confirm:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 </style>

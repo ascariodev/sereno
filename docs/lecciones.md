@@ -50,6 +50,7 @@
 - L-37: Todo endpoint o evento que devuelve un `MessageResource` carga lo mismo que `index` (`RELATIONS` y `loadParticipants`): el resource rellena con `[]` lo que falta y el cliente lo toma como dato. — aplicada en: test (MessageUpdateApiTest)
 - L-38: Un evento a `users.{id}` sobre un cambio que puede afectar a quien ya no es miembro (mención quitada, revocación) lleva solo ids, nunca el contenido del mensaje. — aplicada en: test (MentionRemovedBroadcastTest)
 - L-39: Un cambio de semántica de un store (p. ej. "ausente con `next_cursor: null` = borrado") corre también los specs de las vistas que lo usan con fixtures propios (`ChannelView.spec`), no solo el del store. — aplicada en: test (ChannelView.spec)
+- L-40: Un estado local de una vista que no se desmonta al cambiar de ruta (diálogo abierto, mensaje seleccionado) se limpia en el `reload()` de la vista, con un spec de cambio de canal con el diálogo abierto. — aplicada en: test (ChannelView.spec)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

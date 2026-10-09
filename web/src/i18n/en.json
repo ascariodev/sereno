@@ -198,7 +198,16 @@
     "deleted": "Message deleted",
     "actions": "Message actions",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "deleteTitle": "Delete message",
+    "deleteConfirm": "This message will be deleted for everyone. This cannot be undone.",
+    "deleteCancel": "Cancel",
+    "deleting": "Deleting...",
+    "deleteForbidden": "You cannot delete this message.",
+    "deleteGone": "The message was already deleted.",
+    "deleteArchived": "This channel is archived; messages cannot be deleted.",
+    "deleteThrottled": "Too many requests. Try again in a moment.",
+    "deleteFailed": "Could not delete the message."
   },
   "channel": {
     "title": "Channel",

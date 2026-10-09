@@ -39,14 +39,14 @@ const channels = {
   data: [{ id: 7, project_id: 1, name: 'DEMO', archived_at: null, created_at: '', project: { id: 1, name: 'Demo', key: 'D' } }],
 }
 
-async function mountView(path = '/channels/7') {
+async function mountView(path = '/channels/7', attach = false) {
   const pinia = createPinia()
   setActivePinia(pinia)
   useAuthStore().$patch({ token: 't', user: { id: 1, name: 'Ana', email: 'a@b.c', locale: null } })
   useOrganizationStore().$patch({ activeId: 1 })
   const router = createAppRouter(createMemoryHistory())
   await router.push(path)
-  const wrapper = mount(ChannelView, { global: { plugins: [pinia, i18n, router] } })
+  const wrapper = mount(ChannelView, { global: { plugins: [pinia, i18n, router] }, attachTo: attach ? document.body : undefined })
   await flushPromises()
   return Object.assign(wrapper, { router })
 }
@@ -785,6 +785,186 @@ describe('ChannelView thread panel', () => {
     expect(aside.text()).toContain('reply 2')
     expect((aside.find('textarea').element as HTMLTextAreaElement).value).toBe('draft reply')
     expect(useThreadStore().rootId).toBe(1)
+    wrapper.unmount()
+  })
+})
+
+describe('ChannelView delete confirmation', () => {
+  const root = { ...message(1), replies_count: 2, last_reply_at: '2026-01-01T05:00:00Z' }
+  const reply = { ...message(2), parent_id: 1, body: 'reply 2' }
+  const key = (el: Element, name: string) => el.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true, cancelable: true }))
+  const settle = async () => {
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await flushPromises()
+  }
+  const dialog = () => document.querySelector('[role=dialog]')
+  const confirmButton = () => document.querySelector<HTMLButtonElement>('[data-test=delete-confirm]')!
+
+  async function openDelete(wrapper: Awaited<ReturnType<typeof mountView>>, index = 0) {
+    const trigger = wrapper.findAll('.message-item__actions-trigger')[index].element as HTMLButtonElement
+    trigger.focus()
+    key(trigger, 'ArrowDown')
+    await settle()
+    key(document.activeElement!, 'ArrowDown')
+    key(document.activeElement!, 'Enter')
+    await settle()
+  }
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    toast.clear()
+    i18n.global.locale.value = 'en'
+    setRealtimeClientFactory(() => null)
+    mockApi(() => ({ data: [root], meta: { next_cursor: null } }))
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+    useProjectsStore().clear()
+  })
+
+  it('opens a confirmation, cancel closes it without calling the API', async () => {
+    const del = vi.spyOn(api, 'delete')
+    const wrapper = await mountView('/channels/7', true)
+    expect(dialog()).toBeNull()
+    await openDelete(wrapper)
+    expect(dialog()).not.toBeNull()
+    expect(dialog()!.textContent).toContain('cannot be undone')
+    document.querySelector<HTMLButtonElement>('[data-test=delete-cancel]')!.click()
+    await settle()
+    expect(dialog()).toBeNull()
+    expect(del).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('deletes a root with replies, applies the response without waiting for the event and ignores the duplicate event', async () => {
+    const realtime = fakeRealtime()
+    const del = vi.spyOn(api, 'delete').mockResolvedValue({ data: { ...root, body: null, deleted_at: '2026-01-02T00:00:00Z' } } as never)
+    const wrapper = await mountView('/channels/7', true)
+    await openDelete(wrapper)
+    confirmButton().click()
+    confirmButton().click()
+    await settle()
+    expect(del).toHaveBeenCalledTimes(1)
+    expect(del).toHaveBeenCalledWith('/api/channels/7/messages/1')
+    expect(dialog()).toBeNull()
+    const stored = () => useMessagesStore().messages.find((item) => item.id === 1)
+    expect(stored()?.deleted_at).toBe('2026-01-02T00:00:00Z')
+    expect(stored()?.replies_count).toBe(2)
+    expect(wrapper.find('[data-test="deleted"]').exists()).toBe(true)
+    realtime.emitEvent('.message.deleted', {
+      id: 1,
+      channel_id: 7,
+      parent_id: null,
+      deleted_at: '2026-01-02T00:00:00Z',
+      root: { id: 1, replies_count: 2, last_reply_at: '2026-01-01T05:00:00Z' },
+    })
+    await settle()
+    expect(useMessagesStore().messages).toHaveLength(1)
+    expect(stored()?.replies_count).toBe(2)
+    wrapper.unmount()
+  })
+
+  it('removes a root without replies from the list', async () => {
+    vi.spyOn(api, 'delete').mockResolvedValue({
+      data: { ...message(1), replies_count: 0, body: null, deleted_at: '2026-01-02T00:00:00Z' },
+    } as never)
+    mockApi(() => ({ data: [message(1)], meta: { next_cursor: null } }))
+    const wrapper = await mountView('/channels/7', true)
+    await openDelete(wrapper)
+    confirmButton().click()
+    await settle()
+    expect(useMessagesStore().messages).toEqual([])
+    wrapper.unmount()
+  })
+
+  it('applies meta.root to both stores when deleting a reply from the open thread', async () => {
+    const replies = vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') return channels as never
+      if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+      if (/replies$/.test(path)) return { data: [reply], meta: { next_cursor: null } } as never
+      return { data: [{ ...root, replies_count: 1 }], meta: { next_cursor: null } } as never
+    })
+    vi.spyOn(api, 'delete').mockResolvedValue({
+      data: { ...reply, body: null, deleted_at: '2026-01-02T00:00:00Z' },
+      meta: { root: { id: 1, replies_count: 0, last_reply_at: null } },
+    } as never)
+    const wrapper = await mountView('/channels/7?thread=1', true)
+    expect(replies).toHaveBeenCalled()
+    const actions = wrapper.findAll('.message-item__actions-trigger')
+    await openDelete(wrapper, actions.length - 1)
+    confirmButton().click()
+    await settle()
+    expect(useThreadStore().replies).toEqual([])
+    expect(useMessagesStore().messages.find((item) => item.id === 1)?.replies_count).toBe(0)
+    wrapper.unmount()
+  })
+
+  it.each([
+    [403, 'cannot delete this message'],
+    [404, 'already deleted'],
+    [422, 'archived'],
+    [429, 'Too many requests'],
+    [500, 'Could not delete'],
+  ])('shows a translated toast for a %i and closes the dialog', async (status, text) => {
+    vi.spyOn(api, 'delete').mockRejectedValue(new ApiError(status, 'x'))
+    const wrapper = await mountView('/channels/7', true)
+    await openDelete(wrapper)
+    confirmButton().click()
+    await settle()
+    expect(toasts.value.map((item) => item.message).join()).toContain(text)
+    expect(dialog()).toBeNull()
+    expect(useMessagesStore().messages.find((item) => item.id === 1)?.deleted_at).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('translates the error toast to Spanish', async () => {
+    i18n.global.locale.value = 'es'
+    vi.spyOn(api, 'delete').mockRejectedValue(new ApiError(429, 'x'))
+    const wrapper = await mountView('/channels/7', true)
+    await openDelete(wrapper)
+    confirmButton().click()
+    await settle()
+    expect(toasts.value[0].message).toContain('Demasiadas solicitudes')
+    wrapper.unmount()
+  })
+
+  it('does not touch the stores if the channel changed while deleting', async () => {
+    let resolve!: (value: unknown) => void
+    vi.spyOn(api, 'delete').mockReturnValue(new Promise((r) => (resolve = r)) as never)
+    const wrapper = await mountView('/channels/7', true)
+    await openDelete(wrapper)
+    confirmButton().click()
+    await settle()
+    expect(confirmButton().disabled).toBe(true)
+    await wrapper.router.push('/channels/8')
+    await settle()
+    resolve({ data: { ...root, body: null, deleted_at: '2026-01-02T00:00:00Z' } })
+    await settle()
+    expect(useMessagesStore().messages.find((item) => item.id === 1)?.deleted_at ?? null).toBeNull()
+    expect(toasts.value).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  it('closes the dialog when the channel changes', async () => {
+    const wrapper = await mountView('/channels/7', true)
+    await openDelete(wrapper)
+    expect(dialog()).not.toBeNull()
+    await wrapper.router.push('/channels/8')
+    await settle()
+    expect(dialog()).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('catches up the channel after a 404', async () => {
+    vi.spyOn(api, 'delete').mockRejectedValue(new ApiError(404, 'x'))
+    const wrapper = await mountView('/channels/7', true)
+    const catchUp = vi.spyOn(useMessagesStore(), 'catchUp')
+    await openDelete(wrapper)
+    confirmButton().click()
+    await settle()
+    expect(catchUp).toHaveBeenCalledTimes(1)
     wrapper.unmount()
   })
 })

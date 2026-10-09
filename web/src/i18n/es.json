@@ -198,7 +198,16 @@
     "deleted": "Mensaje eliminado",
     "actions": "Acciones del mensaje",
     "edit": "Editar",
-    "delete": "Eliminar"
+    "delete": "Eliminar",
+    "deleteTitle": "Eliminar mensaje",
+    "deleteConfirm": "Este mensaje se eliminará para todos. No se puede deshacer.",
+    "deleteCancel": "Cancelar",
+    "deleting": "Eliminando...",
+    "deleteForbidden": "No puedes eliminar este mensaje.",
+    "deleteGone": "El mensaje ya estaba eliminado.",
+    "deleteArchived": "Este canal está archivado; no se pueden eliminar mensajes.",
+    "deleteThrottled": "Demasiadas solicitudes. Inténtalo de nuevo en un momento.",
+    "deleteFailed": "No se pudo eliminar el mensaje."
   },
   "channel": {
     "title": "Canal",
