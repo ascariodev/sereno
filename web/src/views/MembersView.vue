@@ -9,10 +9,12 @@ import AppDialog from '../components/ui/AppDialog.vue'
 import { toast } from '../components/ui/toast'
 import { expectOwnLeave } from '../realtime/useMembershipWatch'
 import { useAuthStore } from '../stores/auth'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 
 const { t, locale } = useI18n()
 const organization = useOrganizationStore()
+const directory = useMemberDirectoryStore()
 const auth = useAuthStore()
 const router = useRouter()
 
@@ -63,6 +65,7 @@ async function load(): Promise<void> {
     const result = await listMembers(controller.signal)
     if (current !== generation) return
     members.value = result
+    directory.invalidate()
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
@@ -87,6 +90,7 @@ async function changeRole(member: Member, event: Event): Promise<void> {
     if (current === generation) {
       members.value = members.value.map((m) => (m.id === updated.id ? updated : m))
     }
+    directory.invalidate()
     if (member.id === auth.user?.id) {
       try {
         await organization.load()
@@ -147,6 +151,7 @@ async function confirmRemove(): Promise<void> {
       await leave(stillCurrent)
       return
     }
+    directory.invalidate()
     if (current !== generation) return
     members.value = members.value.filter((m) => m.id !== target.id)
     toast.success(t('members.removed', { name: target.name }))
@@ -154,6 +159,7 @@ async function confirmRemove(): Promise<void> {
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
     if (error.status === 404) {
+      directory.invalidate()
       members.value = members.value.filter((m) => m.id !== target.id)
       toast.info(t('members.removeGone'))
     } else {

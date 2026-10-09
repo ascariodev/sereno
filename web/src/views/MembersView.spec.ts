@@ -8,6 +8,7 @@ import { i18n, setLocale } from '../i18n'
 import { MEMBERSHIP_REVOKED_EVENT, setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import MembersView from './MembersView.vue'
@@ -167,6 +168,15 @@ describe('MembersView', () => {
       expect(wrapper!.find('[data-test=role-error]').exists()).toBe(false)
     })
 
+    it('invalidates the mention directory after changing a role', async () => {
+      await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      const invalidate = vi.spyOn(useMemberDirectoryStore(), 'invalidate')
+      vi.spyOn(api, 'patch').mockResolvedValue({ data: member(2, 'admin') })
+      await wrapper!.findAll('select')[1].setValue('admin')
+      await flushPromises()
+      expect(invalidate).toHaveBeenCalledTimes(1)
+    })
+
     it('shows the API message on 422 and restores the previous role', async () => {
       await mountView([member(1, 'owner'), member(2, 'owner')], ['owner'])
       vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(422, 'Cannot remove the last owner.', {}))
@@ -291,6 +301,17 @@ describe('MembersView', () => {
       expect(wrapper!.findAll('[data-test=name]').map((el) => el.text())).toEqual(['User 1'])
       expect(toasts.value.map((item) => item.kind)).toEqual(['success'])
       expect(document.querySelector('[role=dialog]')).toBeNull()
+    })
+
+    it('invalidates the mention directory after removing a member', async () => {
+      await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      const invalidate = vi.spyOn(useMemberDirectoryStore(), 'invalidate')
+      vi.spyOn(api, 'delete').mockResolvedValue(undefined as never)
+      await wrapper!.find('[data-test=remove]').trigger('click')
+      await flushPromises()
+      dialogButton('confirm')!.click()
+      await flushPromises()
+      expect(invalidate).toHaveBeenCalledTimes(1)
     })
 
     it('cancels without removing', async () => {

@@ -429,7 +429,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   nombres con emoji y de pegar `@Anabel` sobre la mención `@Ana` (hoy la conserva).
 - [x] M-23 (baja, sonnet): test del límite con el token expandido (`<@id>` más largo que `@Nombre`) y `role=status`
   del conteo de sugerencias siempre montado.
-- [ ] M-24 (media, sonnet): refrescar la caché de miembros cuando cambian dentro de la misma organización (altas o
+- [x] M-24 (media, sonnet): refrescar la caché de miembros cuando cambian dentro de la misma organización (altas o
   bajas en `MembersView`, o al volver a abrir la lista tras un tiempo).
 - [x] M-25 (baja, sonnet): `markRead`/`markAllRead` invalidan o relanzan un `refresh`/`loadMore` en vuelo, para que
   una respuesta previa al commit no deje filas como no leídas (L-35); `start()` con objeto de opciones en vez de
@@ -483,3 +483,4 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   y un helper común para "fecha mayor"; spec de `ThreadAside` que fije que no se muestra `thread-root-unavailable`
   mientras carga.
 - [ ] M-44 (baja, sonnet): `MessageController::loadParticipants` usa `$users->get($id)` y filtra nulos, por si un usuario se borra entre las dos consultas.
+- [ ] M-45 (baja, sonnet): spec de `memberDirectory` que fije que `invalidate()` conserva la lista visible hasta que llega la nueva; y altas de otra persona en vivo (evento de membresía) en vez de esperar el TTL.
