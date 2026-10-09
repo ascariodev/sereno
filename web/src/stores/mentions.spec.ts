@@ -358,6 +358,36 @@ describe('mentions store', () => {
       expect(store.unreadCount).toBe(1)
     })
 
+    it('treats the rows of a page in flight as read when mark all is confirmed meanwhile', async () => {
+      vi.spyOn(mentionsApi, 'listMentions').mockResolvedValue(page([mention(3), mention(2)], 2, 'c1'))
+      const { store } = setup()
+      await store.refresh()
+      const more = deferred<MentionPage>()
+      vi.mocked(mentionsApi.listMentions).mockReturnValueOnce(more.promise)
+      vi.spyOn(mentionsApi, 'markMentionsRead').mockResolvedValue(0)
+      const loading = store.loadMore()
+      await store.markAllRead()
+      more.resolve(page([mention(1)], 1, null))
+      await loading
+      expect(store.mentions.every((m) => m.read_at !== null)).toBe(true)
+      expect(store.unreadCount).toBe(0)
+    })
+
+    it('keeps everything read when mark all is confirmed while a refresh is in flight', async () => {
+      const { store } = await loaded()
+      const stale = deferred<MentionPage>()
+      const list = vi.mocked(mentionsApi.listMentions)
+      list.mockReturnValueOnce(stale.promise).mockResolvedValueOnce(page([mention(3, true), mention(2, true), mention(1, true)], 0))
+      vi.spyOn(mentionsApi, 'markMentionsRead').mockResolvedValue(0)
+      const refresh = store.refresh()
+      await store.markAllRead()
+      stale.resolve(page([mention(3), mention(2), mention(1, true)], 2))
+      await refresh
+      await vi.waitFor(() => expect(store.loading).toBe(false))
+      expect(store.mentions.every((m) => m.read_at !== null)).toBe(true)
+      expect(store.unreadCount).toBe(0)
+    })
+
     it('ignores the result of a mark that finishes after a clear', async () => {
       const { organization, store } = await loaded()
       const mark = deferred<number>()

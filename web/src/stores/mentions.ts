@@ -10,7 +10,10 @@ function toApiError(caught: unknown): ApiError {
   return caught instanceof ApiError ? caught : new ApiError(0, String(caught))
 }
 
-/** Merges by mention id (the incoming version wins, except it never un-reads a local read) and sorts newest first. */
+/**
+ * Merges by mention id (the incoming version wins, except it never un-reads a local read) and sorts newest first.
+ * Keeping the local `read_at` is only correct while there is no "mark as unread" action; adding one means revisiting this.
+ */
 function mergeMentions(current: readonly Mention[], incoming: readonly Mention[]): Mention[] {
   const byId = new Map(current.map((mention) => [mention.id, mention]))
   for (const mention of incoming) {
@@ -38,6 +41,8 @@ export const useMentionsStore = defineStore('mentions', () => {
   let generation = 0
   let fetchVersion = 0
   let countVersion = 0
+  let readAllVersion = 0
+  let readAllAt = ''
   let controller = new AbortController()
   let live = false
   let stopLive: (() => void) | null = null
@@ -105,12 +110,18 @@ export const useMentionsStore = defineStore('mentions', () => {
     if (cursor === null || !loaded.value || loadingMore.value) return
     const current = generation
     const counted = countVersion
+    const readAll = readAllVersion
     loadingMore.value = true
     loadMoreFailed.value = false
     try {
       const page = await listMentions({ cursor, perPage: MENTIONS_PER_PAGE }, controller.signal)
       if (current !== generation) return
-      mentions.value = mergeMentions(mentions.value, page.data)
+      // A "mark all" confirmed while this page was in flight covers its (older) rows, which may still arrive unread.
+      const rows =
+        readAll === readAllVersion
+          ? page.data
+          : page.data.map((row) => (row.read_at === null ? { ...row, read_at: readAllAt } : row))
+      mentions.value = mergeMentions(mentions.value, rows)
       nextCursor.value = page.meta.next_cursor
       if (counted === countVersion) setUnread(page.meta.unread_count)
     } catch {
@@ -171,6 +182,8 @@ export const useMentionsStore = defineStore('mentions', () => {
       if (current !== generation) return true
       setReadAt(new Set(mentions.value.filter((m) => m.read_at === null).map((m) => m.id)), readAt)
       setUnread(count)
+      readAllAt = readAt
+      readAllVersion++
       invalidateInFlight()
       return true
     } catch {

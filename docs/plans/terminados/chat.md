@@ -454,7 +454,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [x] M-37 (baja, sonnet): un solo `role=status` para los avisos de vista previa no disponible en `MessageAttachments`.
 - [ ] M-38 (media, sonnet): conservar el borrador del composer del hilo al cruzar el umbral de 767 px (hoy la hoja y
   el aside son dos `ThreadAside` distintos; subir el borrador a un store o teleportar uno solo).
-- [ ] M-39 (baja, sonnet): tras `markAllRead`, invalidar o relanzar un `loadMore` en vuelo (sus filas nuevas llegan como
+- [x] M-39 (baja, sonnet): tras `markAllRead`, invalidar o relanzar un `loadMore` en vuelo (sus filas nuevas llegan como
   no leídas con `unreadCount` en 0), test de `markAllRead` con `refresh` en vuelo, y comentar en `mergeMentions` que
   depende de que no exista "marcar no leída".
 - [ ] M-40 (baja, sonnet): `subscribeToUser` con objeto de opciones en vez de callbacks posicionales (actualizar
