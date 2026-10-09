@@ -79,8 +79,7 @@ export const useMessagesStore = defineStore('messages', () => {
     error.value = null
   }
 
-  function applyReply(reply: Message): boolean {
-    const rootId = reply.parent_id as number
+  function applyReply(reply: Message, rootId: number): boolean {
     if (countedReplies.has(reply.id)) return false
     countedReplies.add(reply.id)
     const bump = (root: Message): Message => ({
@@ -107,7 +106,7 @@ export const useMessagesStore = defineStore('messages', () => {
 
   function insert(message: Message): boolean {
     if (message.channel_id !== channelId.value) return false
-    if (message.parent_id !== null) return applyReply(message)
+    if (message.parent_id !== null) return applyReply(message, message.parent_id)
     if (has(message.id)) return false
     observeStatusMessage(message)
     pending.set(message.id, message)

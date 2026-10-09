@@ -430,6 +430,13 @@ describe('messages store', () => {
       expect(store.messages[0].replies_count).toBe(0)
     })
 
+    it('ignores a reply without an open channel', () => {
+      const store = useMessagesStore()
+      expect(store.channelId).toBeNull()
+      expect(store.insert(reply(9, 2))).toBe(false)
+      expect(store.messages).toEqual([])
+    })
+
     it('forgets counted replies on clear', async () => {
       vi.spyOn(api, 'get').mockResolvedValue({ data: [root(2, 0)], meta: { next_cursor: null } } as never)
       const store = useMessagesStore()
