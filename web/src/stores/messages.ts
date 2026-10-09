@@ -35,6 +35,7 @@ function mergeById(current: readonly Message[], incoming: readonly Message[]): M
 }
 
 const MAX_PARTICIPANTS = 3
+const MAX_UNLOADED_DELETIONS = 200
 
 /** Puts the reply author first, once, keeping the newest `MAX_PARTICIPANTS`. */
 function withParticipant(current: Message['recent_participants'], author: Message['user']): Message['recent_participants'] {
@@ -120,6 +121,8 @@ export const useMessagesStore = defineStore('messages', () => {
   let deletedRoots = new Map<number, string>()
   /** Replies deleted in live; a late `created` of one of them must not count. */
   let removedReplies = new Set<number>()
+  /** Roots deleted in live before their `created` arrived (bounded, oldest dropped first). */
+  let unloadedDeletions = new Map<number, Removal>()
   let flushScheduled = false
 
   function has(id: number): boolean {
@@ -150,6 +153,7 @@ export const useMessagesStore = defineStore('messages', () => {
     removals = new Map()
     deletedRoots = new Map()
     removedReplies = new Set()
+    unloadedDeletions = new Map()
     flushScheduled = false
     channelId.value = null
     messages.value = []
@@ -243,7 +247,15 @@ export const useMessagesStore = defineStore('messages', () => {
   function insert(message: Message): boolean {
     if (message.channel_id !== channelId.value) return false
     if (message.parent_id !== null) return applyReply(message, message.parent_id)
-    if (has(message.id) || deletedRoots.has(message.id)) return false
+    if (has(message.id)) return false
+    const early = unloadedDeletions.get(message.id)
+    if (early !== undefined) {
+      unloadedDeletions.delete(message.id)
+      if (message.deleted_at !== null) return false
+      const settled = settle(rebase(message, early))
+      if (settled === null) return false
+      message = settled
+    } else if (deletedRoots.has(message.id)) return false
     observeStatusMessage(message)
     pending.set(message.id, message)
     if (!flushScheduled) {
@@ -283,7 +295,12 @@ export const useMessagesStore = defineStore('messages', () => {
       countedReplies.delete(event.id)
     }
     snapshots.set(event.root.id, laterDate(event.root.last_reply_at, event.deleted_at))
-    return update(event.root.id, (root) => settle(rebase(root, effective)))
+    const applied = update(event.root.id, (root) => settle(rebase(root, effective)))
+    if (!applied && event.parent_id === null) {
+      unloadedDeletions.set(event.id, effective)
+      if (unloadedDeletions.size > MAX_UNLOADED_DELETIONS) unloadedDeletions.delete(unloadedDeletions.keys().next().value as number)
+    }
+    return applied
   }
 
   async function open(id: number): Promise<void> {

@@ -172,7 +172,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - [x] M-10 (baja, sonnet): guard de `message.created` y `message.updated` en `echo.ts` que valide `typeof message.id === 'number'` (L-13), como el de `message.deleted`.
 - [x] M-11 (baja, sonnet): `stores/messages.ts`: mover `isOlderEdit` para que no quede entre el comentario de `snapshotCounts` y su función; en `remove`, no sobrescribir `removals` de una raíz con un borrado de `deleted_at` más viejo.
 - [x] M-12 (baja, sonnet): al borrar una respuesta en vivo, recalcular `recent_participants` de la raíz (hoy lo corrige el siguiente snapshot).
-- [ ] M-13 (baja, sonnet): si `message.deleted` de una raíz llega antes que su `message.created`, el marcador no aparece hasta el siguiente snapshot.
+- [x] M-13 (baja, sonnet): si `message.deleted` de una raíz llega antes que su `message.created`, el marcador no aparece hasta el siguiente snapshot.
 - [ ] M-14 (baja, sonnet): comentario en `stores/thread.ts` (`replace`) sobre `edits` de respuestas no cargadas (acotado por eventos, se limpia en `clear`).
 - [ ] M-15 (media, sonnet): decidir si la API rechaza responder a una raíz borrada sin respuestas (hoy la revive como marcador) y, si se rechaza, ocultar el composer del panel.
 - [ ] M-16 (baja, sonnet): specs de `ChannelView` para eventos de otro canal y de otra raíz, y para una raíz borrada sin respuestas con el hilo abierto.

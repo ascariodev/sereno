@@ -580,6 +580,45 @@ describe('messages store', () => {
       expect(store.messages[0].body).toBe('m1')
     })
 
+    it('inserts as a marker a root whose deletion arrived first when it has replies, and drops it otherwise', async () => {
+      vi.spyOn(api, 'get').mockResolvedValueOnce(page([1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      expect(store.remove(deleted(7, null, [7, 2, '2026-01-02T00:00:00Z']))).toBe(false)
+      expect(store.remove(deleted(8, null, [8, 0, null]))).toBe(false)
+      expect(store.insert(message(7))).toBe(true)
+      expect(store.insert(message(8))).toBe(false)
+      await nextTick()
+      expect(store.messages.map((m) => m.id)).toEqual([1, 7])
+      expect(store.messages[1].deleted_at).not.toBeNull()
+      expect(store.messages[1].replies_count).toBe(2)
+      expect(store.insert(message(7))).toBe(false)
+    })
+
+    it('counts live replies created after the deletion on a root that arrives late', async () => {
+      vi.spyOn(api, 'get').mockResolvedValueOnce(page([1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      store.remove(deleted(7, null, [7, 2, '2026-01-02T00:00:00Z']))
+      expect(store.insert({ ...message(20), parent_id: 7, created_at: '2026-01-05T00:00:00Z' })).toBe(true)
+      expect(store.insert(message(7))).toBe(true)
+      await nextTick()
+      expect(store.messages.map((m) => m.id)).toEqual([1, 7])
+      expect(store.messages[1].replies_count).toBe(3)
+    })
+
+    it('forgets deletions of unloaded roots on clear', async () => {
+      vi.spyOn(api, 'get').mockResolvedValueOnce(page([1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      store.remove(deleted(7, null, [7, 2, '2026-01-02T00:00:00Z']))
+      store.clear()
+      store.channelId = 5
+      expect(store.insert(message(7))).toBe(true)
+      await nextTick()
+      expect(store.messages[0].deleted_at).toBeNull()
+    })
+
     it('removes a deleted root without replies, from the list and from the queue', async () => {
       vi.spyOn(api, 'get').mockResolvedValueOnce(page([2, 1], null) as never)
       const store = useMessagesStore()
