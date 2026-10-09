@@ -171,6 +171,18 @@ it('replies to a user message and to a system notice, bumping the root counters'
         ->and(Message::withoutGlobalScopes()->find($notice)->replies_count)->toBe(1);
 });
 
+it('does not move last_reply_at backwards when a reply is older than it', function () {
+    $root = systemRootIn($this->channel);
+    $later = now()->addHour()->startOfSecond();
+    DB::table('messages')->where('id', $root)->update(['last_reply_at' => $later]);
+
+    replyTo($this, $this->channel, $root)->assertCreated();
+
+    $rootRow = Message::withoutGlobalScopes()->find($root);
+    expect($rootRow->replies_count)->toBe(1)
+        ->and($rootRow->last_reply_at->equalTo($later))->toBeTrue();
+});
+
 it('excludes replies from the main list', function () {
     $root = postingAs($this->users['admin'], $this->organization)
         ->postJson("/api/channels/{$this->channel->id}/messages", ['body' => 'root'])->json('data.id');

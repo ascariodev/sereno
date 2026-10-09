@@ -383,7 +383,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-5 (media, sonnet): límites de adjuntos y almacenamiento por plan de la organización (`docs/monetizacion.md`).
 - [ ] M-6 (baja, sonnet): hacer parcial el índice `(parent_id, id DESC)` con `WHERE parent_id IS NOT NULL`, para no
   indexar los mensajes raíz.
-- [ ] M-7 (baja, sonnet): fijar `last_reply_at` con `GREATEST(last_reply_at, ...)` para que respuestas concurrentes
+- [x] M-7 (baja, sonnet): fijar `last_reply_at` con `GREATEST(last_reply_at, ...)` para que respuestas concurrentes
   confirmadas en otro orden no lo hagan retroceder.
 - [ ] M-8 (baja, sonnet): en el test de aislamiento de `parent_id`, afirmar que la raíz de la otra organización sigue
   con `replies_count` 0.

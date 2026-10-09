@@ -84,7 +84,7 @@ class MessageController extends Controller
             if ($parentId !== null) {
                 Message::query()->whereKey($parentId)->update([
                     'replies_count' => DB::raw('replies_count + 1'),
-                    'last_reply_at' => $message->created_at,
+                    'last_reply_at' => DB::raw('GREATEST(last_reply_at, '.DB::getPdo()->quote($message->created_at->format('Y-m-d H:i:s')).'::timestamp)'),
                 ]);
             }
 
