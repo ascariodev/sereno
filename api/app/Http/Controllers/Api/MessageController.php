@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Chat\MessageMentions;
+use App\Events\MessageUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Channel\ListMessagesRequest;
 use App\Http\Requests\Channel\StoreMessageRequest;
@@ -131,8 +132,11 @@ class MessageController extends Controller
     {
         $body = $request->validated('body');
 
-        DB::transaction(function () use ($request, $channel, $message, $mentions, $body) {
+        $edited = false;
+
+        DB::transaction(function () use ($request, $channel, $message, $mentions, $body, &$edited) {
             if (($message->body ?? '') !== ($body ?? '')) {
+                $edited = true;
                 $message->body = $body;
                 $message->edited_at = now();
                 $message->save();
@@ -143,6 +147,10 @@ class MessageController extends Controller
 
         $message->load(self::RELATIONS);
         $this->loadParticipants([$message]);
+
+        if ($edited) {
+            MessageUpdated::dispatch($message);
+        }
 
         return new MessageResource($message);
     }

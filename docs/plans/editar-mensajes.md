@@ -2,7 +2,7 @@
 
 **Objetivo:** que el autor de un mensaje pueda editar su texto (con menciones) y borrarlo, con el cambio en vivo
 para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de M-1 de `terminados/chat.md`.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -65,7 +65,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
   cambió; sincroniza menciones (alta con `MentionCreated` solo para las nuevas, baja de filas quitadas).
   `MessageResource` agrega `edited_at`.
 
-### [ ] Fase 5 — Evento en vivo de la edición (api)
+### [x] Fase 5 — Evento en vivo de la edición (api)
 - `MessageUpdated` (`message.updated`, mismo canal, payload `{message}` resuelto, tras el commit) desde el `PATCH`.
 
 ### [ ] Fase 6 — Borrar un mensaje (api) [riesgo]
@@ -144,8 +144,8 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
   cliente aplica aunque bajen) y `mention.removed`. Mismo throttle `channel-messages` para editar y borrar.
 
 ## Notas para la próxima sesión
-- Fases 1 a 4 hechas. `edited_at`/`deleted_at` existen (cast `datetime`, fuera de Fillable: asignar por propiedad o `DB::table`); la función de contenido ignora mensajes con `deleted_at`. `MessagePolicy` (`update`, `delete`) se autodescubre; no cubre canal archivado. En tests, `Channel::factory()->for(Project::factory()->for($org))`.
-- `App\Chat\MessageMentions` (`target`, `diff`, `sync`). PATCH `channels/{channel}/messages/{message}` (`UpdateMessageRequest`, `throttle:channel-messages`): 404 si el mensaje no es del canal (en `authorize()`), `edited_at` solo si cambia el body (precisión de segundos), body vacío solo con adjuntos, no acepta `attachment_ids`; la respuesta carga `RELATIONS` y `loadParticipants`. Fase 5: el payload de `MessageUpdated` debe resolverse igual (RELATIONS + `loadParticipants`). Siguiente: fase 5.
+- Fases 1 a 5 hechas. `edited_at`/`deleted_at` existen (cast `datetime`, fuera de Fillable: asignar por propiedad o `DB::table`); la función de contenido ignora mensajes con `deleted_at`. `MessagePolicy` (`update`, `delete`) se autodescubre; no cubre canal archivado. En tests, `Channel::factory()->for(Project::factory()->for($org))`.
+- `App\Chat\MessageMentions` (`target`, `diff`, `sync`). PATCH `channels/{channel}/messages/{message}` (`UpdateMessageRequest`, `throttle:channel-messages`): 404 si el mensaje no es del canal (en `authorize()`), `edited_at` solo si cambia el body (precisión de segundos), body vacío solo con adjuntos, no acepta `attachment_ids`; la respuesta carga `RELATIONS` y `loadParticipants`. `MessageUpdated` (`message.updated`, payload `{message}` con RELATIONS + `loadParticipants`) solo se emite si cambió el body. Siguiente: fase 6 (DELETE).
 
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): owner y admin pueden borrar mensajes de otros (moderación), con el actor en el evento.
@@ -153,3 +153,4 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - [ ] M-3 (baja, sonnet): flecha arriba en el composer vacío edita el último mensaje propio del canal.
 - [ ] M-4 (alta, plan nuevo): historial de ediciones (auditoría, plan Business de `docs/monetizacion.md`).
 - [ ] M-5 (baja, sonnet): bloquear la fila (`lockForUpdate`) en el PATCH para serializar ediciones concurrentes del mismo mensaje (bajo riesgo: solo edita el autor).
+- [ ] M-6 (baja, sonnet): en `MessageUpdated`, dejar explícito (o forzar con `load`) que el payload depende de que el controlador cargue antes `recentParticipants`, porque `loadMissing` no recarga.
