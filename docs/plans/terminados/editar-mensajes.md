@@ -175,11 +175,11 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - [x] M-13 (baja, sonnet): si `message.deleted` de una raíz llega antes que su `message.created`, el marcador no aparece hasta el siguiente snapshot.
 - [x] M-14 (baja, sonnet): comentario en `stores/thread.ts` (`replace`) sobre `edits` de respuestas no cargadas (acotado por eventos, se limpia en `clear`).
 - [ ] M-15 (media, sonnet): decidir si la API rechaza responder a una raíz borrada sin respuestas (hoy la revive como marcador) y, si se rechaza, ocultar el composer del panel.
-- [ ] M-16 (baja, sonnet): specs de `ChannelView` para eventos de otro canal y de otra raíz, y para una raíz borrada sin respuestas con el hilo abierto.
+- [x] M-16 (baja, sonnet): specs de `ChannelView` para eventos de otro canal y de otra raíz, y para una raíz borrada sin respuestas con el hilo abierto.
 - [x] M-17 (baja, sonnet): en `MentionsView.vue`, unificar con `v-if/v-else` o un computed el bloque repetido de `message.deleted_at`.
 - [ ] M-18 (baja, sonnet): al cerrar el diálogo de borrado, devolver el foco al composer o a la lista (el ítem del menú que lo abrió desaparece y el foco cae en `body`); verificar en navegador.
 - [x] M-19 (baja, sonnet): spec de `MessageEditor` de "sin cambios" con una mención restaurada (`<@2>` con el mismo texto visible).
 - [ ] M-20 (media, sonnet): extraer a un composable la lógica de teclado y sugerencias duplicada entre `MessageComposer` y `MessageEditor`.
 - [ ] M-21 (baja, sonnet): al cerrar el panel del hilo (o cambiar de raíz) con una respuesta en edición, limpiar `editingMessageId` (hoy reaparece al reabrir ese hilo), con spec; documentar que abrir o cerrar el hilo de la raíz en edición remonta el editor y pierde el texto.
 - [ ] M-22 (baja, sonnet): `stores/mentions.ts`: vaciar `removedMessages` tras un refresh completo o en `onReconnect`, para que una re-mención ocurrida con el socket caído aparezca en la bandeja (hoy la filtra aunque el contador la cuenta).
-- [ ] M-23 (baja, sonnet): spec de `ChannelView` que compruebe que `confirmDelete` aplica `meta.root.recent_participants`; acortar el docblock de `MessageDeleted`.
+- [x] M-23 (baja, sonnet): spec de `ChannelView` que compruebe que `confirmDelete` aplica `meta.root.recent_participants`; acortar el docblock de `MessageDeleted`.

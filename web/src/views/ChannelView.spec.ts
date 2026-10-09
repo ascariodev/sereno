@@ -711,6 +711,83 @@ describe('ChannelView thread panel', () => {
     expect(wrapper.text()).toContain('reply 2')
   })
 
+  describe('ignores live events of another channel or root', () => {
+    const deletedAt = '2026-01-02T00:00:00Z'
+
+    it('ignores updated and deleted events of another channel', async () => {
+      const realtime = fakeRealtime()
+      mockThread()
+      const wrapper = await mountView('/channels/7?thread=1')
+      realtime.emitEvent('.message.updated', { message: { ...root, channel_id: 8, body: 'other root', edited_at: deletedAt } })
+      realtime.emitEvent('.message.updated', { message: { ...reply(2), channel_id: 8, body: 'other reply', edited_at: deletedAt } })
+      realtime.emitEvent('.message.deleted', {
+        id: 2,
+        channel_id: 8,
+        parent_id: 1,
+        deleted_at: deletedAt,
+        root: { id: 1, replies_count: 0, last_reply_at: null },
+      })
+      realtime.emitEvent('.message.deleted', {
+        id: 1,
+        channel_id: 8,
+        parent_id: null,
+        deleted_at: deletedAt,
+        root: { id: 1, replies_count: 1, last_reply_at: null },
+      })
+      await flushPromises()
+      const stored = useMessagesStore().messages.find((item) => item.id === 1)
+      expect(stored?.body).toBe('body 1')
+      expect(stored?.deleted_at).toBeNull()
+      expect(stored?.replies_count).toBe(1)
+      expect(useThreadStore().replies.map((item) => item.id)).toEqual([2])
+      expect(wrapper.text()).toContain('reply 2')
+      expect(wrapper.text()).not.toContain('other reply')
+    })
+
+    it('ignores updated and deleted events of another root', async () => {
+      const realtime = fakeRealtime()
+      mockThread()
+      const wrapper = await mountView('/channels/7?thread=1')
+      realtime.emitEvent('.message.updated', { message: { ...reply(2, 9), body: 'foreign reply edited', edited_at: deletedAt } })
+      realtime.emitEvent('.message.deleted', {
+        id: 2,
+        channel_id: 7,
+        parent_id: 9,
+        deleted_at: deletedAt,
+        root: { id: 9, replies_count: 0, last_reply_at: null },
+      })
+      await flushPromises()
+      expect(useMessagesStore().messages.find((item) => item.id === 1)?.replies_count).toBe(1)
+      expect(useThreadStore().replies.map((item) => item.id)).toEqual([2])
+      expect(wrapper.text()).toContain('reply 2')
+      expect(wrapper.text()).not.toContain('foreign reply edited')
+    })
+
+    it('removes a deleted root without replies from the channel but keeps it as a marker in the open thread', async () => {
+      const realtime = fakeRealtime()
+      const bare = { ...root, replies_count: 0 }
+      vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/channels') return channels as never
+        if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+        if (repliesPath.test(path)) return { data: [], meta: { next_cursor: null, root: bare } } as never
+        return { data: [bare], meta: { next_cursor: null } } as never
+      })
+      const wrapper = await mountView('/channels/7?thread=1')
+      expect(useMessagesStore().messages.map((item) => item.id)).toEqual([1])
+      realtime.emitEvent('.message.deleted', {
+        id: 1,
+        channel_id: 7,
+        parent_id: null,
+        deleted_at: deletedAt,
+        root: { id: 1, replies_count: 0, last_reply_at: null },
+      })
+      await flushPromises()
+      expect(useMessagesStore().messages).toEqual([])
+      expect(wrapper.find('[data-test="thread-root"]').exists()).toBe(true)
+      expect(wrapper.find('aside[aria-label="Thread"] [data-test="deleted"]').exists()).toBe(true)
+    })
+  })
+
   it('catches up both the channel and the thread after a reconnection', async () => {
     const realtime = fakeRealtime()
     const spy = mockThread()
@@ -899,6 +976,34 @@ describe('ChannelView delete confirmation', () => {
     expect(useThreadStore().replies).toEqual([])
     expect(useMessagesStore().messages.find((item) => item.id === 1)?.replies_count).toBe(0)
     wrapper.unmount()
+  })
+
+  describe('applies recent_participants from meta.root when deleting a reply', () => {
+    it('updates the participants of the channel root and of the thread root', async () => {
+      const ana = { id: 1, name: 'Ana' }
+      const bea = { id: 2, name: 'Bea' }
+      const threadRoot = { ...root, replies_count: 2, recent_participants: [ana, bea] }
+      vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/channels') return channels as never
+        if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+        if (/replies$/.test(path)) return { data: [reply], meta: { next_cursor: null, root: threadRoot } } as never
+        return { data: [threadRoot], meta: { next_cursor: null } } as never
+      })
+      vi.spyOn(api, 'delete').mockResolvedValue({
+        data: { ...reply, body: null, deleted_at: '2026-01-02T00:00:00Z' },
+        meta: { root: { id: 1, replies_count: 1, last_reply_at: '2026-01-01T05:00:00Z', recent_participants: [ana] } },
+      } as never)
+      const wrapper = await mountView('/channels/7?thread=1', true)
+      const actions = wrapper.findAll('.message-item__actions-trigger')
+      await openDelete(wrapper, actions.length - 1)
+      confirmButton().click()
+      await settle()
+      const stored = useMessagesStore().messages.find((item) => item.id === 1)
+      expect(stored?.replies_count).toBe(1)
+      expect(stored?.recent_participants).toEqual([ana])
+      expect(useThreadStore().root?.recent_participants).toEqual([ana])
+      wrapper.unmount()
+    })
   })
 
   it.each([

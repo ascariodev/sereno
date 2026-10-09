@@ -9,11 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 
-/**
- * Holds plain values instead of models: the queue worker has no active organization, so OrganizationScope
- * would fail to restore them. `root` carries the counters and participants already recalculated (the deleted message itself
- * when it is a root).
- */
+/** Plain values, not models: the queue worker has no active organization to restore them. `root` has the recalculated counters. */
 class MessageDeleted implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
     use Dispatchable, InteractsWithSockets;
