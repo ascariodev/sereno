@@ -30,7 +30,7 @@ const rootMessage = computed<Message | null>(
     messages.messages.find((message) => message.id === props.rootId && message.channel_id === props.channelId) ??
     (thread.root?.id === props.rootId && thread.root.channel_id === props.channelId ? thread.root : null),
 )
-const repliesCount = computed(() => Math.max(rootMessage.value?.replies_count ?? 0, thread.replies.length))
+const repliesCount = computed(() => rootMessage.value?.replies_count ?? thread.replies.length)
 const notFound = computed(() => thread.error?.status === 404)
 const panel = ref<HTMLElement | null>(null)
 

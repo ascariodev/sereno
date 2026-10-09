@@ -252,7 +252,7 @@ describe('ChannelView', () => {
       calls++
       return calls === 1
         ? { data: [message(2), message(1)], meta: { next_cursor: null } }
-        : { data: [message(4), message(3), message(2)], meta: { next_cursor: null } }
+        : { data: [message(4), message(3), message(2), message(1)], meta: { next_cursor: null } }
     })
     const wrapper = await mountView()
     realtime.setStatus('connected')

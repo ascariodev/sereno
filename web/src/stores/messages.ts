@@ -52,7 +52,7 @@ function bumpRoot(root: Message, reply: Message): Message {
 }
 
 /** Whether a server snapshot of a root, with this `last_reply_at`, already counts a reply created at `at`. */
-function isOlderEdit(incoming: Message, current: Message): boolean {
+export function isOlderEdit(incoming: Message, current: Message): boolean {
   return incoming.edited_at !== null && current.edited_at !== null && Date.parse(incoming.edited_at) < Date.parse(current.edited_at)
 }
 
@@ -63,7 +63,7 @@ function hasOlderContent(incoming: Message, current: Message): boolean {
 }
 
 /** Takes the counters of the server version and the content of the live one when the server one is older. */
-function keepNewerContent(incoming: Message, current: Message | undefined): Message {
+export function keepNewerContent(incoming: Message, current: Message | undefined): Message {
   if (current === undefined || current.deleted_at !== null || !hasOlderContent(incoming, current)) return incoming
   return {
     ...current,
@@ -73,7 +73,7 @@ function keepNewerContent(incoming: Message, current: Message | undefined): Mess
   }
 }
 
-function snapshotCounts(snapshotLast: string | null | undefined, at: string): boolean {
+export function snapshotCounts(snapshotLast: string | null | undefined, at: string): boolean {
   return snapshotLast != null && Date.parse(at) <= Date.parse(snapshotLast)
 }
 
@@ -84,11 +84,11 @@ interface Removal {
   counters: RootCounters
 }
 
-function withCounters(root: Message, counters: RootCounters): Message {
+export function withCounters(root: Message, counters: RootCounters): Message {
   return { ...root, replies_count: counters.replies_count, last_reply_at: counters.last_reply_at }
 }
 
-function asDeleted(message: Message, deletedAt: string): Message {
+export function asDeleted(message: Message, deletedAt: string): Message {
   return { ...message, body: null, mentions: [], attachments: [], deleted_at: deletedAt }
 }
 

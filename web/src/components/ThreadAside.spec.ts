@@ -201,6 +201,51 @@ describe('ThreadAside', () => {
     expect(wrapper.get('[data-test="thread-count"]').text()).toBe('4 replies')
   })
 
+  it('lowers the count when a reply is deleted, without a max over the loaded replies', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({
+      ...page([message(12, { parent_id: 10 }), message(11, { parent_id: 10 })]),
+      meta: { next_cursor: null, root: message(10, { replies_count: 2, last_reply_at: '2026-01-01T10:00:00Z' }) },
+    } as never)
+    const w = mountAside()
+    await flushPromises()
+    expect(w.get('[data-test="thread-count"]').text()).toBe('2 replies')
+    useThreadStore().remove({
+      id: 12,
+      channel_id: 7,
+      parent_id: 10,
+      deleted_at: '2026-01-01T11:00:00Z',
+      root: { id: 10, replies_count: 1, last_reply_at: '2026-01-01T10:00:00Z' },
+    })
+    await flushPromises()
+    expect(w.findAll('.thread-aside__replies .message-item')).toHaveLength(1)
+    expect(w.get('[data-test="thread-count"]').text()).toBe('1 reply')
+  })
+
+  it('shows the count of the root even when fewer than the loaded replies', async () => {
+    const w = mountAside({ root: message(10, { replies_count: 1 }) })
+    await flushPromises()
+    expect(w.findAll('.thread-aside__replies .message-item')).toHaveLength(2)
+    expect(w.get('[data-test="thread-count"]').text()).toBe('1 reply')
+  })
+
+  it('keeps showing the root from the thread store when it is deleted without replies', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ ...page([]), meta: { next_cursor: null, root: message(10) } } as never)
+    const w = mountAside()
+    await flushPromises()
+    useThreadStore().remove({
+      id: 10,
+      channel_id: 7,
+      parent_id: null,
+      deleted_at: '2026-01-01T11:00:00Z',
+      root: { id: 10, replies_count: 0, last_reply_at: null },
+    })
+    await flushPromises()
+    expect(useThreadStore().root).toMatchObject({ body: null, deleted_at: '2026-01-01T11:00:00Z' })
+    expect(w.find('[data-test="thread-root"]').exists()).toBe(true)
+    expect(w.find('[data-test="thread-root-unavailable"]').exists()).toBe(false)
+    expect(w.get('[data-test="thread-count"]').text()).toBe('0 replies')
+  })
+
   it('shows a discreet note when the root is missing', async () => {
     const w = mountAside()
     await flushPromises()

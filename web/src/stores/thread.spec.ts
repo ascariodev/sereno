@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
-import type { Message } from '../api/types'
+import type { Message, MessageDeletedEvent } from '../api/types'
 import { CATCH_UP_MAX_PAGES, useMessagesStore } from './messages'
 import { useThreadStore } from './thread'
 
@@ -333,7 +333,7 @@ describe('thread store', () => {
       const store = useThreadStore()
       await store.open(5, 10)
       await store.open(5, 10)
-      get.mockResolvedValueOnce(page([13, 12], null) as never)
+      get.mockResolvedValueOnce(page([13, 12, 11], null) as never)
       await store.catchUp()
       expect(get).toHaveBeenCalledTimes(3)
       expect(ids(store.replies)).toEqual([11, 12, 13])
@@ -352,6 +352,222 @@ describe('thread store', () => {
       await store.catchUp()
       expect(get).toHaveBeenCalledTimes(3)
       expect(ids(store.replies)).toEqual([11, 12, 13, 14])
+    })
+  })
+
+  describe('edits and deletions', () => {
+    const at = (second: number) => `2026-01-01T00:01:${String(second).padStart(2, '0')}Z`
+    const root = (extra: Partial<Message> = {}): Message => ({ ...reply(10, null), replies_count: 3, last_reply_at: '2026-01-01T00:00:13Z', ...extra })
+    const withRoot = (list: number[], next: string | null, rootExtra: Partial<Message> = {}) => ({
+      ...page(list, next),
+      meta: { next_cursor: next, root: root(rootExtra) },
+    })
+    const deleted = (id: number, parent_id: number | null, counters: { replies_count: number; last_reply_at: string | null }, second = 30): MessageDeletedEvent => ({
+      id,
+      channel_id: 5,
+      parent_id,
+      deleted_at: at(second),
+      root: { id: 10, ...counters },
+    })
+    const edited = (id: number, body: string, second: number, parent_id: number | null = 10): Message => ({
+      ...reply(id, parent_id),
+      body,
+      edited_at: at(second),
+    })
+
+    it('replaces an edited reply in live and ignores older edits, other threads and unknown replies', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(withRoot([13, 12, 11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      expect(store.replace(edited(12, 'new', 20))).toBe(true)
+      expect(store.replies.find((m) => m.id === 12)?.body).toBe('new')
+      expect(store.replace(edited(12, 'older', 10))).toBe(false)
+      expect(store.replace({ ...edited(12, 'other channel', 25), channel_id: 6 })).toBe(false)
+      expect(store.replace(edited(40, 'other thread', 25, 99))).toBe(false)
+      expect(store.replace(edited(14, 'not loaded', 25))).toBe(false)
+      expect(store.replies.find((m) => m.id === 12)?.body).toBe('new')
+      expect(ids(store.replies)).toEqual([11, 12, 13])
+    })
+
+    it('edits the root content keeping its counters, and keeps the edit over an older snapshot', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValue(withRoot([13, 12, 11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      store.insert(reply(14))
+      expect(store.replace({ ...edited(10, 'root edited', 20, null), replies_count: 0, last_reply_at: null })).toBe(true)
+      expect(store.root).toMatchObject({ body: 'root edited', replies_count: 4, last_reply_at: '2026-01-01T00:00:14Z' })
+      get.mockResolvedValueOnce(withRoot([14, 13, 12, 11], null, { replies_count: 4, last_reply_at: '2026-01-01T00:00:14Z' }) as never)
+      await store.catchUp()
+      expect(store.root).toMatchObject({ body: 'root edited', replies_count: 4 })
+    })
+
+    it('does not revert a live edit of a reply with an older snapshot from open, loadOlder or catchUp', async () => {
+      const opened = deferred()
+      const get = vi.spyOn(api, 'get').mockReturnValueOnce(opened.promise as never)
+      const store = useThreadStore()
+      const opening = store.open(5, 10)
+      expect(store.replace(edited(12, 'live', 20))).toBe(false)
+      opened.resolve(withRoot([13, 12], 'c1'))
+      await opening
+      expect(store.replies.find((m) => m.id === 12)?.body).toBe('live')
+      store.replace(edited(13, 'live 13', 21))
+      get.mockResolvedValueOnce(withRoot([13, 12, 11], null) as never)
+      await store.loadOlder()
+      get.mockResolvedValueOnce(withRoot([13, 12, 11], null) as never)
+      await store.catchUp()
+      expect(store.replies.map((m) => m.body)).toEqual(['r11', 'live', 'live 13'])
+    })
+
+    it('takes a newer edit from the server', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValue(withRoot([12, 11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      store.replace(edited(12, 'live', 20))
+      get.mockResolvedValueOnce({ data: [edited(12, 'server', 40), reply(11)], meta: { next_cursor: null, root: root() } } as never)
+      await store.catchUp()
+      expect(store.replies.find((m) => m.id === 12)?.body).toBe('server')
+    })
+
+    it('removes a deleted reply in live and lowers the root counters from the event', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(withRoot([13, 12, 11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      expect(store.remove(deleted(13, 10, { replies_count: 2, last_reply_at: '2026-01-01T00:00:12Z' }))).toBe(true)
+      expect(ids(store.replies)).toEqual([11, 12])
+      expect(store.root).toMatchObject({ replies_count: 2, last_reply_at: '2026-01-01T00:00:12Z', deleted_at: null })
+      expect(store.insert(reply(13))).toBe(false)
+      expect(store.replace(edited(13, 'late edit', 40))).toBe(false)
+      expect(store.root?.replies_count).toBe(2)
+    })
+
+    it('ignores deletions of other threads or channels', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(withRoot([12, 11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      expect(store.remove({ ...deleted(41, 40, { replies_count: 0, last_reply_at: null }), root: { id: 40, replies_count: 0, last_reply_at: null } })).toBe(false)
+      expect(store.remove({ ...deleted(12, 10, { replies_count: 1, last_reply_at: null }), channel_id: 6 })).toBe(false)
+      expect(ids(store.replies)).toEqual([11, 12])
+      expect(store.root?.replies_count).toBe(3)
+    })
+
+    it('re-adds live replies created after the deletion on top of the event counters', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(withRoot([13, 12, 11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      store.insert({ ...reply(14), created_at: at(40) })
+      expect(store.root?.replies_count).toBe(4)
+      store.remove(deleted(12, 10, { replies_count: 2, last_reply_at: '2026-01-01T00:00:13Z' }, 30))
+      expect(store.root).toMatchObject({ replies_count: 3, last_reply_at: at(40) })
+    })
+
+    it('keeps the event counters over a page that started before the deletion', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(withRoot([13, 12, 11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      const late = deferred()
+      get.mockReturnValueOnce(late.promise as never)
+      const catching = store.catchUp()
+      await vi.waitFor(() => expect(get).toHaveBeenCalledTimes(2))
+      store.remove(deleted(13, 10, { replies_count: 2, last_reply_at: '2026-01-01T00:00:12Z' }))
+      late.resolve(withRoot([13, 12, 11], null))
+      await catching
+      expect(ids(store.replies)).toEqual([11, 12])
+      expect(store.root?.replies_count).toBe(2)
+    })
+
+    it('applies a deletion that arrives while the thread is loading', async () => {
+      const opened = deferred()
+      vi.spyOn(api, 'get').mockReturnValueOnce(opened.promise as never)
+      const store = useThreadStore()
+      const opening = store.open(5, 10)
+      expect(store.remove(deleted(13, 10, { replies_count: 2, last_reply_at: '2026-01-01T00:00:12Z' }))).toBe(true)
+      opened.resolve(withRoot([13, 12, 11], null))
+      await opening
+      expect(ids(store.replies)).toEqual([11, 12])
+      expect(store.root?.replies_count).toBe(2)
+    })
+
+    it('turns the deleted root into a marker, also without replies, and ignores later edits of it', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(withRoot([11], null, { replies_count: 1, last_reply_at: '2026-01-01T00:00:11Z' }) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      expect(store.remove(deleted(10, null, { replies_count: 1, last_reply_at: '2026-01-01T00:00:11Z' }))).toBe(true)
+      expect(store.root).toMatchObject({ id: 10, body: null, deleted_at: at(30), replies_count: 1 })
+      expect(ids(store.replies)).toEqual([11])
+      expect(store.replace(edited(10, 'late', 40, null))).toBe(false)
+      store.remove(deleted(11, 10, { replies_count: 0, last_reply_at: null }, 31))
+      expect(store.replies).toEqual([])
+      expect(store.root).toMatchObject({ deleted_at: at(30), replies_count: 0, last_reply_at: null })
+    })
+
+    it('keeps the root deleted when a page fetched before the deletion arrives', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(withRoot([11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      const late = deferred()
+      get.mockReturnValueOnce(late.promise as never)
+      const catching = store.catchUp()
+      await vi.waitFor(() => expect(get).toHaveBeenCalledTimes(2))
+      store.remove(deleted(10, null, { replies_count: 1, last_reply_at: '2026-01-01T00:00:11Z' }))
+      late.resolve(withRoot([11], null))
+      await catching
+      expect(store.root).toMatchObject({ body: null, deleted_at: at(30), replies_count: 1 })
+    })
+
+    it('drops in catchUp the loaded replies missing from the covered range and lowers the root counters', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(withRoot([14, 13, 12, 11], null, { replies_count: 4 }) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      get.mockResolvedValueOnce(withRoot([15, 14, 11], null, { replies_count: 3, last_reply_at: '2026-01-01T00:00:15Z' }) as never)
+      await store.catchUp()
+      expect(ids(store.replies)).toEqual([11, 14, 15])
+      expect(store.root?.replies_count).toBe(3)
+      expect(store.insert(reply(12))).toBe(false)
+    })
+
+    it('only drops in catchUp what the pages cover when the cursor stops before the oldest loaded reply', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(withRoot([14, 13, 12, 11], 'old') as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      get.mockResolvedValueOnce(withRoot([16, 14, 12], 'c1') as never)
+      await store.catchUp()
+      expect(ids(store.replies)).toEqual([11, 12, 14, 16])
+    })
+
+    it('drops gone replies when catchUp resets to the newest page', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(withRoot([201, 200], 'old') as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      get.mockResolvedValueOnce(withRoot([202, 200, 199], 'newest') as never)
+      get.mockResolvedValue(withRoot([1000], 'more') as never)
+      await store.catchUp()
+      expect(ids(store.replies)).toEqual([199, 200, 202])
+    })
+
+    it('keeps a reply inserted live while catchUp is in flight', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(withRoot([12, 11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      const late = deferred()
+      get.mockReturnValueOnce(late.promise as never)
+      const catching = store.catchUp()
+      await vi.waitFor(() => expect(get).toHaveBeenCalledTimes(2))
+      store.insert(reply(13))
+      late.resolve(withRoot([12, 11], null))
+      await catching
+      expect(ids(store.replies)).toEqual([11, 12, 13])
+    })
+
+    it('forgets deletions and edits on clear', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(withRoot([12, 11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      store.remove(deleted(12, 10, { replies_count: 1, last_reply_at: '2026-01-01T00:00:11Z' }))
+      store.replace(edited(11, 'live', 20))
+      await store.open(5, 10)
+      expect(ids(store.replies)).toEqual([11, 12])
+      expect(store.replies[0].body).toBe('r11')
+      expect(store.root?.replies_count).toBe(3)
     })
   })
 
