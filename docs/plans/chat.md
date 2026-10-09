@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -62,7 +62,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   vivo no entra a la lista: actualiza contador y `last_reply_at` de su raíz si está cargada; `catchUp` refresca los
   contadores (el merge debe preferir la versión entrante). L-27.
 
-### [ ] Fase 5 — Store del hilo abierto (web) [riesgo]
+### [x] Fase 5 — Store del hilo abierto (web) [riesgo]
 - `stores/thread.ts`: abrir raíz con sus respuestas, cargar más antiguas, recibir en vivo, enviar respuesta y
   `catchUp` al reconectar, con contadores de generación (L-10, L-14, L-35). Spec propio.
 
@@ -171,8 +171,21 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   respuesta en vivo no entra a la lista del canal: `insert` suma 1 a `replies_count` de la raíz cargada o en cola y
   adelanta `last_reply_at`, una sola vez por id (`countedReplies`, se vacía en `clear`); con la raíz sin cargar se
   ignora. Motivo: contadores frescos en todos los caminos (L-27).
+- 2026-10-09 — `stores/thread.ts` guarda solo `channelId` y `rootId`, no la raíz: el panel la toma de
+  `useMessagesStore().messages` por id (contadores frescos). `send` también llama a `useMessagesStore().insert` para
+  subir el contador del canal al instante. Tras un `open` fallido, `catchUp` no reintenta: la vista ofrece reintentar
+  llamando de nuevo a `open`. Motivo: una sola fuente para la raíz y su contador.
 
 ## Notas para la próxima sesión
+- Fase 5 hecha: `useThreadStore` con estado `channelId`, `rootId`, `replies` (de la más antigua a la más nueva),
+  `nextCursor`, `loading`, `loadingMore`, `error` (un 404 de `open` queda en `error.status`) y acciones
+  `open(channelId, rootId)`, `loadOlder()`, `insert(message): boolean` (solo respuestas de esa raíz y canal),
+  `catchUp()`, `send(body)` (lanza el `ApiError`), `clear()`. Fase 7: el callback en vivo del canal llama a
+  `messages.insert` y a `thread.insert`; al reconectar, los dos `catchUp`; al cerrar el hilo o cambiar de canal,
+  `thread.clear()`.
+- Pendiente para la fase 7 (decidir allí): no hay endpoint de un solo mensaje, así que con `?thread=<id>` y la raíz
+  fuera de la página cargada del canal el panel no tiene la raíz. Opciones: incluir la raíz en la respuesta de
+  `replies` (cambio chico en el API) o mostrar el hilo sin la raíz. Afecta también a la fase 17.
 - Fase 4 hecha: tipos de hilo en `api/types.ts`; `api/messages.ts` con `listReplies(channelId, messageId,
   {cursor?, perPage?}, signal?)` (devuelve `CursorPage<Message>`, orden `id DESC`) y `sendReply(channelId, parentId,
   body)` (devuelve `Message`). Para `stores/thread.ts`: invertir la página, filtrar el evento en vivo por
@@ -212,3 +225,5 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   (pierde el +1 o suma 2 hasta el siguiente refresco); conciliar con `countedReplies` o un evento de contador en la API.
 - [ ] M-12 (baja, sonnet): `applyReply` recibe el `rootId` desde `insert` en vez de `reply.parent_id as number`, y
   spec de `insert` de una respuesta con `channelId` null.
+- [ ] M-13 (baja, sonnet): test de `thread.ts` para "open fallido, open nuevo, catchUp sí consulta"; y ordenar
+  siempre las respuestas al cargar en vez de confiar en el orden del API.

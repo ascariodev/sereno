@@ -43,6 +43,7 @@
 - L-34: Si una operación ya confirmada en el servidor cambia el estado global (salir de la organización), el refresco del store global corre siempre; solo lo local (toast, navegación) depende de la generación. — aplicada en: test (MembersView.spec)
 - L-36: Un dato guardado entre dos eventos async (estado del último rechazo de auth) se borra al consumirlo, al iniciar cada intento nuevo y al desconectar; y un canal que se descarta por error se suelta también en la librería (Echo lo cachea y no re-autoriza). — aplicada en: test (echo.spec)
 - L-35: Una acción async que devuelve "si cambió el estado" distingue el descarte por `clear()` (contador propio) del reemplazo por una carga más nueva, y en ese caso espera a la última carga: una recarga concurrente (reconexión) no debe ocultar el cambio. — aplicada en: test (organization.spec)
+- L-37: Una acción que decide según si otra falló usa un flag propio de esa acción, no el `error` compartido del store: un fallo de otra acción (paginar) la bloquea en falso. — aplicada en: test (thread.spec)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
