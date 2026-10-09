@@ -1,7 +1,7 @@
 # Plan: corte-forzado
 
 **Objetivo:** que un miembro quitado de una organización deje de recibir sus mensajes en vivo aunque su cliente ignore el aviso: el API cierra sus conexiones en Reverb, el cliente reconecta, `/broadcasting/auth` rechaza los canales de esa organización y la web lo trata como membresía revocada.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -18,7 +18,7 @@
 - **Archivos:** `api/routes/channels.php`, `api/app/Broadcasting/SessionChannel.php` (nuevo), tests en `api/tests/Feature/BroadcastingAuthTest.php`.
 - **Terminado cuando:** tests de `presence-sessions.{id}` para el propio usuario (respuesta con `channel_data` y `user_id`), otro usuario, ids mal formados y 401 pasan.
 
-### [ ] Fase 2 — Servicio para cerrar conexiones de un usuario [riesgo]
+### [x] Fase 2 — Servicio para cerrar conexiones de un usuario [riesgo]
 - **Alcance:** `App\Realtime\ConnectionTerminator` con `terminate(int $userId)`: llama a `terminateUserConnections` si la conexión de broadcasting es `reverb`/`pusher`, no hace nada con otro driver (null, log). Timeouts cortos para Reverb en `config/broadcasting.php` (`client_options`). Lanza ante error para que la cola reintente.
 - **Archivos:** `api/app/Realtime/ConnectionTerminator.php` (nuevo), `api/config/broadcasting.php`, tests en `api/tests/Feature/ConnectionTerminatorTest.php` (nuevo).
 - **Terminado cuando:** tests con un Pusher simulado (llamada con el id correcto), no-op con el driver null y propagación del error pasan.
@@ -49,10 +49,15 @@
 - 2026-10-08 — El corte va después del aviso cooperativo (retraso de ~5 s en cola): si cortara antes, el evento podría perderse durante la reconexión. El cliente cubre el evento perdido con `onReconnect` → `handleForbidden`.
 - 2026-10-08 — Sigue sin cubrir un socket que nunca se une a `sessions.{id}` (cliente modificado que lo omite): Reverb no tiene otra forma de identificar el socket. Aprobado por el usuario: se reduce a quien altere el cliente a propósito y aún así pierde todo al reconectar.
 
+- 2026-10-08 — `ConnectionTerminator` usa la conexión de broadcasting por defecto y detecta el driver con `instanceof PusherBroadcaster` (cubre reverb y pusher); cualquier otro no hace nada. Pasa el id como string (`terminateUserConnections(string)`); Reverb compara `(string) user_id === $userId`, así que coincide.
+- 2026-10-08 — Timeouts de Reverb en `client_options`: conexión 2 s y total 5 s (`REVERB_CONNECT_TIMEOUT`, `REVERB_TIMEOUT`). Afectan a todos los broadcasts a Reverb; hoy todos van por cola, así que un timeout se reintenta.
+
 ## Notas para la próxima sesión
 - Fase 1 hecha: `SessionChannel::join` devuelve `['id' => $user->id]`; en el `channel_data` de Laravel `user_id` llega como string ("43"). En la verificación en vivo (fase 6) confirmar que `terminate_connections` con el id numérico encuentra el socket.
-- Seguir con la fase 2. Leer `docs/lecciones.md` antes. Tras cambiar jobs o listeners: `docker compose restart queue`.
+- Fase 2 hecha. En la fase 3, el job lleva `$tries` y `backoff` acordes: `terminate` lanza ante error. Tests: Pusher simulado con `Broadcast::extend` (helper `useFakePusherConnection` en `ConnectionTerminatorTest`).
+- Seguir con la fase 3. Leer `docs/lecciones.md` antes. Tras cambiar jobs o listeners: `docker compose restart queue`.
 
 ## Mejoras propuestas
 - [ ] M-1 (baja, sonnet): renombrar el helper global de Pest `authorizePresence` en `api/tests/Feature/BroadcastingAuthTest.php` a uno más específico (`authorizeSessionPresence`), por L-29.
 - [ ] M-2 (baja, sonnet): quitar el docblock `@return array{id: int}|false` de `api/app/Broadcasting/SessionChannel.php`, que repite la firma.
+- [ ] M-3 (baja, sonnet): documentar `REVERB_CONNECT_TIMEOUT` y `REVERB_TIMEOUT` en `api/.env.example`.
