@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Events\MentionCreated;
+use App\Chat\MessageMentions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Channel\ListMessagesRequest;
 use App\Http\Requests\Channel\StoreMessageRequest;
@@ -10,7 +10,6 @@ use App\Http\Resources\MessageResource;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\MessageAttachment;
-use App\Models\MessageMention;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -88,12 +87,12 @@ class MessageController extends Controller
             ->additional(['meta' => ['root' => (new MessageResource($message))->resolve($request)]]);
     }
 
-    public function store(StoreMessageRequest $request, Channel $channel): MessageResource
+    public function store(StoreMessageRequest $request, Channel $channel, MessageMentions $mentions): MessageResource
     {
         $parentId = $request->validated('parent_id');
         $attachmentIds = $request->attachmentIds();
 
-        $message = DB::transaction(function () use ($request, $channel, $parentId, $attachmentIds) {
+        $message = DB::transaction(function () use ($request, $channel, $parentId, $attachmentIds, $mentions) {
             $message = new Message([
                 'kind' => Message::KIND_USER,
                 'body' => $request->validated('body'),
@@ -103,7 +102,7 @@ class MessageController extends Controller
             $message->parent_id = $parentId;
 
             // Set before save: MessageCreated resolves the resource while the model is being created.
-            $mentioned = $this->mentionedUsers($channel, $message->body ?? '', $request->user()->id);
+            $mentioned = $mentions->target($channel, $message->body, $request->user()->id);
             $message->setRelation('mentionedUsers', $mentioned);
             $message->setRelation('attachments', $attachmentIds === []
                 ? new Collection
@@ -112,7 +111,7 @@ class MessageController extends Controller
 
             $this->linkAttachments($message, $attachmentIds, $request->user()->id);
 
-            $this->saveMentions($message, $mentioned);
+            $mentions->sync($message, $mentioned, []);
 
             if ($parentId !== null) {
                 Message::query()->whereKey($parentId)->update([
@@ -161,53 +160,5 @@ class MessageController extends Controller
                 'attachment_ids' => __('The attachments do not exist or are already in use.'),
             ]);
         }
-    }
-
-    /** @param  Collection<int, User>  $mentioned */
-    private function saveMentions(Message $message, Collection $mentioned): void
-    {
-        if ($mentioned->isEmpty()) {
-            return;
-        }
-
-        $now = now();
-        MessageMention::query()->insert($mentioned->map(fn (User $user) => [
-            'organization_id' => $message->organization_id,
-            'message_id' => $message->id,
-            'user_id' => $user->id,
-            'created_at' => $now,
-        ])->all());
-
-        foreach ($mentioned as $user) {
-            MentionCreated::dispatch($user->id, $message);
-        }
-    }
-
-    /**
-     * Members of the channel's organization named by `<@id>` tokens, minus the author, ordered by id. Only
-     * the first `chat.mentions.max_per_message` of them (in order of appearance) count; the body keeps all.
-     *
-     * @return Collection<int, User>
-     */
-    private function mentionedUsers(Channel $channel, string $body, int $authorId): Collection
-    {
-        preg_match_all('/<@([1-9][0-9]{0,17})>/', $body, $matches);
-        $ids = array_values(array_diff(array_unique(array_map('intval', $matches[1])), [$authorId]));
-
-        if ($ids === []) {
-            return new Collection;
-        }
-
-        $members = User::query()
-            ->whereIn('id', $ids)
-            ->whereIn('id', DB::table('organization_user')->where('organization_id', $channel->organization_id)->select('user_id'))
-            ->get(['id', 'name'])
-            ->keyBy('id');
-
-        return (new Collection(array_map(fn (int $id) => $members->get($id), $ids)))
-            ->filter()
-            ->take(config('chat.mentions.max_per_message'))
-            ->sortBy('id')
-            ->values();
     }
 }

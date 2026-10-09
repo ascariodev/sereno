@@ -2,7 +2,7 @@
 
 **Objetivo:** que el autor de un mensaje pueda editar su texto (con menciones) y borrarlo, con el cambio en vivo
 para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de M-1 de `terminados/chat.md`.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -54,7 +54,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - **Terminado cuando:** test con `Gate::forUser(...)`: el autor puede; otro miembro, un admin, un owner y alguien de
   otra organización no; un aviso de sistema y un mensaje borrado no.
 
-### [ ] Fase 3 — Sincronizar menciones en una clase propia (api)
+### [x] Fase 3 — Sincronizar menciones en una clase propia (api)
 - Extraer de `MessageController@store` el cálculo de menciones y `saveMentions` a una clase (p. ej.
   `app/Chat/MessageMentions.php`) que reciba el mensaje y el body y devuelva altas y bajas; `store` la usa sin cambio
   de comportamiento. Pasan los tests de menciones existentes.
@@ -144,7 +144,8 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
   cliente aplica aunque bajen) y `mention.removed`. Mismo throttle `channel-messages` para editar y borrar.
 
 ## Notas para la próxima sesión
-- Fases 1 y 2 hechas. `edited_at` y `deleted_at` existen (cast `datetime`, fuera de Fillable: asignar por propiedad o `DB::table`). La función de contenido ignora mensajes con `deleted_at`. `MessagePolicy` (`update`, `delete`) se autodescubre; no cubre canal archivado, lo rechazan los FormRequest de las fases 4 y 6. En tests, `Channel::factory()->for(Project::factory()->for($org))`. Siguiente: fase 3 (extraer menciones).
+- Fases 1 a 3 hechas. `edited_at`/`deleted_at` existen (cast `datetime`, fuera de Fillable: asignar por propiedad o `DB::table`); la función de contenido ignora mensajes con `deleted_at`. `MessagePolicy` (`update`, `delete`) se autodescubre; no cubre canal archivado (lo rechazan los FormRequest de las fases 4 y 6). En tests, `Channel::factory()->for(Project::factory()->for($org))`.
+- `App\Chat\MessageMentions`: `target(Channel, ?string $body, int $authorId)`, `diff($target, $currentIds)` y `sync(Message, $target, ?$currentIds)` (inserta altas, `MentionCreated` solo para ellas, borra bajas). Para el PATCH: `target()` con el body nuevo, `setRelation('mentionedUsers', $target)` y `sync()` dentro de la transacción. La fase 4 debe cubrir con tests `diff` y la rama de bajas. Siguiente: fase 4 (PATCH).
 
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): owner y admin pueden borrar mensajes de otros (moderación), con el actor en el evento.
