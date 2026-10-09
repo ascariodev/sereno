@@ -136,6 +136,38 @@ describe('useAttachmentUploads', () => {
     expect(pending).toHaveLength(1)
   })
 
+  it('marks 429 as retryable with the rate limit message', async () => {
+    mountComposable()
+    state.add([file('a')])
+    pending[0]!.reject(new ApiError(429, 'Too Many Attempts.'))
+    await flushPromises()
+    expect(state.items.value[0]).toMatchObject({
+      status: 'error',
+      retryable: true,
+      error: 'You are uploading too fast. Try again in a moment.',
+    })
+  })
+
+  it.each([403, 404, 413])('does not allow retry on %i', async (status) => {
+    mountComposable()
+    state.add([file('a')])
+    pending[0]!.reject(new ApiError(status, 'nope'))
+    await flushPromises()
+    expect(state.items.value[0]).toMatchObject({ status: 'error', retryable: false })
+    if (status === 413) expect(state.items.value[0]!.error).toContain('is larger than')
+    state.retry(state.items.value[0]!.key)
+    expect(pending).toHaveLength(1)
+  })
+
+  it('allows retry on 5xx and network errors', async () => {
+    mountComposable()
+    state.add([file('a'), file('b')])
+    pending[0]!.reject(new ApiError(503, 'down'))
+    pending[1]!.reject(new TypeError('network'))
+    await flushPromises()
+    expect(state.items.value.map((i) => i.retryable)).toEqual([true, true])
+  })
+
   it('falls back to a generic error', async () => {
     mountComposable()
     state.add([file('a')])

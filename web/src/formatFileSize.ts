@@ -9,6 +9,11 @@ export function formatFileSize(bytes: number): string {
     value /= 1024
     unit++
   }
+  const digits = unit === 0 ? 0 : 1
+  if (unit < UNITS.length - 1 && Number(value.toFixed(digits)) >= 1024) {
+    value /= 1024
+    unit++
+  }
   const formatted = new Intl.NumberFormat(getLocale(), {
     maximumFractionDigits: unit === 0 ? 0 : 1,
   }).format(value)

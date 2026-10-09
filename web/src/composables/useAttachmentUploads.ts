@@ -64,13 +64,20 @@ export function useAttachmentUploads(
     }
   }
 
-  function messageFor(error: unknown): { message: string; retryable: boolean } {
+  function messageFor(error: unknown, file: File | undefined): { message: string; retryable: boolean } {
     if (error instanceof ApiError) {
       if (error.status === 422) {
         const detail = error.errors.file?.[0] ?? error.errors.channel?.[0]
         return { message: detail ?? t('attachments.failed'), retryable: false }
       }
+      if (error.status === 413) {
+        const message = file
+          ? t('attachments.tooLarge', { name: file.name, max: formatFileSize(maxBytes) })
+          : t('attachments.failed')
+        return { message, retryable: false }
+      }
       if (error.status === 429) return { message: t('attachments.rateLimited'), retryable: true }
+      return { message: t('attachments.failed'), retryable: error.status >= 500 }
     }
     return { message: t('attachments.failed'), retryable: true }
   }
@@ -94,7 +101,7 @@ export function useAttachmentUploads(
       if (round !== generation || controller.signal.aborted) return
       const item = find(key)
       if (!item) return
-      const { message, retryable } = messageFor(error)
+      const { message, retryable } = messageFor(error, file)
       item.status = 'error'
       item.error = message
       item.retryable = retryable
@@ -158,7 +165,7 @@ export function useAttachmentUploads(
     items.value = []
   }
 
-  watch(channelId, reset)
+  watch(channelId, reset, { flush: 'sync' })
   onScopeDispose(reset)
 
   return {
