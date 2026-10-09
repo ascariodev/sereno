@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client'
@@ -9,12 +9,15 @@ import LogGroupAside from '../components/LogGroupAside.vue'
 import MessageComposer from '../components/MessageComposer.vue'
 import MessageList from '../components/MessageList.vue'
 import ProjectHeader from '../components/ProjectHeader.vue'
+import ThreadAside from '../components/ThreadAside.vue'
+import AppDialog from '../components/ui/AppDialog.vue'
 import { toast, toasts } from '../components/ui/toast'
 import { onReconnect, subscribeToChannel } from '../realtime/echo'
 import { useAuthStore } from '../stores/auth'
 import { useMessagesStore } from '../stores/messages'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
+import { useThreadStore } from '../stores/thread'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -23,6 +26,7 @@ const organization = useOrganizationStore()
 const auth = useAuthStore()
 const messages = useMessagesStore()
 const projects = useProjectsStore()
+const thread = useThreadStore()
 const channel = ref<Channel | null>(null)
 const channelLoadFailed = ref(false)
 const panelRefresh = ref(0)
@@ -42,6 +46,10 @@ const project = computed(() => {
 })
 const groupId = computed(() => {
   const raw = Array.isArray(route.query.group) ? route.query.group[0] : route.query.group
+  return typeof raw === 'string' && /^[1-9]\d*$/.test(raw) ? Number(raw) : null
+})
+const threadId = computed(() => {
+  const raw = Array.isArray(route.query.thread) ? route.query.thread[0] : route.query.thread
   return typeof raw === 'string' && /^[1-9]\d*$/.test(raw) ? Number(raw) : null
 })
 const notFound = computed(() => messages.error?.status === 404)
@@ -64,10 +72,50 @@ async function loadChannel(id: number, current: number): Promise<void> {
 function selectGroup(id: number | null, replace = false): void {
   const query = { ...route.query }
   if (id === null) delete query.group
-  else query.group = String(id)
+  else {
+    query.group = String(id)
+    delete query.thread
+  }
   if (replace) void router.replace({ query })
   else void router.push({ query })
 }
+
+function openThread(id: number): void {
+  const query = { ...route.query }
+  delete query.group
+  query.thread = String(id)
+  void router.push({ query })
+}
+
+function closeThread(): void {
+  const query = { ...route.query }
+  delete query.thread
+  void router.push({ query })
+}
+
+const narrowQuery = typeof window.matchMedia === 'function' ? window.matchMedia('(max-width: 767px)') : null
+const narrow = ref(narrowQuery?.matches ?? false)
+function followViewport(event: MediaQueryListEvent): void {
+  narrow.value = event.matches
+}
+narrowQuery?.addEventListener('change', followViewport)
+onBeforeUnmount(() => narrowQuery?.removeEventListener('change', followViewport))
+
+watch(threadId, (id) => {
+  if (id === null) thread.clear()
+})
+
+// A hand-written URL with both params keeps the thread; opening one panel always removes the other param.
+watch(
+  () => [threadId.value, groupId.value],
+  ([threadParam, groupParam]) => {
+    if (threadParam === null || groupParam === null) return
+    const query = { ...route.query }
+    delete query.group
+    void router.replace({ query })
+  },
+  { immediate: true },
+)
 
 function markMessagesSeen(): void {
   seenMessageId = messages.messages.at(-1)?.id ?? 0
@@ -100,6 +148,7 @@ watch(
 
 function onLiveMessage(message: Message): void {
   messages.insert(message)
+  thread.insert(message)
   if (isLogGroupOpenedPayload(message.payload) || isLogGroupStatusChangedPayload(message.payload)) {
     projects.refreshCounts()
   }
@@ -117,6 +166,7 @@ function reload(): void {
   channel.value = null
   channelLoadFailed.value = false
   leaveRealtime()
+  thread.clear()
   if (!Number.isInteger(channelId.value) || channelId.value < 1) {
     messages.clear()
     return
@@ -129,6 +179,7 @@ function reload(): void {
       const visible = toasts.value.some((item) => item.id === reconnectToastId && item.open)
       if (!visible) reconnectToastId = toast.success(t('channel.reconnected'))
       void messages.catchUp()
+      void thread.catchUp()
       projects.refreshCounts()
     })
   }
@@ -147,7 +198,10 @@ onUnmounted(() => {
   generation++
   leaveRealtime()
   messages.clear()
+  thread.clear()
 })
+
+defineExpose({ openThread })
 </script>
 
 <template>
@@ -187,7 +241,7 @@ onUnmounted(() => {
         </template>
       </div>
       <LogGroupAside
-        v-if="panelProjectId !== null && groupId !== null"
+        v-if="panelProjectId !== null && groupId !== null && threadId === null"
         class="channel__panel"
         :project-id="panelProjectId"
         :group-id="groupId"
@@ -195,6 +249,26 @@ onUnmounted(() => {
         @close="selectGroup(null, $event)"
         @status="projects.refreshCounts()"
       />
+      <template v-if="channel && threadId !== null">
+        <AppDialog v-if="narrow" :open="true" variant="sheet-bottom" :title="t('thread.label')" hide-title @update:open="!$event && closeThread()">
+          <ThreadAside
+            :channel-id="channel.id"
+            :root-id="threadId"
+            :archived="channel.archived_at !== null"
+            :own-user-id="auth.user?.id"
+            @close="closeThread"
+          />
+        </AppDialog>
+        <ThreadAside
+          v-else
+          class="channel__panel"
+          :channel-id="channel.id"
+          :root-id="threadId"
+          :archived="channel.archived_at !== null"
+          :own-user-id="auth.user?.id"
+          @close="closeThread"
+        />
+      </template>
     </div>
   </section>
 </template>

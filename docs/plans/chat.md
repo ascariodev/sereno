@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -70,7 +70,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - `ThreadAside.vue`: raíz arriba, respuestas con `MessageList`, composer de respuesta, cerrar. Todas las claves i18n
   del hilo (también las de la fase 8). Spec del componente.
 
-### [ ] Fase 7 — Abrir el hilo desde el canal (web)
+### [x] Fase 7 — Abrir el hilo desde el canal (web)
 - `ChannelView`: `?thread=<id>` abre `ThreadAside` (excluyente con `?group`), en móvil como hoja; suscripción en vivo
   compartida entre canal e hilo.
 
@@ -177,8 +177,16 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   llamando de nuevo a `open`. Motivo: una sola fuente para la raíz y su contador.
 - 2026-10-09 — `MessageComposer` se reutiliza en el hilo con props opcionales `send` y `placeholder`, y
   `MessageList` con `emptyLabel`; sin ellas el canal se comporta igual. Motivo: no duplicar el composer.
+- 2026-10-09 — Con `?thread` y `?group` a la vez gana el hilo (un watcher quita `group` con `replace`); abrir un
+  panel siempre quita el parámetro del otro, con `push` como `selectGroup`. Sin raíz cargada (URL con raíz fuera de
+  la página del canal) el panel muestra solo las respuestas; el API no cambia (M-15). Motivo: no ampliar la fase.
 
 ## Notas para la próxima sesión
+- Fase 7 hecha: `ChannelView` abre `ThreadAside` por `?thread` (clase `channel__panel`; en móvil `AppDialog
+  sheet-bottom` con su propio `matchMedia`). `openThread(id)` está en `ChannelView` (y en `defineExpose`): la fase 8
+  solo hace que `MessageList` emita `open-thread` con el id y lo conecta con `@open-thread="openThread"`. El callback
+  en vivo alimenta `messages.insert` y `thread.insert`; al reconectar, los dos `catchUp`. Pendiente de mirar en el
+  navegador: scroll de las respuestas dentro del panel y de la hoja (L-22).
 - Fase 6 hecha: `ThreadAside` (props `channelId`, `rootId`, `root?`, `archived?`, `ownUserId?`; evento `close`)
   llama a `thread.open` al montar y al cambiar `channelId`/`rootId`, pero no a `thread.clear()` (es del padre). Sin
   raíz funciona solo con las respuestas; un 404 muestra `thread.notFound` y oculta el composer; otros fallos,
@@ -191,9 +199,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `catchUp()`, `send(body)` (lanza el `ApiError`), `clear()`. Fase 7: el callback en vivo del canal llama a
   `messages.insert` y a `thread.insert`; al reconectar, los dos `catchUp`; al cerrar el hilo o cambiar de canal,
   `thread.clear()`.
-- Pendiente para la fase 7 (decidir allí): no hay endpoint de un solo mensaje, así que con `?thread=<id>` y la raíz
-  fuera de la página cargada del canal el panel no tiene la raíz. Opciones: incluir la raíz en la respuesta de
-  `replies` (cambio chico en el API) o mostrar el hilo sin la raíz. Afecta también a la fase 17.
 - Fase 4 hecha: tipos de hilo en `api/types.ts`; `api/messages.ts` con `listReplies(channelId, messageId,
   {cursor?, perPage?}, signal?)` (devuelve `CursorPage<Message>`, orden `id DESC`) y `sendReply(channelId, parentId,
   body)` (devuelve `Message`). Para `stores/thread.ts`: invertir la página, filtrar el evento en vivo por
@@ -237,3 +242,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   siempre las respuestas al cargar en vez de confiar en el orden del API.
 - [ ] M-14 (baja, sonnet): `ThreadAside`: ocultar la raíz si `open` da 404, re-enfocar el panel al cambiar de hilo
   sin desmontar, y usar `thread.rootUnavailable` cuando falte la raíz (o quitar la clave).
+- [ ] M-15 (media, sonnet): mostrar la raíz de un hilo abierto por URL aunque no esté en la página cargada del canal
+  (incluirla en la respuesta de `replies` o un endpoint de un mensaje); sirve también para abrir menciones (fase 17).
+- [ ] M-16 (baja, sonnet): tests de `ChannelView` para `thread.clear()` en `onUnmounted`, la baja del listener de
+  `matchMedia` y el paso de estrecho a ancho con un hilo abierto (hoy se remonta y pierde el borrador).

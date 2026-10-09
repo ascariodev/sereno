@@ -11,7 +11,9 @@ import { setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { useMessagesStore } from '../stores/messages'
 import { useProjectsStore } from '../stores/projects'
+import { useThreadStore } from '../stores/thread'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import ChannelView from './ChannelView.vue'
 
@@ -546,5 +548,143 @@ describe('ChannelView group panel', () => {
       await vi.advanceTimersByTimeAsync(300)
       expect(projectCalls(spy)).toBe(before + 1)
     })
+  })
+})
+
+describe('ChannelView thread panel', () => {
+  const root = { ...message(1), replies_count: 1 }
+  const reply = (id: number, parent = 1): Message => ({ ...message(id), parent_id: parent, body: `reply ${id}` })
+  const repliesPath = /\/api\/channels\/7\/messages\/(\d+)\/replies$/
+
+  function mockThread(replies: Message[] = [reply(2)]) {
+    return vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') return channels as never
+      if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+      if (repliesPath.test(path)) return { data: replies.slice().reverse(), meta: { next_cursor: null } } as never
+      if (/log-groups\/\d+$/.test(path)) return { data: { id: 5, project_id: 1, level: 'error', title: 'Group 5', status: 'open', events_count: 1, first_seen_at: '', last_seen_at: '', events: [] } } as never
+      return { data: [root], meta: { next_cursor: null } } as never
+    })
+  }
+  const replyCalls = (spy: { mock: { calls: unknown[][] } }) => spy.mock.calls.filter(([path]) => repliesPath.test(String(path)))
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    setRealtimeClientFactory(() => null)
+    useThreadStore().clear()
+  })
+
+  afterEach(() => {
+    delete (window as { matchMedia?: unknown }).matchMedia
+  })
+
+  it('opens the panel from ?thread= and closes it by removing the param, clearing the store', async () => {
+    mockThread()
+    const wrapper = await mountView('/channels/7?thread=1')
+    expect(wrapper.find('aside[aria-label="Thread"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('reply 2')
+    expect(useThreadStore().rootId).toBe(1)
+    await wrapper.find('button[name="close-thread"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query.thread).toBeUndefined()
+    expect(wrapper.find('button[name="close-thread"]').exists()).toBe(false)
+    expect(useThreadStore().rootId).toBeNull()
+  })
+
+  it('ignores an invalid ?thread= value', async () => {
+    const spy = mockThread()
+    const wrapper = await mountView('/channels/7?thread=abc')
+    expect(wrapper.find('button[name="close-thread"]').exists()).toBe(false)
+    expect(replyCalls(spy)).toHaveLength(0)
+  })
+
+  it('opening a thread removes ?group and opening a group removes ?thread', async () => {
+    mockThread()
+    const wrapper = await mountView('/channels/7?group=5')
+    expect(wrapper.find('button[name="close-group"]').exists()).toBe(true)
+    ;(wrapper.vm as unknown as { openThread: (id: number) => void }).openThread(1)
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query).toEqual({ thread: '1' })
+    expect(wrapper.find('button[name="close-group"]').exists()).toBe(false)
+    expect(wrapper.find('button[name="close-thread"]').exists()).toBe(true)
+
+    await wrapper.router.push({ query: { thread: '1', group: '5' } })
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query).toEqual({ thread: '1' })
+  })
+
+  it('selecting a group while a thread is open drops ?thread', async () => {
+    mockThread()
+    const wrapper = await mountView('/channels/7?thread=1')
+    await wrapper.router.push({ query: { group: '5' } })
+    await flushPromises()
+    expect(wrapper.find('button[name="close-thread"]').exists()).toBe(false)
+    expect(wrapper.find('button[name="close-group"]').exists()).toBe(true)
+    expect(useThreadStore().rootId).toBeNull()
+  })
+
+  it('uses a URL with both params as a thread and drops the group', async () => {
+    const spy = mockThread()
+    const wrapper = await mountView('/channels/7?thread=1&group=5')
+    expect(wrapper.router.currentRoute.value.query).toEqual({ thread: '1' })
+    expect(wrapper.find('button[name="close-group"]').exists()).toBe(false)
+    expect(spy.mock.calls.some(([path]) => /log-groups/.test(String(path)))).toBe(false)
+  })
+
+  it('clears the thread when the channel changes', async () => {
+    mockThread()
+    const wrapper = await mountView('/channels/7?thread=1')
+    expect(useThreadStore().rootId).toBe(1)
+    await wrapper.router.push('/channels/8')
+    await flushPromises()
+    expect(useThreadStore().rootId).toBeNull()
+    expect(wrapper.find('button[name="close-thread"]').exists()).toBe(false)
+  })
+
+  it('feeds a live reply to the thread and the channel counter through one subscription', async () => {
+    const realtime = fakeRealtime()
+    mockThread()
+    const wrapper = await mountView('/channels/7?thread=1')
+    expect(realtime.client.private).toHaveBeenCalledTimes(1)
+    expect(realtime.client.private).toHaveBeenCalledWith('organizations.1.channels.7')
+    realtime.emit('organizations.1.channels.7', reply(3))
+    realtime.emit('organizations.1.channels.7', reply(3))
+    realtime.emit('organizations.1.channels.7', reply(4, 99))
+    await flushPromises()
+    expect(useThreadStore().replies.map((item) => item.id)).toEqual([2, 3])
+    expect(wrapper.text()).toContain('reply 3')
+    expect(wrapper.text()).not.toContain('reply 4')
+    expect(useMessagesStore().messages.find((item) => item.id === 1)?.replies_count).toBe(2)
+    expect(realtime.client.private).toHaveBeenCalledTimes(1)
+    expect(realtime.client.leave).not.toHaveBeenCalled()
+  })
+
+  it('catches up both the channel and the thread after a reconnection', async () => {
+    const realtime = fakeRealtime()
+    const spy = mockThread()
+    await mountView('/channels/7?thread=1')
+    realtime.setStatus('connected')
+    await flushPromises()
+    const repliesBefore = replyCalls(spy).length
+    const listBefore = viewCalls(spy).filter(([path]) => path === '/api/channels/7/messages').length
+    realtime.setStatus('connecting')
+    realtime.setStatus('connected')
+    await flushPromises()
+    expect(replyCalls(spy).length).toBe(repliesBefore + 1)
+    expect(viewCalls(spy).filter(([path]) => path === '/api/channels/7/messages')).toHaveLength(listBefore + 1)
+  })
+
+  it('shows the thread as a bottom sheet on narrow viewports and closes it from the dialog', async () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })
+    mockThread()
+    const wrapper = await mountView('/channels/7?thread=1')
+    const sheet = document.querySelector('[role="dialog"]')
+    expect(sheet).not.toBeNull()
+    expect(sheet?.querySelector('aside')).not.toBeNull()
+    expect(sheet?.textContent).toContain('reply 2')
+    ;(sheet?.querySelector('button[name="close-thread"]') as HTMLButtonElement).click()
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query.thread).toBeUndefined()
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    wrapper.unmount()
   })
 })
