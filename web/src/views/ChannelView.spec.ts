@@ -1171,4 +1171,36 @@ describe('ChannelView inline editor', () => {
     expect(aside.querySelector<HTMLTextAreaElement>('textarea[name=body]')).toBe(document.activeElement)
     wrapper.unmount()
   })
+
+  async function editReply(): Promise<void> {
+    const aside = document.querySelector('aside[aria-label="Thread"]')!
+    const trigger = aside.querySelectorAll<HTMLButtonElement>('.message-item__actions-trigger')[1]
+    trigger.focus()
+    key(trigger, 'ArrowDown')
+    await settle()
+    key(document.activeElement!, 'Enter')
+    await settle()
+  }
+
+  const editingId = (wrapper: Awaited<ReturnType<typeof mountView>>) =>
+    (wrapper.vm.$ as unknown as { setupState: { editingMessageId: number | null } }).setupState.editingMessageId
+
+  it('drops a reply edit when its thread panel closes', async () => {
+    const wrapper = await mountView('/channels/7?thread=1', true)
+    await editReply()
+    expect(editingId(wrapper)).toBe(3)
+    await wrapper.router.push('/channels/7')
+    await settle()
+    expect(editingId(wrapper)).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('keeps the edit of a list root when its thread opens', async () => {
+    const wrapper = await mountView('/channels/7', true)
+    await openEdit(wrapper, 0)
+    await wrapper.router.push('/channels/7?thread=1')
+    await flushPromises()
+    expect(editingId(wrapper)).toBe(1)
+    wrapper.unmount()
+  })
 })

@@ -271,8 +271,15 @@ function reload(): void {
   }
 }
 
+// A reply edit does not survive its thread panel closing or changing root. A list root keeps its edit, though
+// opening or closing its own thread remounts the editor and loses the typed text.
+watch(threadId, () => {
+  const id = editingMessageId.value
+  if (id !== null && !messages.messages.some((item) => item.id === id)) editingMessageId.value = null
+})
+
 watch(
-  () => [organization.activeId, route.params.id],
+  () => `${organization.activeId}:${String(route.params.id)}`,
   () => {
     panelProjectId.value = null
     reload()

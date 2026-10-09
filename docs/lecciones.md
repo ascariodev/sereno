@@ -53,6 +53,7 @@
 - L-40: Un estado local de una vista que no se desmonta al cambiar de ruta (diálogo abierto, mensaje seleccionado) se limpia en el `reload()` de la vista, con un spec de cambio de canal con el diálogo abierto. — aplicada en: test (ChannelView.spec)
 - L-41: Un test con conexiones reales (datos confirmados, fuera de RefreshDatabase) restaura en `afterEach` primero la conexión por defecto y cierra transacciones y `lock_timeout` antes de borrar, todo en `try/finally`: una aserción fallida no debe dejar filas bloqueadas ni contaminar la suite. — aplicada en: test (MessageDeleteConcurrencyTest)
 - L-42: Una condición que debe valer al entregar un evento en cola (membresía del destinatario) va en `broadcastOn()`, que corre en el worker; `broadcastWhen` se evalúa al despachar y no ve los cambios mientras el evento espera. — aplicada en: test (MentionBroadcastTest)
+- L-43: La fuente de un `watch` es un valor comparable (string, número), no un array u objeto nuevo en cada evaluación: con `[a, b]` el watcher dispara con cualquier cambio de sus dependencias (p. ej. la query de la ruta) aunque `a` y `b` no cambien. — aplicada en: test (ChannelView.spec)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
