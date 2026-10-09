@@ -2,7 +2,7 @@
 
 **Objetivo:** que el autor de un mensaje pueda editar su texto (con menciones) y borrarlo, con el cambio en vivo
 para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de M-1 de `terminados/chat.md`.
-**Estado:** en curso · Fase actual: 18
+**Estado:** en curso · Fase actual: 18a
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -123,9 +123,17 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - `parseMentionDraft(body, mentions)` en `mentionToken.ts` (o junto a `useMentionInput`): `<@id>` a `@Nombre` con
   rangos; ida y vuelta con `serialized` en el spec, con emojis (L-11) y menciones desconocidas.
 
-### [ ] Fase 18 — Editor en línea (web) [límite: 5 archivos]
-- `MessageEditor.vue` con `useMentionInput` restaurado desde la fase 17 y sugerencias; Enter guarda, Escape cancela,
-  Shift+Enter salto; errores como el composer; un solo mensaje en edición a la vez (estado en `ChannelView`).
+### [ ] Fase 18a — Componente editor en línea (web)
+- `MessageEditor.vue` (prop `message`, emite `done`) con `useMentionInput` restaurado por
+  `restore(parseMentionDraft(body, mentions))`, sugerencias como el composer, `MAX_LENGTH` en caracteres (L-11);
+  Enter guarda, Shift+Enter salto, Escape cierra sugerencias y luego cancela (L-20); sin cambios no llama al API; body
+  vacío solo con adjuntos; errores 422/429 con `aria-describedby`/`aria-invalid` (L-33); tras guardar
+  `messages.replace` y `thread.replace` salvo desmontado (L-32). i18n en/es. Spec propio, sin tocar vistas.
+
+### [ ] Fase 18b — Abrir el editor desde el mensaje (web)
+- `messageActions.ts` expone el id en edición y cerrar; `MessageItem` cambia el cuerpo por `MessageEditor` en el
+  mensaje en edición (canal e hilo); `ChannelView` provee el estado y lo limpia en `reload()` (L-40). Specs de
+  `MessageItem`, `ChannelView` (con cambio de canal con el editor abierto y un caso en el hilo).
 
 ### [ ] Fase 19 — Menciones quitadas en la bandeja (web)
 - `subscribeToUser` con `onMentionRemoved`; `stores/mentions.ts` quita la fila y baja `unreadCount` si no estaba
@@ -142,6 +150,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
   ventana de tiempo: solo `edited_at`. Motivo: mínimo útil; lo demás, mejoras.
 - 2026-10-09 — Fase 12: si se borra la raíz del hilo abierto, el panel la sigue mostrando como marcador con el composer activo; responder a una raíz borrada es válido y la vuelve a listar como marcador en el canal.
 - 2026-10-09 — Fase 17: al editar, una mención a un id que ya no tiene nombre (ex miembro) se conserva como texto `<@id>`; si esa persona vuelve a ser miembro, la siguiente edición la menciona de nuevo (mismo efecto que el body original).
+- 2026-10-09 — La fase 18 se dividió en 18a (componente `MessageEditor` con i18n) y 18b (cableado en `messageActions`, `MessageItem` y `ChannelView`) porque sumaba 6 archivos.
 - 2026-10-09 — Eventos nuevos `message.updated`, `message.deleted` (con contadores de la raíz ya recalculados, que el
   cliente aplica aunque bajen) y `mention.removed`. Mismo throttle `channel-messages` para editar y borrar.
 
