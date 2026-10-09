@@ -2,7 +2,7 @@
 
 **Objetivo:** que el autor de un mensaje pueda editar su texto (con menciones) y borrarlo, con el cambio en vivo
 para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de M-1 de `terminados/chat.md`.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -35,7 +35,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 
 ### API
 
-### [ ] Fase 1 — Columnas de edición y borrado en `messages` (api) [riesgo]
+### [x] Fase 1 — Columnas de edición y borrado en `messages` (api) [riesgo]
 - **Alcance:** migración que agrega `edited_at` y `deleted_at` (timestamp nullable) a `messages` y reemplaza
   `messages_require_body_or_attachments()` para que no exija contenido a un mensaje con `deleted_at` (con
   `SET search_path`; `down()` restaura la versión anterior y quita las columnas). Revisar si el `WHEN` del trigger de
@@ -144,7 +144,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
   cliente aplica aunque bajen) y `mention.removed`. Mismo throttle `channel-messages` para editar y borrar.
 
 ## Notas para la próxima sesión
-- Plan recién creado: empezar por la fase 1.
+- Fase 1 hecha: `edited_at` y `deleted_at` existen, con cast `datetime` y fuera de Fillable (asignarlas por propiedad o `DB::table`). La función de contenido ignora mensajes con `deleted_at`; el trigger de `messages` salta también al cambiar `deleted_at`. Siguiente: fase 2 (MessagePolicy).
 
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): owner y admin pueden borrar mensajes de otros (moderación), con el actor en el evento.

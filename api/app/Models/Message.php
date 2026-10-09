@@ -33,6 +33,8 @@ class Message extends Model
         return [
             'payload' => 'array',
             'last_reply_at' => 'datetime',
+            'edited_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 

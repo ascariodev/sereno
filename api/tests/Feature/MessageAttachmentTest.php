@@ -149,3 +149,33 @@ it('lets a message without body be deleted with its attachments', function () {
 
     expect(DB::table('message_attachments')->count())->toBe(0);
 });
+
+it('accepts a deleted person message without body and without attachments', function () {
+    $message = Message::factory()->for($this->channel)->create(['body' => 'hola']);
+    checkMessageContentNow();
+
+    DB::table('messages')->where('id', $message->id)->update(['body' => null, 'deleted_at' => now()]);
+    checkMessageContentNow();
+
+    expect($message->fresh()->deleted_at)->not->toBeNull();
+});
+
+it('rejects restoring a deleted message without body and without attachments', function () {
+    $message = Message::factory()->for($this->channel)->create(['body' => 'hola']);
+    DB::table('messages')->where('id', $message->id)->update(['body' => null, 'deleted_at' => now()]);
+    checkMessageContentNow();
+
+    DB::table('messages')->where('id', $message->id)->update(['deleted_at' => null]);
+})->throws(QueryException::class, 'messages_body_or_attachments');
+
+it('lets the last attachment of a deleted message be removed', function () {
+    $message = Message::factory()->for($this->channel)->create(['body' => null]);
+    $attachment = attachmentIn($this->channel, $message);
+    DB::table('messages')->where('id', $message->id)->update(['deleted_at' => now()]);
+    checkMessageContentNow();
+
+    $attachment->delete();
+    checkMessageContentNow();
+
+    expect(DB::table('message_attachments')->count())->toBe(0);
+});
