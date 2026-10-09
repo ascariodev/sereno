@@ -426,7 +426,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   sigue con callbacks porque cambiar `subscribeToUser` afecta a `useMembershipWatch`.
 - [x] M-26 (baja, sonnet): `MentionsView` muestra el error de `refresh` aunque la lista ya esté cargada, refresca la
   hora relativa con el tiempo y marca leída también al abrir con clic central o en pestaña nueva (`auxclick`).
-- [ ] M-27 (media, sonnet): test intermitente de `LogView.spec` ("refreshes the project counts once, after 300 ms"):
+- [x] M-27 (media, sonnet): test intermitente de `LogView.spec` ("refreshes the project counts once, after 300 ms"):
   falla 1 de cada 3 a 6 corridas en HEAD; buscar el temporizador real que queda armado antes de `useFakeTimers` (L-30).
 - [ ] M-28 (media, sonnet): borrar los archivos del disco cuando la cascada borra filas de `message_attachments` por
   borrado de canal o de mensaje (la fase 22 solo limpia huérfanos sin mensaje); se suma a M-4.

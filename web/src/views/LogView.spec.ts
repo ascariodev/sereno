@@ -10,6 +10,7 @@ import { setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { useProjectsStore } from '../stores/projects'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import { toast, toasts } from '../components/ui/toast'
 import LogView from './LogView.vue'
@@ -84,6 +85,7 @@ describe('LogView', () => {
   })
   afterEach(() => {
     vi.useRealTimers()
+    useProjectsStore().clear()
     mounted?.unmount()
     mounted = undefined
     document.body.innerHTML = ''
