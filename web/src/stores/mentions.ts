@@ -208,7 +208,7 @@ export const useMentionsStore = defineStore('mentions', () => {
   function start(userId: number): void {
     stop()
     live = true
-    const unsubscribeUser = subscribeToUser(userId, () => {}, () => {}, onMention)
+    const unsubscribeUser = subscribeToUser(userId, { onMention })
     const unsubscribeReconnect = onReconnect(() => void refresh())
     stopLive = () => {
       unsubscribeUser()

@@ -105,11 +105,10 @@ export function useMembershipWatch(): void {
     (userId) => {
       stopWatching()
       if (userId === undefined) return
-      unsubscribeUser = subscribeToUser(
-        userId,
-        (organizationId) => void onMembershipRevoked(organizationId),
-        (organizationId, role) => void onMembershipRoleChanged(organizationId, role),
-      )
+      unsubscribeUser = subscribeToUser(userId, {
+        onMembershipRevoked: (organizationId) => void onMembershipRevoked(organizationId),
+        onRoleChanged: (organizationId, role) => void onMembershipRoleChanged(organizationId, role),
+      })
       leaveSession = joinSession(userId)
       unsubscribeReconnect = onReconnect(onReconnected)
     },

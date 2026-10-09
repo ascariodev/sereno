@@ -165,12 +165,14 @@ export function subscribeToChannel(
   })
 }
 
-export function subscribeToUser(
-  userId: number,
-  onMembershipRevoked: (organizationId: number) => void,
-  onRoleChanged: (organizationId: number, role: string) => void = () => {},
-  onMention: (mention: MentionCreatedPayload) => void = () => {},
-): () => void {
+export interface UserSubscriptionHandlers {
+  onMembershipRevoked?: (organizationId: number) => void
+  onRoleChanged?: (organizationId: number, role: string) => void
+  onMention?: (mention: MentionCreatedPayload) => void
+}
+
+export function subscribeToUser(userId: number, handlers: UserSubscriptionHandlers = {}): () => void {
+  const { onMembershipRevoked = () => {}, onRoleChanged = () => {}, onMention = () => {} } = handlers
   const events = [MEMBERSHIP_REVOKED_EVENT, MEMBERSHIP_ROLE_CHANGED_EVENT, MENTION_CREATED_EVENT]
   return subscribe(userChannelName(userId), events, (event, data) => {
     if (typeof data.organization_id !== 'number') return

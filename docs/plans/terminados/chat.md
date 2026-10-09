@@ -471,7 +471,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [x] M-39 (baja, sonnet): tras `markAllRead`, invalidar o relanzar un `loadMore` en vuelo (sus filas nuevas llegan como
   no leídas con `unreadCount` en 0), test de `markAllRead` con `refresh` en vuelo, y comentar en `mergeMentions` que
   depende de que no exista "marcar no leída".
-- [ ] M-40 (baja, sonnet): `subscribeToUser` con objeto de opciones en vez de callbacks posicionales (actualizar
+- [x] M-40 (baja, sonnet): `subscribeToUser` con objeto de opciones en vez de callbacks posicionales (actualizar
   `useMembershipWatch`, `stores/mentions.ts` y `echo.spec`).
 - [ ] M-41 (media, sonnet): el 404 de un modelo no encontrado devuelve el texto fijo del framework con la clase y el id
   (`No query results for model [App\Models\Channel] 5`), sin `__()`; renderizarlo en `withExceptions` de

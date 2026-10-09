@@ -146,7 +146,7 @@ describe('realtime', () => {
     const { client, listeners } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
     const received: number[] = []
-    const leave = subscribeToUser(5, (organizationId) => received.push(organizationId))
+    const leave = subscribeToUser(5, { onMembershipRevoked: (organizationId) => received.push(organizationId) })
 
     expect(client.private).toHaveBeenCalledWith('users.5')
     const emit = listeners.get(`users.5|${MEMBERSHIP_REVOKED_EVENT}`)
@@ -163,11 +163,10 @@ describe('realtime', () => {
     setRealtimeClientFactory(() => client)
     const revoked: number[] = []
     const changed: Array<[number, string]> = []
-    subscribeToUser(
-      5,
-      (organizationId) => revoked.push(organizationId),
-      (organizationId, role) => changed.push([organizationId, role]),
-    )
+    subscribeToUser(5, {
+      onMembershipRevoked: (organizationId) => revoked.push(organizationId),
+      onRoleChanged: (organizationId, role) => changed.push([organizationId, role]),
+    })
 
     const emit = listeners.get(`users.5|${MEMBERSHIP_ROLE_CHANGED_EVENT}`)
     emit?.({ organization_id: 3 })
@@ -183,7 +182,7 @@ describe('realtime', () => {
     setRealtimeClientFactory(() => client)
     const received: unknown[] = []
     const revoked: number[] = []
-    subscribeToUser(5, (id) => revoked.push(id), () => {}, (mention) => received.push(mention))
+    subscribeToUser(5, { onMembershipRevoked: (id) => revoked.push(id), onMention: (mention) => received.push(mention) })
 
     const emit = listeners.get(`users.5|${MENTION_CREATED_EVENT}`)
     emit?.({ channel_id: 4, message: { id: 9 } as Message })
@@ -202,8 +201,8 @@ describe('realtime', () => {
   it('shares one user channel for both events and leaves it with the last subscriber', () => {
     const { client } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
-    const leaveFirst = subscribeToUser(5, () => {}, () => {})
-    const leaveSecond = subscribeToUser(5, () => {})
+    const leaveFirst = subscribeToUser(5)
+    const leaveSecond = subscribeToUser(5)
     expect(client.private).toHaveBeenCalledTimes(1)
     leaveFirst()
     expect(client.leave).not.toHaveBeenCalled()
@@ -214,8 +213,8 @@ describe('realtime', () => {
   it('keeps the user channel open until its last subscriber leaves', () => {
     const { client } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
-    const leaveFirst = subscribeToUser(5, () => {})
-    const leaveSecond = subscribeToUser(5, () => {})
+    const leaveFirst = subscribeToUser(5)
+    const leaveSecond = subscribeToUser(5)
     expect(client.private).toHaveBeenCalledTimes(1)
     leaveFirst()
     expect(client.leave).not.toHaveBeenCalled()
@@ -231,7 +230,7 @@ describe('realtime', () => {
     const leaveA = subscribeToChannel(3, 7, (message) => dropped.push(message.id))
     subscribeToChannel(3, 8, () => {})
     subscribeToChannel(30, 7, (message) => kept.push(message.id))
-    subscribeToUser(3, () => {})
+    subscribeToUser(3)
 
     leaveOrganization(3)
 
@@ -250,7 +249,7 @@ describe('realtime', () => {
   it('delivers nothing and leaves nothing after disconnectRealtime', () => {
     const { client } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
-    const leave = subscribeToUser(5, () => {})
+    const leave = subscribeToUser(5)
     disconnectRealtime()
     leave()
     leaveOrganization(3)
@@ -384,7 +383,7 @@ describe('realtime', () => {
     setRealtimeClientFactory(() => client)
     const denied = vi.fn()
     const off = onChannelDenied(denied)
-    subscribeToUser(5, () => {})
+    subscribeToUser(5)
     subscribeToChannel(3, 7, () => {})
 
     rejectChannel('users.5', { status: 403 })
