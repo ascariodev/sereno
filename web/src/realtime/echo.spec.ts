@@ -5,6 +5,7 @@ import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import {
   createAuthorizer,
   disconnectRealtime,
+  joinSession,
   leaveOrganization,
   MEMBERSHIP_REVOKED_EVENT,
   MEMBERSHIP_ROLE_CHANGED_EVENT,
@@ -232,6 +233,47 @@ describe('realtime', () => {
     leaveOrganization(3)
     expect(client.leave).not.toHaveBeenCalled()
     expect(client.disconnect).toHaveBeenCalledOnce()
+  })
+
+  it('joins the session presence channel, not a private one, and leaves it', () => {
+    const { client } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const leave = joinSession(5)
+
+    expect(client.join).toHaveBeenCalledWith('sessions.5')
+    expect(client.private).not.toHaveBeenCalled()
+    leave()
+    expect(client.leave).toHaveBeenCalledWith('sessions.5')
+  })
+
+  it('keeps the session channel until its last subscriber leaves, and ignores a stale unsubscribe after reconnect', () => {
+    const first = createFakeRealtimeClient()
+    const second = createFakeRealtimeClient()
+    const clients = [first.client, second.client]
+    setRealtimeClientFactory(() => clients.shift() ?? null)
+    const leaveA = joinSession(5)
+    const leaveB = joinSession(5)
+    expect(first.client.join).toHaveBeenCalledTimes(1)
+    leaveA()
+    expect(first.client.leave).not.toHaveBeenCalled()
+
+    disconnectRealtime()
+    const leaveNew = joinSession(5)
+    expect(second.client.join).toHaveBeenCalledWith('sessions.5')
+    leaveB()
+    expect(first.client.leave).not.toHaveBeenCalled()
+    expect(second.client.leave).not.toHaveBeenCalled()
+    leaveNew()
+    expect(second.client.leave).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not leave the session channel after disconnectRealtime', () => {
+    const { client } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const leave = joinSession(5)
+    disconnectRealtime()
+    leave()
+    expect(client.leave).not.toHaveBeenCalled()
   })
 
   it('does nothing without a client (no Reverb key)', () => {

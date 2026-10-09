@@ -11,6 +11,7 @@ export function createFakeRealtimeClient() {
         listeners.set(`${name}|${event}`, callback)
       }),
     })),
+    join: vi.fn((_name: string) => ({})),
     leave: vi.fn(),
     disconnect: vi.fn(),
     connectionStatus: vi.fn((): ConnectionStatus => status),

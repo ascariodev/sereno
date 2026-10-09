@@ -15,6 +15,7 @@ export interface RealtimePayload {
 
 export interface RealtimeClient {
   private(name: string): { listen(event: string, callback: (data: RealtimePayload) => void): unknown }
+  join(name: string): unknown
   leave(name: string): void
   disconnect(): void
   connectionStatus(): ConnectionStatus
@@ -52,16 +53,21 @@ export function userChannelName(userId: number): string {
   return `users.${userId}`
 }
 
-function subscribe(name: string, events: string[], handler: Subscriber): () => void {
+export function sessionChannelName(userId: number): string {
+  return `sessions.${userId}`
+}
+
+function subscribe(name: string, events: string[], handler: Subscriber, presence = false): () => void {
   client ??= factory()
   const current = client
   if (current === null) return () => {}
   let entry = subscriptions.get(name)
   if (!entry || entry.client !== current) {
     const callbacks = new Set<Subscriber>()
-    const channel = current.private(name)
+    const channel = presence ? null : current.private(name)
+    if (presence) current.join(name)
     for (const event of events) {
-      channel.listen(event, (data) => {
+      channel?.listen(event, (data) => {
         if (!data) return
         for (const callback of [...callbacks]) {
           try {
@@ -108,6 +114,10 @@ export function subscribeToUser(
     if (event === MEMBERSHIP_REVOKED_EVENT) onMembershipRevoked(data.organization_id)
     else if (typeof data.role === 'string') onRoleChanged(data.organization_id, data.role)
   })
+}
+
+export function joinSession(userId: number): () => void {
+  return subscribe(sessionChannelName(userId), [], () => {}, true)
 }
 
 export function leaveOrganization(organizationId: number): void {
@@ -182,6 +192,7 @@ function createEchoClient(): RealtimeClient | null {
   })
   return {
     private: (name) => echo.private(name),
+    join: (name) => echo.join(name),
     leave: (name) => echo.leave(name),
     disconnect: () => echo.disconnect(),
     connectionStatus: () => echo.connectionStatus(),
