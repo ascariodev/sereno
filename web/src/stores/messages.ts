@@ -42,6 +42,20 @@ function withParticipant(current: Message['recent_participants'], author: Messag
   return [author, ...current.filter((user) => user.id !== author.id)].slice(0, MAX_PARTICIPANTS)
 }
 
+function bumpRoot(root: Message, reply: Message): Message {
+  return {
+    ...root,
+    replies_count: root.replies_count + 1,
+    last_reply_at: laterDate(root.last_reply_at, reply.created_at),
+    recent_participants: withParticipant(root.recent_participants, reply.user),
+  }
+}
+
+/** Whether a server snapshot of a root, with this `last_reply_at`, already counts a reply created at `at`. */
+function snapshotCounts(snapshotLast: string | null | undefined, at: string): boolean {
+  return snapshotLast != null && Date.parse(at) <= Date.parse(snapshotLast)
+}
+
 export const useMessagesStore = defineStore('messages', () => {
   const channelId = ref<number | null>(null)
   const messages = shallowRef<Message[]>([])
@@ -52,7 +66,10 @@ export const useMessagesStore = defineStore('messages', () => {
   let generation = 0
   let listVersion = 0
   let pending = new Map<number, Message>()
-  let countedReplies = new Set<number>()
+  /** Live replies already applied, by id; they reconcile later snapshots of their root. */
+  let countedReplies = new Map<number, Message>()
+  /** `last_reply_at` of the latest server snapshot of each root, to tell whether a late live reply is in it. */
+  let snapshots = new Map<number, string | null>()
   let flushScheduled = false
 
   function has(id: number): boolean {
@@ -78,7 +95,8 @@ export const useMessagesStore = defineStore('messages', () => {
     resetGroupStatuses()
     resetHourlyCounts()
     pending = new Map()
-    countedReplies = new Set()
+    countedReplies = new Map()
+    snapshots = new Map()
     flushScheduled = false
     channelId.value = null
     messages.value = []
@@ -88,15 +106,21 @@ export const useMessagesStore = defineStore('messages', () => {
     error.value = null
   }
 
+  /** Takes a root from the server and adds the live replies its snapshot does not include yet. */
+  function reconcile(root: Message): Message {
+    snapshots.set(root.id, root.last_reply_at)
+    let result = root
+    for (const reply of countedReplies.values()) {
+      if (reply.parent_id === root.id && !snapshotCounts(root.last_reply_at, reply.created_at)) result = bumpRoot(result, reply)
+    }
+    return result
+  }
+
   function applyReply(reply: Message, rootId: number): boolean {
     if (countedReplies.has(reply.id)) return false
-    countedReplies.add(reply.id)
-    const bump = (root: Message): Message => ({
-      ...root,
-      replies_count: root.replies_count + 1,
-      last_reply_at: laterDate(root.last_reply_at, reply.created_at),
-      recent_participants: withParticipant(root.recent_participants, reply.user),
-    })
+    countedReplies.set(reply.id, reply)
+    if (snapshotCounts(snapshots.get(rootId), reply.created_at)) return true
+    const bump = (root: Message): Message => bumpRoot(root, reply)
     const queued = pending.get(rootId)
     if (queued !== undefined) {
       pending.set(rootId, bump(queued))
@@ -175,8 +199,9 @@ export const useMessagesStore = defineStore('messages', () => {
     if (joined || newest === null) {
       flush()
       const known = new Set(messages.value.map((message) => message.id))
-      const refreshed = fetched.filter((message) => known.has(message.id)).sort((a, b) => a.id - b.id)
-      fetched.filter((message) => !known.has(message.id)).forEach(insert)
+      const reconciled = fetched.map((message) => (message.parent_id === null ? reconcile(message) : message))
+      const refreshed = reconciled.filter((message) => known.has(message.id)).sort((a, b) => a.id - b.id)
+      reconciled.filter((message) => !known.has(message.id)).forEach(insert)
       if (refreshed.length > 0) messages.value = mergeById(messages.value, refreshed)
       flush()
       return

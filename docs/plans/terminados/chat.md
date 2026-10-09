@@ -404,7 +404,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   Hecho como test de 200 en canal archivado: no hay canales privados y `ChannelPolicy::view` deja ver todos a
   cualquier miembro; el 403 de no miembro ya estaba cubierto.
 - [x] M-10 (baja, sonnet): en el test de paginación de respuestas, afirmar que una respuesta de otra raíz no aparece.
-- [ ] M-11 (media, sonnet): carreras del contador de respuestas entre `catchUp` (rama `joined`) y respuestas en vivo
+- [x] M-11 (media, sonnet): carreras del contador de respuestas entre `catchUp` (rama `joined`) y respuestas en vivo
   (pierde el +1 o suma 2 hasta el siguiente refresco); conciliar con `countedReplies` o un evento de contador en la API.
 - [x] M-12 (baja, sonnet): `applyReply` recibe el `rootId` desde `insert` en vez de `reply.parent_id as number`, y
   spec de `insert` de una respuesta con `channelId` null.
@@ -484,3 +484,4 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   mientras carga.
 - [ ] M-44 (baja, sonnet): `MessageController::loadParticipants` usa `$users->get($id)` y filtra nulos, por si un usuario se borra entre las dos consultas.
 - [ ] M-45 (baja, sonnet): spec de `memberDirectory` que fije que `invalidate()` conserva la lista visible hasta que llega la nueva; y altas de otra persona en vivo (evento de membresía) en vez de esperar el TTL.
+- [ ] M-46 (media, sonnet): el contador de respuestas concilia por segundos (`last_reply_at` sin fracción): una respuesta en vivo en el mismo segundo que el snapshot pierde el +1 hasta el refresco; conciliar por id de la última respuesta o con precisión de microsegundos.

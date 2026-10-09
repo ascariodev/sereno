@@ -483,6 +483,33 @@ describe('messages store', () => {
       expect(store.messages.find((m) => m.id === 120)?.replies_count).toBe(4)
     })
 
+    it('catchUp keeps the +1 of a live reply that the fetched snapshot does not include yet', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [root(2, 0)], meta: { next_cursor: null } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      let resolve: (value: unknown) => void = () => {}
+      get.mockReturnValueOnce(new Promise((done) => (resolve = done)) as never)
+      const pending = store.catchUp()
+      store.insert(reply(9, 2))
+      expect(store.messages[0].replies_count).toBe(1)
+      resolve({ data: [root(2, 0)], meta: { next_cursor: null } })
+      await pending
+      expect(store.messages[0].replies_count).toBe(1)
+      expect(store.messages[0].last_reply_at).toBe('2026-01-02T00:00:00Z')
+    })
+
+    it('catchUp does not count twice a live reply that arrives after a snapshot that already includes it', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [root(2, 0)], meta: { next_cursor: null } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      get.mockResolvedValueOnce({ data: [root(2, 1, '2026-01-02T00:00:00Z')], meta: { next_cursor: null } } as never)
+      await store.catchUp()
+      expect(store.insert(reply(9, 2))).toBe(true)
+      expect(store.messages[0].replies_count).toBe(1)
+      store.insert(reply(10, 2, '2026-01-03T00:00:00Z'))
+      expect(store.messages[0].replies_count).toBe(2)
+    })
+
     it('loadOlder and open keep the counters of the page they load', async () => {
       const get = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [message(4)], meta: { next_cursor: 'c1' } } as never)
       const store = useMessagesStore()
