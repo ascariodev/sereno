@@ -176,6 +176,22 @@ it('deletes only the stray files older than the period and with no row', functio
         ->and($disk->exists($withRow->path))->toBeTrue();
 });
 
+it('finds stray files in every organization and channel directory', function () {
+    $disk = Storage::disk('local');
+    $paths = ['chat/loose', 'chat/7/loose', 'chat/7/3/old', 'chat/8/4/old', 'chat/8/4/deep/old'];
+
+    foreach ($paths as $path) {
+        $disk->put($path, 'x');
+        touch($disk->path($path), now()->subHours(30)->getTimestamp());
+    }
+
+    $this->artisan('chat:prune-attachments')
+        ->expectsOutputToContain('Deleted 0 orphan attachments and 5 stray files.')
+        ->assertSuccessful();
+
+    expect($disk->allFiles('chat'))->toBe([]);
+});
+
 it('refuses to delete anything with an invalid orphan period', function (mixed $hours) {
     config(['chat.attachments.orphan_hours' => $hours]);
     $old = storedAttachment($this->channel, '5 days');

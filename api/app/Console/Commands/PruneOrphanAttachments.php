@@ -7,6 +7,7 @@ use App\Models\Scopes\OrganizationScope;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
@@ -24,9 +25,9 @@ class PruneOrphanAttachments extends Command
         $hours = config('chat.attachments.orphan_hours');
 
         if (! is_int($hours) || $hours < self::MIN_ORPHAN_HOURS) {
-            $this->components->error(sprintf(
-                'Nothing deleted: the orphan period must be at least %d hour.',
-                self::MIN_ORPHAN_HOURS,
+            $this->components->error(__(
+                'Nothing deleted: the orphan period must be at least :hours hour.',
+                ['hours' => self::MIN_ORPHAN_HOURS],
             ));
 
             return self::FAILURE;
@@ -85,7 +86,7 @@ class PruneOrphanAttachments extends Command
         $storage = Storage::disk($disk);
         $deleted = 0;
 
-        foreach (array_chunk($storage->allFiles('chat'), self::BATCH_SIZE) as $paths) {
+        foreach ($this->pathChunks($storage) as $paths) {
             $known = MessageAttachment::withoutGlobalScope(OrganizationScope::class)
                 ->where('disk', $disk)
                 ->whereIn('path', $paths)
@@ -107,6 +108,32 @@ class PruneOrphanAttachments extends Command
         }
 
         return $deleted;
+    }
+
+    /**
+     * Stored paths in chunks, listing one channel directory at a time so the whole tree is never held in memory.
+     *
+     * @return \Generator<int, list<string>>
+     */
+    private function pathChunks(Filesystem $storage): \Generator
+    {
+        $roots = ['chat'];
+
+        foreach ($storage->directories('chat') as $organizationDir) {
+            $roots[] = $organizationDir;
+        }
+
+        foreach ($roots as $root) {
+            yield from array_chunk($storage->files($root), self::BATCH_SIZE);
+
+            if ($root === 'chat') {
+                continue;
+            }
+
+            foreach ($storage->directories($root) as $channelDir) {
+                yield from array_chunk($storage->allFiles($channelDir), self::BATCH_SIZE);
+            }
+        }
     }
 
     private function deleteFile(string $disk, string $path): void

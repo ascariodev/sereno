@@ -269,5 +269,6 @@
     "Log source key rotated. Copy the key now, it will not be shown again.": "Log source key rotated. Copy the key now, it will not be shown again.",
     "The organization must keep at least one owner.": "The organization must keep at least one owner.",
     "The attachments do not exist or are already in use.": "The attachments do not exist or are already in use.",
-    "The link is invalid or has expired.": "The link is invalid or has expired."
+    "The link is invalid or has expired.": "The link is invalid or has expired.",
+    "Nothing deleted: the orphan period must be at least :hours hour.": "Nothing deleted: the orphan period must be at least :hours hour."
 }

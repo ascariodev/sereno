@@ -269,5 +269,6 @@
     "Log source key rotated. Copy the key now, it will not be shown again.": "Key de la fuente de log rotada. Copia la key ahora, no se volverá a mostrar.",
     "The organization must keep at least one owner.": "La organización debe conservar al menos un propietario.",
     "The attachments do not exist or are already in use.": "Los adjuntos no existen o ya están en uso.",
-    "The link is invalid or has expired.": "El enlace no es válido o ha vencido."
+    "The link is invalid or has expired.": "El enlace no es válido o ha vencido.",
+    "Nothing deleted: the orphan period must be at least :hours hour.": "No se eliminó nada: el periodo de huérfanos debe ser de al menos :hours hora."
 }

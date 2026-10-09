@@ -441,7 +441,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-32 (baja, sonnet): servir `application/pdf` como `application/octet-stream` (Firefox lo abre en su visor),
   abrir el stream dentro del callback para que un HEAD no lo deje abierto, y redondear `expires` a tramos para que el
   navegador reaproveche la caché de imágenes.
-- [ ] M-33 (baja, sonnet): `chat:prune-attachments` recorre `chat/` por directorio de organización o canal en vez de
+- [x] M-33 (baja, sonnet): `chat:prune-attachments` recorre `chat/` por directorio de organización o canal en vez de
   `allFiles('chat')` entero, y su mensaje de error pasa por `__()`.
 - [ ] M-34 (baja, sonnet): `useAttachmentUploads`: solo red, 429 y 5xx reintentables (403, 404 y 413 no); `watch` del
   canal con `flush: 'sync'`; test explícito del 429; `formatFileSize` sin "1,024 KB" por redondeo.
