@@ -11,11 +11,13 @@ class MessageResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $deleted = $this->deleted_at !== null;
+
         return [
             'id' => $this->id,
             'channel_id' => $this->channel_id,
             'kind' => $this->kind,
-            'body' => $this->body,
+            'body' => $deleted ? null : $this->body,
             'payload' => $this->payload,
             'log_group_id' => $this->log_group_id,
             'parent_id' => $this->parent_id,
@@ -28,14 +30,15 @@ class MessageResource extends JsonResource
                 'id' => $this->user->id,
                 'name' => $this->user->name,
             ]),
-            'mentions' => $this->whenLoaded('mentionedUsers', fn () => $this->mentionedUsers
+            'mentions' => $this->whenLoaded('mentionedUsers', fn () => $deleted ? [] : $this->mentionedUsers
                 ->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()->all()),
             // Messages broadcast as they are created (log notices) carry no attachments, so the
             // default avoids a query in the queue worker, which has no active organization.
-            'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->sortBy('id')
+            'attachments' => $this->whenLoaded('attachments', fn () => $deleted ? [] : $this->attachments->sortBy('id')
                 ->map(fn ($attachment) => (new MessageAttachmentResource($attachment))->resolve($request))->values()->all(), []),
             'created_at' => $this->created_at,
             'edited_at' => $this->edited_at,
+            'deleted_at' => $this->deleted_at,
         ];
     }
 }

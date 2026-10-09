@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Chat\MessageDeletion;
 use App\Chat\MessageMentions;
 use App\Events\MessageUpdated;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Channel\DeleteMessageRequest;
 use App\Http\Requests\Channel\ListMessagesRequest;
 use App\Http\Requests\Channel\StoreMessageRequest;
 use App\Http\Requests\Channel\UpdateMessageRequest;
@@ -153,6 +155,26 @@ class MessageController extends Controller
         }
 
         return new MessageResource($message);
+    }
+
+    public function destroy(DeleteMessageRequest $request, Channel $channel, Message $message, MessageDeletion $deletion): MessageResource
+    {
+        $result = $deletion->delete($message);
+        abort_if($result === null, 404);
+
+        $deleted = $result['message']->load(self::RELATIONS);
+        $this->loadParticipants([$deleted]);
+
+        $resource = new MessageResource($deleted);
+        if ($result['root'] !== null) {
+            $resource->additional(['meta' => ['root' => [
+                'id' => $result['root']->id,
+                'replies_count' => $result['root']->replies_count,
+                'last_reply_at' => $result['root']->last_reply_at,
+            ]]]);
+        }
+
+        return $resource;
     }
 
     /**
