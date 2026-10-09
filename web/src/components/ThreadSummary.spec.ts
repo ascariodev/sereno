@@ -41,7 +41,9 @@ describe('ThreadSummary', () => {
 
   it('shows the count and how long ago the last reply was', () => {
     const message = { ...base, replies_count: 2, last_reply_at: '2026-03-04T10:00:00Z' }
-    const text = mount(ThreadSummary, { props: { message }, global }).text()
+    const wrapper = mount(ThreadSummary, { props: { message }, global })
+    const text = wrapper.text()
+    expect(wrapper.get('button').text()).toContain('2 replies')
     expect(text).toContain('2 replies')
     expect(text).toContain('Last reply 2 hours ago')
   })

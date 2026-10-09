@@ -233,8 +233,8 @@ defineExpose({ openThread })
             :loading-more="messages.loadingMore"
             :project-id="channel?.project_id"
             :own-user-id="auth.user?.id"
-            @load-older="messages.loadOlder()"
             threadable
+            @load-older="messages.loadOlder()"
             @select="selectGroup"
             @open-thread="openThread"
           />

@@ -404,7 +404,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   (incluirla en la respuesta de `replies` o un endpoint de un mensaje); sirve también para abrir menciones (fase 17).
 - [x] M-16 (baja, sonnet): tests de `ChannelView` para `thread.clear()` en `onUnmounted`, la baja del listener de
   `matchMedia` y el paso de estrecho a ancho con un hilo abierto (hoy se remonta y pierde el borrador).
-- [ ] M-17 (baja, sonnet): spec de `ThreadSummary` que afirme el nombre accesible con el conteo, y ordenar
+- [x] M-17 (baja, sonnet): spec de `ThreadSummary` que afirme el nombre accesible con el conteo, y ordenar
   `threadable` junto a las demás props en `ChannelView.vue`.
 - [ ] M-18 (baja, sonnet): refrescar la etiqueta "hace cuánto" de `ThreadSummary` con el paso del tiempo.
 - [ ] M-19 (baja, sonnet): renombrar en `MessageMentionTest` el test "keeps the mention when only the user is not
