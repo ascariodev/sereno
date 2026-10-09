@@ -124,3 +124,38 @@ it('isolates messages by organization', function () {
 
     expect(Message::query()->count())->toBe(1);
 });
+
+it('rejects a reply whose parent belongs to another channel', function () {
+    $otherChannel = Channel::factory()->for(Project::factory()->for($this->organization)->create())->create();
+    $root = Message::factory()->for($otherChannel)->create();
+
+    $reply = Message::factory()->for($this->channel)->make();
+    $reply->parent_id = $root->id;
+
+    expect(fn () => $reply->save())->toThrow(QueryException::class);
+});
+
+it('deletes replies with their root and with the channel', function () {
+    $root = Message::factory()->for($this->channel)->create();
+    $reply = Message::factory()->for($this->channel)->make();
+    $reply->parent_id = $root->id;
+    $reply->save();
+
+    expect($reply->parent->is($root))->toBeTrue()
+        ->and($root->replies()->count())->toBe(1);
+
+    $this->channel->delete();
+
+    expect(Message::query()->whereIn('id', [$root->id, $reply->id])->count())->toBe(0);
+});
+
+it('deletes replies when the root is deleted', function () {
+    $root = Message::factory()->for($this->channel)->create();
+    $reply = Message::factory()->for($this->channel)->make();
+    $reply->parent_id = $root->id;
+    $reply->save();
+
+    $root->delete();
+
+    expect(Message::query()->whereKey($reply->id)->exists())->toBeFalse();
+});

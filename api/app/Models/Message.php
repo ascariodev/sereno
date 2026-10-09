@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['kind', 'body', 'payload'])]
 class Message extends Model
@@ -30,6 +31,7 @@ class Message extends Model
     {
         return [
             'payload' => 'array',
+            'last_reply_at' => 'datetime',
         ];
     }
 
@@ -46,5 +48,15 @@ class Message extends Model
     public function logGroup(): BelongsTo
     {
         return $this->belongsTo(LogGroup::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function replies(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id');
     }
 }

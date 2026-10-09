@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -31,7 +31,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 
 ### Hilos
 
-### [ ] Fase 1 — Esquema de hilos en `messages` (api)
+### [x] Fase 1 — Esquema de hilos en `messages` (api)
 - **Alcance:** migración que agrega `parent_id` nullable, `replies_count` int default 0 y `last_reply_at` nullable.
   FK compuesta `(channel_id, parent_id)` a `messages(channel_id, id)` con `cascadeOnDelete` (requiere
   `unique(channel_id, id)`), para que una respuesta no pueda colgar de otro canal. Índice `(parent_id, id DESC)` e
@@ -160,7 +160,11 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   archivo (cabe en los 6 MB de `uploads.ini` y nginx), configurable en `config/chat.php`.
 
 ## Notas para la próxima sesión
-- Plan recién creado: empezar por la fase 1.
+- Fase 1 hecha: migración `2026_10_09_100000_add_thread_columns_to_messages_table` (FK compuesta
+  `messages_parent_fk`, `unique(channel_id, id)`), relaciones `parent`/`replies` en `Message`. `parent_id` está fuera
+  de Fillable: en tests se asigna por propiedad; el store de la fase 2 debe fijarlo igual (o por la relación).
+- Entorno en la nube: Docker Hub responde 429; la imagen `workspace-php` se construyó desde el mirror
+  `mirror.gcr.io` con `--network host` y el CA del proxy (fuera del repo), y `vendor` se copió al volumen.
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): editar y borrar mensajes propios (no está en el paso 6 y toca `updated_at`, el evento en
@@ -171,3 +175,5 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-4 (media, sonnet): borrar los archivos de adjuntos cuando se borra la organización (la cascada borra filas,
   no archivos).
 - [ ] M-5 (media, sonnet): límites de adjuntos y almacenamiento por plan de la organización (`docs/monetizacion.md`).
+- [ ] M-6 (baja, sonnet): hacer parcial el índice `(parent_id, id DESC)` con `WHERE parent_id IS NOT NULL`, para no
+  indexar los mensajes raíz.
