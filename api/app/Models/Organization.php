@@ -7,6 +7,7 @@ use App\Enums\Role;
 use App\Events\MembershipRevoked;
 use App\Events\MembershipRoleChanged;
 use App\Exceptions\LastOwnerException;
+use App\Jobs\TerminateUserConnections;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 #[Fillable(['name', 'slug', 'settings'])]
 class Organization extends Model
@@ -132,6 +134,22 @@ class Organization extends Model
             $this->users()->detach($user->id);
 
             MembershipRevoked::dispatch($user->id, $this->id);
+            $this->scheduleConnectionCut($user->id);
+        });
+    }
+
+    /**
+     * Delayed so `membership.revoked` reaches the client before its sockets close; a queue failure is reported
+     * but must not fail a removal that is already committed.
+     */
+    private function scheduleConnectionCut(int $userId): void
+    {
+        DB::afterCommit(function () use ($userId) {
+            try {
+                TerminateUserConnections::dispatch($userId)->delay(5);
+            } catch (Throwable $e) {
+                report($e);
+            }
         });
     }
 

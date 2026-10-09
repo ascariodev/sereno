@@ -1,7 +1,7 @@
 # Plan: corte-forzado
 
 **Objetivo:** que un miembro quitado de una organización deje de recibir sus mensajes en vivo aunque su cliente ignore el aviso: el API cierra sus conexiones en Reverb, el cliente reconecta, `/broadcasting/auth` rechaza los canales de esa organización y la web lo trata como membresía revocada.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -23,7 +23,7 @@
 - **Archivos:** `api/app/Realtime/ConnectionTerminator.php` (nuevo), `api/config/broadcasting.php`, tests en `api/tests/Feature/ConnectionTerminatorTest.php` (nuevo).
 - **Terminado cuando:** tests con un Pusher simulado (llamada con el id correcto), no-op con el driver null y propagación del error pasan.
 
-### [ ] Fase 3 — Cortar al revocar la membresía
+### [x] Fase 3 — Cortar al revocar la membresía
 - **Alcance:** job en cola `TerminateUserConnections($userId)` despachado tras el commit al revocar (listener de `MembershipRevoked` con `ShouldHandleEventsAfterCommit`, o desde `removeMember`; decidir y anotar), con un retraso corto (~5 s) para que el evento `membership.revoked` llegue antes del corte. Idempotente: admite reintentos. Un fallo nunca rompe el DELETE.
 - **Archivos:** `api/app/Jobs/TerminateUserConnections.php` (nuevo), `api/app/Listeners/...` o `api/app/Models/Organization.php`, tests en `api/tests/Feature/MembershipBroadcastTest.php`.
 - **Terminado cuando:** tests de que quitar y salir encolan el job con el usuario y el retraso, que no se encola con rollback, `LastOwnerException` ni `changeMemberRole`, y que el job llama al terminador, pasan.
@@ -51,13 +51,17 @@
 
 - 2026-10-08 — `ConnectionTerminator` usa la conexión de broadcasting por defecto y detecta el driver con `instanceof PusherBroadcaster` (cubre reverb y pusher); cualquier otro no hace nada. Pasa el id como string (`terminateUserConnections(string)`); Reverb compara `(string) user_id === $userId`, así que coincide.
 - 2026-10-08 — Timeouts de Reverb en `client_options`: conexión 2 s y total 5 s (`REVERB_CONNECT_TIMEOUT`, `REVERB_TIMEOUT`). Afectan a todos los broadcasts a Reverb; hoy todos van por cola, así que un timeout se reintenta.
+- 2026-10-08 — El corte se despacha desde `Organization::removeMember` (`DB::afterCommit` + `TerminateUserConnections::dispatch($id)->delay(5)` en try/catch con `report()`), no con un listener: un solo punto para quitar y salir, y los tests existentes hacen `Event::fake` de `MembershipRevoked`. Job con `$tries = 4`, `backoff = [5, 15, 60]`, idempotente.
+- 2026-10-08 — El corte cierra todos los sockets del usuario, también los de organizaciones donde sigue siendo miembro: esos clientes reconectan y re-autorizan sin problema. Efecto esperado.
 
 ## Notas para la próxima sesión
 - Fase 1 hecha: `SessionChannel::join` devuelve `['id' => $user->id]`; en el `channel_data` de Laravel `user_id` llega como string ("43"). En la verificación en vivo (fase 6) confirmar que `terminate_connections` con el id numérico encuentra el socket.
 - Fase 2 hecha. En la fase 3, el job lleva `$tries` y `backoff` acordes: `terminate` lanza ante error. Tests: Pusher simulado con `Broadcast::extend` (helper `useFakePusherConnection` en `ConnectionTerminatorTest`).
-- Seguir con la fase 3. Leer `docs/lecciones.md` antes. Tras cambiar jobs o listeners: `docker compose restart queue`.
+- Fase 3 hecha (worker reiniciado). Si el job agota reintentos queda en `failed_jobs` y el socket sigue abierto hasta que el cliente reconecte.
+- Seguir con la fase 4 (web). Leer `docs/lecciones.md` antes. Tras cambiar jobs o listeners: `docker compose restart queue`.
 
 ## Mejoras propuestas
 - [ ] M-1 (baja, sonnet): renombrar el helper global de Pest `authorizePresence` en `api/tests/Feature/BroadcastingAuthTest.php` a uno más específico (`authorizeSessionPresence`), por L-29.
 - [ ] M-2 (baja, sonnet): quitar el docblock `@return array{id: int}|false` de `api/app/Broadcasting/SessionChannel.php`, que repite la firma.
 - [ ] M-3 (baja, sonnet): documentar `REVERB_CONNECT_TIMEOUT` y `REVERB_TIMEOUT` en `api/.env.example`.
+- [ ] M-4 (baja, sonnet): en el test de fallo de la cola de `api/tests/Feature/MembershipBroadcastTest.php`, afirmar también que se llamó a `report()` (hoy depende de que el driver llame a `later`).

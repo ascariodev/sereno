@@ -4,11 +4,14 @@ use App\Enums\Role;
 use App\Events\MembershipRevoked;
 use App\Events\MembershipRoleChanged;
 use App\Exceptions\LastOwnerException;
+use App\Jobs\TerminateUserConnections;
 use App\Models\Organization;
 use App\Models\User;
+use App\Realtime\ConnectionTerminator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -117,4 +120,72 @@ it('does not broadcast a role change when a member is removed', function () {
     $this->organization->removeMember($this->member);
 
     Event::assertNotDispatched(MembershipRoleChanged::class);
+});
+
+it('queues a delayed connection cut for the removed user', function () {
+    Queue::fake();
+
+    $this->organization->removeMember($this->member);
+
+    Queue::assertPushed(TerminateUserConnections::class, 1);
+    Queue::assertPushed(
+        TerminateUserConnections::class,
+        fn (TerminateUserConnections $job) => $job->userId === $this->member->id && $job->delay === 5,
+    );
+});
+
+it('queues the connection cut when a member leaves through the API', function () {
+    Queue::fake();
+    Sanctum::actingAs($this->member);
+
+    $this->withHeader('X-Organization-Id', (string) $this->organization->id)
+        ->deleteJson("/api/members/{$this->member->id}")
+        ->assertNoContent();
+
+    Queue::assertPushed(TerminateUserConnections::class, fn ($job) => $job->userId === $this->member->id);
+});
+
+it('does not queue the connection cut when the removal fails or rolls back', function () {
+    Queue::fake();
+
+    expect(fn () => $this->organization->removeMember($this->owner))->toThrow(LastOwnerException::class);
+    expect(fn () => $this->organization->removeMember(User::factory()->create()))
+        ->toThrow(ModelNotFoundException::class);
+
+    try {
+        DB::transaction(function () {
+            $this->organization->removeMember($this->member);
+            throw new RuntimeException('rollback');
+        });
+    } catch (RuntimeException) {
+    }
+
+    Queue::assertNothingPushed();
+});
+
+it('does not queue the connection cut when the role changes', function () {
+    Queue::fake();
+
+    $this->organization->changeMemberRole($this->member, Role::Admin);
+
+    Queue::assertNothingPushed();
+});
+
+it('does not fail the removal when queueing the cut fails', function () {
+    Queue::shouldReceive('push', 'later')->andThrow(new RuntimeException('queue down'));
+    Queue::makePartial();
+
+    $this->organization->removeMember($this->member);
+
+    expect($this->organization->users()->whereKey($this->member->id)->exists())->toBeFalse();
+});
+
+it('has the job ask the terminator to close the user connections and retry with backoff', function () {
+    $terminator = Mockery::mock(ConnectionTerminator::class);
+    $terminator->shouldReceive('terminate')->once()->with(43);
+
+    (new TerminateUserConnections(43))->handle($terminator);
+
+    expect((new TerminateUserConnections(43))->tries)->toBeGreaterThan(1)
+        ->and((new TerminateUserConnections(43))->backoff)->not->toBeEmpty();
 });
