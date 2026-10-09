@@ -322,7 +322,7 @@ describe('messages store', () => {
       get.mockReturnValueOnce(new Promise((r) => (resolve = r)) as never)
       const pending = store.catchUp()
       store.insert(message(3))
-      resolve(page([4, 3, 2], null))
+      resolve(page([4, 3, 2, 1], null))
       await pending
       expect(store.messages.map((m) => m.id)).toEqual([1, 2, 3, 4])
     })
@@ -468,7 +468,7 @@ describe('messages store', () => {
       const get = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [root(2, 0), message(1)], meta: { next_cursor: null } } as never)
       const store = useMessagesStore()
       await store.open(5)
-      get.mockResolvedValueOnce({ data: [message(4), root(2, 3, '2026-01-05T00:00:00Z')], meta: { next_cursor: null } } as never)
+      get.mockResolvedValueOnce({ data: [message(4), root(2, 3, '2026-01-05T00:00:00Z'), message(1)], meta: { next_cursor: null } } as never)
       await store.catchUp()
       expect(store.messages.map((m) => m.id)).toEqual([1, 2, 4])
       expect(store.messages[1].replies_count).toBe(3)
@@ -678,6 +678,44 @@ describe('messages store', () => {
       resolve({ data: [root(2, 1, '2026-01-02T00:00:00Z'), message(1)], meta: { next_cursor: null } })
       await older
       expect(store.messages.map((m) => [m.id, m.deleted_at])).toEqual([[1, null], [2, '2026-01-04T00:00:00Z'], [5, null]])
+    })
+
+    it('catchUp removes loaded roots inside the covered range that no longer come, keeping newer and live ones', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([6, 5, 4, 3, 2, 1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      let resolve: (value: unknown) => void = () => {}
+      get.mockReturnValueOnce(new Promise((done) => (resolve = done)) as never)
+      const pending = store.catchUp()
+      store.insert(message(9))
+      resolve(page([7, 6, 4, 3], 'c1'))
+      await pending
+      expect(store.messages.map((m) => m.id)).toEqual([1, 2, 3, 4, 6, 7, 9])
+    })
+
+    it('catchUp keeps loaded roots older than the range when the last page has a cursor', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([6, 5, 1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      get.mockResolvedValueOnce(page([6, 3], 'c1') as never)
+      await store.catchUp()
+      expect(store.messages.map((m) => m.id)).toEqual([1, 3, 6])
+    })
+
+    it('catchUp does not revert an edit applied in live with an older snapshot', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(page([2, 1], null) as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      let resolve: (value: unknown) => void = () => {}
+      get.mockReturnValueOnce(new Promise((done) => (resolve = done)) as never)
+      const pending = store.catchUp()
+      store.replace({ ...message(1), body: 'new', edited_at: '2026-01-03T00:00:00Z' })
+      resolve(page([2, 1], null))
+      await pending
+      expect(store.messages[0]).toMatchObject({ body: 'new', edited_at: '2026-01-03T00:00:00Z' })
+      get.mockResolvedValueOnce({ data: [{ ...message(1), body: 'newer', edited_at: '2026-01-04T00:00:00Z' }], meta: { next_cursor: null } } as never)
+      await store.catchUp()
+      expect(store.messages[0].body).toBe('newer')
     })
   })
 })

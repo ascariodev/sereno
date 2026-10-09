@@ -56,6 +56,23 @@ function isOlderEdit(incoming: Message, current: Message): boolean {
   return incoming.edited_at !== null && current.edited_at !== null && Date.parse(incoming.edited_at) < Date.parse(current.edited_at)
 }
 
+/** A server version whose content predates the edit already applied in live (late snapshot). */
+function hasOlderContent(incoming: Message, current: Message): boolean {
+  if (current.edited_at === null || incoming.deleted_at !== null) return false
+  return incoming.edited_at === null || Date.parse(incoming.edited_at) < Date.parse(current.edited_at)
+}
+
+/** Takes the counters of the server version and the content of the live one when the server one is older. */
+function keepNewerContent(incoming: Message, current: Message | undefined): Message {
+  if (current === undefined || current.deleted_at !== null || !hasOlderContent(incoming, current)) return incoming
+  return {
+    ...current,
+    replies_count: incoming.replies_count,
+    last_reply_at: incoming.last_reply_at,
+    recent_participants: incoming.recent_participants,
+  }
+}
+
 function snapshotCounts(snapshotLast: string | null | undefined, at: string): boolean {
   return snapshotLast != null && Date.parse(at) <= Date.parse(snapshotLast)
 }
@@ -293,11 +310,12 @@ export const useMessagesStore = defineStore('messages', () => {
     const since = removalSeq
     const id = channelId.value
     const lastLoadedId = messages.value.length > 0 ? messages.value[messages.value.length - 1].id : null
+    const startIds = new Set(messages.value.map((message) => message.id))
     const fetched: Message[] = []
     let newest: CursorPage<Message> | null = null
     let joined = false
+    let cursor: string | null = null
     try {
-      let cursor: string | null = null
       for (let pages = 0; pages < CATCH_UP_MAX_PAGES && !joined; pages++) {
         const page: CursorPage<Message> = await api.get<CursorPage<Message>>(`/api/channels/${id}/messages`, {
           query: cursor === null ? { per_page: MESSAGES_PER_PAGE } : { per_page: MESSAGES_PER_PAGE, cursor },
@@ -314,14 +332,22 @@ export const useMessagesStore = defineStore('messages', () => {
     if (joined || newest === null) {
       flush()
       const known = new Set(messages.value.map((message) => message.id))
+      const currentById = new Map(messages.value.map((message) => [message.id, message]))
       const reconciled = fetched.flatMap((message) => {
         if (message.parent_id !== null) return [message]
         const settled = settle(reconcile(message, since))
-        return settled === null ? [] : [settled]
+        return settled === null ? [] : [keepNewerContent(settled, currentById.get(settled.id))]
       })
       const refreshed = reconciled.filter((message) => known.has(message.id)).sort((a, b) => a.id - b.id)
       reconciled.filter((message) => !known.has(message.id)).forEach(insert)
-      if (refreshed.length > 0) messages.value = mergeById(messages.value, refreshed)
+      // The pages cover [lower, upper]: what was loaded at the start inside it and did not come was deleted.
+      const fetchedIds = new Set(fetched.map((message) => message.id))
+      const upper = Math.max(lastLoadedId ?? -Infinity, ...fetchedIds)
+      const lower = cursor === null ? -Infinity : Math.min(...fetchedIds)
+      const gone = (message: Message): boolean =>
+        startIds.has(message.id) && message.id >= lower && message.id <= upper && !fetchedIds.has(message.id)
+      const kept = messages.value.some(gone) ? messages.value.filter((message) => !gone(message)) : messages.value
+      messages.value = refreshed.length > 0 ? mergeById(kept, refreshed) : kept
       flush()
       return
     }
@@ -330,7 +356,9 @@ export const useMessagesStore = defineStore('messages', () => {
     const loaded = new Set(newest.data.map((message) => message.id))
     const oldestId = Math.min(...newest.data.map((message) => message.id))
     const live = messages.value.filter((message) => message.id > oldestId && !loaded.has(message.id))
-    messages.value = [...fromServer(newest.data, since), ...live].sort((a, b) => a.id - b.id)
+    const currentById = new Map(messages.value.map((message) => [message.id, message]))
+    const fresh = fromServer(newest.data, since).map((message) => keepNewerContent(message, currentById.get(message.id)))
+    messages.value = [...fresh, ...live].sort((a, b) => a.id - b.id)
     nextCursor.value = newest.meta.next_cursor
     listVersion++
     loadingMore.value = false
