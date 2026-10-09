@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -88,7 +88,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - El body lleva menciones como `<@id>`; al crear se guardan las de miembros de la organización (sin el autor ni
   repetidos). `MessageResource` agrega `mentions: [{id, name}]` con eager load en lista y respuestas.
 
-### [ ] Fase 11 — Aviso en vivo de una mención (api)
+### [x] Fase 11 — Aviso en vivo de una mención (api)
 - Evento `MentionCreated` en `users.{id}` tras el commit, con organización, canal, mensaje y raíz si es respuesta.
 
 ### [ ] Fase 12 — Bandeja de menciones (api)
@@ -187,8 +187,14 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   cual; `mentions: [{id, name}]` (orden por id, sin repetidos, `[]` si no hay) solo trae miembros de la organización
   del canal distintos del autor, así que la web muestra texto genérico para un token sin entrada. Va en `store`,
   `index`, `replies` y `message.created`. Motivo: no filtrar existencia de usuarios ajenos.
+- 2026-10-09 — Contrato de `MentionCreated`: canal privado `users.{id}`, `broadcastAs` `mention.created`, payload
+  `{organization_id, channel_id, parent_id (raíz o null), message (MessageResource resuelto, igual que en
+  message.created)}`, tras el commit. La web ignora el evento si `organization_id` no es la organización activa.
 
 ## Notas para la próxima sesión
+- Fase 11 hecha: `MentionCreated::dispatch($userId, $message)` en `MessageController@store`, uno por mencionado,
+  dentro de la transacción (`ShouldDispatchAfterCommit`); guarda el mensaje ya resuelto. Tests en
+  `MentionBroadcastTest`.
 - Fase 10 hecha: relación `Message::mentionedUsers()` (belongsToMany por `message_mentions`). `MessageCreated` se
   construye en el `created` del modelo, antes de las filas de menciones: el controlador resuelve los usuarios antes del
   `save()` y los fija con `setRelation('mentionedUsers', ...)`. La fase 11 debe disparar `MentionCreated` tras el
@@ -272,3 +278,5 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   deleted..." a algo como "deletes mentions with the mentioned user".
 - [ ] M-20 (media, sonnet): tope de menciones por mensaje (p. ej. 50) e insert en lote de `message_mentions`; hoy un
   mensaje puede mencionar a toda la organización y las fases 11 y 12 lo multiplican en eventos.
+- [ ] M-21 (baja, sonnet): test de `MentionCreated` que lo serialice y deserialice como la cola, para blindar que no
+  depende de la organización activa.

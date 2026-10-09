@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\MentionCreated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Channel\ListMessagesRequest;
 use App\Http\Requests\Channel\StoreMessageRequest;
@@ -66,6 +67,7 @@ class MessageController extends Controller
                 $mention->message_id = $message->id;
                 $mention->user_id = $user->id;
                 $mention->save();
+                MentionCreated::dispatch($user->id, $message);
             }
 
             if ($parentId !== null) {
