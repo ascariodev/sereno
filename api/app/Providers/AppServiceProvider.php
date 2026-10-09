@@ -30,6 +30,8 @@ class AppServiceProvider extends ServiceProvider
 
     public const MENTIONS_PER_MINUTE = 60;
 
+    public const CHAT_ATTACHMENTS_PER_MINUTE = 20;
+
     /**
      * Register any application services.
      */
@@ -75,6 +77,10 @@ class AppServiceProvider extends ServiceProvider
             ->response($this->tooManyAttemptsResponse(...)));
 
         RateLimiter::for('channel-messages', fn (Request $request) => Limit::perMinute(self::CHANNEL_MESSAGES_PER_MINUTE)
+            ->by('user:'.$request->user()->getKey())
+            ->response($this->tooManyAttemptsResponse(...)));
+
+        RateLimiter::for('chat-attachments', fn (Request $request) => Limit::perMinute(self::CHAT_ATTACHMENTS_PER_MINUTE)
             ->by('user:'.$request->user()->getKey())
             ->response($this->tooManyAttemptsResponse(...)));
 

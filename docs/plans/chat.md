@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 19
+**Estado:** en curso · Fase actual: 20
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -122,7 +122,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   (organization_id, channel_id, message_id nullable, uploaded_by, disk, path, original_name, mime, size,
   created_at), modelo, `database.md`.
 
-### [ ] Fase 19 — Subir un archivo (api) [riesgo]
+### [x] Fase 19 — Subir un archivo (api) [riesgo]
 - `POST channels/{channel}/attachments` multipart: valida tamaño, rechaza canal archivado, guarda en disco privado
   con nombre aleatorio y devuelve el adjunto sin mensaje. Throttle propio.
 
@@ -217,8 +217,18 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   canal); `uploaded_by` nullable con `nullOnDelete`. Config en `config/chat.php`, `chat.attachments.*`: `disk`
   (`local`), `max_size_kb` (5120), `max_per_message` (10), `url_ttl_minutes` (60), `orphan_hours` (24). Las cascadas
   borran filas, no archivos (ver M-4 y M-28).
+- 2026-10-09 — Contrato de subida: `POST /api/channels/{channel}/attachments`, multipart con `file`, Bearer y
+  `X-Organization-Id`, throttle `chat-attachments` (20/min por usuario). 201 con `{data: {id, original_name, mime,
+  size, created_at}}` (sin `path`, `disk` ni mensaje). 422 en `file` (falta, no es archivo, vacío, mayor que
+  `max_size_kb`) o en `channel` (archivado); 401, 403, 404 y 429 con `Retry-After`. Ruta en disco
+  `chat/{organization_id}/{channel_id}/{Str::random(40)}` sin extensión; MIME detectado con `finfo`; cualquier tipo se
+  acepta y la seguridad al servir es de la fase 21. Si falla la fila se borra el archivo.
 
 ## Notas para la próxima sesión
+- Fase 19 hecha: `AttachmentController@store`, `StoreAttachmentRequest`, `MessageAttachmentResource`; tests en
+  `AttachmentUploadApiTest`. Fase 21: usar una ruta firmada propia (no `temporaryUrl` del disco `local`, que tiene
+  `serve => true`) y servir como descarga todo lo que no sea png, jpeg, gif o webp. Fase 22: además de las filas
+  huérfanas, considerar archivos sin fila bajo `chat/` (proceso muerto entre escribir y guardar).
 - Fase 18 hecha: modelo `MessageAttachment` (`$guarded = ['*']`, solo `created_at`, `size` int), relación
   `Message::attachments()`, índices `(message_id)` y parcial `message_attachments_orphans_index` (`created_at` WHERE
   `message_id IS NULL`). Fase 19: tomar el disco de `config('chat.attachments.disk')`, validar en el controlador que
@@ -354,3 +364,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-28 (media, sonnet): borrar los archivos del disco cuando la cascada borra filas de `message_attachments` por
   borrado de canal o de mensaje (la fase 22 solo limpia huérfanos sin mensaje); se suma a M-4.
 - [ ] M-29 (baja, sonnet): documentar las variables `CHAT_ATTACHMENT*` en `api/.env.example`.
+- [ ] M-30 (baja, sonnet): `serve => false` en el disco `local` de `api/config/filesystems.php` (nadie usa
+  `/storage/{path}`); al truncar `original_name` quitar espacios o puntos antes de la extensión; test que compare el
+  404 de un canal ajeno con el de un id inexistente.
