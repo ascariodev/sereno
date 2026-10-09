@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Message } from '../api/types'
 import { i18n } from '../i18n'
@@ -31,6 +31,7 @@ describe('ThreadSummary', () => {
     vi.setSystemTime(new Date('2026-03-04T12:00:00Z'))
   })
   afterEach(() => vi.useRealTimers())
+  enableAutoUnmount(afterEach)
 
   it('shows the reply action when there are no replies and emits the id', async () => {
     const wrapper = mount(ThreadSummary, { props: { message: base }, global })
@@ -46,6 +47,17 @@ describe('ThreadSummary', () => {
     expect(wrapper.get('button').text()).toContain('2 replies')
     expect(text).toContain('2 replies')
     expect(text).toContain('Last reply 2 hours ago')
+  })
+
+  it('refreshes the label as time passes and stops its clock on unmount', async () => {
+    const message = { ...base, replies_count: 2, last_reply_at: '2026-03-04T10:00:00Z' }
+    const wrapper = mount(ThreadSummary, { props: { message }, global })
+    expect(wrapper.text()).toContain('2 hours ago')
+    expect(vi.getTimerCount()).toBe(1)
+    await vi.advanceTimersByTimeAsync(60 * 60_000)
+    expect(wrapper.text()).toContain('3 hours ago')
+    wrapper.unmount()
+    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('uses the singular for one reply', () => {

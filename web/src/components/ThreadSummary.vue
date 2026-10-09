@@ -3,8 +3,10 @@ import { MessageSquareReply } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Message } from '../api/types'
+import { useSharedNow } from '../composables/useSharedNow'
 
 const props = defineProps<{ message: Message }>()
+const now = useSharedNow()
 const emit = defineEmits<{ open: [messageId: number] }>()
 
 const { t, locale } = useI18n()
@@ -19,7 +21,7 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
 
 const when = computed(() => {
   if (!props.message.last_reply_at) return null
-  const seconds = Math.round((new Date(props.message.last_reply_at).getTime() - Date.now()) / 1000)
+  const seconds = Math.round((new Date(props.message.last_reply_at).getTime() - now.value) / 1000)
   const formatter = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' })
   for (const [unit, size] of UNITS) {
     if (Math.abs(seconds) >= size) return formatter.format(Math.trunc(seconds / size), unit)
