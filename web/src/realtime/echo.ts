@@ -22,7 +22,7 @@ export interface RealtimeClient {
 export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'reconnecting' | 'failed'
 
 type Fetch = typeof fetch
-type Subscriber = (value: never) => void
+type Subscriber = (data: RealtimePayload) => void
 
 let getToken: () => string | null | undefined = () => null
 let client: RealtimeClient | null = null
@@ -39,7 +39,11 @@ export function setRealtimeClientFactory(newFactory: (() => RealtimeClient | nul
 }
 
 export function channelName(organizationId: number, channelId: number): string {
-  return `organizations.${organizationId}.channels.${channelId}`
+  return `${organizationChannelPrefix(organizationId)}channels.${channelId}`
+}
+
+function organizationChannelPrefix(organizationId: number): string {
+  return `organizations.${organizationId}.`
 }
 
 export function userChannelName(userId: number): string {
@@ -59,11 +63,10 @@ function subscribe<T>(
   if (!entry || entry.client !== current) {
     const callbacks = new Set<Subscriber>()
     current.private(name).listen(event, (data) => {
-      const value = data ? extract(data) : undefined
-      if (value === undefined) return
+      if (!data) return
       for (const callback of [...callbacks]) {
         try {
-          ;(callback as (value: T) => void)(value)
+          callback(data)
         } catch (error) {
           queueMicrotask(() => {
             throw error
@@ -75,10 +78,13 @@ function subscribe<T>(
     subscriptions.set(name, entry)
   }
   const { callbacks } = entry
-  const subscriber = (value: T) => onValue(value)
-  callbacks.add(subscriber as Subscriber)
+  const subscriber: Subscriber = (data) => {
+    const value = extract(data)
+    if (value !== undefined) onValue(value)
+  }
+  callbacks.add(subscriber)
   return () => {
-    if (!callbacks.delete(subscriber as Subscriber) || callbacks.size > 0) return
+    if (!callbacks.delete(subscriber) || callbacks.size > 0) return
     if (subscriptions.get(name)?.callbacks !== callbacks) return
     subscriptions.delete(name)
     current.leave(name)
@@ -98,7 +104,7 @@ export function subscribeToUser(userId: number, onMembershipRevoked: (organizati
 }
 
 export function leaveOrganization(organizationId: number): void {
-  const prefix = `organizations.${organizationId}.`
+  const prefix = organizationChannelPrefix(organizationId)
   for (const [name, entry] of [...subscriptions]) {
     if (!name.startsWith(prefix)) continue
     subscriptions.delete(name)
