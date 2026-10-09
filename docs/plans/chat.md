@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 14
+**Estado:** en curso · Fase actual: 15
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -99,7 +99,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - `MessageBody.vue`: convierte `<@id>` en chip con el nombre de `mentions` (desconocido: texto genérico traducido),
   sin `v-html`; resalta la propia. Usado por `MessageItem`.
 
-### [ ] Fase 14 — Lógica de autocompletar menciones (web) [riesgo]
+### [x] Fase 14 — Lógica de autocompletar menciones (web) [riesgo]
 - Composable `useMentionInput`: detecta `@` en el caret, filtra miembros, inserta `@Nombre` y al enviar serializa a
   `<@id>`; el límite de 4000 se cuenta sobre lo serializado (L-11). Solo lógica y spec.
 
@@ -199,8 +199,17 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - 2026-10-09 — `MessageBody` (props `body`, `mentions?`, `ownUserId?`) usa la misma regex que el API; un token sin
   entrada muestra `@` + `channel.unknownMention`; la mención propia se resalta aunque no esté en `mentions` (el API
   excluye al autor). `MessageItem` recibe `ownUserId` por prop (sin store de auth). Colores solo con tokens del tema.
+- 2026-10-09 — Autocompletar: la mención guarda su id en un rango del texto (índices UTF-16) y deja de serlo si
+  se edita su interior; escribir pegado antes o después la conserva. `@` abre la lista solo al inicio o tras un
+  espacio; escribir `@Ana` a mano no menciona. El filtro ignora mayúsculas y acentos. Motivo: nombres repetidos.
 
 ## Notas para la próxima sesión
+- Fase 14 hecha: `web/src/mentionToken.ts` (`MENTION_TOKEN` con `g`, solo para `matchAll`/`replace`;
+  `mentionToken(id)`) y `useMentionInput({members, excludeUserId?, limit? = 8})` con estado `text`, `caret`,
+  `mentions`, `query`, `suggestions`, `serialized`, `length` y acciones `update(value, selectionStart)` (input y
+  pegar), `moveCaret(start, end)`, `select(member)` y `insertTrigger()` (devuelven el caret para fijar
+  `selectionStart`), `dismiss()`, `reset()`. Fase 15: habilitar envío con `serialized.trim()`, comparar `length` con
+  4000 y mostrar el email en la lista para distinguir nombres repetidos.
 - Fase 13 hecha: `Message.mentions` es obligatorio en el tipo (las fixtures lo llevan) y `MessageBody` tolera
   `undefined`. La regex del token está duplicada entre el API y `MessageBody`: la fase 14 debe exportarla desde un
   solo módulo de la web y reutilizarla. Chip sin revisar en el navegador.
@@ -295,3 +304,5 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   mensaje puede mencionar a toda la organización y las fases 11 y 12 lo multiplican en eventos.
 - [ ] M-21 (baja, sonnet): test de `MentionCreated` que lo serialice y deserialice como la cola, para blindar que no
   depende de la organización activa.
+- [ ] M-22 (baja, sonnet): abrir la lista de menciones también tras puntuación de apertura (`(@Ana`), y specs de
+  nombres con emoji y de pegar `@Anabel` sobre la mención `@Ana` (hoy la conserva).

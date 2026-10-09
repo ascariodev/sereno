@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { MENTION_TOKEN } from '../mentionToken'
 
 const props = defineProps<{
   body: string | null
@@ -10,9 +11,6 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-// Same token as the API: ids without leading zeros, up to 18 digits.
-const TOKEN = /<@([1-9][0-9]{0,17})>/g
-
 type Part = { text: string } | { mention: string; own: boolean }
 
 const parts = computed<Part[]>(() => {
@@ -20,7 +18,7 @@ const parts = computed<Part[]>(() => {
   const names = new Map((props.mentions ?? []).map((m) => [String(m.id), m.name]))
   const result: Part[] = []
   let last = 0
-  for (const match of body.matchAll(TOKEN)) {
+  for (const match of body.matchAll(MENTION_TOKEN)) {
     if (match.index > last) result.push({ text: body.slice(last, match.index) })
     const id = match[1]
     result.push({
