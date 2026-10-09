@@ -162,3 +162,11 @@ it('deletes replies when the root is deleted', function () {
 
     expect(Message::query()->whereKey($reply->id)->exists())->toBeFalse();
 });
+
+it('indexes replies with a partial index that skips root messages', function () {
+    $indexdef = DB::selectOne(
+        "SELECT indexdef FROM pg_indexes WHERE tablename = 'messages' AND indexname = 'messages_parent_id_id_index'"
+    )?->indexdef;
+
+    expect($indexdef)->toContain('(parent_id, id DESC)', 'WHERE (parent_id IS NOT NULL)');
+});
