@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 15
+**Estado:** en curso · Fase actual: 16
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -103,7 +103,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - Composable `useMentionInput`: detecta `@` en el caret, filtra miembros, inserta `@Nombre` y al enviar serializa a
   `<@id>`; el límite de 4000 se cuenta sobre lo serializado (L-11). Solo lógica y spec.
 
-### [ ] Fase 15 — Autocompletar en el composer (web) [límite: 5 archivos]
+### [x] Fase 15 — Autocompletar en el composer (web) [límite: 5 archivos]
 - Lista de sugerencias (Reka) bajo el composer, botón "Mencionar", caché de miembros por organización, i18n.
 
 ### [ ] Fase 16 — Store de menciones en vivo (web)
@@ -202,8 +202,13 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - 2026-10-09 — Autocompletar: la mención guarda su id en un rango del texto (índices UTF-16) y deja de serlo si
   se edita su interior; escribir pegado antes o después la conserva. `@` abre la lista solo al inicio o tras un
   espacio; escribir `@Ana` a mano no menciona. El filtro ignora mayúsculas y acentos. Motivo: nombres repetidos.
+- 2026-10-09 — La lista de sugerencias del composer es `ul`/`li` con ARIA de combobox a mano (no el Listbox de
+  Reka, que mueve el foco); Escape con la lista abierta hace `stopPropagation` (Reka escucha en `window` en burbuja).
+  Miembros en `useMemberDirectoryStore`, caché por organización que se vacía al cambiar `organization.activeId`.
 
 ## Notas para la próxima sesión
+- Fase 15 hecha: `MessageComposer` con autocompletar y botón "Mencionar", envía `serialized` en canal e hilo.
+  Sin mirar en el navegador: la lista dentro de `composer-box` y en la hoja móvil.
 - Fase 14 hecha: `web/src/mentionToken.ts` (`MENTION_TOKEN` con `g`, solo para `matchAll`/`replace`;
   `mentionToken(id)`) y `useMentionInput({members, excludeUserId?, limit? = 8})` con estado `text`, `caret`,
   `mentions`, `query`, `suggestions`, `serialized`, `length` y acciones `update(value, selectionStart)` (input y
@@ -306,3 +311,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   depende de la organización activa.
 - [ ] M-22 (baja, sonnet): abrir la lista de menciones también tras puntuación de apertura (`(@Ana`), y specs de
   nombres con emoji y de pegar `@Anabel` sobre la mención `@Ana` (hoy la conserva).
+- [ ] M-23 (baja, sonnet): test del límite con el token expandido (`<@id>` más largo que `@Nombre`) y `role=status`
+  del conteo de sugerencias siempre montado.
+- [ ] M-24 (media, sonnet): refrescar la caché de miembros cuando cambian dentro de la misma organización (altas o
+  bajas en `MembersView`, o al volver a abrir la lista tras un tiempo).

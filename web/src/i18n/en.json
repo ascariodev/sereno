@@ -209,7 +209,10 @@
       "send": "Send",
       "tooLong": "The message cannot exceed {max} characters.",
       "rateLimited": "You are sending messages too fast. Try again in a moment.",
-      "sendFailed": "Could not send the message."
+      "sendFailed": "Could not send the message.",
+      "mention": "Mention",
+      "suggestions": "Mention suggestions",
+      "suggestionsCount": "{n} suggestions available. Use the up and down arrows to choose."
     }
   },
   "thread": {
