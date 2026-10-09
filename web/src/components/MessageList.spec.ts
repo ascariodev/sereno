@@ -15,6 +15,7 @@ const message = (user: Message['user']): Message => ({
   parent_id: null,
   replies_count: 0,
   last_reply_at: null,
+  mentions: [],
   user,
   created_at: '2026-01-01T00:00:00Z',
 })

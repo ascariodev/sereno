@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 13
+**Estado:** en curso · Fase actual: 14
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -95,7 +95,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - `GET mentions` (propias, de la organización activa, cursor, con mensaje, canal y autor, más `unread_count`) y
   `POST mentions/read` (ids o todas). Aislamiento por usuario y organización.
 
-### [ ] Fase 13 — Mostrar menciones en el cuerpo (web)
+### [x] Fase 13 — Mostrar menciones en el cuerpo (web)
 - `MessageBody.vue`: convierte `<@id>` en chip con el nombre de `mentions` (desconocido: texto genérico traducido),
   sin `v-html`; resalta la propia. Usado por `MessageItem`.
 
@@ -196,8 +196,14 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `links` y `meta {next_cursor, unread_count}` (`unread_count` de toda la organización activa). `POST
   /api/mentions/read` con `{ids: int[] (máx. 100)}` o `{all: true}` responde `{unread_count}`; ids ajenos se ignoran
   sin error, idempotente. Motivo: lo usan las fases 16 y 17.
+- 2026-10-09 — `MessageBody` (props `body`, `mentions?`, `ownUserId?`) usa la misma regex que el API; un token sin
+  entrada muestra `@` + `channel.unknownMention`; la mención propia se resalta aunque no esté en `mentions` (el API
+  excluye al autor). `MessageItem` recibe `ownUserId` por prop (sin store de auth). Colores solo con tokens del tema.
 
 ## Notas para la próxima sesión
+- Fase 13 hecha: `Message.mentions` es obligatorio en el tipo (las fixtures lo llevan) y `MessageBody` tolera
+  `undefined`. La regex del token está duplicada entre el API y `MessageBody`: la fase 14 debe exportarla desde un
+  solo módulo de la web y reutilizarla. Chip sin revisar en el navegador.
 - Fase 12 hecha: `MentionController` (`index`, `read`), `MentionResource`, `ListMentionsRequest` (extiende
   `ListMessagesRequest`, autoriza con `viewAny` de Channel) y `MarkMentionsReadRequest`; tests en
   `MentionInboxApiTest`. La bandeja no filtra canales archivados (hoy todo miembro ve todos los canales).

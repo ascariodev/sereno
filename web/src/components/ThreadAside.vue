@@ -58,7 +58,7 @@ function reload(): void {
     </div>
     <div v-if="rootMessage" class="thread-aside__root" data-test="thread-root">
       <SystemNotice v-if="rootMessage.kind === 'system'" :message="rootMessage" />
-      <MessageItem v-else :message="rootMessage" />
+      <MessageItem v-else :message="rootMessage" :own-user-id="ownUserId" />
     </div>
     <p v-if="notFound" role="alert" class="thread-aside__error">{{ t('thread.notFound') }}</p>
     <template v-else>

@@ -132,6 +132,8 @@ export interface Message {
   /** ISO timestamp of the latest reply; null when the message has no replies. */
   last_reply_at: string | null
   user: Pick<User, 'id' | 'name'> | null
+  /** Organization members named by `<@id>` tokens in the body, except the author; others render generic. */
+  mentions: { id: number; name: string }[]
   created_at: string
 }
 

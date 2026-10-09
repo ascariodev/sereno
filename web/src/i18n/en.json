@@ -198,6 +198,7 @@
     "loadOlder": "Load older messages",
     "systemNotice": "System notice",
     "unknownUser": "Unknown user",
+    "unknownMention": "user",
     "detailsFailed": "Could not load the channel details.",
     "notFound": "This channel does not exist or you cannot access it.",
     "loadFailed": "Could not load the messages.",

@@ -129,7 +129,7 @@ const rows = computed<Row[]>(() => {
             @select="$emit('select', $event)"
             @open-thread="$emit('openThread', $event)"
           />
-          <MessageItem v-else :message="row.message" :threadable="threadable" @open-thread="$emit('openThread', $event)" />
+          <MessageItem v-else :message="row.message" :own-user-id="ownUserId" :threadable="threadable" @open-thread="$emit('openThread', $event)" />
         </li>
       </template>
     </ul>

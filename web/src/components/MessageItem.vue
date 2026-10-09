@@ -4,9 +4,10 @@ import { useI18n } from 'vue-i18n'
 import type { Message } from '../api/types'
 import AppAvatar from './ui/AppAvatar.vue'
 import AppTooltip from './ui/AppTooltip.vue'
+import MessageBody from './MessageBody.vue'
 import ThreadSummary from './ThreadSummary.vue'
 
-const props = defineProps<{ message: Message; threadable?: boolean }>()
+const props = defineProps<{ message: Message; threadable?: boolean; ownUserId?: number }>()
 const emit = defineEmits<{ openThread: [messageId: number] }>()
 
 const { t, locale } = useI18n()
@@ -30,7 +31,7 @@ const fullDate = computed(() => date.value.toLocaleString(locale.value, { dateSt
           </time>
         </AppTooltip>
       </p>
-      <p class="message-item__body">{{ message.body }}</p>
+      <p class="message-item__body"><MessageBody :body="message.body" :mentions="message.mentions" :own-user-id="ownUserId" /></p>
       <ThreadSummary v-if="threadable && message.parent_id === null" :message="message" @open="emit('openThread', $event)" />
     </div>
   </article>
