@@ -385,7 +385,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `mirror.gcr.io` con `--network host` y el CA del proxy (fuera del repo), y `vendor` se copió al volumen.
 
 ## Mejoras propuestas
-- [ ] M-1 (alta, plan nuevo): editar y borrar mensajes propios (no está en el paso 6 y toca `updated_at`, el evento en
+- [x] M-1 (alta, plan nuevo, convertida en `docs/plans/editar-mensajes.md`): editar y borrar mensajes propios (no está en el paso 6 y toca `updated_at`, el evento en
   vivo y los contadores de hilo).
 - [ ] M-2 (media, sonnet): saltar a un mensaje concreto (carga alrededor de un id) al abrir una mención de un mensaje
   raíz antiguo; en este plan solo se abre el canal o el hilo.
