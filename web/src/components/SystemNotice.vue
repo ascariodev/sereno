@@ -11,12 +11,13 @@ import { hourlyCountsOf, requestHourlyCounts } from '../composables/useHourlyCou
 import { setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
 import LevelPill from './ui/LevelPill.vue'
 import Sparkline from './ui/Sparkline.vue'
+import ThreadSummary from './ThreadSummary.vue'
 
 const STRONG_LEVELS = ['critical', 'alert', 'emergency']
 const STATUSES = ['open', 'resolved', 'ignored']
 
-const props = defineProps<{ message: Message; projectId?: number }>()
-const emit = defineEmits<{ select: [groupId: number] }>()
+const props = defineProps<{ message: Message; projectId?: number; threadable?: boolean }>()
+const emit = defineEmits<{ select: [groupId: number]; openThread: [messageId: number] }>()
 
 const { t, te, locale } = useI18n()
 
@@ -121,6 +122,7 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
         </button>
       </div>
       <p v-if="errorText" role="alert" class="system-notice__error">{{ errorText }}</p>
+      <ThreadSummary v-if="threadable && message.parent_id === null" :message="message" @open="emit('openThread', $event)" />
     </article>
   </div>
   <div v-else-if="changed" class="system-notice-line">

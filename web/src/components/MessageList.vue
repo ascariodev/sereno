@@ -5,8 +5,8 @@ import type { Message } from '../api/types'
 import MessageItem from './MessageItem.vue'
 import SystemNotice from './SystemNotice.vue'
 
-const props = defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number; ownUserId?: number; emptyLabel?: string }>()
-defineEmits<{ loadOlder: []; select: [groupId: number] }>()
+const props = defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number; ownUserId?: number; emptyLabel?: string; threadable?: boolean }>()
+defineEmits<{ loadOlder: []; select: [groupId: number]; openThread: [messageId: number] }>()
 
 const { t, locale } = useI18n()
 
@@ -125,9 +125,11 @@ const rows = computed<Row[]>(() => {
             v-if="row.message.kind === 'system'"
             :message="row.message"
             :project-id="projectId"
+            :threadable="threadable"
             @select="$emit('select', $event)"
+            @open-thread="$emit('openThread', $event)"
           />
-          <MessageItem v-else :message="row.message" />
+          <MessageItem v-else :message="row.message" :threadable="threadable" @open-thread="$emit('openThread', $event)" />
         </li>
       </template>
     </ul>

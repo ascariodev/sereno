@@ -4,8 +4,10 @@ import { useI18n } from 'vue-i18n'
 import type { Message } from '../api/types'
 import AppAvatar from './ui/AppAvatar.vue'
 import AppTooltip from './ui/AppTooltip.vue'
+import ThreadSummary from './ThreadSummary.vue'
 
-const props = defineProps<{ message: Message }>()
+const props = defineProps<{ message: Message; threadable?: boolean }>()
+const emit = defineEmits<{ openThread: [messageId: number] }>()
 
 const { t, locale } = useI18n()
 
@@ -29,6 +31,7 @@ const fullDate = computed(() => date.value.toLocaleString(locale.value, { dateSt
         </AppTooltip>
       </p>
       <p class="message-item__body">{{ message.body }}</p>
+      <ThreadSummary v-if="threadable && message.parent_id === null" :message="message" @open="emit('openThread', $event)" />
     </div>
   </article>
 </template>
@@ -40,6 +43,8 @@ const fullDate = computed(() => date.value.toLocaleString(locale.value, { dateSt
 }
 
 .message-item__main {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
 

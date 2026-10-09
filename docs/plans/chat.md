@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -74,7 +74,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - `ChannelView`: `?thread=<id>` abre `ThreadAside` (excluyente con `?group`), en móvil como hoja; suscripción en vivo
   compartida entre canal e hilo.
 
-### [ ] Fase 8 — Resumen y acción de responder en los mensajes (web) [límite: 5 archivos]
+### [x] Fase 8 — Resumen y acción de responder en los mensajes (web) [límite: 5 archivos]
 - `ThreadSummary.vue` ("N respuestas", hace cuánto) en `MessageItem` y en la tarjeta de `SystemNotice`; acción
   "Responder en hilo"; `MessageList` y `ChannelView` propagan `openThread`.
 
@@ -180,8 +180,15 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - 2026-10-09 — Con `?thread` y `?group` a la vez gana el hilo (un watcher quita `group` con `replace`); abrir un
   panel siempre quita el parámetro del otro, con `push` como `selectGroup`. Sin raíz cargada (URL con raíz fuera de
   la página del canal) el panel muestra solo las respuestas; el API no cambia (M-15). Motivo: no ampliar la fase.
+- 2026-10-09 — `MessageItem`, `SystemNotice` y `MessageList` tienen la prop opcional `threadable` (apagada por
+  defecto); solo `ChannelView` la activa, así que en el panel del hilo no hay resumen ni acción. Las líneas de cambio
+  de estado del sistema tampoco lo llevan, solo la tarjeta de aviso abierto. Motivo: un solo nivel de hilo.
 
 ## Notas para la próxima sesión
+- Bloque de hilos terminado (fases 1 a 8). Fase 8: `ThreadSummary` es un botón (`name="open-thread"`), "N respuestas
+  · Última respuesta hace X" o "Responder en hilo"; la etiqueta relativa no se refresca sola. Pendiente de mirar en
+  el navegador: `message-item__main` ahora es columna flex, y el scroll del panel (L-22). Sigue el bloque de menciones
+  (fase 9, API).
 - Fase 7 hecha: `ChannelView` abre `ThreadAside` por `?thread` (clase `channel__panel`; en móvil `AppDialog
   sheet-bottom` con su propio `matchMedia`). `openThread(id)` está en `ChannelView` (y en `defineExpose`): la fase 8
   solo hace que `MessageList` emita `open-thread` con el id y lo conecta con `@open-thread="openThread"`. El callback
@@ -246,3 +253,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   (incluirla en la respuesta de `replies` o un endpoint de un mensaje); sirve también para abrir menciones (fase 17).
 - [ ] M-16 (baja, sonnet): tests de `ChannelView` para `thread.clear()` en `onUnmounted`, la baja del listener de
   `matchMedia` y el paso de estrecho a ancho con un hilo abierto (hoy se remonta y pierde el borrador).
+- [ ] M-17 (baja, sonnet): spec de `ThreadSummary` que afirme el nombre accesible con el conteo, y ordenar
+  `threadable` junto a las demás props en `ChannelView.vue`.
+- [ ] M-18 (baja, sonnet): refrescar la etiqueta "hace cuánto" de `ThreadSummary` con el paso del tiempo.

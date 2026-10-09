@@ -234,7 +234,9 @@ defineExpose({ openThread })
             :project-id="channel?.project_id"
             :own-user-id="auth.user?.id"
             @load-older="messages.loadOlder()"
+            threadable
             @select="selectGroup"
+            @open-thread="openThread"
           />
           <p v-if="channel?.archived_at" class="channel__archived">{{ t('channel.archived') }}</p>
           <MessageComposer v-else-if="channel" />
