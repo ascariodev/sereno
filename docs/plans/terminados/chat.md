@@ -385,7 +385,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   indexar los mensajes raíz.
 - [x] M-7 (baja, sonnet): fijar `last_reply_at` con `GREATEST(last_reply_at, ...)` para que respuestas concurrentes
   confirmadas en otro orden no lo hagan retroceder.
-- [ ] M-8 (baja, sonnet): en el test de aislamiento de `parent_id`, afirmar que la raíz de la otra organización sigue
+- [x] M-8 (baja, sonnet): en el test de aislamiento de `parent_id`, afirmar que la raíz de la otra organización sigue
   con `replies_count` 0.
 - [ ] M-9 (baja, sonnet): tests del 403 de `replies` para un miembro sin acceso al canal (privado o archivado), como
   los de `index`.

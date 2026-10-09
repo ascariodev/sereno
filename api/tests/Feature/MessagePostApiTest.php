@@ -214,6 +214,10 @@ it('rejects a parent from another channel, another organization, a reply or a mi
 
     expect(Message::withoutGlobalScopes()->where('parent_id', '!=', null)->count())->toBe(1)
         ->and(Message::withoutGlobalScopes()->find($root)->replies_count)->toBe(1);
+
+    $foreignRoot = Message::withoutGlobalScopes()->find($inOtherOrg);
+    expect($foreignRoot->replies_count)->toBe(0)
+        ->and($foreignRoot->last_reply_at)->toBeNull();
 });
 
 it('translates the thread errors', function () {
