@@ -69,6 +69,20 @@ describe('useMentionInput: detecting @', () => {
     expect(input.suggestions.value).toEqual([])
   })
 
+  it('opens after opening punctuation but not after a word or closing punctuation', () => {
+    const input = setup()
+    for (const opener of ['(', '[', '{', '"', "'", '¿', '¡']) {
+      input.update(`hi ${opener}@an`, 7)
+      expect(input.query.value, opener).toEqual({ start: 4, text: 'an' })
+    }
+    input.update('("@an', 5)
+    expect(input.query.value).toEqual({ start: 2, text: 'an' })
+    for (const closer of [')', '.', 'a', '1']) {
+      input.update(`x${closer}@an`, 5)
+      expect(input.query.value, closer).toBeNull()
+    }
+  })
+
   it('does not open without a caret, after a line break in the query or with a leading space', () => {
     const input = setup()
     input.update('@an', null)
@@ -253,11 +267,39 @@ describe('useMentionInput: editing an inserted mention', () => {
     expect(other.serialized.value).toBe('pasted\ntext x <@5> ')
   })
 
+  it('keeps the old mention when a longer @Anabel is pasted over a selection that is exactly @Ana', () => {
+    const input = useMentionInput({ members: () => [{ id: 9, name: 'Ana' }] })
+    input.update('@', 1)
+    input.select({ id: 9, name: 'Ana' })
+    input.update('@Ana', 4)
+    input.moveCaret(0, 4)
+    input.update('@Anabel', 7)
+    // Known limitation: the edit is read as typing "bel" right after the mention, so it stays a mention.
+    expect(input.mentions.value).toEqual([{ id: 9, name: 'Ana', start: 0, end: 4 }])
+    expect(input.serialized.value).toBe(`${mentionToken(9)}bel`)
+  })
+
   it('works without a caret, as when the value is set by code', () => {
     const input = setup()
     mentionOf(input, 5)
     input.update('@Camila hello', null)
     expect(input.serialized.value).toBe('<@5> hello')
+  })
+})
+
+describe('useMentionInput: names with emoji', () => {
+  it('inserts and serializes a mention whose name has emoji, with UTF-16 indices', () => {
+    const member = { id: 7, name: 'Sol 🌞 Díaz' }
+    const input = useMentionInput({ members: () => [member] })
+    input.update('hi (@so', 7)
+    expect(input.suggestions.value).toEqual([member])
+    const caret = input.select(member)
+    expect(input.text.value).toBe('hi (@Sol 🌞 Díaz ')
+    expect(input.mentions.value).toEqual([{ id: 7, name: member.name, start: 4, end: 4 + `@${member.name}`.length }])
+    expect(caret).toBe(input.text.value.length)
+    input.update(`${input.text.value}ok`, caret! + 2)
+    expect(input.serialized.value).toBe(`hi (${mentionToken(7)} ok`)
+    expect(input.length.value).toBe([...`hi (${mentionToken(7)} ok`].length)
   })
 })
 

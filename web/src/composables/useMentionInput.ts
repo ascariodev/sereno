@@ -28,6 +28,8 @@ export interface MentionInputOptions<T extends MentionCandidate> {
 
 const DEFAULT_LIMIT = 8
 const MAX_QUERY_LENGTH = 50
+/** What may precede `@` to open the list: whitespace or opening punctuation, never a word character (emails). */
+const OPENERS = /[\s([{"'¿¡]/
 
 export function normalizeForSearch(value: string): string {
   return value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim()
@@ -37,7 +39,7 @@ function findQuery(text: string, caret: number | null, mentions: readonly Insert
   if (caret === null) return null
   const at = text.lastIndexOf('@', caret - 1)
   if (at < 0 || caret <= at) return null
-  if (at > 0 && !/\s/.test(text[at - 1])) return null
+  if (at > 0 && !OPENERS.test(text[at - 1])) return null
   const query = text.slice(at + 1, caret)
   if (query.length > MAX_QUERY_LENGTH || /^\s|[\r\n]/.test(query)) return null
   if (mentions.some((m) => (at >= m.start && at < m.end) || (caret > m.start && caret < m.end))) return null

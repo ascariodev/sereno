@@ -413,7 +413,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   mensaje puede mencionar a toda la organización y las fases 11 y 12 lo multiplican en eventos.
 - [x] M-21 (baja, sonnet): test de `MentionCreated` que lo serialice y deserialice como la cola, para blindar que no
   depende de la organización activa.
-- [ ] M-22 (baja, sonnet): abrir la lista de menciones también tras puntuación de apertura (`(@Ana`), y specs de
+- [x] M-22 (baja, sonnet): abrir la lista de menciones también tras puntuación de apertura (`(@Ana`), y specs de
   nombres con emoji y de pegar `@Anabel` sobre la mención `@Ana` (hoy la conserva).
 - [ ] M-23 (baja, sonnet): test del límite con el token expandido (`<@id>` más largo que `@Nombre`) y `role=status`
   del conteo de sugerencias siempre montado.
