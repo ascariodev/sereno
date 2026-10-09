@@ -104,9 +104,14 @@ class MessageController extends Controller
         }
 
         // The UPDATE locks rows in scan order; locking them by id first keeps two sends with the
-        // same ids from waiting on each other in reverse order.
-        sort($ids);
-        MessageAttachment::query()->whereIn('id', $ids)->orderBy('id')->lockForUpdate()->pluck('id');
+        // same ids from waiting on each other in reverse order. Only the author's own rows are locked.
+        MessageAttachment::query()
+            ->whereIn('id', $ids)
+            ->where('channel_id', $message->channel_id)
+            ->where('uploaded_by', $authorId)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->pluck('id');
 
         $linked = MessageAttachment::query()
             ->whereIn('id', $ids)

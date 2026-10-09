@@ -476,7 +476,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-41 (media, sonnet): el 404 de un modelo no encontrado devuelve el texto fijo del framework con la clase y el id
   (`No query results for model [App\Models\Channel] 5`), sin `__()`; renderizarlo en `withExceptions` de
   `api/bootstrap/app.php` con un mensaje traducido igual para cualquier modelo (afecta a todo el API, no solo al chat).
-- [ ] M-42 (baja, sonnet): el `SELECT ... FOR UPDATE` de `linkAttachments` filtra también por `channel_id` y
+- [x] M-42 (baja, sonnet): el `SELECT ... FOR UPDATE` de `linkAttachments` filtra también por `channel_id` y
   `uploaded_by` (hoy ids ajenos bloquean filas de otro autor durante la transacción), quitar el `sort($ids)` que sobra,
   y test de que borrar un adjunto pendiente no encola el chequeo.
 - [ ] M-43 (baja, sonnet): en `stores/thread.ts`, comparar `last_reply_at` con `Date.parse` como `stores/messages.ts`

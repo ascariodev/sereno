@@ -9,6 +9,7 @@ use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
@@ -217,6 +218,38 @@ it('rolls the whole message back when another message takes an attachment first'
         ->and(linkedTo($taken))->toBeNull();
     Event::assertNotDispatched(MessageCreated::class);
     Event::assertNotDispatched(MentionCreated::class);
+});
+
+it('does not queue the content check when a pending attachment is deleted', function () {
+    $pending = pendingAttachment($this->channel, $this->author);
+    $messageId = DB::table('messages')->insertGetId([
+        'organization_id' => $this->organization->id,
+        'channel_id' => $this->channel->id,
+        'user_id' => $this->author->id,
+        'kind' => 'user',
+        'body' => 'text',
+    ]);
+    $linked = pendingAttachment($this->channel, $this->author, $messageId);
+
+    // Replace the check with one that always fails, then force the queued events to run.
+    $fires = function (int $id): bool {
+        DB::beginTransaction();
+
+        try {
+            DB::unprepared("CREATE OR REPLACE FUNCTION messages_require_body_or_attachments() RETURNS trigger LANGUAGE plpgsql AS \$\$ BEGIN RAISE EXCEPTION 'check queued'; END \$\$");
+            DB::table('message_attachments')->where('id', $id)->delete();
+            DB::unprepared('SET CONSTRAINTS ALL IMMEDIATE');
+
+            return false;
+        } catch (QueryException $e) {
+            return str_contains($e->getMessage(), 'check queued');
+        } finally {
+            DB::rollBack();
+        }
+    };
+
+    expect($fires($linked))->toBeTrue()
+        ->and($fires($pending))->toBeFalse();
 });
 
 it('attaches files to a thread reply and lists them in the replies', function () {
