@@ -9,6 +9,8 @@ import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 
 const user = { id: 1, name: 'Test', email: 't@e.com', locale: 'en' }
 
+const mockApiGet = async (path: string) => ({ data: path === '/api/me' ? user : [] })
+
 async function mountError(path = '/session-error') {
   localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
   const pinia = createPinia()
@@ -28,7 +30,7 @@ describe('SessionErrorView', () => {
   })
 
   it('retry success redirects to the original route', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: user })
+    vi.spyOn(api, 'get').mockImplementation(mockApiGet as never)
     const { wrapper, router } = await mountError('/session-error?redirect=/channels/3')
     await wrapper.find('[data-test=retry]').trigger('click')
     await flushPromises()
@@ -36,7 +38,7 @@ describe('SessionErrorView', () => {
   })
 
   it('retry success ignores external redirects', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({ data: user })
+    vi.spyOn(api, 'get').mockImplementation(mockApiGet as never)
     const { wrapper, router } = await mountError('/session-error?redirect=//evil.com')
     await wrapper.find('[data-test=retry]').trigger('click')
     await flushPromises()
