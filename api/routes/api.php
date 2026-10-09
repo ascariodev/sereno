@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\LogGroupController;
 use App\Http\Controllers\Api\LogIngestController;
 use App\Http\Controllers\Api\LogSourceController;
 use App\Http\Controllers\Api\MemberController;
+use App\Http\Controllers\Api\MentionController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ProjectController;
@@ -53,6 +54,11 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::patch('members/{user}', [MemberController::class, 'update']);
     Route::delete('members/{user}', [MemberController::class, 'destroy']);
     Route::get('channels', [ChannelController::class, 'index']);
+    Route::middleware('throttle:mentions')->group(function () {
+        Route::get('mentions', [MentionController::class, 'index']);
+        Route::post('mentions/read', [MentionController::class, 'read']);
+    });
+
     Route::get('channels/{channel}/messages', [MessageController::class, 'index']);
     Route::get('channels/{channel}/messages/{message}/replies', [MessageController::class, 'replies'])->whereNumber('message');
     Route::post('channels/{channel}/messages', [MessageController::class, 'store'])->middleware('throttle:channel-messages');

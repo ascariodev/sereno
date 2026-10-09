@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 12
+**Estado:** en curso · Fase actual: 13
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -91,7 +91,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 ### [x] Fase 11 — Aviso en vivo de una mención (api)
 - Evento `MentionCreated` en `users.{id}` tras el commit, con organización, canal, mensaje y raíz si es respuesta.
 
-### [ ] Fase 12 — Bandeja de menciones (api)
+### [x] Fase 12 — Bandeja de menciones (api)
 - `GET mentions` (propias, de la organización activa, cursor, con mensaje, canal y autor, más `unread_count`) y
   `POST mentions/read` (ids o todas). Aislamiento por usuario y organización.
 
@@ -190,8 +190,17 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - 2026-10-09 — Contrato de `MentionCreated`: canal privado `users.{id}`, `broadcastAs` `mention.created`, payload
   `{organization_id, channel_id, parent_id (raíz o null), message (MessageResource resuelto, igual que en
   message.created)}`, tras el commit. La web ignora el evento si `organization_id` no es la organización activa.
+- 2026-10-09 — Contrato de la bandeja (con `X-Organization-Id` y `throttle:mentions`, 60/min por usuario):
+  `GET /api/mentions?cursor=&per_page=` (orden por id de mención desc) devuelve `data` de
+  `{id (de la mención), read_at, created_at, message (MessageResource), channel {id, name, project_id}, parent_id}`,
+  `links` y `meta {next_cursor, unread_count}` (`unread_count` de toda la organización activa). `POST
+  /api/mentions/read` con `{ids: int[] (máx. 100)}` o `{all: true}` responde `{unread_count}`; ids ajenos se ignoran
+  sin error, idempotente. Motivo: lo usan las fases 16 y 17.
 
 ## Notas para la próxima sesión
+- Fase 12 hecha: `MentionController` (`index`, `read`), `MentionResource`, `ListMentionsRequest` (extiende
+  `ListMessagesRequest`, autoriza con `viewAny` de Channel) y `MarkMentionsReadRequest`; tests en
+  `MentionInboxApiTest`. La bandeja no filtra canales archivados (hoy todo miembro ve todos los canales).
 - Fase 11 hecha: `MentionCreated::dispatch($userId, $message)` en `MessageController@store`, uno por mencionado,
   dentro de la transacción (`ShouldDispatchAfterCommit`); guarda el mensaje ya resuelto. Tests en
   `MentionBroadcastTest`.

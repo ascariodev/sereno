@@ -28,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
 
     public const INVITATION_PREVIEWS_PER_MINUTE = 30;
 
+    public const MENTIONS_PER_MINUTE = 60;
+
     /**
      * Register any application services.
      */
@@ -73,6 +75,10 @@ class AppServiceProvider extends ServiceProvider
             ->response($this->tooManyAttemptsResponse(...)));
 
         RateLimiter::for('channel-messages', fn (Request $request) => Limit::perMinute(self::CHANNEL_MESSAGES_PER_MINUTE)
+            ->by('user:'.$request->user()->getKey())
+            ->response($this->tooManyAttemptsResponse(...)));
+
+        RateLimiter::for('mentions', fn (Request $request) => Limit::perMinute(self::MENTIONS_PER_MINUTE)
             ->by('user:'.$request->user()->getKey())
             ->response($this->tooManyAttemptsResponse(...)));
 
