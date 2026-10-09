@@ -52,6 +52,7 @@
 - L-39: Un cambio de semántica de un store (p. ej. "ausente con `next_cursor: null` = borrado") corre también los specs de las vistas que lo usan con fixtures propios (`ChannelView.spec`), no solo el del store. — aplicada en: test (ChannelView.spec)
 - L-40: Un estado local de una vista que no se desmonta al cambiar de ruta (diálogo abierto, mensaje seleccionado) se limpia en el `reload()` de la vista, con un spec de cambio de canal con el diálogo abierto. — aplicada en: test (ChannelView.spec)
 - L-41: Un test con conexiones reales (datos confirmados, fuera de RefreshDatabase) restaura en `afterEach` primero la conexión por defecto y cierra transacciones y `lock_timeout` antes de borrar, todo en `try/finally`: una aserción fallida no debe dejar filas bloqueadas ni contaminar la suite. — aplicada en: test (MessageDeleteConcurrencyTest)
+- L-42: Una condición que debe valer al entregar un evento en cola (membresía del destinatario) va en `broadcastOn()`, que corre en el worker; `broadcastWhen` se evalúa al despachar y no ve los cambios mientras el evento espera. — aplicada en: test (MentionBroadcastTest)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

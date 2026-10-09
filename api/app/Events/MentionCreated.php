@@ -4,6 +4,7 @@ namespace App\Events;
 
 use App\Http\Resources\MessageResource;
 use App\Models\Message;
+use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -35,9 +36,20 @@ class MentionCreated implements ShouldBroadcast, ShouldDispatchAfterCommit
         $this->message = (new MessageResource($message->loadMissing(['user:id,name', 'mentionedUsers:id,name'])))->resolve();
     }
 
-    public function broadcastOn(): PrivateChannel
+    /**
+     * Checked here and not in `broadcastWhen`, which runs at dispatch: the queued job calls this in the worker,
+     * and no channels means nothing is sent if the membership was revoked meanwhile.
+     *
+     * @return PrivateChannel|array{}
+     */
+    public function broadcastOn(): PrivateChannel|array
     {
-        return new PrivateChannel('users.'.$this->userId);
+        $isMember = User::query()
+            ->whereKey($this->userId)
+            ->whereHas('organizations', fn ($query) => $query->whereKey($this->organizationId))
+            ->exists();
+
+        return $isMember ? new PrivateChannel('users.'.$this->userId) : [];
     }
 
     public function broadcastAs(): string

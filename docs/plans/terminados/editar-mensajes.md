@@ -151,6 +151,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - 2026-10-09 — Fase 12: si se borra la raíz del hilo abierto, el panel la sigue mostrando como marcador con el composer activo; responder a una raíz borrada es válido y la vuelve a listar como marcador en el canal.
 - 2026-10-09 — Fase 17: al editar, una mención a un id que ya no tiene nombre (ex miembro) se conserva como texto `<@id>`; si esa persona vuelve a ser miembro, la siguiente edición la menciona de nuevo (mismo efecto que el body original).
 - 2026-10-09 — La fase 18 se dividió en 18a (componente `MessageEditor` con i18n) y 18b (cableado en `messageActions`, `MessageItem` y `ChannelView`) porque sumaba 6 archivos.
+- 2026-10-09 — M-9: `MentionCreated::broadcastOn()` verifica en el worker que el destinatario siga siendo miembro y devuelve `[]` si no; `broadcastWhen` no sirve porque se evalúa al despachar. `MessageCreated`/`MessageUpdated` a canales de organización dependen del corte de conexión al quitar al miembro.
 - 2026-10-09 — Eventos nuevos `message.updated`, `message.deleted` (con contadores de la raíz ya recalculados, que el
   cliente aplica aunque bajen) y `mention.removed`. Mismo throttle `channel-messages` para editar y borrar.
 
@@ -167,7 +168,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - [x] M-6 (baja, sonnet): en `MessageUpdated`, dejar explícito (o forzar con `load`) que el payload depende de que el controlador cargue antes `recentParticipants`, porque `loadMissing` no recarga.
 - [x] M-7 (media, sonnet): test de concurrencia real con dos conexiones (borrar una respuesta mientras otra se inserta) en vez del hook `created` en la misma conexión; documentar el deadlock teórico (reusar ids de adjuntos de la respuesta que se borra), que Postgres aborta.
 - [x] M-8 (baja, sonnet): tests de listas con borrados: `DELETE` de la última respuesta de una raíz ya borrada la saca de `index`, y recorrido por cursor de dos páginas con borrados intercalados.
-- [ ] M-9 (media, sonnet): `mention.created` manda el mensaje completo a `users.{id}`; si la membresía cae antes de que la cola lo procese, llega a un ex miembro. Verificar la membresía al emitir (`broadcastWhen`) o reducir el payload.
+- [x] M-9 (media, sonnet): `mention.created` manda el mensaje completo a `users.{id}`; si la membresía cae antes de que la cola lo procese, llega a un ex miembro. Verificar la membresía al emitir (`broadcastWhen`) o reducir el payload.
 - [ ] M-10 (baja, sonnet): guard de `message.created` y `message.updated` en `echo.ts` que valide `typeof message.id === 'number'` (L-13), como el de `message.deleted`.
 - [ ] M-11 (baja, sonnet): `stores/messages.ts`: mover `isOlderEdit` para que no quede entre el comentario de `snapshotCounts` y su función; en `remove`, no sobrescribir `removals` de una raíz con un borrado de `deleted_at` más viejo.
 - [ ] M-12 (baja, sonnet): al borrar una respuesta en vivo, recalcular `recent_participants` de la raíz (hoy lo corrige el siguiente snapshot).

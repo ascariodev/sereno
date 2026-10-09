@@ -3,10 +3,14 @@
 use App\Enums\Role;
 use App\Events\MentionCreated;
 use App\Models\Channel;
+use App\Models\Message;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Illuminate\Broadcasting\BroadcastEvent;
+use Illuminate\Contracts\Broadcasting\Broadcaster;
+use Illuminate\Contracts\Broadcasting\Factory as BroadcastingFactory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
@@ -112,4 +116,26 @@ it('survives queue serialization without an active organization', function () {
     expect($restored->broadcastOn()->name)->toBe($event->broadcastOn()->name)
         ->and($restored->broadcastAs())->toBe($event->broadcastAs())
         ->and($restored->broadcastWith())->toEqual($event->broadcastWith());
+});
+
+it('is not broadcast when the member leaves between the dispatch and the queued handle', function () {
+    postMentioning($this, "hey <@{$this->ana->id}>")->assertCreated();
+    $job = unserialize(serialize(new BroadcastEvent(Event::dispatched(MentionCreated::class)->first()[0])));
+
+    app(CurrentOrganization::class)->set(null);
+    $this->organization->removeMember($this->ana);
+
+    $broadcaster = Mockery::mock(Broadcaster::class);
+    $broadcaster->shouldNotReceive('broadcast');
+    $manager = Mockery::mock(BroadcastingFactory::class);
+    $manager->shouldReceive('connection')->andReturn($broadcaster);
+    $job->handle($manager);
+
+    $kept = unserialize(serialize(new BroadcastEvent(new MentionCreated($this->bob->id, Message::query()->withoutGlobalScopes()->latest('id')->first()))));
+    $broadcaster = Mockery::mock(Broadcaster::class);
+    $broadcaster->shouldReceive('broadcast')->once()->withArgs(fn (array $channels, string $name) => $name === 'mention.created'
+        && $channels[0]->name === "private-users.{$this->bob->id}");
+    $manager = Mockery::mock(BroadcastingFactory::class);
+    $manager->shouldReceive('connection')->andReturn($broadcaster);
+    $kept->handle($manager);
 });
