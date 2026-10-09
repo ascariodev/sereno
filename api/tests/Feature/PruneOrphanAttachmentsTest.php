@@ -192,6 +192,44 @@ it('finds stray files in every organization and channel directory', function () 
     expect($disk->allFiles('chat'))->toBe([]);
 });
 
+it('sweeps the files left by rows that the database cascade deleted, keeping those with a row', function () {
+    $disk = Storage::disk('local');
+    $keptMessage = Message::factory()->for($this->channel)->create();
+    $goneMessage = Message::factory()->for($this->channel)->create();
+    $otherChannel = Channel::factory()->for(Project::factory()->for($this->organization)->create())->create();
+    $otherMessage = Message::factory()->for($otherChannel)->create();
+    $otherOrganization = Organization::factory()->create();
+    $otherProject = Project::factory()->for($otherOrganization)->create();
+    $otherOrgChannel = Channel::factory()->for($otherProject)->create();
+    $otherOrgMessage = Message::factory()->for($otherOrgChannel)->create();
+
+    $kept = storedAttachment($this->channel, '3 days', $keptMessage);
+    $byMessage = storedAttachment($this->channel, '3 days', $goneMessage);
+    $byChannel = storedAttachment($otherChannel, '3 days', $otherMessage);
+    $byOrganization = storedAttachment($otherOrgChannel, '3 days', $otherOrgMessage);
+
+    DB::table('messages')->where('id', $goneMessage->id)->delete();
+    DB::table('channels')->where('id', $otherChannel->id)->delete();
+    DB::table('organizations')->where('id', $otherOrganization->id)->delete();
+
+    foreach ([$byMessage, $byChannel, $byOrganization] as $gone) {
+        expect(attachmentRowExists($gone->id))->toBeFalse()
+            ->and($disk->exists($gone->path))->toBeTrue();
+
+        touch($disk->path($gone->path), now()->subHours(30)->getTimestamp());
+    }
+
+    $this->artisan('chat:prune-attachments')
+        ->expectsOutputToContain('Deleted 0 orphan attachments and 3 stray files.')
+        ->assertSuccessful();
+
+    expect($disk->exists($byMessage->path))->toBeFalse()
+        ->and($disk->exists($byChannel->path))->toBeFalse()
+        ->and($disk->exists($byOrganization->path))->toBeFalse()
+        ->and(attachmentRowExists($kept->id))->toBeTrue()
+        ->and($disk->exists($kept->path))->toBeTrue();
+});
+
 it('refuses to delete anything with an invalid orphan period', function (mixed $hours) {
     config(['chat.attachments.orphan_hours' => $hours]);
     $old = storedAttachment($this->channel, '5 days');

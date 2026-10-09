@@ -258,6 +258,10 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `CHAT_MENTIONS_PER_MESSAGE`): el API no rechaza el mensaje; tras quitar autor, repetidos y no miembros guarda las
   primeras N en orden de aparición y solo esas emiten `MentionCreated`; el body se guarda completo, así que un token
   más allá del tope se muestra como mención genérica en la web. Filas insertadas en lote.
+- 2026-10-09 — (M-4, M-28) Los archivos de adjuntos borrados en cascada (mensaje, canal, organización) los limpia
+  `chat:prune-attachments` al barrer archivos sin fila con más de `orphan_hours`; hoy no hay ningún camino del API que
+  borre organizaciones, canales o mensajes. Cuando exista uno, conviene además borrar `chat/{org}` o
+  `chat/{org}/{canal}` tras el commit para que sea inmediato.
 
 ## Notas para la próxima sesión
 - Plan terminado (26 fases). Suites completas: API 672 tests, web 853. Paso 6 marcado como hecho en `CLAUDE.md`.
@@ -382,7 +386,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-2 (media, sonnet): saltar a un mensaje concreto (carga alrededor de un id) al abrir una mención de un mensaje
   raíz antiguo; en este plan solo se abre el canal o el hilo.
 - [ ] M-3 (media, sonnet): avatares de los últimos participantes en `ThreadSummary`, como en el diseño.
-- [ ] M-4 (media, sonnet): borrar los archivos de adjuntos cuando se borra la organización (la cascada borra filas,
+- [x] M-4 (media, sonnet): borrar los archivos de adjuntos cuando se borra la organización (la cascada borra filas,
   no archivos).
 - [ ] M-5 (media, sonnet): límites de adjuntos y almacenamiento por plan de la organización (`docs/monetizacion.md`).
 - [x] M-6 (baja, sonnet): hacer parcial el índice `(parent_id, id DESC)` con `WHERE parent_id IS NOT NULL`, para no
@@ -432,7 +436,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   hora relativa con el tiempo y marca leída también al abrir con clic central o en pestaña nueva (`auxclick`).
 - [x] M-27 (media, sonnet): test intermitente de `LogView.spec` ("refreshes the project counts once, after 300 ms"):
   falla 1 de cada 3 a 6 corridas en HEAD; buscar el temporizador real que queda armado antes de `useFakeTimers` (L-30).
-- [ ] M-28 (media, sonnet): borrar los archivos del disco cuando la cascada borra filas de `message_attachments` por
+- [x] M-28 (media, sonnet): borrar los archivos del disco cuando la cascada borra filas de `message_attachments` por
   borrado de canal o de mensaje (la fase 22 solo limpia huérfanos sin mensaje); se suma a M-4.
 - [ ] M-29 (baja, sonnet): documentar las variables `CHAT_ATTACHMENT*` en `api/.env.example`.
   Pendiente: en la sesión en la nube los permisos no dejan leer `api/.env.example`; aplicarla en local.
