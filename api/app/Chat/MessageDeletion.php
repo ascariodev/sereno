@@ -31,6 +31,9 @@ class MessageDeletion
                 ? null
                 : Message::query()->whereKey($message->parent_id)->lockForUpdate()->first();
 
+            // A reply's FK check holds a key-share lock on the root until it commits, so this FOR UPDATE waits for
+            // replies in flight. Theoretical deadlock: a request that reuses the attachment ids of the reply being
+            // deleted locks them before the reply row; Postgres aborts one of the two (40P01).
             $locked = Message::query()->whereKey($message->id)->whereNull('deleted_at')->lockForUpdate()->first();
             if ($locked === null) {
                 return null;
