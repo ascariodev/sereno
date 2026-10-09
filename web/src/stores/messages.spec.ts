@@ -547,6 +547,16 @@ describe('messages store', () => {
       expect(store.messages[1].body).toBe('new')
     })
 
+    it('takes the recalculated participants of a deletion event', async () => {
+      const ana = { id: 1, name: 'Ana' }
+      vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [{ ...root(2, 2, '2026-01-01T00:00:00Z'), recent_participants: [ana, { id: 2, name: 'Bo' }] }], meta: { next_cursor: null } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      const event = deleted(9, 2, [2, 1, '2026-01-01T00:00:00Z'])
+      expect(store.remove({ ...event, root: { ...event.root, recent_participants: [ana] } })).toBe(true)
+      expect(store.messages[0].recent_participants).toEqual([ana])
+    })
+
     it('replaces an edited root still queued', async () => {
       vi.spyOn(api, 'get').mockResolvedValueOnce(page([1], null) as never)
       const store = useMessagesStore()

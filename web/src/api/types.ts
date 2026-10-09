@@ -161,6 +161,8 @@ export interface RootCounters {
   id: number
   replies_count: number
   last_reply_at: string | null
+  /** Recalculated by the API (up to 3, newest first); absent in counters built by the client. */
+  recent_participants?: Message['recent_participants']
 }
 
 /** DELETE response: the deleted message; `meta.root` is present only when it was a reply. */

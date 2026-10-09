@@ -86,7 +86,12 @@ interface Removal {
 }
 
 export function withCounters(root: Message, counters: RootCounters): Message {
-  return { ...root, replies_count: counters.replies_count, last_reply_at: counters.last_reply_at }
+  return {
+    ...root,
+    replies_count: counters.replies_count,
+    last_reply_at: counters.last_reply_at,
+    recent_participants: counters.recent_participants ?? root.recent_participants,
+  }
 }
 
 export function asDeleted(message: Message, deletedAt: string): Message {

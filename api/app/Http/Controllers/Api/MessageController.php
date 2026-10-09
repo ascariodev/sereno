@@ -186,18 +186,19 @@ class MessageController extends Controller
         $deleted = $result['message']->load(self::RELATIONS);
         self::loadParticipants([$deleted]);
 
-        MessageDeleted::dispatch($deleted, $result['root']);
+        if ($result['root'] !== null) {
+            self::loadParticipants([$result['root']]);
+        }
+
+        $event = new MessageDeleted($deleted, $result['root']);
+        event($event);
         foreach ($result['removed_mentions'] as $userId) {
             MentionRemoved::dispatch($userId, $deleted);
         }
 
         $resource = new MessageResource($deleted);
         if ($result['root'] !== null) {
-            $resource->additional(['meta' => ['root' => [
-                'id' => $result['root']->id,
-                'replies_count' => $result['root']->replies_count,
-                'last_reply_at' => $result['root']->last_reply_at,
-            ]]]);
+            $resource->additional(['meta' => ['root' => $event->root]]);
         }
 
         return $resource;

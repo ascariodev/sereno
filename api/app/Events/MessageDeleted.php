@@ -11,7 +11,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 /**
  * Holds plain values instead of models: the queue worker has no active organization, so OrganizationScope
- * would fail to restore them. `root` carries the counters already recalculated (the deleted message itself
+ * would fail to restore them. `root` carries the counters and participants already recalculated (the deleted message itself
  * when it is a root).
  */
 class MessageDeleted implements ShouldBroadcast, ShouldDispatchAfterCommit
@@ -28,7 +28,7 @@ class MessageDeleted implements ShouldBroadcast, ShouldDispatchAfterCommit
 
     public readonly ?string $deletedAt;
 
-    /** @var array{id: int, replies_count: int, last_reply_at: string|null} */
+    /** @var array{id: int, replies_count: int, last_reply_at: string|null, recent_participants: array<int, array{id: int, name: string}>} */
     public readonly array $root;
 
     public function __construct(Message $message, ?Message $root = null)
@@ -44,6 +44,10 @@ class MessageDeleted implements ShouldBroadcast, ShouldDispatchAfterCommit
             'id' => $root->id,
             'replies_count' => $root->replies_count,
             'last_reply_at' => $root->last_reply_at?->toJSON(),
+            // Set by MessageController::loadParticipants; [] when the root has no live replies.
+            'recent_participants' => $root->relationLoaded('recentParticipants')
+                ? $root->recentParticipants->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()->all()
+                : [],
         ];
     }
 

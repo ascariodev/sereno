@@ -171,7 +171,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - [x] M-9 (media, sonnet): `mention.created` manda el mensaje completo a `users.{id}`; si la membresía cae antes de que la cola lo procese, llega a un ex miembro. Verificar la membresía al emitir (`broadcastWhen`) o reducir el payload.
 - [x] M-10 (baja, sonnet): guard de `message.created` y `message.updated` en `echo.ts` que valide `typeof message.id === 'number'` (L-13), como el de `message.deleted`.
 - [x] M-11 (baja, sonnet): `stores/messages.ts`: mover `isOlderEdit` para que no quede entre el comentario de `snapshotCounts` y su función; en `remove`, no sobrescribir `removals` de una raíz con un borrado de `deleted_at` más viejo.
-- [ ] M-12 (baja, sonnet): al borrar una respuesta en vivo, recalcular `recent_participants` de la raíz (hoy lo corrige el siguiente snapshot).
+- [x] M-12 (baja, sonnet): al borrar una respuesta en vivo, recalcular `recent_participants` de la raíz (hoy lo corrige el siguiente snapshot).
 - [ ] M-13 (baja, sonnet): si `message.deleted` de una raíz llega antes que su `message.created`, el marcador no aparece hasta el siguiente snapshot.
 - [ ] M-14 (baja, sonnet): comentario en `stores/thread.ts` (`replace`) sobre `edits` de respuestas no cargadas (acotado por eventos, se limpia en `clear`).
 - [ ] M-15 (media, sonnet): decidir si la API rechaza responder a una raíz borrada sin respuestas (hoy la revive como marcador) y, si se rechaza, ocultar el composer del panel.
@@ -182,3 +182,4 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - [ ] M-20 (media, sonnet): extraer a un composable la lógica de teclado y sugerencias duplicada entre `MessageComposer` y `MessageEditor`.
 - [ ] M-21 (baja, sonnet): al cerrar el panel del hilo (o cambiar de raíz) con una respuesta en edición, limpiar `editingMessageId` (hoy reaparece al reabrir ese hilo), con spec; documentar que abrir o cerrar el hilo de la raíz en edición remonta el editor y pierde el texto.
 - [ ] M-22 (baja, sonnet): `stores/mentions.ts`: vaciar `removedMessages` tras un refresh completo o en `onReconnect`, para que una re-mención ocurrida con el socket caído aparezca en la bandeja (hoy la filtra aunque el contador la cuenta).
+- [ ] M-23 (baja, sonnet): spec de `ChannelView` que compruebe que `confirmDelete` aplica `meta.root.recent_participants`; acortar el docblock de `MessageDeleted`.

@@ -49,8 +49,26 @@ it('broadcasts a deleted reply with the recalculated counters of its root', func
             && $payload['channel_id'] === $this->channel->id
             && $payload['parent_id'] === $this->root->id
             && $payload['deleted_at'] !== null
-            && $payload['root'] === ['id' => $this->root->id, 'replies_count' => 0, 'last_reply_at' => null];
+            && $payload['root'] === ['id' => $this->root->id, 'replies_count' => 0, 'last_reply_at' => null, 'recent_participants' => []];
     });
+});
+
+it('recalculates the participants of the root in the event and in meta.root', function () {
+    $other = User::factory()->create();
+    $this->organization->addMember($other, [Role::Member]);
+    $second = Message::factory()->for($this->channel)->create(['kind' => Message::KIND_USER, 'user_id' => $this->author->id, 'body' => 'again', 'parent_id' => $this->root->id]);
+    $third = Message::factory()->for($this->channel)->create(['kind' => Message::KIND_USER, 'user_id' => $other->id, 'body' => 'other', 'parent_id' => $this->root->id]);
+    DB::table('messages')->where('id', $this->root->id)->update(['replies_count' => 3]);
+    Event::fake([MessageDeleted::class]);
+
+    Sanctum::actingAs($this->author);
+    $meta = $this->withHeader('X-Organization-Id', (string) $this->organization->id)
+        ->deleteJson("/api/channels/{$this->channel->id}/messages/{$this->reply->id}")
+        ->assertOk()->json('meta.root.recent_participants');
+
+    $expected = [['id' => $other->id, 'name' => $other->name], ['id' => $this->author->id, 'name' => $this->author->name]];
+    expect($meta)->toBe($expected);
+    Event::assertDispatched(MessageDeleted::class, fn (MessageDeleted $event) => $event->broadcastWith()['root']['recent_participants'] === $expected);
 });
 
 it('broadcasts a deleted root with its own counters', function () {
