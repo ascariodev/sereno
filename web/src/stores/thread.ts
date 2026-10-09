@@ -143,6 +143,7 @@ export const useThreadStore = defineStore('thread', () => {
     if (known !== undefined && isOlderEdit(message, known)) return false
     const current = isRoot ? base?.root : replies.value.find((reply) => reply.id === message.id)
     if (current !== undefined && (current.deleted_at !== null || isOlderEdit(message, current))) return false
+    // Edits of replies not loaded yet are kept too: bounded by the events received, and cleared in clear().
     edits.set(message.id, message)
     if (current === undefined) return false
     if (isRoot && base !== null) {
