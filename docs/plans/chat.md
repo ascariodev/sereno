@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -25,7 +25,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - Helpers globales de Pest ya ocupados (L-29): `asChannelReader`, `postingAs`, `insertSystemMessage`,
   `authorizeChannel`, `channelName`, `authorizePresence`, `noticeMessages`, `ingestNotice`, `listMembers`,
   `changeRole`, `memberWithRole`, `roleIn`, `removeMemberRequest`, `asUser`, `asGroupReader`, `invite`, `replyTo`,
-  `systemRootIn`.
+  `systemRootIn`, `mentionIn`.
 - Subidas: `api/docker/php/uploads.ini` y `api/docker/nginx/default.conf` limitan a 6 MB.
 
 ## Fases
@@ -80,7 +80,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 
 ### Menciones
 
-### [ ] Fase 9 — Esquema de menciones (api)
+### [x] Fase 9 — Esquema de menciones (api)
 - Tabla `message_mentions` (organization_id, message_id, user_id, read_at, created_at; único `(message_id, user_id)`;
   índice `(user_id, organization_id, read_at)`), modelo `MessageMention`, `database.md`.
 
@@ -185,6 +185,10 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   de estado del sistema tampoco lo llevan, solo la tarjeta de aviso abierto. Motivo: un solo nivel de hilo.
 
 ## Notas para la próxima sesión
+- Fase 9 hecha: tabla `message_mentions` (solo `created_at`, `read_at` nullable; único
+  `message_mentions_message_id_user_id_unique`), modelo `MessageMention` con `$guarded = ['*']` y
+  `BelongsToOrganization`, relación `Message::mentions()`. Fase 10: asignar por propiedad o por `$message->mentions()`,
+  tomar `organization_id` del mensaje y validar que el usuario es miembro (la BD no lo comprueba).
 - Bloque de hilos terminado (fases 1 a 8). Fase 8: `ThreadSummary` es un botón (`name="open-thread"`), "N respuestas
   · Última respuesta hace X" o "Responder en hilo"; la etiqueta relativa no se refresca sola. Pendiente de mirar en
   el navegador: `message-item__main` ahora es columna flex, y el scroll del panel (L-22). Sigue el bloque de menciones
@@ -256,3 +260,5 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-17 (baja, sonnet): spec de `ThreadSummary` que afirme el nombre accesible con el conteo, y ordenar
   `threadable` junto a las demás props en `ChannelView.vue`.
 - [ ] M-18 (baja, sonnet): refrescar la etiqueta "hace cuánto" de `ThreadSummary` con el paso del tiempo.
+- [ ] M-19 (baja, sonnet): renombrar en `MessageMentionTest` el test "keeps the mention when only the user is not
+  deleted..." a algo como "deletes mentions with the mentioned user".
