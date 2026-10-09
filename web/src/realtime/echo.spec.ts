@@ -10,6 +10,7 @@ import {
   MEMBERSHIP_REVOKED_EVENT,
   MEMBERSHIP_ROLE_CHANGED_EVENT,
   MESSAGE_CREATED_EVENT,
+  onChannelDenied,
   onReconnect,
   setRealtimeClientFactory,
   setRealtimeTokenProvider,
@@ -274,6 +275,101 @@ describe('realtime', () => {
     disconnectRealtime()
     leave()
     expect(client.leave).not.toHaveBeenCalled()
+  })
+
+  it('notifies the organization and status when its channel is rejected, and drops it without a second leave', () => {
+    const { client, rejectChannel } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const denied = vi.fn()
+    onChannelDenied(denied)
+    const leave = subscribeToChannel(3, 7, () => {})
+
+    rejectChannel('organizations.3.channels.7', { type: 'AuthError', status: 403 })
+    expect(denied).toHaveBeenCalledWith(3, 403)
+    rejectChannel('organizations.3.channels.7', { type: 'AuthError', status: 403 })
+    leave()
+    expect(denied).toHaveBeenCalledTimes(1)
+    expect(client.leave).toHaveBeenCalledTimes(1)
+    expect(client.leave).toHaveBeenCalledWith('organizations.3.channels.7')
+    subscribeToChannel(3, 7, () => {})
+    expect(client.private).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not attribute a stale authorizer status to a later rejection without status', async () => {
+    const { client, rejectChannel } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const denied = vi.fn()
+    onChannelDenied(denied)
+    const name = 'private-organizations.3.channels.7'
+    subscribeToChannel(3, 7, () => {})
+    const first = vi.fn()
+    createAuthorizer(async () => new Response('{}', { status: 403 }))({ socketId: '1.2', channelName: name }, first)
+    await vi.waitFor(() => expect(first).toHaveBeenCalled())
+    rejectChannel('organizations.3.channels.7', { type: 'AuthError', error: 'x' })
+    expect(denied).toHaveBeenLastCalledWith(3, 403)
+
+    subscribeToChannel(3, 7, () => {})
+    const second = vi.fn()
+    createAuthorizer(async () => new Response('{}', { status: 403 }))({ socketId: '1.2', channelName: name }, second)
+    await vi.waitFor(() => expect(second).toHaveBeenCalled())
+    const third = vi.fn()
+    createAuthorizer(async () => Promise.reject(new TypeError('network')))({ socketId: '1.2', channelName: name }, third)
+    await vi.waitFor(() => expect(third).toHaveBeenCalled())
+    rejectChannel('organizations.3.channels.7', { type: 'AuthError', error: 'x' })
+    expect(denied).toHaveBeenLastCalledWith(3, undefined)
+  })
+
+  it('ignores a non numeric status in the error payload', () => {
+    const { client, rejectChannel } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const denied = vi.fn()
+    onChannelDenied(denied)
+    subscribeToChannel(3, 7, () => {})
+    rejectChannel('organizations.3.channels.7', { status: '403' as unknown as number })
+    expect(denied).toHaveBeenCalledWith(3, undefined)
+  })
+
+  it('releases the rejected channel in the client so a later subscription authorizes again', () => {
+    const { client, rejectChannel } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const leave = subscribeToChannel(3, 7, () => {})
+    rejectChannel('organizations.3.channels.7', { status: 403 })
+    expect(client.leave).toHaveBeenCalledTimes(1)
+    leave()
+    expect(client.leave).toHaveBeenCalledTimes(1)
+  })
+
+  it('takes the status from the authorizer when the payload carries none', async () => {
+    setRealtimeTokenProvider(() => 'secret')
+    const { client, rejectChannel } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const denied = vi.fn()
+    onChannelDenied(denied)
+    subscribeToChannel(3, 7, () => {})
+    const callback = vi.fn()
+    createAuthorizer(async () => new Response('{}', { status: 403 }))(
+      { socketId: '1.2', channelName: 'private-organizations.3.channels.7' },
+      callback,
+    )
+    await vi.waitFor(() => expect(callback).toHaveBeenCalled())
+
+    rejectChannel('organizations.3.channels.7', { type: 'AuthError', error: 'x' })
+    expect(denied).toHaveBeenCalledWith(3, 403)
+  })
+
+  it('does not notify when a user channel is rejected, nor after unsubscribing the callback', () => {
+    const { client, rejectChannel } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const denied = vi.fn()
+    const off = onChannelDenied(denied)
+    subscribeToUser(5, () => {})
+    subscribeToChannel(3, 7, () => {})
+
+    rejectChannel('users.5', { status: 403 })
+    expect(denied).not.toHaveBeenCalled()
+    off()
+    rejectChannel('organizations.3.channels.7', { status: 403 })
+    expect(denied).not.toHaveBeenCalled()
   })
 
   it('does nothing without a client (no Reverb key)', () => {

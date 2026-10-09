@@ -41,6 +41,7 @@
 - L-33: Un mensaje nuevo bajo un campo (error o aviso) lleva `id` y entra en el `aria-describedby` del campo, con `aria-invalid`, igual que los demás campos del formulario, y el spec lo afirma. — aplicada en: test (InviteView.spec)
 - L-30: Un `setTimeout` real que un store deja armado sobrevive al test y se dispara en el siguiente: se cancela de forma determinista en `afterEach` (p. ej. `useProjectsStore().clear()`), no con una espera real. — aplicada en: test (ChannelView.spec)
 - L-34: Si una operación ya confirmada en el servidor cambia el estado global (salir de la organización), el refresco del store global corre siempre; solo lo local (toast, navegación) depende de la generación. — aplicada en: test (MembersView.spec)
+- L-36: Un dato guardado entre dos eventos async (estado del último rechazo de auth) se borra al consumirlo, al iniciar cada intento nuevo y al desconectar; y un canal que se descarta por error se suelta también en la librería (Echo lo cachea y no re-autoriza). — aplicada en: test (echo.spec)
 - L-35: Una acción async que devuelve "si cambió el estado" distingue el descarte por `clear()` (contador propio) del reemplazo por una carga más nueva, y en ese caso espera a la última carga: una recarga concurrente (reconexión) no debe ocultar el cambio. — aplicada en: test (organization.spec)
 
 <!-- Ejemplo:

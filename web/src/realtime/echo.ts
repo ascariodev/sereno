@@ -13,8 +13,17 @@ export interface RealtimePayload {
   role?: string
 }
 
+export interface SubscriptionErrorPayload {
+  type?: string
+  error?: string
+  status?: number
+}
+
 export interface RealtimeClient {
-  private(name: string): { listen(event: string, callback: (data: RealtimePayload) => void): unknown }
+  private(name: string): {
+    listen(event: string, callback: (data: RealtimePayload) => void): unknown
+    error(callback: (payload: SubscriptionErrorPayload) => void): unknown
+  }
   join(name: string): unknown
   leave(name: string): void
   disconnect(): void
@@ -26,11 +35,14 @@ export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 're
 
 type Fetch = typeof fetch
 type Subscriber = (event: string, data: RealtimePayload) => void
+type ChannelDeniedCallback = (organizationId: number, status: number | undefined) => void
 
 let getToken: () => string | null | undefined = () => null
 let client: RealtimeClient | null = null
 const subscriptions = new Map<string, { client: RealtimeClient; callbacks: Set<Subscriber> }>()
 let factory: () => RealtimeClient | null = createEchoClient
+const deniedCallbacks = new Set<ChannelDeniedCallback>()
+const authFailureStatuses = new Map<string, number>()
 
 export function setRealtimeTokenProvider(provider: () => string | null | undefined): void {
   getToken = provider
@@ -82,6 +94,8 @@ function subscribe(name: string, events: string[], handler: Subscriber, presence
     }
     entry = { client: current, callbacks }
     subscriptions.set(name, entry)
+    const created = entry
+    channel?.error((payload) => handleSubscriptionError(name, created, payload))
   }
   const { callbacks } = entry
   const subscriber: Subscriber = handler
@@ -91,6 +105,43 @@ function subscribe(name: string, events: string[], handler: Subscriber, presence
     if (subscriptions.get(name)?.callbacks !== callbacks) return
     subscriptions.delete(name)
     current.leave(name)
+  }
+}
+
+function handleSubscriptionError(
+  name: string,
+  entry: { client: RealtimeClient },
+  payload: SubscriptionErrorPayload,
+): void {
+  if (subscriptions.get(name) !== entry) return
+  const organizationId = organizationIdOf(name)
+  if (organizationId === null) return
+  subscriptions.delete(name)
+  const authKey = `private-${name}`
+  const authStatus = authFailureStatuses.get(authKey)
+  authFailureStatuses.delete(authKey)
+  entry.client.leave(name)
+  const status = typeof payload?.status === 'number' ? payload.status : authStatus
+  for (const callback of [...deniedCallbacks]) {
+    try {
+      callback(organizationId, status)
+    } catch (error) {
+      queueMicrotask(() => {
+        throw error
+      })
+    }
+  }
+}
+
+function organizationIdOf(name: string): number | null {
+  const match = /^organizations\.(\d+)\./.exec(name)
+  return match ? Number(match[1]) : null
+}
+
+export function onChannelDenied(callback: ChannelDeniedCallback): () => void {
+  deniedCallbacks.add(callback)
+  return () => {
+    deniedCallbacks.delete(callback)
   }
 }
 
@@ -151,12 +202,14 @@ export function disconnectRealtime(): void {
   const current = client
   client = null
   subscriptions.clear()
+  authFailureStatuses.clear()
   current?.disconnect()
 }
 
 export function createAuthorizer(fetchImpl: Fetch = (...args) => globalThis.fetch(...args)) {
   return (params: { socketId: string; channelName: string }, callback: ChannelAuthorizationCallback): void => {
     const headers: Record<string, string> = { Accept: 'application/json', 'Content-Type': 'application/json' }
+    authFailureStatuses.delete(params.channelName)
     const token = getToken()
     if (token) headers.Authorization = `Bearer ${token}`
     fetchImpl(`${config.apiUrl}/broadcasting/auth`, {
@@ -165,7 +218,11 @@ export function createAuthorizer(fetchImpl: Fetch = (...args) => globalThis.fetc
       body: JSON.stringify({ socket_id: params.socketId, channel_name: params.channelName }),
     })
       .then((response) => {
-        if (!response.ok) throw new Error(`Broadcasting auth failed with status ${response.status}`)
+        if (!response.ok) {
+          authFailureStatuses.set(params.channelName, response.status)
+          throw new Error(`Broadcasting auth failed with status ${response.status}`)
+        }
+        authFailureStatuses.delete(params.channelName)
         return response.json()
       })
       .then(

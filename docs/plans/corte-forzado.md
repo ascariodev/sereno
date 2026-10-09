@@ -1,7 +1,7 @@
 # Plan: corte-forzado
 
 **Objetivo:** que un miembro quitado de una organización deje de recibir sus mensajes en vivo aunque su cliente ignore el aviso: el API cierra sus conexiones en Reverb, el cliente reconecta, `/broadcasting/auth` rechaza los canales de esa organización y la web lo trata como membresía revocada.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -33,7 +33,7 @@
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/test/fakeRealtimeClient.ts`, `web/src/realtime/echo.spec.ts`.
 - **Terminado cuando:** specs de unirse, refcount, soltar y nada tras `disconnectRealtime` pasan; typecheck limpio.
 
-### [ ] Fase 5 — Avisar de canales de organización rechazados
+### [x] Fase 5 — Avisar de canales de organización rechazados
 - **Alcance:** en `echo.ts`, escuchar `pusher:subscription_error` de los canales `organizations.{id}.*` y notificar con `onChannelDenied(cb)` (id de organización y estado); el canal rechazado sale del Map sin `leave` doble.
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/test/fakeRealtimeClient.ts`, `web/src/realtime/echo.spec.ts`.
 - **Terminado cuando:** specs de rechazo con 403 que notifica y limpia, rechazo de un canal de usuario que no notifica, y desuscripción del callback pasan.
@@ -54,13 +54,15 @@
 - 2026-10-08 — El corte se despacha desde `Organization::removeMember` (`DB::afterCommit` + `TerminateUserConnections::dispatch($id)->delay(5)` en try/catch con `report()`), no con un listener: un solo punto para quitar y salir, y los tests existentes hacen `Event::fake` de `MembershipRevoked`. Job con `$tries = 4`, `backoff = [5, 15, 60]`, idempotente.
 - 2026-10-08 — El corte cierra todos los sockets del usuario, también los de organizaciones donde sigue siendo miembro: esos clientes reconectan y re-autorizan sin problema. Efecto esperado.
 - 2026-10-08 — `joinSession(userId)` reutiliza `subscribe` con un flag `presence` (mismo Map, refcount y protección ante cliente viejo); `RealtimeClient.join(name): unknown` y se suelta con el mismo `leave` (laravel-echo 2.6.1 cierra private y presence). `sessionChannelName(userId)` exportado.
+- 2026-10-08 — `onChannelDenied(cb: (organizationId, status | undefined) => void): () => void`. pusher-js no trae `status` con un autorizador propio, así que `createAuthorizer` guarda el estado HTTP del último rechazo por canal (`authFailureStatuses`), que se borra al consumirlo, al iniciar cada autorización y al desconectar. El canal rechazado sale del Map y se suelta en Echo (`entry.client.leave(name)`) para que una resuscripción re-autorice; sin leave doble.
 
 ## Notas para la próxima sesión
 - Fase 1 hecha: `SessionChannel::join` devuelve `['id' => $user->id]`; en el `channel_data` de Laravel `user_id` llega como string ("43"). En la verificación en vivo (fase 6) confirmar que `terminate_connections` con el id numérico encuentra el socket.
 - Fase 2 hecha. En la fase 3, el job lleva `$tries` y `backoff` acordes: `terminate` lanza ante error. Tests: Pusher simulado con `Broadcast::extend` (helper `useFakePusherConnection` en `ConnectionTerminatorTest`).
 - Fase 3 hecha (worker reiniciado). Si el job agota reintentos queda en `failed_jobs` y el socket sigue abierto hasta que el cliente reconecte.
 - Fase 4 hecha. La fase 6 llama a `joinSession` desde `useMembershipWatch`. Si la fase 5 necesita escuchar eventos del canal de presencia, tipar mejor `join` (hoy `unknown`).
-- Seguir con la fase 5. Leer `docs/lecciones.md` antes. Tras cambiar jobs o listeners: `docker compose restart queue`.
+- Fase 5 hecha (una ronda de corrección: estado de auth arrastrado y canal muerto en la caché de Echo; ver L-36). En la fase 6: `status` puede ser `undefined` (fallo de red): tratar como revocación solo 403, o pasar por `handleForbidden`, que consulta al servidor. Los callbacks de `onChannelDenied` sobreviven a `disconnectRealtime`: desuscribirse al desmontar.
+- Seguir con la fase 6. Leer `docs/lecciones.md` antes. Tras cambiar jobs o listeners: `docker compose restart queue`.
 
 ## Mejoras propuestas
 - [ ] M-1 (baja, sonnet): renombrar el helper global de Pest `authorizePresence` en `api/tests/Feature/BroadcastingAuthTest.php` a uno más específico (`authorizeSessionPresence`), por L-29.
@@ -68,3 +70,5 @@
 - [ ] M-3 (baja, sonnet): documentar `REVERB_CONNECT_TIMEOUT` y `REVERB_TIMEOUT` en `api/.env.example`.
 - [ ] M-4 (baja, sonnet): en el test de fallo de la cola de `api/tests/Feature/MembershipBroadcastTest.php`, afirmar también que se llamó a `report()` (hoy depende de que el driver llame a `later`).
 - [ ] M-5 (baja, sonnet): en `web/src/realtime/echo.ts` (`subscribe`), extraer a un helper la creación del canal (presence o private) en vez de mezclar las ramas con `channel?.listen` y un `if` aparte.
+- [ ] M-6 (baja, sonnet): en `web/src/realtime/echo.ts`, una constante o helper para el prefijo `private-` que comparten `createAuthorizer` y `handleSubscriptionError`.
+- [ ] M-7 (baja, sonnet): en `web/src/test/fakeRealtimeClient.ts`, guardar varios handlers de `error` por canal en vez de uno solo.
