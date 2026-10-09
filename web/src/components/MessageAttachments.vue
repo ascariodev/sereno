@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { MessageAttachment } from '../api/types'
 import { formatFileSize } from '../formatFileSize'
@@ -10,6 +10,7 @@ const { t } = useI18n()
 
 const PREVIEWABLE = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 const failed = reactive(new Set<string>())
+const notice = computed(() => (failed.size > 0 ? t('attachments.previewUnavailable') : ''))
 
 function showsPreview(a: MessageAttachment): boolean {
   return PREVIEWABLE.includes(a.mime) && !failed.has(a.url)
@@ -17,13 +18,15 @@ function showsPreview(a: MessageAttachment): boolean {
 </script>
 
 <template>
-  <ul v-if="attachments.length > 0" class="message-attachments" :aria-label="t('attachments.list')">
+  <div v-if="attachments.length > 0" class="message-attachments-wrap">
+  <span class="message-attachments__sr" role="status">{{ notice }}</span>
+  <ul class="message-attachments" :aria-label="t('attachments.list')">
     <li v-for="a in attachments" :key="a.id" class="message-attachment">
       <a v-if="showsPreview(a)" class="message-attachment__thumb" :href="a.url" target="_blank" rel="noopener">
         <img :src="a.url" :alt="a.original_name" loading="lazy" @error="failed.add(a.url)" />
       </a>
       <template v-else>
-        <p v-if="PREVIEWABLE.includes(a.mime)" class="message-attachment__note" role="status">
+        <p v-if="PREVIEWABLE.includes(a.mime)" class="message-attachment__note">
           {{ t('attachments.previewUnavailable') }}
         </p>
         <div class="message-attachment__file">
@@ -39,6 +42,7 @@ function showsPreview(a: MessageAttachment): boolean {
       </template>
     </li>
   </ul>
+  </div>
 </template>
 
 <style scoped>
@@ -52,6 +56,15 @@ function showsPreview(a: MessageAttachment): boolean {
   list-style: none;
   min-width: 0;
   max-width: 100%;
+}
+
+.message-attachments__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .message-attachment {

@@ -431,6 +431,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-28 (media, sonnet): borrar los archivos del disco cuando la cascada borra filas de `message_attachments` por
   borrado de canal o de mensaje (la fase 22 solo limpia huérfanos sin mensaje); se suma a M-4.
 - [ ] M-29 (baja, sonnet): documentar las variables `CHAT_ATTACHMENT*` en `api/.env.example`.
+  Pendiente: en la sesión en la nube los permisos no dejan leer `api/.env.example`; aplicarla en local.
 - [ ] M-30 (baja, sonnet): `serve => false` en el disco `local` de `api/config/filesystems.php` (nadie usa
   `/storage/{path}`); al truncar `original_name` quitar espacios o puntos antes de la extensión; test que compare el
   404 de un canal ajeno con el de un id inexistente.
@@ -450,7 +451,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   error tras un envío con éxito.
 - [ ] M-36 (media, sonnet): indicar adjuntos en `MentionsView` (p. ej. "N adjuntos" sin enlaces, o rediseñar la fila
   para que no sea un enlace entero).
-- [ ] M-37 (baja, sonnet): un solo `role=status` para los avisos de vista previa no disponible en `MessageAttachments`.
+- [x] M-37 (baja, sonnet): un solo `role=status` para los avisos de vista previa no disponible en `MessageAttachments`.
 - [ ] M-38 (media, sonnet): conservar el borrador del composer del hilo al cruzar el umbral de 767 px (hoy la hoja y
   el aside son dos `ThreadAside` distintos; subir el borrador a un store o teleportar uno solo).
 - [ ] M-39 (baja, sonnet): tras `markAllRead`, invalidar o relanzar un `loadMore` en vuelo (sus filas nuevas llegan como

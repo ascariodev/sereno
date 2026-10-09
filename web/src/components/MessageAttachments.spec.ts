@@ -21,7 +21,19 @@ describe('MessageAttachments', () => {
   })
 
   it('renders nothing without attachments', () => {
-    expect(render([]).find('ul').exists()).toBe(false)
+    const w = render([])
+    expect(w.find('ul').exists()).toBe(false)
+    expect(w.find('[role="status"]').exists()).toBe(false)
+    expect(w.find('.message-attachments-wrap').exists()).toBe(false)
+  })
+
+  it('keeps one empty status region mounted until a preview fails', async () => {
+    const w = render([image, { ...image, id: 3, url: 'http://api/attachments/3?sig=c' }])
+    expect(w.get('[role="status"]').text()).toBe('')
+    await w.findAll('img')[0].trigger('error')
+    await w.get('img').trigger('error')
+    expect(w.findAll('[role="status"]')).toHaveLength(1)
+    expect(w.get('[role="status"]').text()).toBe('The preview is no longer available.')
   })
 
   it('shows a lazy thumbnail linking to the image', () => {
@@ -62,6 +74,8 @@ describe('MessageAttachments', () => {
     expect(w.text()).toContain('foto.png')
     expect(w.get('a[aria-label="Download: foto.png"]').attributes('href')).toBe(image.url)
     expect(w.findAll('li')).toHaveLength(2)
+    expect(w.findAll('[role="status"]')).toHaveLength(1)
+    expect(w.get('[role="status"]').text()).toBe('The preview is no longer available.')
   })
 
   it('retries the preview when the same attachment arrives with a new signed url', async () => {
