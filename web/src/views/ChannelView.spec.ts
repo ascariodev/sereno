@@ -67,7 +67,8 @@ function fakeRealtime() {
   const { client, listeners, setStatus, statusListeners } = createFakeRealtimeClient()
   setRealtimeClientFactory(() => client)
   const emit = (name: string, payload: Message) => listeners.get(`${name}|.message.created`)?.({ message: payload })
-  return { client, emit, setStatus, statusListeners }
+  const emitEvent = (event: string, data: object) => listeners.get(`organizations.1.channels.7|${event}`)?.(data)
+  return { client, emit, emitEvent, setStatus, statusListeners }
 }
 
 describe('ChannelView', () => {
@@ -661,6 +662,53 @@ describe('ChannelView thread panel', () => {
     expect(useMessagesStore().messages.find((item) => item.id === 1)?.replies_count).toBe(2)
     expect(realtime.client.private).toHaveBeenCalledTimes(1)
     expect(realtime.client.leave).not.toHaveBeenCalled()
+  })
+
+  it('applies live edits to the channel and to the open thread', async () => {
+    const realtime = fakeRealtime()
+    mockThread()
+    const wrapper = await mountView('/channels/7?thread=1')
+    realtime.emitEvent('.message.updated', { message: { ...reply(2), body: 'reply edited', edited_at: '2026-01-02T00:00:00Z' } })
+    realtime.emitEvent('.message.updated', { message: { ...root, body: 'root edited', edited_at: '2026-01-02T00:00:00Z' } })
+    await flushPromises()
+    expect(useThreadStore().replies.find((item) => item.id === 2)?.body).toBe('reply edited')
+    expect(useMessagesStore().messages.find((item) => item.id === 1)?.body).toBe('root edited')
+    expect(wrapper.text()).toContain('reply edited')
+  })
+
+  it('applies a live deleted reply to the thread and the channel counter', async () => {
+    const realtime = fakeRealtime()
+    mockThread()
+    const wrapper = await mountView('/channels/7?thread=1')
+    realtime.emitEvent('.message.deleted', {
+      id: 2,
+      channel_id: 7,
+      parent_id: 1,
+      deleted_at: '2026-01-02T00:00:00Z',
+      root: { id: 1, replies_count: 0, last_reply_at: null },
+    })
+    await flushPromises()
+    expect(useThreadStore().replies).toEqual([])
+    expect(wrapper.text()).not.toContain('reply 2')
+    expect(useMessagesStore().messages.find((item) => item.id === 1)?.replies_count).toBe(0)
+  })
+
+  it('keeps a deleted root with replies as a marker in the open thread', async () => {
+    const realtime = fakeRealtime()
+    mockThread()
+    const wrapper = await mountView('/channels/7?thread=1')
+    realtime.emitEvent('.message.deleted', {
+      id: 1,
+      channel_id: 7,
+      parent_id: null,
+      deleted_at: '2026-01-02T00:00:00Z',
+      root: { id: 1, replies_count: 1, last_reply_at: '2026-01-01T00:00:00Z' },
+    })
+    await flushPromises()
+    expect(useThreadStore().replies.map((item) => item.id)).toEqual([2])
+    expect(useMessagesStore().messages.find((item) => item.id === 1)?.deleted_at).toBe('2026-01-02T00:00:00Z')
+    expect(wrapper.find('[data-test="thread-root"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('reply 2')
   })
 
   it('catches up both the channel and the thread after a reconnection', async () => {
