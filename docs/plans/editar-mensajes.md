@@ -2,7 +2,7 @@
 
 **Objetivo:** que el autor de un mensaje pueda editar su texto (con menciones) y borrarlo, con el cambio en vivo
 para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de M-1 de `terminados/chat.md`.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -59,7 +59,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
   `app/Chat/MessageMentions.php`) que reciba el mensaje y el body y devuelva altas y bajas; `store` la usa sin cambio
   de comportamiento. Pasan los tests de menciones existentes.
 
-### [ ] Fase 4 — Editar el texto de un mensaje (api) [límite: 5 archivos]
+### [x] Fase 4 — Editar el texto de un mensaje (api) [límite: 5 archivos]
 - `PATCH channels/{channel}/messages/{message}` con `UpdateMessageRequest` (mismas reglas de body; vacío solo si
   tiene adjuntos; canal archivado; policy `update`) y `throttle:channel-messages`. Fija `edited_at` solo si el body
   cambió; sincroniza menciones (alta con `MentionCreated` solo para las nuevas, baja de filas quitadas).
@@ -144,11 +144,12 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
   cliente aplica aunque bajen) y `mention.removed`. Mismo throttle `channel-messages` para editar y borrar.
 
 ## Notas para la próxima sesión
-- Fases 1 a 3 hechas. `edited_at`/`deleted_at` existen (cast `datetime`, fuera de Fillable: asignar por propiedad o `DB::table`); la función de contenido ignora mensajes con `deleted_at`. `MessagePolicy` (`update`, `delete`) se autodescubre; no cubre canal archivado (lo rechazan los FormRequest de las fases 4 y 6). En tests, `Channel::factory()->for(Project::factory()->for($org))`.
-- `App\Chat\MessageMentions`: `target(Channel, ?string $body, int $authorId)`, `diff($target, $currentIds)` y `sync(Message, $target, ?$currentIds)` (inserta altas, `MentionCreated` solo para ellas, borra bajas). Para el PATCH: `target()` con el body nuevo, `setRelation('mentionedUsers', $target)` y `sync()` dentro de la transacción. La fase 4 debe cubrir con tests `diff` y la rama de bajas. Siguiente: fase 4 (PATCH).
+- Fases 1 a 4 hechas. `edited_at`/`deleted_at` existen (cast `datetime`, fuera de Fillable: asignar por propiedad o `DB::table`); la función de contenido ignora mensajes con `deleted_at`. `MessagePolicy` (`update`, `delete`) se autodescubre; no cubre canal archivado. En tests, `Channel::factory()->for(Project::factory()->for($org))`.
+- `App\Chat\MessageMentions` (`target`, `diff`, `sync`). PATCH `channels/{channel}/messages/{message}` (`UpdateMessageRequest`, `throttle:channel-messages`): 404 si el mensaje no es del canal (en `authorize()`), `edited_at` solo si cambia el body (precisión de segundos), body vacío solo con adjuntos, no acepta `attachment_ids`; la respuesta carga `RELATIONS` y `loadParticipants`. Fase 5: el payload de `MessageUpdated` debe resolverse igual (RELATIONS + `loadParticipants`). Siguiente: fase 5.
 
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): owner y admin pueden borrar mensajes de otros (moderación), con el actor en el evento.
 - [ ] M-2 (media, sonnet): quitar adjuntos al editar un mensaje.
 - [ ] M-3 (baja, sonnet): flecha arriba en el composer vacío edita el último mensaje propio del canal.
 - [ ] M-4 (alta, plan nuevo): historial de ediciones (auditoría, plan Business de `docs/monetizacion.md`).
+- [ ] M-5 (baja, sonnet): bloquear la fila (`lockForUpdate`) en el PATCH para serializar ediciones concurrentes del mismo mensaje (bajo riesgo: solo edita el autor).

@@ -35,6 +35,7 @@ class MessageResource extends JsonResource
             'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->sortBy('id')
                 ->map(fn ($attachment) => (new MessageAttachmentResource($attachment))->resolve($request))->values()->all(), []),
             'created_at' => $this->created_at,
+            'edited_at' => $this->edited_at,
         ];
     }
 }

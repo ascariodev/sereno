@@ -6,6 +6,7 @@ use App\Chat\MessageMentions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Channel\ListMessagesRequest;
 use App\Http\Requests\Channel\StoreMessageRequest;
+use App\Http\Requests\Channel\UpdateMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Channel;
 use App\Models\Message;
@@ -124,6 +125,26 @@ class MessageController extends Controller
         });
 
         return new MessageResource($message->load('user:id,name'));
+    }
+
+    public function update(UpdateMessageRequest $request, Channel $channel, Message $message, MessageMentions $mentions): MessageResource
+    {
+        $body = $request->validated('body');
+
+        DB::transaction(function () use ($request, $channel, $message, $mentions, $body) {
+            if (($message->body ?? '') !== ($body ?? '')) {
+                $message->body = $body;
+                $message->edited_at = now();
+                $message->save();
+            }
+
+            $mentions->sync($message, $mentions->target($channel, $body, $request->user()->id));
+        });
+
+        $message->load(self::RELATIONS);
+        $this->loadParticipants([$message]);
+
+        return new MessageResource($message);
     }
 
     /**

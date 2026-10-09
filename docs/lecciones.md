@@ -47,6 +47,7 @@
 - L-38: Un componente nuevo toma los colores de los tokens del tema (`var(--accent-soft)`...), nunca hex copiados del diseño: el tema oscuro redefine los tokens y el hex queda ilegible. — aplicada en: pendiente
 - L-39: Un estado de fallo de un recurso con URL temporal (firmada) se guarda por URL, no por id: el id se reutiliza con una URL nueva y quedaría en fallo para siempre. — aplicada en: test (MessageAttachments.spec)
 - L-40: Un spec que monta componentes con un reloj compartido (`useSharedNow`) los desmonta en `afterEach` (`enableAutoUnmount`): un intervalo real que queda armado de un test anterior hace fallar al siguiente que usa temporizadores falsos. — aplicada en: test (MentionsView.spec, ThreadSummary.spec)
+- L-37: Todo endpoint o evento que devuelve un `MessageResource` carga lo mismo que `index` (`RELATIONS` y `loadParticipants`): el resource rellena con `[]` lo que falta y el cliente lo toma como dato. — aplicada en: test (MessageUpdateApiTest)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
