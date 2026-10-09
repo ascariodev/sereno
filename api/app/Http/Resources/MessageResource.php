@@ -21,6 +21,9 @@ class MessageResource extends JsonResource
             'parent_id' => $this->parent_id,
             'replies_count' => $this->replies_count ?? 0,
             'last_reply_at' => $this->last_reply_at,
+            // Latest distinct reply authors, newest first; only set by the list endpoints.
+            'recent_participants' => $this->whenLoaded('recentParticipants', fn () => $this->recentParticipants
+                ->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()->all(), []),
             'user' => $this->whenLoaded('user', fn () => $this->user === null ? null : [
                 'id' => $this->user->id,
                 'name' => $this->user->name,

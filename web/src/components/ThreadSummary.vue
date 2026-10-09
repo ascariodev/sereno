@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Message } from '../api/types'
 import { useSharedNow } from '../composables/useSharedNow'
+import AppAvatar from './ui/AppAvatar.vue'
 
 const props = defineProps<{ message: Message }>()
 const now = useSharedNow()
@@ -34,6 +35,16 @@ const when = computed(() => {
   <button type="button" class="thread-summary" name="open-thread" @click="emit('open', message.id)">
     <MessageSquareReply :size="15" :stroke-width="1.8" aria-hidden="true" />
     <template v-if="count > 0">
+      <span v-if="message.recent_participants.length > 0" class="thread-summary__avatars" data-test="participants">
+        <AppAvatar
+          v-for="user in message.recent_participants"
+          :key="user.id"
+          :name="user.name"
+          :id="user.id"
+          :size="20"
+          class="thread-summary__avatar"
+        />
+      </span>
       <span class="thread-summary__count">{{ t('thread.replies', { n: count }, count) }}</span>
       <span v-if="when" class="thread-summary__when">{{ t('thread.lastReply', { when }) }}</span>
     </template>
@@ -60,6 +71,16 @@ const when = computed(() => {
 .thread-summary:hover {
   background: var(--border);
   color: var(--ink);
+}
+.thread-summary__avatars {
+  display: inline-flex;
+}
+.thread-summary__avatar {
+  border: 2px solid var(--surface);
+  box-sizing: content-box;
+}
+.thread-summary__avatar + .thread-summary__avatar {
+  margin-left: -6px;
 }
 .thread-summary__when {
   font-weight: 400;

@@ -34,6 +34,14 @@ function mergeById(current: readonly Message[], incoming: readonly Message[]): M
   return merged
 }
 
+const MAX_PARTICIPANTS = 3
+
+/** Puts the reply author first, once, keeping the newest `MAX_PARTICIPANTS`. */
+function withParticipant(current: Message['recent_participants'], author: Message['user']): Message['recent_participants'] {
+  if (author === null) return current
+  return [author, ...current.filter((user) => user.id !== author.id)].slice(0, MAX_PARTICIPANTS)
+}
+
 export const useMessagesStore = defineStore('messages', () => {
   const channelId = ref<number | null>(null)
   const messages = shallowRef<Message[]>([])
@@ -87,6 +95,7 @@ export const useMessagesStore = defineStore('messages', () => {
       ...root,
       replies_count: root.replies_count + 1,
       last_reply_at: laterDate(root.last_reply_at, reply.created_at),
+      recent_participants: withParticipant(root.recent_participants, reply.user),
     })
     const queued = pending.get(rootId)
     if (queued !== undefined) {

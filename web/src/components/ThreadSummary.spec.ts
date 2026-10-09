@@ -16,6 +16,7 @@ const base: Message = {
   log_group_id: null,
   parent_id: null,
   replies_count: 0,
+  recent_participants: [],
   last_reply_at: null,
   mentions: [],
   attachments: [],
@@ -58,6 +59,18 @@ describe('ThreadSummary', () => {
     expect(wrapper.text()).toContain('3 hours ago')
     wrapper.unmount()
     expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('shows the avatars of the recent participants only when there are replies', () => {
+    const users = [{ id: 7, name: 'Carla Ruiz' }, { id: 8, name: 'Diego Mora' }]
+    const withReplies = { ...base, replies_count: 2, last_reply_at: '2026-03-04T10:00:00Z', recent_participants: users }
+    const avatars = mount(ThreadSummary, { props: { message: withReplies }, global }).get('[data-test="participants"]')
+    expect(avatars.text()).toBe('CRDM')
+    expect(avatars.findAll('.app-avatar')).toHaveLength(2)
+    const none = mount(ThreadSummary, { props: { message: { ...withReplies, recent_participants: [] } }, global })
+    expect(none.find('[data-test="participants"]').exists()).toBe(false)
+    const noReplies = mount(ThreadSummary, { props: { message: { ...base, recent_participants: users } }, global })
+    expect(noReplies.find('[data-test="participants"]').exists()).toBe(false)
   })
 
   it('uses the singular for one reply', () => {

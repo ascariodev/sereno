@@ -142,6 +142,8 @@ export interface Message {
   replies_count: number
   /** ISO timestamp of the latest reply; null when the message has no replies. */
   last_reply_at: string | null
+  /** Latest distinct reply authors (up to 3), newest first; `[]` unless the list endpoints filled it. */
+  recent_participants: Pick<User, 'id' | 'name'>[]
   user: Pick<User, 'id' | 'name'> | null
   /** Organization members named by `<@id>` tokens in the body, except the author; others render generic. */
   mentions: { id: number; name: string }[]

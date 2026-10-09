@@ -15,6 +15,7 @@ const message = (id: number, channel_id = 5): Message => ({
   log_group_id: null,
   parent_id: null,
   replies_count: 0,
+  recent_participants: [],
   last_reply_at: null,
   mentions: [],
   attachments: [],
@@ -396,6 +397,20 @@ describe('messages store', () => {
       expect(store.messages[1].replies_count).toBe(2)
       expect(store.messages[1].last_reply_at).toBe('2026-01-02T00:00:00Z')
       expect(store.messages[0].replies_count).toBe(0)
+    })
+
+    it('puts the author of a live reply first among the root participants, once and capped at three', async () => {
+      const person = (id: number) => ({ id, name: `U${id}` })
+      const seeded = { ...root(2, 3), recent_participants: [person(1), person(2), person(3)] }
+      vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [seeded], meta: { next_cursor: null } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      store.insert({ ...reply(9, 2), user: person(3) })
+      expect(store.messages[0].recent_participants.map((u) => u.id)).toEqual([3, 1, 2])
+      store.insert({ ...reply(10, 2), user: person(4) })
+      expect(store.messages[0].recent_participants.map((u) => u.id)).toEqual([4, 3, 1])
+      store.insert({ ...reply(11, 2), user: null })
+      expect(store.messages[0].recent_participants.map((u) => u.id)).toEqual([4, 3, 1])
     })
 
     it('counts a repeated reply once and keeps the newest last_reply_at', async () => {

@@ -19,6 +19,7 @@ const notice = (id: number, groupId: number): Message => ({
   log_group_id: groupId,
   parent_id: null,
   replies_count: 0,
+  recent_participants: [],
   last_reply_at: null,
   mentions: [],
   attachments: [],

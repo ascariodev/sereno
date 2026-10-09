@@ -16,6 +16,7 @@ const message = (payload: unknown, user: Message['user'] = null): Message => ({
   log_group_id: 5,
   parent_id: null,
   replies_count: 0,
+  recent_participants: [],
   last_reply_at: null,
   mentions: [],
   attachments: [],

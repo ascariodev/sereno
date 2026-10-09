@@ -14,6 +14,7 @@ const message = (user: Message['user']): Message => ({
   log_group_id: null,
   parent_id: null,
   replies_count: 0,
+  recent_participants: [],
   last_reply_at: null,
   mentions: [],
   attachments: [],

@@ -22,16 +22,51 @@ class MessageController extends Controller
     /** Relations MessageResource shows, eager loaded for lists. */
     public const RELATIONS = ['user:id,name', 'mentionedUsers:id,name', 'attachments'];
 
+    /** Distinct reply authors shown as avatars in the thread summary. */
+    public const PARTICIPANTS = 3;
+
     public function index(ListMessagesRequest $request, Channel $channel): AnonymousResourceCollection
     {
-        return MessageResource::collection(
-            $channel->messages()
-                ->whereNull('parent_id')
-                ->with(self::RELATIONS)
-                ->orderByDesc('id')
-                ->cursorPaginate($request->perPage())
-                ->withQueryString(),
-        );
+        $page = $channel->messages()
+            ->whereNull('parent_id')
+            ->with(self::RELATIONS)
+            ->orderByDesc('id')
+            ->cursorPaginate($request->perPage())
+            ->withQueryString();
+
+        $this->loadParticipants($page->items());
+
+        return MessageResource::collection($page);
+    }
+
+    /**
+     * Sets the `recentParticipants` relation (latest distinct reply authors, newest first) on the
+     * roots with replies, in two queries. The messages query is tenant scoped.
+     *
+     * @param  array<int, Message>  $roots
+     */
+    private function loadParticipants(array $roots): void
+    {
+        $withReplies = collect($roots)->filter(fn (Message $root) => $root->replies_count > 0);
+        if ($withReplies->isEmpty()) {
+            return;
+        }
+
+        $authors = Message::query()
+            ->whereIn('parent_id', $withReplies->pluck('id'))
+            ->whereNotNull('user_id')
+            ->groupBy('parent_id', 'user_id')
+            ->selectRaw('parent_id, user_id, max(id) as last_id')
+            ->get()
+            ->groupBy('parent_id')
+            ->map(fn ($rows) => $rows->sortByDesc('last_id')->take(self::PARTICIPANTS)->pluck('user_id'));
+
+        $users = User::query()->whereIn('id', $authors->flatten()->unique())->get(['id', 'name'])->keyBy('id');
+
+        foreach ($withReplies as $root) {
+            $root->setRelation('recentParticipants', ($authors[$root->id] ?? collect())
+                ->map(fn ($id) => $users[$id])->values());
+        }
     }
 
     public function replies(ListMessagesRequest $request, Channel $channel, Message $message): AnonymousResourceCollection
@@ -47,6 +82,7 @@ class MessageController extends Controller
         // The root rides along in meta.root (threads opened outside the loaded channel page);
         // loading it together with the replies keeps one query per relation.
         (new Collection([...$page->items(), $message]))->load(self::RELATIONS);
+        $this->loadParticipants([$message]);
 
         return MessageResource::collection($page)
             ->additional(['meta' => ['root' => (new MessageResource($message))->resolve($request)]]);

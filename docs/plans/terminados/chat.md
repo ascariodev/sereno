@@ -389,7 +389,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   vivo y los contadores de hilo).
 - [ ] M-2 (media, sonnet): saltar a un mensaje concreto (carga alrededor de un id) al abrir una mención de un mensaje
   raíz antiguo; en este plan solo se abre el canal o el hilo.
-- [ ] M-3 (media, sonnet): avatares de los últimos participantes en `ThreadSummary`, como en el diseño.
+- [x] M-3 (media, sonnet): avatares de los últimos participantes en `ThreadSummary`, como en el diseño.
 - [x] M-4 (media, sonnet): borrar los archivos de adjuntos cuando se borra la organización (la cascada borra filas,
   no archivos).
 - [ ] M-5 (media, sonnet): límites de adjuntos y almacenamiento por plan de la organización (`docs/monetizacion.md`).
@@ -482,3 +482,4 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [x] M-43 (baja, sonnet): en `stores/thread.ts`, comparar `last_reply_at` con `Date.parse` como `stores/messages.ts`
   y un helper común para "fecha mayor"; spec de `ThreadAside` que fije que no se muestra `thread-root-unavailable`
   mientras carga.
+- [ ] M-44 (baja, sonnet): `MessageController::loadParticipants` usa `$users->get($id)` y filtra nulos, por si un usuario se borra entre las dos consultas.

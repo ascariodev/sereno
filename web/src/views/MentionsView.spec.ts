@@ -25,6 +25,7 @@ const mention = (id: number, extra: Partial<Mention> = {}): Mention => ({
     log_group_id: null,
     parent_id: null,
     replies_count: 0,
+    recent_participants: [],
     last_reply_at: null,
     user: { id: 2, name: 'Camila' },
     mentions: [{ id: 9, name: 'Ada' }],
