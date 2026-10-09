@@ -130,6 +130,18 @@ describe('MessageEditor', () => {
     expect(wrapper.emitted('done')).toHaveLength(1)
   })
 
+  it('closes without calling the API when a restored mention has the same visible text', async () => {
+    const patch = vi.spyOn(api, 'patch')
+    const { wrapper, textarea } = mountEditor({ body: 'hi <@2>', mentions: [{ id: 2, name: 'Ana' }] })
+    await textarea().setValue('hi ')
+    await textarea().setValue('hi @An')
+    await textarea().trigger('keydown', { key: 'Enter' })
+    await textarea().setValue('hi @Ana')
+    await textarea().trigger('keydown', { key: 'Enter' })
+    expect(patch).not.toHaveBeenCalled()
+    expect(wrapper.emitted('done')).toHaveLength(1)
+  })
+
   it('blocks an empty body unless the message has attachments', async () => {
     const patch = vi.spyOn(api, 'patch').mockResolvedValue({ data: { ...base, body: null } } as never)
     const { wrapper, textarea } = mountEditor()
