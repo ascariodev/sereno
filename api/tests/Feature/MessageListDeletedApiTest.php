@@ -76,3 +76,42 @@ it('ignores deleted replies when loading thread participants', function () {
 
     expect(collect($participants)->pluck('id')->all())->toBe([$a->id]);
 });
+
+function listDeletedDelete(int $messageId)
+{
+    Sanctum::actingAs(test()->member);
+
+    return test()->withHeader('X-Organization-Id', (string) test()->organization->id)
+        ->deleteJson('/api/channels/'.test()->channel->id.'/messages/'.$messageId);
+}
+
+it('drops an already deleted root from the index when its last reply is deleted through the API', function () {
+    $root = listDeletedMessage($this->channel, deleted: true);
+    $reply = listDeletedMessage($this->channel, $this->member->id, $root);
+    $live = listDeletedMessage($this->channel);
+
+    expect(collect(listDeletedGet()->assertOk()->json('data'))->pluck('id')->all())->toBe([$live, $root]);
+
+    listDeletedDelete($reply)->assertOk();
+
+    expect(collect(listDeletedGet()->assertOk()->json('data'))->pluck('id')->all())->toBe([$live]);
+});
+
+it('walks two cursor pages with deletions in between without repeating or skipping roots', function () {
+    $ids = collect(range(1, 6))->map(fn () => listDeletedMessage($this->channel, $this->member->id))->all();
+    [$r1, $r2, $r3, $r4, $r5, $r6] = $ids;
+
+    $first = listDeletedGet('?per_page=2')->assertOk();
+    expect(collect($first->json('data'))->pluck('id')->all())->toBe([$r6, $r5]);
+    $cursor = $first->json('meta.next_cursor');
+
+    listDeletedDelete($r5)->assertOk();
+    listDeletedDelete($r4)->assertOk();
+
+    $second = listDeletedGet("?per_page=2&cursor={$cursor}")->assertOk();
+    expect(collect($second->json('data'))->pluck('id')->all())->toBe([$r3, $r2]);
+
+    $third = listDeletedGet('?per_page=2&cursor='.$second->json('meta.next_cursor'))->assertOk();
+    expect(collect($third->json('data'))->pluck('id')->all())->toBe([$r1])
+        ->and($third->json('meta.next_cursor'))->toBeNull();
+});
