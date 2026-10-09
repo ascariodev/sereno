@@ -152,6 +152,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - 2026-10-09 — Fase 17: al editar, una mención a un id que ya no tiene nombre (ex miembro) se conserva como texto `<@id>`; si esa persona vuelve a ser miembro, la siguiente edición la menciona de nuevo (mismo efecto que el body original).
 - 2026-10-09 — La fase 18 se dividió en 18a (componente `MessageEditor` con i18n) y 18b (cableado en `messageActions`, `MessageItem` y `ChannelView`) porque sumaba 6 archivos.
 - 2026-10-09 — M-9: `MentionCreated::broadcastOn()` verifica en el worker que el destinatario siga siendo miembro y devuelve `[]` si no; `broadcastWhen` no sirve porque se evalúa al despachar. `MessageCreated`/`MessageUpdated` a canales de organización dependen del corte de conexión al quitar al miembro.
+- 2026-10-09 — M-21: el `watch` de `reload()` en `ChannelView` pasó de un array `[activeId, params.id]` (nuevo en cada evaluación, recargaba el canal al cambiar solo la query: abrir un hilo o un grupo) a la clave string `activeId:params.id`.
 - 2026-10-09 — Eventos nuevos `message.updated`, `message.deleted` (con contadores de la raíz ya recalculados, que el
   cliente aplica aunque bajen) y `mention.removed`. Mismo throttle `channel-messages` para editar y borrar.
 
@@ -180,6 +181,6 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - [ ] M-18 (baja, sonnet): al cerrar el diálogo de borrado, devolver el foco al composer o a la lista (el ítem del menú que lo abrió desaparece y el foco cae en `body`); verificar en navegador.
 - [x] M-19 (baja, sonnet): spec de `MessageEditor` de "sin cambios" con una mención restaurada (`<@2>` con el mismo texto visible).
 - [ ] M-20 (media, sonnet): extraer a un composable la lógica de teclado y sugerencias duplicada entre `MessageComposer` y `MessageEditor`.
-- [ ] M-21 (baja, sonnet): al cerrar el panel del hilo (o cambiar de raíz) con una respuesta en edición, limpiar `editingMessageId` (hoy reaparece al reabrir ese hilo), con spec; documentar que abrir o cerrar el hilo de la raíz en edición remonta el editor y pierde el texto.
-- [ ] M-22 (baja, sonnet): `stores/mentions.ts`: vaciar `removedMessages` tras un refresh completo o en `onReconnect`, para que una re-mención ocurrida con el socket caído aparezca en la bandeja (hoy la filtra aunque el contador la cuenta).
+- [x] M-21 (baja, sonnet): al cerrar el panel del hilo (o cambiar de raíz) con una respuesta en edición, limpiar `editingMessageId` (hoy reaparece al reabrir ese hilo), con spec; documentar que abrir o cerrar el hilo de la raíz en edición remonta el editor y pierde el texto.
+- [x] M-22 (baja, sonnet): `stores/mentions.ts`: vaciar `removedMessages` tras un refresh completo o en `onReconnect`, para que una re-mención ocurrida con el socket caído aparezca en la bandeja (hoy la filtra aunque el contador la cuenta).
 - [x] M-23 (baja, sonnet): spec de `ChannelView` que compruebe que `confirmDelete` aplica `meta.root.recent_participants`; acortar el docblock de `MessageDeleted`.

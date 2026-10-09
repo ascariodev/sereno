@@ -47,8 +47,10 @@ export const useMentionsStore = defineStore('mentions', () => {
   let live = false
   let stopLive: (() => void) | null = null
   const liveMessages = new Set<number>()
-  // Messages whose mention was removed live: a response that started before the removal must not bring the row back.
-  const removedMessages = new Set<number>()
+  // Messages whose mention was removed live, with the fetchVersion at that moment: a response that started before the
+  // removal must not bring the row back. A refresh that started after it supersedes the entry (a re-mention missed
+  // while the socket was down must show up).
+  const removedMessages = new Map<number, number>()
 
   function setUnread(count: number): void {
     unreadCount.value = Math.max(0, count)
@@ -96,6 +98,7 @@ export const useMentionsStore = defineStore('mentions', () => {
       .then((page) => {
         if (current !== generation || version !== fetchVersion) return
         mentions.value = mergeMentions(mentions.value, withoutRemoved(page.data))
+        for (const [messageId, removedAt] of removedMessages) if (removedAt < version) removedMessages.delete(messageId)
         if (!loaded.value) {
           nextCursor.value = page.meta.next_cursor
           loaded.value = true
@@ -216,7 +219,7 @@ export const useMentionsStore = defineStore('mentions', () => {
   function onMentionRemoved(payload: MentionRemovedPayload): void {
     if (payload.organizationId !== organization.activeId) return
     const messageId = payload.messageId
-    removedMessages.add(messageId)
+    removedMessages.set(messageId, fetchVersion)
     liveMessages.delete(messageId)
     const row = mentions.value.find((mention) => mention.message.id === messageId)
     if (row === undefined) {

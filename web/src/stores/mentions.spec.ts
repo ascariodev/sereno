@@ -555,6 +555,22 @@ describe('mentions store', () => {
         expect(store.unreadCount).toBe(0)
       })
 
+      it('shows a re-mention missed while the socket was down once a later full refresh brings it', async () => {
+        const list = vi
+          .spyOn(mentionsApi, 'listMentions')
+          .mockResolvedValueOnce(page([mention(1)], 1))
+          .mockResolvedValue(page([mention(2)], 1))
+        const { listeners, setStatus, store } = startLive()
+        await vi.waitFor(() => expect(store.loaded).toBe(true))
+        listeners.get(`users.7|${MENTION_REMOVED_EVENT}`)?.(removed(1, 101))
+        expect(store.mentions).toEqual([])
+        setStatus('connected')
+        setStatus('disconnected')
+        setStatus('connected')
+        await vi.waitFor(() => expect(store.mentions.map((m) => m.id)).toEqual([2]))
+        expect(list).toHaveBeenCalledTimes(2)
+      })
+
       it('shows the mention again if the same message mentions the user again later', async () => {
         vi.spyOn(mentionsApi, 'listMentions')
           .mockResolvedValueOnce(page([mention(1)], 1))
