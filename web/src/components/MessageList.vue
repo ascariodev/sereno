@@ -5,7 +5,7 @@ import type { Message } from '../api/types'
 import MessageItem from './MessageItem.vue'
 import SystemNotice from './SystemNotice.vue'
 
-const props = defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number; ownUserId?: number }>()
+const props = defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number; ownUserId?: number; emptyLabel?: string }>()
 defineEmits<{ loadOlder: []; select: [groupId: number] }>()
 
 const { t, locale } = useI18n()
@@ -116,7 +116,7 @@ const rows = computed<Row[]>(() => {
     <button v-if="hasMore" type="button" name="load-older" :disabled="loadingMore" @click="$emit('loadOlder')">
       {{ loadingMore ? t('common.loading') : t('channel.loadOlder') }}
     </button>
-    <p v-if="messages.length === 0" class="message-list__empty">{{ t('channel.empty') }}</p>
+    <p v-if="messages.length === 0" class="message-list__empty">{{ emptyLabel ?? t('channel.empty') }}</p>
     <ul v-else ref="items" class="message-list__items">
       <template v-for="row in rows" :key="row.key">
         <li v-if="row.type === 'day'" class="message-list__day">{{ row.label }}</li>

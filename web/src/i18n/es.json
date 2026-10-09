@@ -211,6 +211,20 @@
       "sendFailed": "No se pudo enviar el mensaje."
     }
   },
+  "thread": {
+    "label": "Hilo",
+    "heading": "Hilo",
+    "close": "Cerrar hilo",
+    "loadFailed": "No se pudieron cargar las respuestas.",
+    "notFound": "Este hilo no existe o no tienes acceso.",
+    "rootUnavailable": "El mensaje original no está cargado.",
+    "noReplies": "Aún no hay respuestas.",
+    "replies": "{n} respuesta | {n} respuestas",
+    "replyPlaceholder": "Responder en el hilo",
+    "replyAction": "Responder en hilo",
+    "lastReply": "Última respuesta {when}",
+    "archived": "Este canal está archivado; no se puede responder."
+  },
   "logGroup": {
     "label": "Detalle del grupo de logs",
     "heading": "Grupo de logs #{id}",

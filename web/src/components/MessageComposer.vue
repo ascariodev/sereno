@@ -7,6 +7,8 @@ import { useMessagesStore } from '../stores/messages'
 
 const MAX_LENGTH = 4000
 
+const props = defineProps<{ send?: (body: string) => Promise<void>; placeholder?: string }>()
+
 const { t } = useI18n()
 const hintId = useId()
 const messages = useMessagesStore()
@@ -23,7 +25,7 @@ async function submit(): Promise<void> {
   errorText.value = null
   const sentBody = body.value
   try {
-    await messages.send(sentBody)
+    await (props.send ?? messages.send)(sentBody)
     if (body.value === sentBody) body.value = ''
   } catch (caught) {
     if (caught instanceof ApiError && caught.status === 422) {
@@ -52,8 +54,8 @@ function onKeydown(event: KeyboardEvent): void {
         v-model="body"
         name="body"
         rows="2"
-        :placeholder="t('channel.composer.placeholder')"
-        :aria-label="t('channel.composer.placeholder')"
+        :placeholder="placeholder ?? t('channel.composer.placeholder')"
+        :aria-label="placeholder ?? t('channel.composer.placeholder')"
         :aria-describedby="hintId"
         @keydown="onKeydown"
       />

@@ -211,6 +211,20 @@
       "sendFailed": "Could not send the message."
     }
   },
+  "thread": {
+    "label": "Thread",
+    "heading": "Thread",
+    "close": "Close thread",
+    "loadFailed": "Could not load the replies.",
+    "notFound": "This thread does not exist or you cannot access it.",
+    "rootUnavailable": "The original message is not loaded.",
+    "noReplies": "No replies yet.",
+    "replies": "{n} reply | {n} replies",
+    "replyPlaceholder": "Reply in thread",
+    "replyAction": "Reply in thread",
+    "lastReply": "Last reply {when}",
+    "archived": "This channel is archived; you cannot reply."
+  },
   "logGroup": {
     "label": "Log group details",
     "heading": "Log group #{id}",

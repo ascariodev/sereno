@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -66,7 +66,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - `stores/thread.ts`: abrir raíz con sus respuestas, cargar más antiguas, recibir en vivo, enviar respuesta y
   `catchUp` al reconectar, con contadores de generación (L-10, L-14, L-35). Spec propio.
 
-### [ ] Fase 6 — Panel del hilo (web)
+### [x] Fase 6 — Panel del hilo (web)
 - `ThreadAside.vue`: raíz arriba, respuestas con `MessageList`, composer de respuesta, cerrar. Todas las claves i18n
   del hilo (también las de la fase 8). Spec del componente.
 
@@ -175,8 +175,16 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `useMessagesStore().messages` por id (contadores frescos). `send` también llama a `useMessagesStore().insert` para
   subir el contador del canal al instante. Tras un `open` fallido, `catchUp` no reintenta: la vista ofrece reintentar
   llamando de nuevo a `open`. Motivo: una sola fuente para la raíz y su contador.
+- 2026-10-09 — `MessageComposer` se reutiliza en el hilo con props opcionales `send` y `placeholder`, y
+  `MessageList` con `emptyLabel`; sin ellas el canal se comporta igual. Motivo: no duplicar el composer.
 
 ## Notas para la próxima sesión
+- Fase 6 hecha: `ThreadAside` (props `channelId`, `rootId`, `root?`, `archived?`, `ownUserId?`; evento `close`)
+  llama a `thread.open` al montar y al cambiar `channelId`/`rootId`, pero no a `thread.clear()` (es del padre). Sin
+  raíz funciona solo con las respuestas; un 404 muestra `thread.notFound` y oculta el composer; otros fallos,
+  `thread.loadFailed` con `retry-thread`. Sin `AppDialog`: la hoja móvil y la clase `channel__panel` las pone la fase 7.
+  Revisar en el navegador que el scroll de las respuestas quede dentro del panel (L-22). Claves para la fase 8:
+  `thread.replies` (plural, `t('thread.replies', { n }, n)`), `thread.lastReply` (`{when}`), `thread.replyAction`.
 - Fase 5 hecha: `useThreadStore` con estado `channelId`, `rootId`, `replies` (de la más antigua a la más nueva),
   `nextCursor`, `loading`, `loadingMore`, `error` (un 404 de `open` queda en `error.status`) y acciones
   `open(channelId, rootId)`, `loadOlder()`, `insert(message): boolean` (solo respuestas de esa raíz y canal),
@@ -227,3 +235,5 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   spec de `insert` de una respuesta con `channelId` null.
 - [ ] M-13 (baja, sonnet): test de `thread.ts` para "open fallido, open nuevo, catchUp sí consulta"; y ordenar
   siempre las respuestas al cargar en vez de confiar en el orden del API.
+- [ ] M-14 (baja, sonnet): `ThreadAside`: ocultar la raíz si `open` da 404, re-enfocar el panel al cambiar de hilo
+  sin desmontar, y usar `thread.rootUnavailable` cuando falte la raíz (o quitar la clave).
