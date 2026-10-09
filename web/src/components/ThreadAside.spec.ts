@@ -145,6 +145,39 @@ describe('ThreadAside', () => {
     expect(w.find('textarea').exists()).toBe(false)
   })
 
+  it('hides the root when the thread is not found', async () => {
+    vi.spyOn(api, 'get').mockRejectedValue(new ApiError(404, 'x'))
+    const w = mountAside({ root })
+    await flushPromises()
+    expect(w.find('[data-test="thread-root"]').exists()).toBe(false)
+    expect(w.find('[data-test="thread-root-unavailable"]').exists()).toBe(false)
+  })
+
+  it('refocuses the panel when the root changes unless an editable field has focus', async () => {
+    const w = mountAside({ root })
+    await flushPromises()
+    const outside = document.createElement('button')
+    document.body.appendChild(outside)
+    outside.focus()
+    await w.setProps({ rootId: 20, root: undefined })
+    await flushPromises()
+    expect(document.activeElement).toBe(w.get('aside').element)
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    input.focus()
+    await w.setProps({ rootId: 30 })
+    await flushPromises()
+    expect(document.activeElement).toBe(input)
+  })
+
+  it('shows a discreet note when the root is missing', async () => {
+    const w = mountAside()
+    await flushPromises()
+    const note = w.get('[data-test="thread-root-unavailable"]')
+    expect(note.text()).toBe('The original message is not loaded.')
+    expect(note.attributes('role')).toBeUndefined()
+  })
+
   it('offers to retry after a failed load', async () => {
     const get = vi.spyOn(api, 'get').mockRejectedValueOnce(new ApiError(500, 'x'))
     const w = mountAside({ root })

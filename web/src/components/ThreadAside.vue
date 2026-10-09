@@ -37,11 +37,14 @@ watch(
   { immediate: true },
 )
 
-onMounted(() => {
+function focusPanel(): void {
   const active = document.activeElement
   const editing = active instanceof HTMLElement && (active.isContentEditable || active.matches('input, textarea, select'))
   if (!editing) panel.value?.focus({ preventScroll: true })
-})
+}
+
+onMounted(focusPanel)
+watch(() => props.rootId, focusPanel)
 
 function reload(): void {
   void thread.open(props.channelId, props.rootId)
@@ -56,10 +59,13 @@ function reload(): void {
         <X :size="16" :stroke-width="1.8" aria-hidden="true" />
       </button>
     </div>
-    <div v-if="rootMessage" class="thread-aside__root" data-test="thread-root">
+    <div v-if="rootMessage && !notFound" class="thread-aside__root" data-test="thread-root">
       <SystemNotice v-if="rootMessage.kind === 'system'" :message="rootMessage" />
       <MessageItem v-else :message="rootMessage" :own-user-id="ownUserId" />
     </div>
+    <p v-else-if="!rootMessage && !notFound" class="thread-aside__root-missing" data-test="thread-root-unavailable">
+      {{ t('thread.rootUnavailable') }}
+    </p>
     <p v-if="notFound" role="alert" class="thread-aside__error">{{ t('thread.notFound') }}</p>
     <template v-else>
       <p class="thread-aside__count" data-test="thread-count">{{ t('thread.replies', { n: repliesCount }, repliesCount) }}</p>
@@ -125,6 +131,11 @@ function reload(): void {
 .thread-aside__root {
   padding-bottom: 14px;
   border-bottom: 1px solid var(--border);
+}
+.thread-aside__root-missing {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-3);
 }
 .thread-aside__count {
   margin: 0;

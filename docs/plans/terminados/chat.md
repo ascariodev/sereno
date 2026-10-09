@@ -398,7 +398,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   spec de `insert` de una respuesta con `channelId` null.
 - [x] M-13 (baja, sonnet): test de `thread.ts` para "open fallido, open nuevo, catchUp sí consulta"; y ordenar
   siempre las respuestas al cargar en vez de confiar en el orden del API.
-- [ ] M-14 (baja, sonnet): `ThreadAside`: ocultar la raíz si `open` da 404, re-enfocar el panel al cambiar de hilo
+- [x] M-14 (baja, sonnet): `ThreadAside`: ocultar la raíz si `open` da 404, re-enfocar el panel al cambiar de hilo
   sin desmontar, y usar `thread.rootUnavailable` cuando falte la raíz (o quitar la clave).
 - [ ] M-15 (media, sonnet): mostrar la raíz de un hilo abierto por URL aunque no esté en la página cargada del canal
   (incluirla en la respuesta de `replies` o un endpoint de un mensaje); sirve también para abrir menciones (fase 17).
