@@ -74,7 +74,7 @@ it('links own free attachments of the channel and returns them in the message', 
         ->assertJsonPath('data.attachments.0.original_name', 'b.pdf');
 
     $id = $response->json('data.id');
-    expect(array_keys($response->json('data.attachments.0')))->toBe(['id', 'original_name', 'mime', 'size', 'created_at'])
+    expect(array_keys($response->json('data.attachments.0')))->toBe(['id', 'original_name', 'mime', 'size', 'created_at', 'url'])
         ->and(linkedTo($first))->toBe($id)
         ->and(linkedTo($second))->toBe($id);
 });

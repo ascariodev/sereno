@@ -66,6 +66,13 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::post('channels/{channel}/attachments', [AttachmentController::class, 'store'])->middleware('throttle:chat-attachments');
 });
 
+// No Bearer nor organization: the signed URL is the credential, so it works from <img> and is generated without
+// a tenant (queue worker). Relative signature: validated on path and query, whatever host the proxy forwards.
+Route::get('attachments/{attachment}', [AttachmentController::class, 'download'])
+    ->whereNumber('attachment')
+    ->middleware(['throttle:attachment-downloads', 'signed:relative'])
+    ->name('attachments.download');
+
 Route::middleware(['log.source', 'throttle:log-ingest'])->group(function () {
     Route::post('ingest/events', [LogIngestController::class, 'store']);
 });

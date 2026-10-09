@@ -66,7 +66,7 @@ it('stores the file on the private disk and returns the attachment without a mes
 
     $attachment = MessageAttachment::withoutGlobalScopes()->sole();
 
-    expect(array_keys($response->json('data')))->toBe(['id', 'original_name', 'mime', 'size', 'created_at'])
+    expect(array_keys($response->json('data')))->toBe(['id', 'original_name', 'mime', 'size', 'created_at', 'url'])
         ->and($response->json('data.id'))->toBe($attachment->id)
         ->and($response->json('data.original_name'))->toBe('notes.txt')
         ->and($response->json('data.mime'))->toBe('text/plain')

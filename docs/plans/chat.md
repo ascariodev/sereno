@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 21
+**Estado:** en curso · Fase actual: 22
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -26,7 +26,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `authorizeChannel`, `channelName`, `authorizePresence`, `noticeMessages`, `ingestNotice`, `listMembers`,
   `changeRole`, `memberWithRole`, `roleIn`, `removeMemberRequest`, `asUser`, `asGroupReader`, `invite`, `replyTo`,
   `systemRootIn`, `mentionIn`, `mentionPost`, `mentionedIds`,
-  `attachmentIn`.
+  `attachmentIn`, `downloadableAttachment`, `fetchAttachment`.
 - Subidas: `api/docker/php/uploads.ini` y `api/docker/nginx/default.conf` limitan a 6 MB.
 
 ## Fases
@@ -131,7 +131,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   relaja el CHECK); vínculo con `UPDATE ... WHERE message_id IS NULL` que falla si otro mensaje lo tomó;
   `MessageResource` con `attachments`.
 
-### [ ] Fase 21 — Descargar un adjunto con URL firmada (api) [riesgo]
+### [x] Fase 21 — Descargar un adjunto con URL firmada (api) [riesgo]
 - Ruta firmada temporal (sin Bearer, para `<img>`); `inline` solo para png, jpeg, gif y webp, el resto como
   descarga; `nosniff` y CSP `sandbox`. La URL va en el resource.
 
@@ -234,8 +234,18 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   ("The attachments do not exist or are already in use."). `MessageResource.attachments` es siempre una lista
   `{id, original_name, mime, size, created_at}` por id (`[]` si no se carga la relación), en `store`, `index`,
   `replies`, `mentions`, `message.created` y `mention.created`.
+- 2026-10-09 — Descarga: el adjunto es `{id, original_name, mime, size, created_at, url}` en todos los caminos
+  (también en la respuesta de la subida, pero esa URL da 404 hasta que el adjunto va en un mensaje). `GET
+  /api/attachments/{id}?expires=&signature=` (`attachments.download`, `signed:relative`, throttle 300/min por IP), sin
+  Bearer ni organización; vence a los `url_ttl_minutes` y cambia en cada respuesta. 403 traducido con firma
+  inválida o vencida; 404 si es huérfano, se borró o falta en disco. `inline` solo png, jpeg, gif y webp; lo que el
+  navegador podría ejecutar va como `application/octet-stream`. El host sale de `APP_URL` (en producción, la URL
+  pública del API). Motivo: `<img>` sin cabeceras y firma válida detrás del proxy.
 
 ## Notas para la próxima sesión
+- Fase 21 hecha: `AttachmentController@download`, `MessageAttachment::downloadUrl()`, render de
+  `InvalidSignatureException` en `bootstrap/app.php` (única ruta firmada del proyecto). Tests en
+  `AttachmentDownloadApiTest`. 7 archivos de código, aceptado (una línea en varios).
 - Fase 20 hecha: `MessageController::RELATIONS` agrupa las relaciones de las listas; el vínculo es un `UPDATE ...
   WHERE message_id IS NULL` que cuenta filas y revierte todo con 422 si faltan. Fase 21: añadir la URL firmada al
   `MessageAttachmentResource` (que ya sale en todos esos caminos). El `down()` de la migración falla si ya hay
@@ -386,3 +396,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `OLD.message_id IS NOT NULL`) para que los avisos de log no encolen un chequeo diferido; test de la carrera con
   `Event::fake` que afirme que no salen `MessageCreated` ni `MentionCreated`; ordenar los ids del `UPDATE` para evitar
   un deadlock entre dos envíos con los mismos ids.
+- [ ] M-32 (baja, sonnet): servir `application/pdf` como `application/octet-stream` (Firefox lo abre en su visor),
+  abrir el stream dentro del callback para que un HEAD no lo deje abierto, y redondear `expires` a tramos para que el
+  navegador reaproveche la caché de imágenes.

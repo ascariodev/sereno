@@ -17,6 +17,7 @@ class MessageAttachmentResource extends JsonResource
             'mime' => $this->mime,
             'size' => $this->size,
             'created_at' => $this->created_at,
+            'url' => $this->downloadUrl(),
         ];
     }
 }

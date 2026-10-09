@@ -9,6 +9,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -50,4 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(fn (AuthenticationException $e, Request $request) => $wantsJson($request)
             ? response()->json(['message' => __('Unauthenticated.')], 401)
             : null);
+        $exceptions->render(fn (InvalidSignatureException $e) => response()->json([
+            'message' => __('The link is invalid or has expired.'),
+        ], 403));
     })->create();
