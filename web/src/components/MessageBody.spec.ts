@@ -112,6 +112,8 @@ describe('MessageBody', () => {
       attachments: [],
       user: { id: 7, name: 'Ana' },
       created_at: '2026-03-04T10:30:00Z',
+      edited_at: null,
+      deleted_at: null,
     }
     const w = mount(MessageItem, { props: { message, ownUserId: 12 }, global: { plugins: [i18n] } })
     const chip = w.get('.message-item__body [data-mention]')

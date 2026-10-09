@@ -20,6 +20,8 @@ const reply = (id: number, parent_id: number | null = 10, channel_id = 5): Messa
   attachments: [],
   user: { id: 1, name: 'Ana' },
   created_at: `2026-01-01T00:00:${String(id % 60).padStart(2, '0')}Z`,
+  edited_at: null,
+  deleted_at: null,
 })
 const page = (ids: number[], next: string | null) => ({ data: ids.map((id) => reply(id)), meta: { next_cursor: next } })
 const ids = (list: readonly Message[]) => list.map((m) => m.id)

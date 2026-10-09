@@ -25,6 +25,8 @@ const notice = (id: number, groupId: number): Message => ({
   attachments: [],
   user: null,
   created_at: '2026-01-01T00:00:00Z',
+  edited_at: null,
+  deleted_at: null,
 })
 
 const series = (value: number) => Array.from({ length: 24 }, () => value)

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { listReplies, sendReply } from './messages'
+import { deleteMessage, listReplies, sendReply, updateMessage } from './messages'
 
 function stubFetch(body: unknown, status = 200) {
   const fetchMock = vi.fn(
@@ -44,5 +44,21 @@ describe('messages api', () => {
       parent_id: 9,
       attachment_ids: [4, 5],
     })
+  })
+
+  it('patches the body and unwraps the message', async () => {
+    const fetchMock = stubFetch({ data: { id: 9, body: 'nuevo' } })
+    expect(await updateMessage(5, 9, 'nuevo')).toEqual({ id: 9, body: 'nuevo' })
+    expect(new URL(fetchMock.mock.calls[0][0], 'http://x').pathname).toBe('/api/channels/5/messages/9')
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('PATCH')
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ body: 'nuevo' })
+  })
+
+  it('deletes a message and returns the envelope with meta.root', async () => {
+    const root = { id: 4, replies_count: 0, last_reply_at: null }
+    const fetchMock = stubFetch({ data: { id: 9 }, meta: { root } })
+    const response = await deleteMessage(5, 9)
+    expect(response.meta?.root).toEqual(root)
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('DELETE')
   })
 })

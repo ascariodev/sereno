@@ -24,6 +24,8 @@ function message(id: number, extra: Partial<Message> = {}): Message {
     attachments: [],
     user: { id: 1, name: 'Ana' },
     created_at: '2026-01-01T10:00:00Z',
+    edited_at: null,
+    deleted_at: null,
     ...extra,
   }
 }

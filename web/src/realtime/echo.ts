@@ -1,11 +1,13 @@
 import Echo from 'laravel-echo'
 import Pusher, { type ChannelAuthorizationCallback } from 'pusher-js'
-import type { Message } from '../api/types'
+import type { Message, MessageDeletedEvent } from '../api/types'
 import { config } from '../config'
 
 export const MESSAGE_CREATED_EVENT = '.message.created'
 export const MEMBERSHIP_REVOKED_EVENT = '.membership.revoked'
 export const MEMBERSHIP_ROLE_CHANGED_EVENT = '.membership.role_changed'
+export const MESSAGE_UPDATED_EVENT = '.message.updated'
+export const MESSAGE_DELETED_EVENT = '.message.deleted'
 export const MENTION_CREATED_EVENT = '.mention.created'
 
 export interface RealtimePayload {
@@ -14,6 +16,9 @@ export interface RealtimePayload {
   role?: string
   channel_id?: number
   parent_id?: number | null
+  id?: number
+  deleted_at?: string
+  root?: MessageDeletedEvent['root']
 }
 
 export interface MentionCreatedPayload {
@@ -155,13 +160,36 @@ export function onChannelDenied(callback: ChannelDeniedCallback): () => void {
   }
 }
 
+export interface ChannelSubscriptionHandlers {
+  onCreated?: (message: Message) => void
+  onUpdated?: (message: Message) => void
+  onDeleted?: (event: MessageDeletedEvent) => void
+}
+
 export function subscribeToChannel(
   organizationId: number,
   channelId: number,
-  onMessage: (message: Message) => void,
+  handlers: ChannelSubscriptionHandlers,
 ): () => void {
-  return subscribe(channelName(organizationId, channelId), [MESSAGE_CREATED_EVENT], (_event, data) => {
-    if (data.message !== undefined) onMessage(data.message)
+  const { onCreated = () => {}, onUpdated = () => {}, onDeleted = () => {} } = handlers
+  const events = [MESSAGE_CREATED_EVENT, MESSAGE_UPDATED_EVENT, MESSAGE_DELETED_EVENT]
+  return subscribe(channelName(organizationId, channelId), events, (event, data) => {
+    if (event === MESSAGE_DELETED_EVENT) {
+      const { id, channel_id: channelId, parent_id: parentId, deleted_at: deletedAt, root } = data
+      if (typeof id !== 'number' || typeof channelId !== 'number' || typeof deletedAt !== 'string') return
+      if (typeof root?.id !== 'number' || typeof root.replies_count !== 'number') return
+      onDeleted({
+        id,
+        channel_id: channelId,
+        parent_id: typeof parentId === 'number' ? parentId : null,
+        deleted_at: deletedAt,
+        root,
+      })
+      return
+    }
+    if (data.message === undefined) return
+    if (event === MESSAGE_UPDATED_EVENT) onUpdated(data.message)
+    else onCreated(data.message)
   })
 }
 

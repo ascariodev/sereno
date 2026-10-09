@@ -23,6 +23,8 @@ const message = (id: number): Message => ({
   mentions: [],
   attachments: [],
   created_at: '2026-10-09T10:00:00Z',
+  edited_at: null,
+  deleted_at: null,
 })
 
 const mention = (id: number, read = false): Mention => ({

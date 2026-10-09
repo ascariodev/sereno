@@ -150,6 +150,32 @@ export interface Message {
   /** Always a list (`[]` without files), ordered by id. */
   attachments: MessageAttachment[]
   created_at: string
+  /** ISO timestamp of the last body change; null if never edited. */
+  edited_at: string | null
+  /** ISO timestamp when the author deleted it; a deleted message has `body: null`, no mentions and no attachments. */
+  deleted_at: string | null
+}
+
+/** Counters of the root message after a delete (`meta.root` of DELETE and `root` of `message.deleted`). */
+export interface RootCounters {
+  id: number
+  replies_count: number
+  last_reply_at: string | null
+}
+
+/** DELETE response: the deleted message; `meta.root` is present only when it was a reply. */
+export interface DeleteMessageResponse {
+  data: Message
+  meta?: { root?: RootCounters }
+}
+
+/** Payload of the `message.deleted` event; for a root, `root` is the message itself. */
+export interface MessageDeletedEvent {
+  id: number
+  channel_id: number
+  parent_id: number | null
+  deleted_at: string
+  root: RootCounters
 }
 
 /** One row of the mention inbox (`MentionResource`); `id` is the mention's, not the message's. */

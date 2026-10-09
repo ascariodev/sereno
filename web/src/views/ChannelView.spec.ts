@@ -32,6 +32,8 @@ const message = (id: number, kind: Message['kind'] = 'user'): Message => ({
   attachments: [],
   user: kind === 'user' ? { id: 1, name: 'Ana' } : null,
   created_at: '2026-01-01T00:00:00Z',
+  edited_at: null,
+  deleted_at: null,
 })
 const channels = {
   data: [{ id: 7, project_id: 1, name: 'DEMO', archived_at: null, created_at: '', project: { id: 1, name: 'Demo', key: 'D' } }],

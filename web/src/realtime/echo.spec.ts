@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { Message } from '../api/types'
+import type { Message, MessageDeletedEvent } from '../api/types'
 import { config } from '../config'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import {
@@ -11,6 +11,8 @@ import {
   MEMBERSHIP_ROLE_CHANGED_EVENT,
   MENTION_CREATED_EVENT,
   MESSAGE_CREATED_EVENT,
+  MESSAGE_DELETED_EVENT,
+  MESSAGE_UPDATED_EVENT,
   onChannelDenied,
   onReconnect,
   setRealtimeClientFactory,
@@ -29,7 +31,7 @@ describe('realtime', () => {
     const { client, listeners } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
     const received: Message[] = []
-    const leave = subscribeToChannel(3, 7, (message) => received.push(message))
+    const leave = subscribeToChannel(3, 7, { onCreated: (message) => received.push(message) })
 
     expect(client.private).toHaveBeenCalledWith('organizations.3.channels.7')
     listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 9 } as Message })
@@ -39,13 +41,36 @@ describe('realtime', () => {
     expect(client.leave).toHaveBeenCalledWith('organizations.3.channels.7')
   })
 
+  it('forwards message.updated and message.deleted to their handlers', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const updated: number[] = []
+    const deleted: MessageDeletedEvent[] = []
+    const created: number[] = []
+    subscribeToChannel(3, 7, {
+      onCreated: (message) => created.push(message.id),
+      onUpdated: (message) => updated.push(message.id),
+      onDeleted: (event) => deleted.push(event),
+    })
+    const emit = (event: string, data: object) => listeners.get(`organizations.3.channels.7|${event}`)?.(data)
+    const root = { id: 4, replies_count: 1, last_reply_at: null }
+
+    emit(MESSAGE_UPDATED_EVENT, { message: { id: 9 } })
+    emit(MESSAGE_DELETED_EVENT, { id: 5, channel_id: 7, parent_id: 4, deleted_at: '2026-10-09T10:00:00Z', root })
+    emit(MESSAGE_DELETED_EVENT, { id: 5, channel_id: 7 })
+
+    expect(created).toEqual([])
+    expect(updated).toEqual([9])
+    expect(deleted).toEqual([{ id: 5, channel_id: 7, parent_id: 4, deleted_at: '2026-10-09T10:00:00Z', root }])
+  })
+
   it('keeps the channel open until the last subscriber to it leaves', () => {
     const { client, listeners } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
     const first: number[] = []
     const second: number[] = []
-    const leaveFirst = subscribeToChannel(3, 7, (message) => first.push(message.id))
-    const leaveSecond = subscribeToChannel(3, 7, (message) => second.push(message.id))
+    const leaveFirst = subscribeToChannel(3, 7, { onCreated: (message) => first.push(message.id) })
+    const leaveSecond = subscribeToChannel(3, 7, { onCreated: (message) => second.push(message.id) })
     const emit = (id: number) =>
       listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id } as Message })
 
@@ -66,10 +91,12 @@ describe('realtime', () => {
     const { client, listeners } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
     const received: number[] = []
-    subscribeToChannel(3, 7, () => {
-      throw new Error('boom')
+    subscribeToChannel(3, 7, {
+      onCreated: () => {
+        throw new Error('boom')
+      },
     })
-    subscribeToChannel(3, 7, (message) => received.push(message.id))
+    subscribeToChannel(3, 7, { onCreated: (message) => received.push(message.id) })
     const deferred: Array<() => void> = []
     const spy = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation((task) => void deferred.push(task))
     listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 5 } as Message })
@@ -84,10 +111,10 @@ describe('realtime', () => {
     const second = createFakeRealtimeClient()
     const clients = [first.client, second.client]
     setRealtimeClientFactory(() => clients.shift() ?? null)
-    const leaveOld = subscribeToChannel(3, 7, () => {})
+    const leaveOld = subscribeToChannel(3, 7, { onCreated: () => {} })
     disconnectRealtime()
     const received: number[] = []
-    const leaveNew = subscribeToChannel(3, 7, (message) => received.push(message.id))
+    const leaveNew = subscribeToChannel(3, 7, { onCreated: (message) => received.push(message.id) })
     expect(second.client.private).toHaveBeenCalledWith('organizations.3.channels.7')
 
     leaveOld()
@@ -101,14 +128,14 @@ describe('realtime', () => {
   it('reuses one client and creates a new one after disconnect', () => {
     const factory = vi.fn(() => createFakeRealtimeClient().client)
     setRealtimeClientFactory(factory)
-    subscribeToChannel(1, 1, () => {})
-    subscribeToChannel(1, 2, () => {})
+    subscribeToChannel(1, 1, { onCreated: () => {} })
+    subscribeToChannel(1, 2, { onCreated: () => {} })
     expect(factory).toHaveBeenCalledTimes(1)
 
     const first = factory.mock.results[0].value
     disconnectRealtime()
     expect(first.disconnect).toHaveBeenCalledOnce()
-    subscribeToChannel(1, 1, () => {})
+    subscribeToChannel(1, 1, { onCreated: () => {} })
     expect(factory).toHaveBeenCalledTimes(2)
   })
 
@@ -227,9 +254,9 @@ describe('realtime', () => {
     setRealtimeClientFactory(() => client)
     const dropped: number[] = []
     const kept: number[] = []
-    const leaveA = subscribeToChannel(3, 7, (message) => dropped.push(message.id))
-    subscribeToChannel(3, 8, () => {})
-    subscribeToChannel(30, 7, (message) => kept.push(message.id))
+    const leaveA = subscribeToChannel(3, 7, { onCreated: (message) => dropped.push(message.id) })
+    subscribeToChannel(3, 8, { onCreated: () => {} })
+    subscribeToChannel(30, 7, { onCreated: (message) => kept.push(message.id) })
     subscribeToUser(3)
 
     leaveOrganization(3)
@@ -303,7 +330,7 @@ describe('realtime', () => {
     setRealtimeClientFactory(() => client)
     const denied = vi.fn()
     onChannelDenied(denied)
-    const leave = subscribeToChannel(3, 7, () => {})
+    const leave = subscribeToChannel(3, 7, { onCreated: () => {} })
 
     rejectChannel('organizations.3.channels.7', { type: 'AuthError', status: 403 })
     expect(denied).toHaveBeenCalledWith(3, 403)
@@ -312,7 +339,7 @@ describe('realtime', () => {
     expect(denied).toHaveBeenCalledTimes(1)
     expect(client.leave).toHaveBeenCalledTimes(1)
     expect(client.leave).toHaveBeenCalledWith('organizations.3.channels.7')
-    subscribeToChannel(3, 7, () => {})
+    subscribeToChannel(3, 7, { onCreated: () => {} })
     expect(client.private).toHaveBeenCalledTimes(2)
   })
 
@@ -322,14 +349,14 @@ describe('realtime', () => {
     const denied = vi.fn()
     onChannelDenied(denied)
     const name = 'private-organizations.3.channels.7'
-    subscribeToChannel(3, 7, () => {})
+    subscribeToChannel(3, 7, { onCreated: () => {} })
     const first = vi.fn()
     createAuthorizer(async () => new Response('{}', { status: 403 }))({ socketId: '1.2', channelName: name }, first)
     await vi.waitFor(() => expect(first).toHaveBeenCalled())
     rejectChannel('organizations.3.channels.7', { type: 'AuthError', error: 'x' })
     expect(denied).toHaveBeenLastCalledWith(3, 403)
 
-    subscribeToChannel(3, 7, () => {})
+    subscribeToChannel(3, 7, { onCreated: () => {} })
     const second = vi.fn()
     createAuthorizer(async () => new Response('{}', { status: 403 }))({ socketId: '1.2', channelName: name }, second)
     await vi.waitFor(() => expect(second).toHaveBeenCalled())
@@ -345,7 +372,7 @@ describe('realtime', () => {
     setRealtimeClientFactory(() => client)
     const denied = vi.fn()
     onChannelDenied(denied)
-    subscribeToChannel(3, 7, () => {})
+    subscribeToChannel(3, 7, { onCreated: () => {} })
     rejectChannel('organizations.3.channels.7', { status: '403' as unknown as number })
     expect(denied).toHaveBeenCalledWith(3, undefined)
   })
@@ -353,7 +380,7 @@ describe('realtime', () => {
   it('releases the rejected channel in the client so a later subscription authorizes again', () => {
     const { client, rejectChannel } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
-    const leave = subscribeToChannel(3, 7, () => {})
+    const leave = subscribeToChannel(3, 7, { onCreated: () => {} })
     rejectChannel('organizations.3.channels.7', { status: 403 })
     expect(client.leave).toHaveBeenCalledTimes(1)
     leave()
@@ -366,7 +393,7 @@ describe('realtime', () => {
     setRealtimeClientFactory(() => client)
     const denied = vi.fn()
     onChannelDenied(denied)
-    subscribeToChannel(3, 7, () => {})
+    subscribeToChannel(3, 7, { onCreated: () => {} })
     const callback = vi.fn()
     createAuthorizer(async () => new Response('{}', { status: 403 }))(
       { socketId: '1.2', channelName: 'private-organizations.3.channels.7' },
@@ -384,7 +411,7 @@ describe('realtime', () => {
     const denied = vi.fn()
     const off = onChannelDenied(denied)
     subscribeToUser(5)
-    subscribeToChannel(3, 7, () => {})
+    subscribeToChannel(3, 7, { onCreated: () => {} })
 
     rejectChannel('users.5', { status: 403 })
     expect(denied).not.toHaveBeenCalled()
@@ -395,7 +422,7 @@ describe('realtime', () => {
 
   it('does nothing without a client (no Reverb key)', () => {
     setRealtimeClientFactory(() => null)
-    expect(() => subscribeToChannel(1, 1, () => {})()).not.toThrow()
+    expect(() => subscribeToChannel(1, 1, { onCreated: () => {} })()).not.toThrow()
   })
 
   it('authorizes with the Bearer token and without the organization header', async () => {

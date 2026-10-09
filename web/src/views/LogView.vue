@@ -230,7 +230,7 @@ watch(
   ([organizationId, channel]) => {
     leaveRealtime()
     if (organizationId === null || channel === null) return
-    unsubscribe = subscribeToChannel(organizationId, channel, onLiveMessage)
+    unsubscribe = subscribeToChannel(organizationId, channel, { onCreated: onLiveMessage })
     unsubscribeReconnect = onReconnect(() => {
       void load()
       projects.refreshCounts()

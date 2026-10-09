@@ -174,7 +174,7 @@ function reload(): void {
   void loadChannel(channelId.value, current)
   void messages.open(channelId.value)
   if (organization.activeId !== null) {
-    unsubscribe = subscribeToChannel(organization.activeId, channelId.value, onLiveMessage)
+    unsubscribe = subscribeToChannel(organization.activeId, channelId.value, { onCreated: onLiveMessage })
     unsubscribeReconnect = onReconnect(() => {
       const visible = toasts.value.some((item) => item.id === reconnectToastId && item.open)
       if (!visible) reconnectToastId = toast.success(t('channel.reconnected'))

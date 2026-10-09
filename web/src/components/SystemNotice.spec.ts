@@ -22,6 +22,8 @@ const message = (payload: unknown, user: Message['user'] = null): Message => ({
   attachments: [],
   user,
   created_at: '2026-01-01T00:00:00Z',
+  edited_at: null,
+  deleted_at: null,
 })
 
 const logGroup = (status: string): LogGroup =>

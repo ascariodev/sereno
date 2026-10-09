@@ -22,6 +22,8 @@ const base: Message = {
   attachments: [],
   user: { id: 7, name: 'Ana' },
   created_at: '2026-03-04T10:30:00Z',
+  edited_at: null,
+  deleted_at: null,
 }
 const global = { plugins: [i18n] }
 

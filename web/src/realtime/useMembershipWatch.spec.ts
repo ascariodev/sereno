@@ -68,7 +68,7 @@ function reconnect() {
 
 function denyChannel(organizationId: number, status: number | undefined) {
   const name = `organizations.${organizationId}.channels.7`
-  subscribeToChannel(organizationId, 7, () => {})
+  subscribeToChannel(organizationId, 7, {})
   fake.rejectChannel(name, { type: 'AuthError', status })
 }
 
