@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import { api, ApiError } from '../api/client'
-import type { CursorPage, Message } from '../api/types'
+import type { CursorPage, Message, MessageDeletedEvent, RootCounters } from '../api/types'
 import { laterDate } from '../laterDate'
 import { resetHourlyCounts } from '../composables/useHourlyCounts'
 import { observeStatusMessage, resetGroupStatuses } from '../composables/useLogGroupStatuses'
@@ -52,9 +52,30 @@ function bumpRoot(root: Message, reply: Message): Message {
 }
 
 /** Whether a server snapshot of a root, with this `last_reply_at`, already counts a reply created at `at`. */
+function isOlderEdit(incoming: Message, current: Message): boolean {
+  return incoming.edited_at !== null && current.edited_at !== null && Date.parse(incoming.edited_at) < Date.parse(current.edited_at)
+}
+
 function snapshotCounts(snapshotLast: string | null | undefined, at: string): boolean {
   return snapshotLast != null && Date.parse(at) <= Date.parse(snapshotLast)
 }
+
+/** A deletion applied in live: the root counters of its event are authoritative as of `deletedAt`. */
+interface Removal {
+  seq: number
+  deletedAt: string
+  counters: RootCounters
+}
+
+function withCounters(root: Message, counters: RootCounters): Message {
+  return { ...root, replies_count: counters.replies_count, last_reply_at: counters.last_reply_at }
+}
+
+function asDeleted(message: Message, deletedAt: string): Message {
+  return { ...message, body: null, mentions: [], attachments: [], deleted_at: deletedAt }
+}
+
+let removalSeq = 0
 
 export const useMessagesStore = defineStore('messages', () => {
   const channelId = ref<number | null>(null)
@@ -70,6 +91,12 @@ export const useMessagesStore = defineStore('messages', () => {
   let countedReplies = new Map<number, Message>()
   /** `last_reply_at` of the latest server snapshot of each root, to tell whether a late live reply is in it. */
   let snapshots = new Map<number, string | null>()
+  /** Latest live deletion that touched the counters of each root. */
+  let removals = new Map<number, Removal>()
+  /** Roots deleted in live, with their `deleted_at`: they stay as a marker only while they have replies. */
+  let deletedRoots = new Map<number, string>()
+  /** Replies deleted in live; a late `created` of one of them must not count. */
+  let removedReplies = new Set<number>()
   let flushScheduled = false
 
   function has(id: number): boolean {
@@ -97,6 +124,9 @@ export const useMessagesStore = defineStore('messages', () => {
     pending = new Map()
     countedReplies = new Map()
     snapshots = new Map()
+    removals = new Map()
+    deletedRoots = new Map()
+    removedReplies = new Set()
     flushScheduled = false
     channelId.value = null
     messages.value = []
@@ -106,18 +136,70 @@ export const useMessagesStore = defineStore('messages', () => {
     error.value = null
   }
 
-  /** Takes a root from the server and adds the live replies its snapshot does not include yet. */
-  function reconcile(root: Message): Message {
-    snapshots.set(root.id, root.last_reply_at)
+  /** Adds the live replies created after `bound`, the moment up to which the counters of `root` are known. */
+  function withLiveReplies(root: Message, bound: string | null): Message {
+    snapshots.set(root.id, bound)
     let result = root
     for (const reply of countedReplies.values()) {
-      if (reply.parent_id === root.id && !snapshotCounts(root.last_reply_at, reply.created_at)) result = bumpRoot(result, reply)
+      if (reply.parent_id === root.id && !snapshotCounts(bound, reply.created_at)) result = bumpRoot(result, reply)
     }
     return result
   }
 
+  function rebase(root: Message, removal: Removal): Message {
+    return withLiveReplies(withCounters(root, removal.counters), laterDate(removal.counters.last_reply_at, removal.deletedAt))
+  }
+
+  /** Whether a live deletion applied after the load that started at `since` makes its snapshot of this root stale. */
+  function removalAfter(rootId: number, since: number): Removal | undefined {
+    const removal = removals.get(rootId)
+    return removal !== undefined && removal.seq > since ? removal : undefined
+  }
+
+  /** Takes a root from the server and adds the live replies its snapshot does not include yet. */
+  function reconcile(root: Message, since: number): Message {
+    const removal = removalAfter(root.id, since)
+    return removal !== undefined ? rebase(root, removal) : withLiveReplies(root, root.last_reply_at)
+  }
+
+  /** A deleted root becomes a marker while it has replies and leaves the list without them. */
+  function settle(root: Message): Message | null {
+    const deletedAt = deletedRoots.get(root.id)
+    if (deletedAt === undefined) return root
+    return root.replies_count > 0 ? asDeleted(root, deletedAt) : null
+  }
+
+  /** A page loaded since `since`, without the live deletions it may predate; counters stay those of the page otherwise. */
+  function fromServer(list: readonly Message[], since: number): Message[] {
+    return list.flatMap((message) => {
+      if (message.parent_id !== null) return [message]
+      const removal = removalAfter(message.id, since)
+      const settled = settle(removal !== undefined ? withCounters(message, removal.counters) : message)
+      return settled === null ? [] : [settled]
+    })
+  }
+
+  /** Applies `change` to a loaded root (queued or in the list); `null` takes it out. False if it is not loaded. */
+  function update(id: number, change: (message: Message) => Message | null): boolean {
+    const queued = pending.get(id)
+    if (queued !== undefined) {
+      const next = change(queued)
+      if (next === null) pending.delete(id)
+      else pending.set(id, next)
+      return true
+    }
+    const index = indexAfter(messages.value, id) - 1
+    if (index < 0 || messages.value[index].id !== id) return false
+    const next = messages.value.slice()
+    const changed = change(next[index])
+    if (changed === null) next.splice(index, 1)
+    else next[index] = changed
+    messages.value = next
+    return true
+  }
+
   function applyReply(reply: Message, rootId: number): boolean {
-    if (countedReplies.has(reply.id)) return false
+    if (countedReplies.has(reply.id) || removedReplies.has(reply.id)) return false
     countedReplies.set(reply.id, reply)
     if (snapshotCounts(snapshots.get(rootId), reply.created_at)) return true
     const bump = (root: Message): Message => bumpRoot(root, reply)
@@ -138,7 +220,7 @@ export const useMessagesStore = defineStore('messages', () => {
   function insert(message: Message): boolean {
     if (message.channel_id !== channelId.value) return false
     if (message.parent_id !== null) return applyReply(message, message.parent_id)
-    if (has(message.id)) return false
+    if (has(message.id) || deletedRoots.has(message.id)) return false
     observeStatusMessage(message)
     pending.set(message.id, message)
     if (!flushScheduled) {
@@ -148,9 +230,41 @@ export const useMessagesStore = defineStore('messages', () => {
     return true
   }
 
+  /** An edit in live: takes the content and keeps the local thread counters. Ignores replies and unloaded roots. */
+  function replace(message: Message): boolean {
+    if (message.channel_id !== channelId.value || message.parent_id !== null || deletedRoots.has(message.id)) return false
+    let applied = false
+    update(message.id, (current) => {
+      if (current.deleted_at !== null || isOlderEdit(message, current)) return current
+      applied = true
+      return {
+        ...message,
+        replies_count: current.replies_count,
+        last_reply_at: current.last_reply_at,
+        recent_participants: current.recent_participants,
+      }
+    })
+    return applied
+  }
+
+  /** A deletion in live: takes the root counters of the event even if they go down; never inserts. */
+  function remove(event: MessageDeletedEvent): boolean {
+    if (event.channel_id !== channelId.value) return false
+    const removal: Removal = { seq: ++removalSeq, deletedAt: event.deleted_at, counters: event.root }
+    removals.set(event.root.id, removal)
+    if (event.parent_id === null) deletedRoots.set(event.id, event.deleted_at)
+    else {
+      removedReplies.add(event.id)
+      countedReplies.delete(event.id)
+    }
+    snapshots.set(event.root.id, laterDate(event.root.last_reply_at, event.deleted_at))
+    return update(event.root.id, (root) => settle(rebase(root, removal)))
+  }
+
   async function open(id: number): Promise<void> {
     clear()
     const current = generation
+    const since = removalSeq
     channelId.value = id
     loading.value = true
     try {
@@ -162,7 +276,7 @@ export const useMessagesStore = defineStore('messages', () => {
       observeAll(page.data)
       const loaded = new Set(page.data.map((message) => message.id))
       const live = messages.value.filter((message) => !loaded.has(message.id))
-      messages.value = [...page.data, ...live].sort((a, b) => a.id - b.id)
+      messages.value = [...fromServer(page.data, since), ...live].sort((a, b) => a.id - b.id)
       nextCursor.value = page.meta.next_cursor
     } catch (caught) {
       if (current !== generation) return
@@ -176,6 +290,7 @@ export const useMessagesStore = defineStore('messages', () => {
     if (channelId.value === null) return
     flush()
     const current = generation
+    const since = removalSeq
     const id = channelId.value
     const lastLoadedId = messages.value.length > 0 ? messages.value[messages.value.length - 1].id : null
     const fetched: Message[] = []
@@ -199,7 +314,11 @@ export const useMessagesStore = defineStore('messages', () => {
     if (joined || newest === null) {
       flush()
       const known = new Set(messages.value.map((message) => message.id))
-      const reconciled = fetched.map((message) => (message.parent_id === null ? reconcile(message) : message))
+      const reconciled = fetched.flatMap((message) => {
+        if (message.parent_id !== null) return [message]
+        const settled = settle(reconcile(message, since))
+        return settled === null ? [] : [settled]
+      })
       const refreshed = reconciled.filter((message) => known.has(message.id)).sort((a, b) => a.id - b.id)
       reconciled.filter((message) => !known.has(message.id)).forEach(insert)
       if (refreshed.length > 0) messages.value = mergeById(messages.value, refreshed)
@@ -211,7 +330,7 @@ export const useMessagesStore = defineStore('messages', () => {
     const loaded = new Set(newest.data.map((message) => message.id))
     const oldestId = Math.min(...newest.data.map((message) => message.id))
     const live = messages.value.filter((message) => message.id > oldestId && !loaded.has(message.id))
-    messages.value = [...newest.data, ...live].sort((a, b) => a.id - b.id)
+    messages.value = [...fromServer(newest.data, since), ...live].sort((a, b) => a.id - b.id)
     nextCursor.value = newest.meta.next_cursor
     listVersion++
     loadingMore.value = false
@@ -221,6 +340,7 @@ export const useMessagesStore = defineStore('messages', () => {
     if (channelId.value === null || nextCursor.value === null || loading.value || loadingMore.value) return
     const current = generation
     const version = listVersion
+    const since = removalSeq
     const id = channelId.value
     loadingMore.value = true
     error.value = null
@@ -232,7 +352,7 @@ export const useMessagesStore = defineStore('messages', () => {
       flush()
       observeAll(page.data)
       const known = new Set(messages.value.map((message) => message.id))
-      const older = page.data.filter((message) => !known.has(message.id)).sort((a, b) => a.id - b.id)
+      const older = fromServer(page.data, since).filter((message) => !known.has(message.id)).sort((a, b) => a.id - b.id)
       messages.value = [...older, ...messages.value]
       nextCursor.value = page.meta.next_cursor
     } catch (caught) {
@@ -256,5 +376,5 @@ export const useMessagesStore = defineStore('messages', () => {
     flush()
   }
 
-  return { channelId, messages, nextCursor, loading, loadingMore, error, open, loadOlder, insert, catchUp, send, clear }
+  return { channelId, messages, nextCursor, loading, loadingMore, error, open, loadOlder, insert, replace, remove, catchUp, send, clear }
 })
