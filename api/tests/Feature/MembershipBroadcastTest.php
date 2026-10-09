@@ -56,7 +56,7 @@ it('is not broadcast when the user is not a member', function () {
 });
 
 it('is not broadcast when the surrounding transaction rolls back', function () {
-    Event::fake();
+    Event::fake([MembershipRevoked::class]);
 
     try {
         DB::transaction(function () {
