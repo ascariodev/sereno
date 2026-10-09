@@ -32,6 +32,7 @@ class MessageController extends Controller
     {
         $page = $channel->messages()
             ->whereNull('parent_id')
+            ->where(fn ($query) => $query->whereNull('deleted_at')->orWhere('replies_count', '>', 0))
             ->with(self::RELATIONS)
             ->orderByDesc('id')
             ->cursorPaginate($request->perPage())
@@ -57,6 +58,7 @@ class MessageController extends Controller
 
         $authors = Message::query()
             ->whereIn('parent_id', $withReplies->pluck('id'))
+            ->whereNull('deleted_at')
             ->whereNotNull('user_id')
             ->groupBy('parent_id', 'user_id')
             ->selectRaw('parent_id, user_id, max(id) as last_id')
@@ -78,6 +80,7 @@ class MessageController extends Controller
 
         $page = $channel->messages()
             ->where('parent_id', $message->id)
+            ->whereNull('deleted_at')
             ->orderByDesc('id')
             ->cursorPaginate($request->perPage())
             ->withQueryString();
