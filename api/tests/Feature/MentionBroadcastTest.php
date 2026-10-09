@@ -6,6 +6,7 @@ use App\Models\Channel;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
@@ -99,4 +100,16 @@ it('does not leak more than the message payload to the mentioned user', function
             && array_keys($payload['message']['user']) === ['id', 'name']
             && ! str_contains(json_encode($payload), 'email');
     });
+});
+
+it('survives queue serialization without an active organization', function () {
+    postMentioning($this, "hey <@{$this->ana->id}>")->assertCreated();
+    $event = Event::dispatched(MentionCreated::class)->first()[0];
+
+    app(CurrentOrganization::class)->set(null);
+    $restored = unserialize(serialize($event));
+
+    expect($restored->broadcastOn()->name)->toBe($event->broadcastOn()->name)
+        ->and($restored->broadcastAs())->toBe($event->broadcastAs())
+        ->and($restored->broadcastWith())->toEqual($event->broadcastWith());
 });

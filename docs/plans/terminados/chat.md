@@ -411,7 +411,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   deleted..." a algo como "deletes mentions with the mentioned user".
 - [ ] M-20 (media, sonnet): tope de menciones por mensaje (p. ej. 50) e insert en lote de `message_mentions`; hoy un
   mensaje puede mencionar a toda la organización y las fases 11 y 12 lo multiplican en eventos.
-- [ ] M-21 (baja, sonnet): test de `MentionCreated` que lo serialice y deserialice como la cola, para blindar que no
+- [x] M-21 (baja, sonnet): test de `MentionCreated` que lo serialice y deserialice como la cola, para blindar que no
   depende de la organización activa.
 - [ ] M-22 (baja, sonnet): abrir la lista de menciones también tras puntuación de apertura (`(@Ana`), y specs de
   nombres con emoji y de pegar `@Anabel` sobre la mención `@Ana` (hoy la conserva).
