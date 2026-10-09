@@ -461,7 +461,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [x] M-35 (baja, sonnet): composer de adjuntos: una sola región viva para los estados de subida (hoy un
   `role=status`/`alert` por item, ruidoso con varios archivos y sin el nombre en "Subiendo..."), y quitar los items en
   error tras un envío con éxito.
-- [ ] M-36 (media, sonnet): indicar adjuntos en `MentionsView` (p. ej. "N adjuntos" sin enlaces, o rediseñar la fila
+- [x] M-36 (media, sonnet): indicar adjuntos en `MentionsView` (p. ej. "N adjuntos" sin enlaces, o rediseñar la fila
   para que no sea un enlace entero).
 - [x] M-37 (baja, sonnet): un solo `role=status` para los avisos de vista previa no disponible en `MessageAttachments`.
 - [x] M-38 (media, sonnet): conservar el borrador del composer del hilo al cruzar el umbral de 767 px (hoy la hoja y

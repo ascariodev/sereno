@@ -101,6 +101,9 @@ onMounted(() => {
               </span>
               <span :id="`mention-${mention.id}-body`" class="mention__body">
                 <MessageBody :body="mention.message.body" :mentions="mention.message.mentions" :own-user-id="auth.user?.id" />
+                <span v-if="mention.message.attachments.length > 0" class="mention__files">
+                  {{ t('mentions.attachments', { n: mention.message.attachments.length }, mention.message.attachments.length) }}
+                </span>
               </span>
             </span>
             <span v-if="mention.read_at === null" class="mention__dot" aria-hidden="true" />
@@ -228,6 +231,12 @@ onMounted(() => {
 .mention__body {
   color: var(--ink-2);
   overflow-wrap: anywhere;
+}
+
+.mention__files {
+  display: block;
+  color: var(--ink-3);
+  font-size: 12.5px;
 }
 
 .mention__dot {

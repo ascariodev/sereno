@@ -99,6 +99,19 @@ describe('MentionsView', () => {
     expect(link.attributes('href')).toBe('/channels/4')
   })
 
+  it('shows the attachment count inside the link description, without extra links', async () => {
+    const files = [1, 2].map((id) => ({ id, name: `f${id}.png`, mime_type: 'image/png', size: 10, url: '/x' }))
+    const base = mention(1)
+    vi.spyOn(mentionsApi, 'listMentions').mockResolvedValue(
+      page([mention(2), { ...base, message: { ...base.message, attachments: files as never } }], 2),
+    )
+    const { wrapper } = await mountView()
+    const links = wrapper.findAll('a.mention')
+    expect(wrapper.find(`#${links[1].attributes('aria-describedby')}`).text()).toContain('2 attachments')
+    expect(links[1].findAll('a')).toHaveLength(0)
+    expect(links[0].text()).not.toContain('attachment')
+  })
+
   it('links a reply mention to its thread and marks it read on click', async () => {
     vi.spyOn(mentionsApi, 'listMentions').mockResolvedValue(page([mention(1, { parent_id: 55 })], 1))
     const { wrapper, store } = await mountView()

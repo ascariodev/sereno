@@ -246,6 +246,7 @@
     "markAllRead": "Marcar todas como leídas",
     "unread": "Sin leer",
     "someone": "Alguien",
+    "attachments": "{n} adjunto | {n} adjuntos",
     "from": "{name} te mencionó en {channel}"
   },
   "thread": {

@@ -246,6 +246,7 @@
     "markAllRead": "Mark all as read",
     "unread": "Unread",
     "someone": "Someone",
+    "attachments": "{n} attachment | {n} attachments",
     "from": "{name} mentioned you in {channel}"
   },
   "thread": {
