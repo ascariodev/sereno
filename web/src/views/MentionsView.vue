@@ -3,12 +3,14 @@ import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Mention } from '../api/types'
 import MessageBody from '../components/MessageBody.vue'
+import { useSharedNow } from '../composables/useSharedNow'
 import { useAuthStore } from '../stores/auth'
 import { useMentionsStore } from '../stores/mentions'
 
 const { t, locale } = useI18n()
 const store = useMentionsStore()
 const auth = useAuthStore()
+const now = useSharedNow()
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['day', 86_400],
@@ -17,7 +19,7 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
 ]
 
 function when(iso: string): string {
-  const seconds = Math.round((new Date(iso).getTime() - Date.now()) / 1000)
+  const seconds = Math.round((new Date(iso).getTime() - now.value) / 1000)
   const formatter = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' })
   for (const [unit, size] of UNITS) {
     if (Math.abs(seconds) >= size) return formatter.format(Math.trunc(seconds / size), unit)
@@ -43,6 +45,10 @@ const hasUnread = computed(() => store.unreadCount > 0)
 
 function open(mention: Mention): void {
   void store.markRead(mention)
+}
+
+function openAux(event: MouseEvent, mention: Mention): void {
+  if (event.button === 1) open(mention)
 }
 
 onMounted(() => {
@@ -72,6 +78,10 @@ onMounted(() => {
     </p>
     <p v-else-if="store.mentions.length === 0" class="mentions__note">{{ t('mentions.empty') }}</p>
     <template v-else>
+      <p v-if="store.error !== null" class="mentions__note" role="alert">
+        {{ t('mentions.loadFailed') }}
+        <button type="button" name="retry" class="mentions__action" @click="store.refresh()">{{ t('common.retry') }}</button>
+      </p>
       <ul class="mentions__list">
         <li v-for="mention in store.mentions" :key="mention.id" class="mentions__item">
           <RouterLink
@@ -81,6 +91,7 @@ onMounted(() => {
             :aria-labelledby="`mention-${mention.id}-title`"
             :aria-describedby="`mention-${mention.id}-body`"
             @click="open(mention)"
+            @auxclick="openAux($event, mention)"
           >
             <span class="mention__avatar" aria-hidden="true">{{ initial(mention) }}</span>
             <span class="mention__main">

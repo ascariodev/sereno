@@ -424,7 +424,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   callbacks posicionales vacíos.
   Aplicado solo lo de `markRead`/`markAllRead` (merge que no des-lee y relanzar el `refresh` en vuelo); `start()`
   sigue con callbacks porque cambiar `subscribeToUser` afecta a `useMembershipWatch`.
-- [ ] M-26 (baja, sonnet): `MentionsView` muestra el error de `refresh` aunque la lista ya esté cargada, refresca la
+- [x] M-26 (baja, sonnet): `MentionsView` muestra el error de `refresh` aunque la lista ya esté cargada, refresca la
   hora relativa con el tiempo y marca leída también al abrir con clic central o en pestaña nueva (`auxclick`).
 - [ ] M-27 (media, sonnet): test intermitente de `LogView.spec` ("refreshes the project counts once, after 300 ms"):
   falla 1 de cada 3 a 6 corridas en HEAD; buscar el temporizador real que queda armado antes de `useFakeTimers` (L-30).

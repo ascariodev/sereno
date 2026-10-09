@@ -1,4 +1,4 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
@@ -57,6 +57,8 @@ describe('MentionsView', () => {
     vi.restoreAllMocks()
     vi.spyOn(mentionsApi, 'markMentionsRead').mockResolvedValue(0)
   })
+
+  enableAutoUnmount(afterEach)
 
   afterEach(() => {
     useMentionsStore().clear()
@@ -131,5 +133,47 @@ describe('MentionsView', () => {
     await flushPromises()
     expect(wrapper.findAll('a.mention')).toHaveLength(2)
     expect(wrapper.find('button[name=load-more]').exists()).toBe(false)
+  })
+
+  it('keeps the list and shows a retry when a refresh fails after loading', async () => {
+    const list = vi.spyOn(mentionsApi, 'listMentions').mockResolvedValueOnce(page([mention(1)], 1))
+    const { wrapper, store } = await mountView()
+    list.mockRejectedValueOnce(new ApiError(500, 'boom'))
+    await store.refresh()
+    await flushPromises()
+    expect(wrapper.find('[role=alert]').text()).toContain('Could not load your mentions.')
+    expect(wrapper.findAll('a.mention')).toHaveLength(1)
+    list.mockResolvedValueOnce(page([mention(1)], 1))
+    await wrapper.find('button[name=retry]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[role=alert]').exists()).toBe(false)
+  })
+
+  it('updates the relative time as the clock advances', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.spyOn(mentionsApi, 'listMentions').mockResolvedValue(
+        page([mention(1, { created_at: new Date(Date.now() - 12 * 60_000).toISOString() })], 1),
+      )
+      const { wrapper } = await mountView()
+      expect(wrapper.find('time').text()).toContain('12 minutes ago')
+      await vi.advanceTimersByTimeAsync(5 * 60_000)
+      expect(wrapper.find('time').text()).toContain('17 minutes ago')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('marks read on middle click once, and ignores other auxiliary buttons', async () => {
+    vi.spyOn(mentionsApi, 'listMentions').mockResolvedValue(page([mention(1)], 1))
+    const { wrapper } = await mountView()
+    const link = wrapper.find('a.mention')
+    await link.trigger('auxclick', { button: 2 })
+    expect(mentionsApi.markMentionsRead).not.toHaveBeenCalled()
+    await link.trigger('auxclick', { button: 1 })
+    await link.trigger('auxclick', { button: 1 })
+    await flushPromises()
+    expect(mentionsApi.markMentionsRead).toHaveBeenCalledTimes(1)
+    expect(mentionsApi.markMentionsRead).toHaveBeenCalledWith({ ids: [1] })
   })
 })
