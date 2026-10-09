@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 24
+**Estado:** en curso · Fase actual: 25
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -141,7 +141,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 ### [x] Fase 23 — Cliente de subida (web)
 - `api/client.ts` acepta `FormData` (sin `Content-Type` JSON), `api/attachments.ts`, tipos de adjunto.
 
-### [ ] Fase 24 — Estado de las subidas en curso (web)
+### [x] Fase 24 — Estado de las subidas en curso (web)
 - Composable `useAttachmentUploads` (subir, cancelar con `AbortController`, quitar, errores, ids listos) e i18n de
   adjuntos.
 
@@ -245,8 +245,18 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   huérfanas con más de `orphan_hours` (el `DELETE` repite `message_id IS NULL`; el archivo solo si se borró la fila)
   y archivos bajo `chat/` del disco configurado sin fila y más viejos que el corte. Un adjunto en otro disco solo se
   limpia por su fila.
+- 2026-10-09 — Límites de adjuntos en la web como constantes de `config.ts` (`ATTACHMENT_MAX_SIZE_BYTES` 5120 KB,
+  `ATTACHMENT_MAX_PER_MESSAGE` 10), espejo de `config/chat.php` porque el API no los expone: si cambian allí, cambiar
+  aquí. Un archivo rechazado en el cliente entra como item en error no reintentable y no ocupa cupo.
 
 ## Notas para la próxima sesión
+- Fase 24 hecha: `useAttachmentUploads(channelId: () => number, {maxFiles?, maxBytes?})` con `items`
+  (`key`, `name`, `size`, `status` 'uploading'|'ready'|'error', `attachment`, `error`, `retryable`), `attachments`,
+  `attachmentIds`, `busy`, `full`, `add(files)`, `retry(key)`, `remove(key)`/`cancel(key)`, `reset()`; se reinicia
+  al cambiar de canal o desmontar. `formatFileSize(bytes)`. Claves `attachments.*`: `attach`, `remove`, `removeFile`,
+  `cancel`, `cancelFile`, `retry`, `uploading`, `ready`, `list`, `tooLarge`, `tooMany`, `failed`, `rateLimited`,
+  `download`, `previewUnavailable`. Fase 25: `reset()` solo si el envío tiene éxito, bloquear el envío con `busy` y
+  pasar `attachmentIds` a `messages.send` y `thread.send`.
 - Fase 23 hecha: `client.post/patch/put` aceptan `FormData` (sin `Content-Type`); `uploadAttachment(channelId, file,
   {signal?})` devuelve `MessageAttachment` y lanza `ApiError` (422 con `errors.file` o `errors.channel`) o el
   `AbortError` tal cual; `Message.attachments` obligatorio; `sendReply(channelId, parentId, body, attachmentIds = [])`.
@@ -415,3 +425,5 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   navegador reaproveche la caché de imágenes.
 - [ ] M-33 (baja, sonnet): `chat:prune-attachments` recorre `chat/` por directorio de organización o canal en vez de
   `allFiles('chat')` entero, y su mensaje de error pasa por `__()`.
+- [ ] M-34 (baja, sonnet): `useAttachmentUploads`: solo red, 429 y 5xx reintentables (403, 404 y 413 no); `watch` del
+  canal con `flush: 'sync'`; test explícito del 429; `formatFileSize` sin "1,024 KB" por redondeo.

@@ -217,6 +217,23 @@
       "suggestionsCount": "{n} sugerencias disponibles. Usa las flechas arriba y abajo para elegir."
     }
   },
+  "attachments": {
+    "attach": "Adjuntar",
+    "remove": "Quitar",
+    "removeFile": "Quitar {name}",
+    "cancel": "Cancelar",
+    "cancelFile": "Cancelar la subida de {name}",
+    "retry": "Reintentar",
+    "uploading": "Subiendo...",
+    "ready": "Listo",
+    "list": "Archivos adjuntos",
+    "tooLarge": "{name} pesa más de {max}.",
+    "tooMany": "Puedes adjuntar hasta {max} archivos por mensaje.",
+    "failed": "No se pudo subir el archivo.",
+    "rateLimited": "Estás subiendo demasiado rápido. Inténtalo de nuevo en un momento.",
+    "download": "Descargar",
+    "previewUnavailable": "La vista previa ya no está disponible."
+  },
   "mentions": {
     "title": "Menciones",
     "empty": "Nadie te ha mencionado todavía.",

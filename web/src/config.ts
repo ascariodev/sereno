@@ -1,3 +1,11 @@
+/**
+ * Attachment limits. The API has no endpoint that exposes them, so they mirror `chat.attachments` in
+ * `api/config/chat.php` (`max_size_kb` 5120, `max_per_message` 10); keep both in sync. The API stays the
+ * authority: these only avoid a doomed upload.
+ */
+export const ATTACHMENT_MAX_SIZE_BYTES = 5120 * 1024
+export const ATTACHMENT_MAX_PER_MESSAGE = 10
+
 export interface AppConfig {
   apiUrl: string
   reverb: {

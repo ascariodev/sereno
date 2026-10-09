@@ -217,6 +217,23 @@
       "suggestionsCount": "{n} suggestions available. Use the up and down arrows to choose."
     }
   },
+  "attachments": {
+    "attach": "Attach",
+    "remove": "Remove",
+    "removeFile": "Remove {name}",
+    "cancel": "Cancel",
+    "cancelFile": "Cancel the upload of {name}",
+    "retry": "Retry",
+    "uploading": "Uploading...",
+    "ready": "Ready",
+    "list": "Attached files",
+    "tooLarge": "{name} is larger than {max}.",
+    "tooMany": "You can attach up to {max} files per message.",
+    "failed": "Could not upload the file.",
+    "rateLimited": "You are uploading too fast. Try again in a moment.",
+    "download": "Download",
+    "previewUnavailable": "The preview is no longer available."
+  },
   "mentions": {
     "title": "Mentions",
     "empty": "Nobody has mentioned you yet.",
