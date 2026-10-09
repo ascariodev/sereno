@@ -236,6 +236,34 @@ describe('MessageComposer', () => {
       await textarea().setValue('a'.repeat(4000))
       expect(wrapper.find('button[name="send"]').attributes('disabled')).toBeUndefined()
     })
+
+    it('blocks sending when the expanded token pushes the body past 4000', async () => {
+      const send = vi.fn().mockResolvedValue(undefined)
+      const { wrapper, textarea } = mountWithMembers({ send })
+      useMemberDirectoryStore().$patch({ members: [member(5, 'Bo')] })
+      await textarea().setValue(`${'a'.repeat(3995)} @Bo`)
+      await textarea().trigger('keydown', { key: 'Enter' })
+      const visible = (textarea().element as HTMLTextAreaElement).value
+      expect(visible).toBe(`${'a'.repeat(3995)} @Bo `)
+      expect([...visible]).toHaveLength(4000)
+      expect(wrapper.find('button[name="send"]').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('[role="alert"]').text()).toContain('4000')
+      await textarea().trigger('keydown', { key: 'Enter' })
+      await flushPromises()
+      expect(send).not.toHaveBeenCalled()
+    })
+
+    it('keeps the suggestions status mounted, empty while the list is closed', async () => {
+      const { wrapper, textarea } = mountWithMembers()
+      const status = () => wrapper.find('.composer-sr[role="status"]')
+      expect(status().exists()).toBe(true)
+      expect(status().text()).toBe('')
+      await textarea().setValue('hi @An')
+      expect(status().text()).not.toBe('')
+      await textarea().trigger('keydown', { key: 'Escape' })
+      expect(status().exists()).toBe(true)
+      expect(status().text()).toBe('')
+    })
   })
 
   describe('attachments', () => {

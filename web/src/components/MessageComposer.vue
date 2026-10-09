@@ -257,8 +257,8 @@ function onKeydown(event: KeyboardEvent): void {
           <span class="composer-option-email">{{ member.email }}</span>
         </li>
       </ul>
-      <span v-if="open" class="composer-sr" role="status">
-        {{ t('channel.composer.suggestionsCount', { n: mention.suggestions.value.length }) }}
+      <span class="composer-sr" role="status">
+        {{ open ? t('channel.composer.suggestionsCount', { n: mention.suggestions.value.length }) : '' }}
       </span>
       <div class="composer-bar">
         <input ref="picker" type="file" name="attachments" multiple hidden tabindex="-1" @change="onPicked" />

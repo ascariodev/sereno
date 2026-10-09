@@ -415,7 +415,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   depende de la organización activa.
 - [x] M-22 (baja, sonnet): abrir la lista de menciones también tras puntuación de apertura (`(@Ana`), y specs de
   nombres con emoji y de pegar `@Anabel` sobre la mención `@Ana` (hoy la conserva).
-- [ ] M-23 (baja, sonnet): test del límite con el token expandido (`<@id>` más largo que `@Nombre`) y `role=status`
+- [x] M-23 (baja, sonnet): test del límite con el token expandido (`<@id>` más largo que `@Nombre`) y `role=status`
   del conteo de sugerencias siempre montado.
 - [ ] M-24 (media, sonnet): refrescar la caché de miembros cuando cambian dentro de la misma organización (altas o
   bajas en `MembersView`, o al volver a abrir la lista tras un tiempo).
