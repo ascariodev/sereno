@@ -101,10 +101,12 @@ onMounted(() => {
               </span>
               <span :id="`mention-${mention.id}-body`" class="mention__body">
                 <em v-if="mention.message.deleted_at" class="mention__deleted">{{ t('message.deleted') }}</em>
-                <MessageBody v-else :body="mention.message.body" :mentions="mention.message.mentions" :own-user-id="auth.user?.id" />
-                <span v-if="!mention.message.deleted_at && mention.message.attachments.length > 0" class="mention__files">
-                  {{ t('mentions.attachments', { n: mention.message.attachments.length }, mention.message.attachments.length) }}
-                </span>
+                <template v-else>
+                  <MessageBody :body="mention.message.body" :mentions="mention.message.mentions" :own-user-id="auth.user?.id" />
+                  <span v-if="mention.message.attachments.length > 0" class="mention__files">
+                    {{ t('mentions.attachments', { n: mention.message.attachments.length }, mention.message.attachments.length) }}
+                  </span>
+                </template>
               </span>
             </span>
             <span v-if="mention.read_at === null" class="mention__dot" aria-hidden="true" />
