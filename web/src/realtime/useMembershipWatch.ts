@@ -9,10 +9,7 @@ import { leaveOrganization, onReconnect, subscribeToUser } from './echo'
 
 const ownLeaves = new Map<number, number>()
 
-/**
- * Marks a leave started from this client: its own `membership.revoked` only cuts the channels, because the
- * screen that left already reloads, notifies and navigates.
- */
+/** Marks a leave started from this client: its own `membership.revoked` only cuts the channels. */
 export function expectOwnLeave(organizationId: number): () => void {
   ownLeaves.set(organizationId, (ownLeaves.get(organizationId) ?? 0) + 1)
   let released = false
@@ -35,6 +32,7 @@ export function useMembershipWatch(): void {
   const router = useRouter()
   const { t } = useI18n()
   let unsubscribeUser: (() => void) | null = null
+  let unsubscribeReconnect: (() => void) | null = null
 
   async function onMembershipRevoked(organizationId: number): Promise<void> {
     if (ownLeaves.has(organizationId)) {
@@ -54,23 +52,25 @@ export function useMembershipWatch(): void {
     await router.replace({ name: 'projects' })
   }
 
-  const unsubscribeReconnect = onReconnect(() => {
-    organization.load().catch(ignoreApiError)
-  })
+  function stopWatching(): void {
+    unsubscribeUser?.()
+    unsubscribeReconnect?.()
+    unsubscribeUser = null
+    unsubscribeReconnect = null
+  }
 
   watch(
     () => auth.user?.id,
     (userId) => {
-      unsubscribeUser?.()
-      unsubscribeUser =
-        userId === undefined ? null : subscribeToUser(userId, (organizationId) => void onMembershipRevoked(organizationId))
+      stopWatching()
+      if (userId === undefined) return
+      unsubscribeUser = subscribeToUser(userId, (organizationId) => void onMembershipRevoked(organizationId))
+      unsubscribeReconnect = onReconnect(() => {
+        organization.load().catch(ignoreApiError)
+      })
     },
     { immediate: true },
   )
 
-  onUnmounted(() => {
-    unsubscribeUser?.()
-    unsubscribeUser = null
-    unsubscribeReconnect()
-  })
+  onUnmounted(stopWatching)
 }
