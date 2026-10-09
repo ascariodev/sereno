@@ -376,6 +376,8 @@ it('answers 404 for a preview whose inviter left the organization', function () 
 });
 
 it('throttles invitation previews per ip with a translated 429', function () {
+    $this->freezeTime();
+
     foreach (range(1, AppServiceProvider::INVITATION_PREVIEWS_PER_MINUTE) as $attempt) {
         $this->getJson('/api/invitations/nope')->assertNotFound();
     }
