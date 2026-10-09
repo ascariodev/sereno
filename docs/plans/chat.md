@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -53,7 +53,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   canal, de otra organización y respuesta a respuesta (por clave de traducción); el contador sube; la lista principal
   no trae respuestas; `message.created` de la respuesta lleva `parent_id`.
 
-### [ ] Fase 3 — Listar las respuestas de un hilo (api)
+### [x] Fase 3 — Listar las respuestas de un hilo (api)
 - Ruta `GET channels/{channel}/messages/{message}/replies` con cursor (mismas reglas que `ListMessagesRequest`),
   404 si el mensaje no es raíz del canal. Test de aislamiento entre organizaciones.
 
@@ -163,8 +163,14 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   raíz inexistente, de otro canal o de otra organización dan el mismo error en `parent_id`; respuesta a respuesta da
   otro. `MessageResource` siempre devuelve `parent_id`, `replies_count` y `last_reply_at`. Motivo: no filtrar
   existencia entre organizaciones (L-04).
+- 2026-10-09 — Contrato de respuestas: `GET /api/channels/{channel}/messages/{message}/replies` (`{message}` con
+  `whereNumber`), query y forma iguales a la lista principal (`ListMessagesRequest`: `cursor`, `per_page` 1 a 100,
+  50 por defecto; `data`, `links`, `meta.next_cursor`), orden `id DESC` (el store del hilo invierte para mostrar).
+  404 si el mensaje no existe, es respuesta, o es de otro canal u organización (mismo 404). Motivo: lo usa la web.
 
 ## Notas para la próxima sesión
+- Fase 3 hecha: `MessageController@replies` con `abort_unless` sobre `channel_id` y `parent_id` nulo; tests en
+  `MessageRepliesApiTest`. Sigue la web (fase 4): leer L-09 y los Resources antes de escribir tipos.
 - Fase 2 hecha: `store` crea la respuesta y en la misma transacción hace `replies_count = replies_count + 1` y fija
   `last_reply_at`; `index` filtra `whereNull('parent_id')`. No hay evento que avise del contador de la raíz: la web
   lo deriva de la respuesta en vivo (fase 4). Fase 3: consultar `parent_id = {message}`, 404 si no es raíz del canal.
@@ -189,3 +195,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   confirmadas en otro orden no lo hagan retroceder.
 - [ ] M-8 (baja, sonnet): en el test de aislamiento de `parent_id`, afirmar que la raíz de la otra organización sigue
   con `replies_count` 0.
+- [ ] M-9 (baja, sonnet): tests del 403 de `replies` para un miembro sin acceso al canal (privado o archivado), como
+  los de `index`.
+- [ ] M-10 (baja, sonnet): en el test de paginación de respuestas, afirmar que una respuesta de otra raíz no aparece.

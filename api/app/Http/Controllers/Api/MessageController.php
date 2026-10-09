@@ -25,6 +25,20 @@ class MessageController extends Controller
         );
     }
 
+    public function replies(ListMessagesRequest $request, Channel $channel, Message $message): AnonymousResourceCollection
+    {
+        abort_unless($message->channel_id === $channel->id && $message->parent_id === null, 404);
+
+        return MessageResource::collection(
+            $channel->messages()
+                ->where('parent_id', $message->id)
+                ->with('user:id,name')
+                ->orderByDesc('id')
+                ->cursorPaginate($request->perPage())
+                ->withQueryString(),
+        );
+    }
+
     public function store(StoreMessageRequest $request, Channel $channel): MessageResource
     {
         $parentId = $request->validated('parent_id');

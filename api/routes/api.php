@@ -54,6 +54,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::delete('members/{user}', [MemberController::class, 'destroy']);
     Route::get('channels', [ChannelController::class, 'index']);
     Route::get('channels/{channel}/messages', [MessageController::class, 'index']);
+    Route::get('channels/{channel}/messages/{message}/replies', [MessageController::class, 'replies'])->whereNumber('message');
     Route::post('channels/{channel}/messages', [MessageController::class, 'store'])->middleware('throttle:channel-messages');
 });
 
