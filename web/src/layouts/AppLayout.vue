@@ -7,15 +7,28 @@ import CommandPalette from '../components/CommandPalette.vue'
 import MobileTopBar from '../components/MobileTopBar.vue'
 import AppDialog from '../components/ui/AppDialog.vue'
 import { useMembershipWatch } from '../realtime/useMembershipWatch'
+import { useAuthStore } from '../stores/auth'
+import { useMentionsStore } from '../stores/mentions'
 import { useOrganizationStore } from '../stores/organization'
 
 const { t } = useI18n()
 const organization = useOrganizationStore()
 const route = useRoute()
+const auth = useAuthStore()
+const mentions = useMentionsStore()
 const drawerOpen = ref(false)
 const paletteOpen = ref(false)
 
 useMembershipWatch()
+
+watch(
+  () => auth.user?.id,
+  (userId) => {
+    if (userId === undefined) mentions.stop()
+    else mentions.start(userId)
+  },
+  { immediate: true },
+)
 
 const SIDEBAR_STORAGE_KEY = 'workspace.sidebar'
 
@@ -84,6 +97,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  mentions.stop()
   wideQuery?.removeEventListener('change', closeDrawerWhenWide)
 })
 </script>

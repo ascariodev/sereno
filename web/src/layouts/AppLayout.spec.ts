@@ -8,6 +8,7 @@ import { i18n } from '../i18n'
 import AppLayout from './AppLayout.vue'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
+import { useMentionsStore } from '../stores/mentions'
 import { useOrganizationStore } from '../stores/organization'
 import { THEME_STORAGE_KEY } from '../theme/theme'
 
@@ -27,10 +28,12 @@ const orgs = [
 ]
 
 let projectExtra: Record<string, unknown> = {}
+let mentionsUnread = 0
 
 function sidebarData(path: string, withChannel = true): unknown {
   if (path === '/api/projects') return { data: [{ ...project, ...projectExtra }], meta: { last_page: 1 } }
   if (path === '/api/channels') return withChannel ? { data: [{ id: 7, project_id: 5, name: 'general', project: { id: 5, name: 'posveapi' }, is_archived: false }] } : { data: [] }
+  if (path === '/api/mentions') return { data: [], links: {}, meta: { next_cursor: null, unread_count: mentionsUnread } }
   if (path === '/api/channels/7/messages') return { data: [], meta: { next_cursor: null } }
   return undefined
 }
@@ -85,6 +88,7 @@ describe('AppLayout', () => {
   beforeEach(() => {
     localStorage.clear()
     projectExtra = {}
+    mentionsUnread = 0
     vi.restoreAllMocks()
     document.documentElement.removeAttribute('data-theme')
   })
@@ -244,6 +248,49 @@ describe('AppLayout', () => {
     expect(router.currentRoute.value.name).toBe('login')
     expect(useAuthStore().isAuthenticated).toBe(false)
     expect(useOrganizationStore().activeId).toBeNull()
+  })
+
+  it('shows the unread mentions count with a text for screen readers, and hides it at zero', async () => {
+    mentionsUnread = 3
+    const { wrapper } = await mountApp()
+    const link = wrapper.find('a[href="/mentions"]')
+    expect(link.exists()).toBe(true)
+    expect(link.find('.app-sidebar__badge').text()).toBe('3')
+    expect(link.find('.app-sidebar__badge').attributes('aria-hidden')).toBe('true')
+    expect(link.find('.sr-only').text()).toBe('3 unread mentions')
+    useMentionsStore().$patch({ unreadCount: 0 })
+    await nextTick()
+    expect(wrapper.find('a[href="/mentions"] .app-sidebar__badge').exists()).toBe(false)
+    expect(wrapper.find('a[href="/mentions"] .sr-only').exists()).toBe(false)
+  })
+
+  it('names the mentions link with the count when the sidebar is collapsed', async () => {
+    localStorage.setItem('workspace.sidebar', 'collapsed')
+    mentionsUnread = 1
+    const { wrapper } = await mountApp()
+    expect(wrapper.find('a[href="/mentions"]').attributes('aria-label')).toBe('Mentions: 1 unread mention')
+  })
+
+  it('starts the mentions store for the signed-in user and stops it on logout', async () => {
+    mentionsUnread = 2
+    await mountApp()
+    const store = useMentionsStore()
+    expect(store.unreadCount).toBe(2)
+    expect(store.loaded).toBe(true)
+    vi.spyOn(api, 'post').mockResolvedValue(undefined)
+    await openMenu('button[name=user-menu]')
+    await pick('logout')
+    expect(store.unreadCount).toBe(0)
+    expect(store.loaded).toBe(false)
+  })
+
+  it('stops the mentions store when the layout unmounts', async () => {
+    mentionsUnread = 2
+    const { wrapper } = await mountApp()
+    expect(useMentionsStore().unreadCount).toBe(2)
+    wrapper.unmount()
+    mounted = undefined
+    expect(useMentionsStore().unreadCount).toBe(0)
   })
 
   it('the user menu changes and saves the theme', async () => {

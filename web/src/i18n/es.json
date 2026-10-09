@@ -93,7 +93,9 @@
     "collapse": "Contraer barra lateral",
     "expand": "Expandir barra lateral",
     "openGroups": "{n} grupo de logs abierto | {n} grupos de logs abiertos",
-    "projectOpen": "{name}: {groups}, nivel máximo {level}"
+    "projectOpen": "{name}: {groups}, nivel máximo {level}",
+    "mentions": "Menciones",
+    "mentionsUnread": "{n} mención sin leer | {n} menciones sin leer"
   },
   "command": {
     "open": "Buscar",
@@ -214,6 +216,17 @@
       "suggestions": "Sugerencias de menciones",
       "suggestionsCount": "{n} sugerencias disponibles. Usa las flechas arriba y abajo para elegir."
     }
+  },
+  "mentions": {
+    "title": "Menciones",
+    "empty": "Nadie te ha mencionado todavía.",
+    "loadFailed": "No se pudieron cargar tus menciones.",
+    "loadMore": "Cargar más",
+    "loadMoreFailed": "No se pudieron cargar más menciones.",
+    "markAllRead": "Marcar todas como leídas",
+    "unread": "Sin leer",
+    "someone": "Alguien",
+    "from": "{name} te mencionó en {channel}"
   },
   "thread": {
     "label": "Hilo",

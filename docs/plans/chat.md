@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 17
+**Estado:** en curso · Fase actual: 18
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -110,7 +110,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - `api/mentions.ts`, `stores/mentions.ts` (lista, no leídas, marcar leídas) y `MentionCreated` por `subscribeToUser`,
   ignorando otras organizaciones.
 
-### [ ] Fase 17 — Vista de menciones y contador en la barra (web) [límite: 5 archivos]
+### [x] Fase 17 — Vista de menciones y contador en la barra (web) [límite: 5 archivos]
 - Ruta `/mentions`, `MentionsView`, entrada "Menciones" con contador; abrir una mención va al canal (con `?thread` si
   es respuesta) y la marca leída.
 
@@ -208,8 +208,16 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - 2026-10-09 — El evento `mention.created` no trae el id de la mención: el store sube `unreadCount`, deduplica por
   `message.id` y lanza `refresh()` para traer la fila real (sin filas provisionales). `markRead`/`markAllRead` son
   optimistas, restauran si fallan y luego hacen `refresh()`. `subscribeToUser` exige `organization_id` numérico.
+- 2026-10-09 — `useMentionsStore().start/stop` vive en `AppLayout` (watch inmediato de `auth.user?.id` y
+  `onBeforeUnmount`), no en la barra (se monta dos veces) ni en la vista. El límite `[límite: 5 archivos]` cuenta solo
+  código, sin specs y con `en.json`/`es.json` como uno. Motivo: el contador vive siempre.
 
 ## Notas para la próxima sesión
+- Bloque de menciones terminado (fases 9 a 17). Fase 17: ruta `/mentions` (`MentionsView`), entrada con contador en
+  `AppSidebar` (99+, texto `sr-only`, `aria-label` con la barra colapsada). Sin mirar en el navegador: fila en móvil y
+  badge con la barra colapsada (L-22). Sigue el bloque de adjuntos (fase 18, API).
+- `LogView.spec` "refreshes the project counts once, after 300 ms..." falla de forma intermitente (1 de cada 3 a 6
+  corridas) también en HEAD sin cambios de este plan: no es de este plan (M-27).
 - Fase 16 hecha: `api/mentions.ts` (`listMentions`, `markMentionsRead`), tipos `Mention`/`MentionPage`,
   `useMentionsStore` con `mentions`, `unreadCount`, `nextCursor`, `loaded`, `loading`, `loadingMore`, `error`,
   `loadMoreFailed` y acciones `refresh()`, `loadMore()`, `markRead(m | m[])`, `markAllRead()`, `start(userId)`,
@@ -328,3 +336,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-25 (baja, sonnet): `markRead`/`markAllRead` invalidan o relanzan un `refresh`/`loadMore` en vuelo, para que
   una respuesta previa al commit no deje filas como no leídas (L-35); `start()` con objeto de opciones en vez de
   callbacks posicionales vacíos.
+- [ ] M-26 (baja, sonnet): `MentionsView` muestra el error de `refresh` aunque la lista ya esté cargada, refresca la
+  hora relativa con el tiempo y marca leída también al abrir con clic central o en pestaña nueva (`auxclick`).
+- [ ] M-27 (media, sonnet): test intermitente de `LogView.spec` ("refreshes the project counts once, after 300 ms"):
+  falla 1 de cada 3 a 6 corridas en HEAD; buscar el temporizador real que queda armado antes de `useFakeTimers` (L-30).

@@ -93,7 +93,9 @@
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar",
     "openGroups": "{n} open log group | {n} open log groups",
-    "projectOpen": "{name}: {groups}, highest level {level}"
+    "projectOpen": "{name}: {groups}, highest level {level}",
+    "mentions": "Mentions",
+    "mentionsUnread": "{n} unread mention | {n} unread mentions"
   },
   "command": {
     "open": "Search",
@@ -214,6 +216,17 @@
       "suggestions": "Mention suggestions",
       "suggestionsCount": "{n} suggestions available. Use the up and down arrows to choose."
     }
+  },
+  "mentions": {
+    "title": "Mentions",
+    "empty": "Nobody has mentioned you yet.",
+    "loadFailed": "Could not load your mentions.",
+    "loadMore": "Load more",
+    "loadMoreFailed": "Could not load more mentions.",
+    "markAllRead": "Mark all as read",
+    "unread": "Unread",
+    "someone": "Someone",
+    "from": "{name} mentioned you in {channel}"
   },
   "thread": {
     "label": "Thread",

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { House, PanelLeftClose, PanelLeftOpen, Search } from '@lucide/vue'
+import { AtSign, House, PanelLeftClose, PanelLeftOpen, Search } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
@@ -7,6 +7,7 @@ import { levelTone } from '../api/logLevels'
 import type { Project } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
 import { isApple } from '../platform'
+import { useMentionsStore } from '../stores/mentions'
 import { useProjectsStore } from '../stores/projects'
 import OrgSwitcher from './OrgSwitcher.vue'
 import UserMenu from './UserMenu.vue'
@@ -20,6 +21,7 @@ defineEmits<{ search: []; toggle: [] }>()
 const { t } = useI18n()
 const organization = useOrganizationStore()
 const projectsStore = useProjectsStore()
+const mentionsStore = useMentionsStore()
 const route = useRoute()
 
 const activeProjectId = computed<number | null>(() => {
@@ -50,6 +52,13 @@ const projectRows = computed(() =>
     const summary = openSummary(project)
     return { project, summary, label: summary?.label ?? (props.collapsed ? project.name : undefined) }
   }),
+)
+
+const unreadText = computed(() =>
+  t('sidebar.mentionsUnread', { n: mentionsStore.unreadCount }, mentionsStore.unreadCount),
+)
+const mentionsLabel = computed(() =>
+  mentionsStore.unreadCount > 0 ? `${t('sidebar.mentions')}: ${unreadText.value}` : t('sidebar.mentions'),
 )
 
 function currentFor(projectId: number): 'page' | undefined {
@@ -112,6 +121,20 @@ function currentFor(projectId: number): 'page' | undefined {
         >
           <House :size="17" aria-hidden="true" />
           <span v-if="!collapsed">{{ t('sidebar.home') }}</span>
+        </RouterLink>
+      </AppTooltip>
+      <AppTooltip :text="t('sidebar.mentions')" side="right" :disabled="!collapsed">
+        <RouterLink
+          :to="{ name: 'mentions' }"
+          class="app-sidebar__link app-sidebar__mentions"
+          :aria-label="collapsed ? mentionsLabel : undefined"
+        >
+          <AtSign :size="17" aria-hidden="true" />
+          <span v-if="!collapsed" class="app-sidebar__name">{{ t('sidebar.mentions') }}</span>
+          <span v-if="mentionsStore.unreadCount > 0" class="app-sidebar__badge" aria-hidden="true">{{
+            mentionsStore.unreadCount > 99 ? '99+' : mentionsStore.unreadCount
+          }}</span>
+          <span v-if="mentionsStore.unreadCount > 0 && !collapsed" class="sr-only">{{ unreadText }}</span>
         </RouterLink>
       </AppTooltip>
     </div>
@@ -325,8 +348,31 @@ function currentFor(projectId: number): 'page' | undefined {
   text-align: center;
 }
 
+.app-sidebar__badge {
+  flex: none;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.app-sidebar--collapsed .app-sidebar__mentions,
 .app-sidebar--collapsed .app-sidebar__project {
   position: relative;
+}
+
+.app-sidebar--collapsed .app-sidebar__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  padding: 0 4px;
+  font-size: 10px;
 }
 
 .app-sidebar--collapsed .app-sidebar__open {
