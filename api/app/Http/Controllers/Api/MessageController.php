@@ -143,7 +143,17 @@ class MessageController extends Controller
 
         $removed = [];
 
-        DB::transaction(function () use ($request, $channel, $message, $mentions, $body, &$edited, &$removed) {
+        DB::transaction(function () use ($request, $channel, &$message, $mentions, $body, &$edited, &$removed) {
+            // Same order as MessageDeletion (root, then reply). The row is reread after the lock: a delete or
+            // another edit committed while waiting must not be overwritten with the stale bound model.
+            if ($message->parent_id !== null) {
+                Message::query()->whereKey($message->parent_id)->lockForUpdate()->first();
+            }
+
+            $locked = Message::query()->whereKey($message->id)->whereNull('deleted_at')->lockForUpdate()->first();
+            abort_if($locked === null, 404);
+            $message = $locked;
+
             if (($message->body ?? '') !== ($body ?? '')) {
                 $edited = true;
                 $message->body = $body;
