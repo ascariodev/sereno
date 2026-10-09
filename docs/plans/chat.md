@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 18
+**Estado:** en curso · Fase actual: 19
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -25,7 +25,8 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - Helpers globales de Pest ya ocupados (L-29): `asChannelReader`, `postingAs`, `insertSystemMessage`,
   `authorizeChannel`, `channelName`, `authorizePresence`, `noticeMessages`, `ingestNotice`, `listMembers`,
   `changeRole`, `memberWithRole`, `roleIn`, `removeMemberRequest`, `asUser`, `asGroupReader`, `invite`, `replyTo`,
-  `systemRootIn`, `mentionIn`, `mentionPost`, `mentionedIds`.
+  `systemRootIn`, `mentionIn`, `mentionPost`, `mentionedIds`,
+  `attachmentIn`.
 - Subidas: `api/docker/php/uploads.ini` y `api/docker/nginx/default.conf` limitan a 6 MB.
 
 ## Fases
@@ -116,7 +117,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 
 ### Adjuntos
 
-### [ ] Fase 18 — Esquema y configuración de adjuntos (api)
+### [x] Fase 18 — Esquema y configuración de adjuntos (api)
 - `config/chat.php` (disco, tamaño máximo, adjuntos por mensaje, vigencia de la URL). Tabla `message_attachments`
   (organization_id, channel_id, message_id nullable, uploaded_by, disk, path, original_name, mime, size,
   created_at), modelo, `database.md`.
@@ -211,8 +212,18 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - 2026-10-09 — `useMentionsStore().start/stop` vive en `AppLayout` (watch inmediato de `auth.user?.id` y
   `onBeforeUnmount`), no en la barra (se monta dos veces) ni en la vista. El límite `[límite: 5 archivos]` cuenta solo
   código, sin specs y con `en.json`/`es.json` como uno. Motivo: el contador vive siempre.
+- 2026-10-09 — `message_attachments` lleva `channel_id` y FK compuesta `message_attachments_message_fk`
+  `(channel_id, message_id)` a `messages(channel_id, id)` con cascade (un adjunto no cuelga de un mensaje de otro
+  canal); `uploaded_by` nullable con `nullOnDelete`. Config en `config/chat.php`, `chat.attachments.*`: `disk`
+  (`local`), `max_size_kb` (5120), `max_per_message` (10), `url_ttl_minutes` (60), `orphan_hours` (24). Las cascadas
+  borran filas, no archivos (ver M-4 y M-28).
 
 ## Notas para la próxima sesión
+- Fase 18 hecha: modelo `MessageAttachment` (`$guarded = ['*']`, solo `created_at`, `size` int), relación
+  `Message::attachments()`, índices `(message_id)` y parcial `message_attachments_orphans_index` (`created_at` WHERE
+  `message_id IS NULL`). Fase 19: tomar el disco de `config('chat.attachments.disk')`, validar en el controlador que
+  la organización del adjunto es la del canal, y crear `MessageAttachmentFactory` si ayuda a los tests. Si
+  `max_size_kb` sube por encima de ~6000, PHP (`uploads.ini`) rechaza antes que la validación.
 - Bloque de menciones terminado (fases 9 a 17). Fase 17: ruta `/mentions` (`MentionsView`), entrada con contador en
   `AppSidebar` (99+, texto `sr-only`, `aria-label` con la barra colapsada). Sin mirar en el navegador: fila en móvil y
   badge con la barra colapsada (L-22). Sigue el bloque de adjuntos (fase 18, API).
@@ -340,3 +351,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   hora relativa con el tiempo y marca leída también al abrir con clic central o en pestaña nueva (`auxclick`).
 - [ ] M-27 (media, sonnet): test intermitente de `LogView.spec` ("refreshes the project counts once, after 300 ms"):
   falla 1 de cada 3 a 6 corridas en HEAD; buscar el temporizador real que queda armado antes de `useFakeTimers` (L-30).
+- [ ] M-28 (media, sonnet): borrar los archivos del disco cuando la cascada borra filas de `message_attachments` por
+  borrado de canal o de mensaje (la fase 22 solo limpia huérfanos sin mensaje); se suma a M-4.
+- [ ] M-29 (baja, sonnet): documentar las variables `CHAT_ATTACHMENT*` en `api/.env.example`.

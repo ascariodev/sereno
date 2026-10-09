@@ -66,6 +66,11 @@ class Message extends Model
         return $this->hasMany(MessageMention::class);
     }
 
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(MessageAttachment::class);
+    }
+
     public function mentionedUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'message_mentions');
