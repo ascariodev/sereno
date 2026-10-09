@@ -13,7 +13,7 @@ import SystemNotice from './SystemNotice.vue'
 const props = defineProps<{
   channelId: number
   rootId: number
-  /** Root message; when omitted it is looked up in the channel store and the panel works without it. */
+  /** Root message; when omitted it is looked up in the channel store, then in the thread store (from the API). */
   root?: Message | null
   archived?: boolean
   ownUserId?: number
@@ -25,7 +25,10 @@ const thread = useThreadStore()
 const messages = useMessagesStore()
 
 const rootMessage = computed<Message | null>(
-  () => props.root ?? messages.messages.find((message) => message.id === props.rootId && message.channel_id === props.channelId) ?? null,
+  () =>
+    props.root ??
+    messages.messages.find((message) => message.id === props.rootId && message.channel_id === props.channelId) ??
+    (thread.root?.id === props.rootId && thread.root.channel_id === props.channelId ? thread.root : null),
 )
 const repliesCount = computed(() => Math.max(rootMessage.value?.replies_count ?? 0, thread.replies.length))
 const notFound = computed(() => thread.error?.status === 404)
@@ -63,7 +66,7 @@ function reload(): void {
       <SystemNotice v-if="rootMessage.kind === 'system'" :message="rootMessage" />
       <MessageItem v-else :message="rootMessage" :own-user-id="ownUserId" />
     </div>
-    <p v-else-if="!rootMessage && !notFound" class="thread-aside__root-missing" data-test="thread-root-unavailable">
+    <p v-else-if="!rootMessage && !notFound && !thread.loading" class="thread-aside__root-missing" data-test="thread-root-unavailable">
       {{ t('thread.rootUnavailable') }}
     </p>
     <p v-if="notFound" role="alert" class="thread-aside__error">{{ t('thread.notFound') }}</p>

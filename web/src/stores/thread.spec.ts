@@ -73,6 +73,32 @@ describe('thread store', () => {
     expect(ids(store.replies)).toEqual([12, 13, 14])
   })
 
+  it('keeps the root from meta.root and bumps its counters with new live replies only', async () => {
+    const root = { ...reply(10, null), replies_count: 2, last_reply_at: '2026-01-01T00:00:12Z' }
+    vi.spyOn(api, 'get').mockResolvedValue({ ...page([12, 11], null), meta: { next_cursor: null, root } } as never)
+    const store = useThreadStore()
+    await store.open(5, 10)
+    expect(store.root).toEqual(root)
+    expect(store.insert(reply(13))).toBe(true)
+    expect(store.insert(reply(13))).toBe(false)
+    expect(store.insert(reply(20, 99))).toBe(false)
+    expect(store.root?.replies_count).toBe(3)
+    expect(store.root?.last_reply_at).toBe('2026-01-01T00:00:13Z')
+    store.clear()
+    expect(store.root).toBeNull()
+  })
+
+  it('does not lower the root counters when catchUp brings an older count', async () => {
+    const root = { ...reply(10, null), replies_count: 1, last_reply_at: '2026-01-01T00:00:11Z' }
+    const get = vi.spyOn(api, 'get').mockResolvedValueOnce({ ...page([11], null), meta: { next_cursor: null, root } } as never)
+    const store = useThreadStore()
+    await store.open(5, 10)
+    store.insert(reply(12))
+    get.mockResolvedValueOnce({ ...page([12, 11], null), meta: { next_cursor: null, root: { ...root, body: 'edited' } } } as never)
+    await store.catchUp()
+    expect(store.root).toMatchObject({ body: 'edited', replies_count: 2, last_reply_at: '2026-01-01T00:00:12Z' })
+  })
+
   it('stores the error of a failed open', async () => {
     vi.spyOn(api, 'get').mockRejectedValue(new ApiError(404, 'nope'))
     const store = useThreadStore()

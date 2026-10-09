@@ -170,6 +170,34 @@ describe('ThreadAside', () => {
     expect(document.activeElement).toBe(input)
   })
 
+  it('falls back to the root from the replies API when the channel store lacks it', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({
+      ...page([message(11, { parent_id: 10 })]),
+      meta: { next_cursor: null, root: message(10, { body: 'old root', replies_count: 1 }) },
+    } as never)
+    const w = mountAside()
+    await flushPromises()
+    expect(w.get('[data-test="thread-root"]').text()).toContain('old root')
+    expect(w.find('[data-test="thread-root-unavailable"]').exists()).toBe(false)
+    useThreadStore().insert(message(12, { parent_id: 10 }))
+    await flushPromises()
+    expect(w.get('[data-test="thread-count"]').text()).toBe('2 replies')
+  })
+
+  it('prefers the root of the channel store over the one from the replies API', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ ...page([]), meta: { next_cursor: null, root: message(10, { body: 'from api' }) } } as never)
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useMessagesStore().$patch((state) => {
+      state.channelId = 7
+      state.messages = [message(10, { body: 'from channel', replies_count: 4 })]
+    })
+    wrapper = mount(ThreadAside, { props: { channelId: 7, rootId: 10 }, global: { plugins: [pinia, i18n] } })
+    await flushPromises()
+    expect(wrapper.get('[data-test="thread-root"]').text()).toContain('from channel')
+    expect(wrapper.get('[data-test="thread-count"]').text()).toBe('4 replies')
+  })
+
   it('shows a discreet note when the root is missing', async () => {
     const w = mountAside()
     await flushPromises()

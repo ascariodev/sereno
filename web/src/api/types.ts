@@ -214,4 +214,9 @@ export interface CursorPage<T> {
   meta: { next_cursor: string | null; [key: string]: unknown }
 }
 
+/** Page of `GET .../messages/{id}/replies`; `meta.root` is the thread root on every page. */
+export interface RepliesPage extends CursorPage<Message> {
+  meta: { next_cursor: string | null; root: Message }
+}
+
 export type FieldErrors = Record<string, string[]>

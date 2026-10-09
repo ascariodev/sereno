@@ -110,3 +110,50 @@ it('reads the replies of an archived channel as a plain member', function () {
         ->assertOk()
         ->assertJsonCount(1, 'data');
 });
+
+it('carries the root with its author, mentions and attachments in meta.root on every page', function () {
+    $ana = User::factory()->create(['name' => 'Ana']);
+    $this->organization->addMember($ana, [Role::Member]);
+    $root = threadMessageIn($this->channel, body: "hi <@{$ana->id}>");
+    DB::table('messages')->where('id', $root)->update(['user_id' => $this->member->id, 'replies_count' => 3]);
+    DB::table('message_mentions')->insert(['organization_id' => $this->organization->id, 'message_id' => $root, 'user_id' => $ana->id]);
+    DB::table('message_attachments')->insert([
+        'organization_id' => $this->organization->id, 'channel_id' => $this->channel->id, 'message_id' => $root,
+        'uploaded_by' => $this->member->id, 'disk' => 'local', 'path' => 'chat/root', 'original_name' => 'root.pdf',
+        'mime' => 'application/pdf', 'size' => 10,
+    ]);
+    collect(range(1, 3))->each(fn ($i) => threadMessageIn($this->channel, $root, "r{$i}"));
+
+    $page = listRepliesAs($this->member, $this->organization, $this->channel, $root, '?per_page=2')
+        ->assertOk()
+        ->assertJsonPath('meta.root.id', $root)
+        ->assertJsonPath('meta.root.parent_id', null)
+        ->assertJsonPath('meta.root.replies_count', 3)
+        ->assertJsonPath('meta.root.user', ['id' => $this->member->id, 'name' => $this->member->name])
+        ->assertJsonPath('meta.root.mentions', [['id' => $ana->id, 'name' => 'Ana']])
+        ->assertJsonPath('meta.root.attachments.0.original_name', 'root.pdf');
+    expect($page->json('meta.root.attachments.0.url'))->toBeString();
+
+    listRepliesAs($this->member, $this->organization, $this->channel, $root, '?per_page=2&cursor='.urlencode($page->json('meta.next_cursor')))
+        ->assertOk()
+        ->assertJsonPath('meta.root.id', $root);
+});
+
+it('loads the root and the replies without extra queries per reply', function () {
+    $root = threadMessageIn($this->channel);
+    threadMessageIn($this->channel, $root);
+    $count = function () use ($root) {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        listRepliesAs($this->member, $this->organization, $this->channel, $root)->assertOk();
+        DB::disableQueryLog();
+
+        return count(DB::getQueryLog());
+    };
+    $count();
+    $few = $count();
+
+    collect(range(1, 4))->each(fn () => threadMessageIn($this->channel, $root));
+
+    expect($count())->toBe($few);
+});

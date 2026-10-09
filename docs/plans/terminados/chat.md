@@ -262,6 +262,10 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `chat:prune-attachments` al barrer archivos sin fila con más de `orphan_hours`; hoy no hay ningún camino del API que
   borre organizaciones, canales o mensajes. Cuando exista uno, conviene además borrar `chat/{org}` o
   `chat/{org}/{canal}` tras el commit para que sea inmediato.
+- 2026-10-09 — (M-15, reemplaza "sin raíz cargada el panel muestra solo las respuestas") `replies` agrega
+  `meta.root` (MessageResource de la raíz) en todas las páginas; `useThreadStore().root` la guarda como respaldo
+  (contadores que no retroceden, se vacía en `clear`) y `ThreadAside` busca la raíz en la prop, luego en el store del
+  canal y por último en `thread.root`.
 
 ## Notas para la próxima sesión
 - Plan terminado (26 fases). Suites completas: API 672 tests, web 853. Paso 6 marcado como hecho en `CLAUDE.md`.
@@ -408,7 +412,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   siempre las respuestas al cargar en vez de confiar en el orden del API.
 - [x] M-14 (baja, sonnet): `ThreadAside`: ocultar la raíz si `open` da 404, re-enfocar el panel al cambiar de hilo
   sin desmontar, y usar `thread.rootUnavailable` cuando falte la raíz (o quitar la clave).
-- [ ] M-15 (media, sonnet): mostrar la raíz de un hilo abierto por URL aunque no esté en la página cargada del canal
+- [x] M-15 (media, sonnet): mostrar la raíz de un hilo abierto por URL aunque no esté en la página cargada del canal
   (incluirla en la respuesta de `replies` o un endpoint de un mensaje); sirve también para abrir menciones (fase 17).
 - [x] M-16 (baja, sonnet): tests de `ChannelView` para `thread.clear()` en `onUnmounted`, la baja del listener de
   `matchMedia` y el paso de estrecho a ancho con un hilo abierto (hoy se remonta y pierde el borrador).
@@ -473,3 +477,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-42 (baja, sonnet): el `SELECT ... FOR UPDATE` de `linkAttachments` filtra también por `channel_id` y
   `uploaded_by` (hoy ids ajenos bloquean filas de otro autor durante la transacción), quitar el `sort($ids)` que sobra,
   y test de que borrar un adjunto pendiente no encola el chequeo.
+- [ ] M-43 (baja, sonnet): en `stores/thread.ts`, comparar `last_reply_at` con `Date.parse` como `stores/messages.ts`
+  y un helper común para "fecha mayor"; spec de `ThreadAside` que fije que no se muestra `thread-root-unavailable`
+  mientras carga.

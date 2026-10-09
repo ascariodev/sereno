@@ -38,14 +38,18 @@ class MessageController extends Controller
     {
         abort_unless($message->channel_id === $channel->id && $message->parent_id === null, 404);
 
-        return MessageResource::collection(
-            $channel->messages()
-                ->where('parent_id', $message->id)
-                ->with(self::RELATIONS)
-                ->orderByDesc('id')
-                ->cursorPaginate($request->perPage())
-                ->withQueryString(),
-        );
+        $page = $channel->messages()
+            ->where('parent_id', $message->id)
+            ->orderByDesc('id')
+            ->cursorPaginate($request->perPage())
+            ->withQueryString();
+
+        // The root rides along in meta.root (threads opened outside the loaded channel page);
+        // loading it together with the replies keeps one query per relation.
+        (new Collection([...$page->items(), $message]))->load(self::RELATIONS);
+
+        return MessageResource::collection($page)
+            ->additional(['meta' => ['root' => (new MessageResource($message))->resolve($request)]]);
     }
 
     public function store(StoreMessageRequest $request, Channel $channel): MessageResource

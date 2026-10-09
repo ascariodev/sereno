@@ -1,12 +1,12 @@
 import { api } from './client'
-import type { CursorPage, DataEnvelope, Message } from './types'
+import type { DataEnvelope, Message, RepliesPage } from './types'
 
 export function listReplies(
   channelId: number,
   messageId: number,
   params: { cursor?: string | null; perPage?: number } = {},
   signal?: AbortSignal,
-): Promise<CursorPage<Message>> {
+): Promise<RepliesPage> {
   return api.get(`/api/channels/${channelId}/messages/${messageId}/replies`, {
     query: { per_page: params.perPage, cursor: params.cursor ?? undefined },
     signal,

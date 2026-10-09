@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import { ApiError } from '../api/client'
 import { listReplies, sendReply } from '../api/messages'
-import type { CursorPage, Message } from '../api/types'
+import type { Message, RepliesPage } from '../api/types'
 import { CATCH_UP_MAX_PAGES, MESSAGES_PER_PAGE, useMessagesStore } from './messages'
 
 function toApiError(caught: unknown): ApiError {
@@ -17,10 +17,20 @@ function withReplies(current: readonly Message[], incoming: readonly Message[]):
   return [...current, ...added].sort((a, b) => a.id - b.id)
 }
 
+/** Takes the root from a page without lowering the counters already bumped by live replies. */
+function withRoot(current: Message | null, incoming: Message | undefined): Message | null {
+  if (!incoming) return current
+  if (current === null || current.id !== incoming.id) return incoming
+  const last = [current.last_reply_at, incoming.last_reply_at].filter((at): at is string => at !== null).sort().pop() ?? null
+  return { ...incoming, replies_count: Math.max(current.replies_count, incoming.replies_count), last_reply_at: last }
+}
+
 export const useThreadStore = defineStore('thread', () => {
   const channelId = ref<number | null>(null)
   const rootId = ref<number | null>(null)
   const replies = shallowRef<Message[]>([])
+  /** Root from the replies API, a fallback for roots outside the loaded channel page. */
+  const threadRoot = shallowRef<Message | null>(null)
   const nextCursor = ref<string | null>(null)
   const loading = ref(false)
   const loadingMore = ref(false)
@@ -39,6 +49,7 @@ export const useThreadStore = defineStore('thread', () => {
     openFailed = false
     channelId.value = null
     rootId.value = null
+    threadRoot.value = null
     replies.value = []
     nextCursor.value = null
     loading.value = false
@@ -51,6 +62,14 @@ export const useThreadStore = defineStore('thread', () => {
     const next = withReplies(replies.value, [message])
     if (next === replies.value) return false
     replies.value = next
+    if (threadRoot.value !== null) {
+      const at = threadRoot.value.last_reply_at
+      threadRoot.value = {
+        ...threadRoot.value,
+        replies_count: threadRoot.value.replies_count + 1,
+        last_reply_at: at !== null && at > message.created_at ? at : message.created_at,
+      }
+    }
     return true
   }
 
@@ -59,6 +78,7 @@ export const useThreadStore = defineStore('thread', () => {
       const page = await listReplies(channel, root, { perPage: MESSAGES_PER_PAGE }, controller.signal)
       if (current !== generation) return
       replies.value = withReplies(page.data.slice().sort((a, b) => a.id - b.id), replies.value)
+      threadRoot.value = withRoot(threadRoot.value, page.meta.root)
       nextCursor.value = page.meta.next_cursor
     } catch (caught) {
       if (current !== generation) return
@@ -94,6 +114,7 @@ export const useThreadStore = defineStore('thread', () => {
       )
       if (current !== generation || version !== listVersion) return
       replies.value = withReplies(replies.value, page.data)
+      threadRoot.value = withRoot(threadRoot.value, page.meta.root)
       nextCursor.value = page.meta.next_cursor
     } catch (caught) {
       if (current !== generation || version !== listVersion) return
@@ -113,12 +134,12 @@ export const useThreadStore = defineStore('thread', () => {
     const root = rootId.value as number
     const lastLoadedId = replies.value.length > 0 ? replies.value[replies.value.length - 1].id : null
     const fetched: Message[] = []
-    let newest: CursorPage<Message> | null = null
+    let newest: RepliesPage | null = null
     let joined = false
     try {
       let cursor: string | null = null
       for (let pages = 0; pages < CATCH_UP_MAX_PAGES && !joined; pages++) {
-        const page: CursorPage<Message> = await listReplies(
+        const page: RepliesPage = await listReplies(
           channel,
           root,
           { perPage: MESSAGES_PER_PAGE, cursor },
@@ -133,6 +154,7 @@ export const useThreadStore = defineStore('thread', () => {
     } catch {
       return
     }
+    threadRoot.value = withRoot(threadRoot.value, newest?.meta.root)
     if (joined || newest === null) {
       replies.value = withReplies(replies.value, fetched)
       return
@@ -155,5 +177,5 @@ export const useThreadStore = defineStore('thread', () => {
     insert(reply)
   }
 
-  return { channelId, rootId, replies, nextCursor, loading, loadingMore, error, open, loadOlder, insert, catchUp, send, clear }
+  return { channelId, rootId, root: threadRoot, replies, nextCursor, loading, loadingMore, error, open, loadOlder, insert, catchUp, send, clear }
 })
