@@ -196,7 +196,7 @@ export function subscribeToChannel(
       })
       return
     }
-    if (data.message === undefined) return
+    if (typeof data.message?.id !== 'number' || typeof data.message.channel_id !== 'number') return
     if (event === MESSAGE_UPDATED_EVENT) onUpdated(data.message)
     else onCreated(data.message)
   })

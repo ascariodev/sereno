@@ -35,7 +35,7 @@ describe('realtime', () => {
     const leave = subscribeToChannel(3, 7, { onCreated: (message) => received.push(message) })
 
     expect(client.private).toHaveBeenCalledWith('organizations.3.channels.7')
-    listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 9 } as Message })
+    listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 9, channel_id: 7 } as Message })
     expect(received.map((message) => message.id)).toEqual([9])
 
     leave()
@@ -56,7 +56,11 @@ describe('realtime', () => {
     const emit = (event: string, data: object) => listeners.get(`organizations.3.channels.7|${event}`)?.(data)
     const root = { id: 4, replies_count: 1, last_reply_at: null }
 
-    emit(MESSAGE_UPDATED_EVENT, { message: { id: 9 } })
+    emit(MESSAGE_UPDATED_EVENT, { message: { id: 9, channel_id: 7 } })
+    emit(MESSAGE_UPDATED_EVENT, { message: { id: 10 } })
+    emit(MESSAGE_UPDATED_EVENT, { message: { channel_id: 7 } })
+    emit(MESSAGE_CREATED_EVENT, { message: { id: '11', channel_id: 7 } })
+    emit(MESSAGE_CREATED_EVENT, { message: { id: 11, channel_id: '7' } })
     emit(MESSAGE_DELETED_EVENT, { id: 5, channel_id: 7, parent_id: 4, deleted_at: '2026-10-09T10:00:00Z', root })
     emit(MESSAGE_DELETED_EVENT, { id: 5, channel_id: 7 })
 
@@ -73,7 +77,7 @@ describe('realtime', () => {
     const leaveFirst = subscribeToChannel(3, 7, { onCreated: (message) => first.push(message.id) })
     const leaveSecond = subscribeToChannel(3, 7, { onCreated: (message) => second.push(message.id) })
     const emit = (id: number) =>
-      listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id } as Message })
+      listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id, channel_id: 7 } as Message })
 
     emit(1)
     leaveFirst()
@@ -100,7 +104,7 @@ describe('realtime', () => {
     subscribeToChannel(3, 7, { onCreated: (message) => received.push(message.id) })
     const deferred: Array<() => void> = []
     const spy = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation((task) => void deferred.push(task))
-    listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 5 } as Message })
+    listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 5, channel_id: 7 } as Message })
     spy.mockRestore()
     expect(received).toEqual([5])
     expect(deferred).toHaveLength(1)
@@ -119,7 +123,7 @@ describe('realtime', () => {
     expect(second.client.private).toHaveBeenCalledWith('organizations.3.channels.7')
 
     leaveOld()
-    second.listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 8 } as Message })
+    second.listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 8, channel_id: 7 } as Message })
     expect(received).toEqual([8])
     expect(second.client.leave).not.toHaveBeenCalled()
     leaveNew()
@@ -284,8 +288,8 @@ describe('realtime', () => {
     expect(client.leave).toHaveBeenCalledTimes(2)
     expect(client.leave).toHaveBeenCalledWith('organizations.3.channels.7')
     expect(client.leave).toHaveBeenCalledWith('organizations.3.channels.8')
-    listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 1 } as Message })
-    listeners.get(`organizations.30.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 2 } as Message })
+    listeners.get(`organizations.3.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 1, channel_id: 7 } as Message })
+    listeners.get(`organizations.30.channels.7|${MESSAGE_CREATED_EVENT}`)?.({ message: { id: 2, channel_id: 7 } as Message })
     expect(dropped).toEqual([])
     expect(kept).toEqual([2])
 
