@@ -98,3 +98,13 @@ it('isolates organizations and requires authentication', function () {
         ->getJson("/api/channels/{$this->channel->id}/messages/{$root}/replies")
         ->assertUnauthorized();
 });
+
+it('reads the replies of an archived channel as a plain member', function () {
+    $root = threadMessageIn($this->channel);
+    threadMessageIn($this->channel, $root);
+    $this->channel->update(['archived_at' => now()]);
+
+    listRepliesAs($this->member, $this->organization, $this->channel, $root)
+        ->assertOk()
+        ->assertJsonCount(1, 'data');
+});
