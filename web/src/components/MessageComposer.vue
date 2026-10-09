@@ -1,16 +1,22 @@
 <script setup lang="ts">
-import { AtSign, SendHorizontal } from '@lucide/vue'
+import { AtSign, Paperclip, SendHorizontal, X } from '@lucide/vue'
 import { computed, nextTick, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
+import { useAttachmentUploads } from '../composables/useAttachmentUploads'
 import { useMentionInput } from '../composables/useMentionInput'
+import { formatFileSize } from '../formatFileSize'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useMessagesStore } from '../stores/messages'
 
 const MAX_LENGTH = 4000
 
-const props = defineProps<{ send?: (body: string) => Promise<void>; placeholder?: string }>()
+const props = defineProps<{
+  send?: (body: string, attachmentIds: number[]) => Promise<void>
+  placeholder?: string
+  channelId?: number
+}>()
 
 const { t } = useI18n()
 const hintId = useId()
@@ -22,6 +28,8 @@ const field = ref<HTMLTextAreaElement | null>(null)
 const sending = ref(false)
 const errorText = ref<string | null>(null)
 const activeIndex = ref(0)
+const picker = ref<HTMLInputElement | null>(null)
+const uploads = useAttachmentUploads(() => props.channelId ?? messages.channelId ?? 0)
 
 const mention = useMentionInput({
   members: () => directory.members,
@@ -30,7 +38,13 @@ const mention = useMentionInput({
 
 const open = computed(() => mention.suggestions.value.length > 0)
 const tooLong = computed(() => mention.length.value > MAX_LENGTH)
-const canSend = computed(() => !sending.value && !tooLong.value && mention.serialized.value.trim() !== '')
+const canSend = computed(
+  () =>
+    !sending.value &&
+    !uploads.busy.value &&
+    !tooLong.value &&
+    (mention.serialized.value.trim() !== '' || uploads.attachmentIds.value.length > 0),
+)
 
 function optionId(index: number): string {
   return `${listId}-${index}`
@@ -78,15 +92,55 @@ function insertTrigger(): void {
   void directory.ensureLoaded()
 }
 
+function errorId(key: number): string {
+  return `${listId}-error-${key}`
+}
+
+function pickFiles(): void {
+  picker.value?.click()
+}
+
+function onPicked(event: Event): void {
+  const input = event.target as HTMLInputElement
+  const chosen = Array.from(input.files ?? [])
+  input.value = ''
+  uploads.add(chosen)
+}
+
+function onPaste(event: ClipboardEvent): void {
+  const pasted = Array.from(event.clipboardData?.files ?? [])
+  if (pasted.length === 0) return
+  event.preventDefault()
+  uploads.add(pasted)
+}
+
+function hasFiles(event: DragEvent): boolean {
+  return Array.from(event.dataTransfer?.types ?? []).includes('Files')
+}
+
+function onDragOver(event: DragEvent): void {
+  if (hasFiles(event)) event.preventDefault()
+}
+
+function onDrop(event: DragEvent): void {
+  if (!hasFiles(event)) return
+  event.preventDefault()
+  uploads.add(Array.from(event.dataTransfer?.files ?? []))
+}
+
 async function submit(): Promise<void> {
   if (!canSend.value) return
   sending.value = true
   errorText.value = null
   const sentText = mention.text.value
   const sentBody = mention.serialized.value
+  const sentIds = [...uploads.attachmentIds.value]
   try {
-    await (props.send ?? messages.send)(sentBody)
+    await (props.send ?? messages.send)(sentBody, sentIds)
     if (mention.text.value === sentText) mention.reset()
+    for (const item of [...uploads.items.value]) {
+      if (item.attachment && sentIds.includes(item.attachment.id)) uploads.remove(item.key)
+    }
   } catch (caught) {
     if (caught instanceof ApiError && caught.status === 422) {
       errorText.value = caught.errors?.body?.[0] ?? caught.message
@@ -129,7 +183,7 @@ function onKeydown(event: KeyboardEvent): void {
 
 <template>
   <form class="composer" @submit.prevent="submit">
-    <div class="composer-box">
+    <div class="composer-box" @dragover="onDragOver" @drop="onDrop">
       <textarea
         ref="field"
         :value="mention.text.value"
@@ -149,7 +203,44 @@ function onKeydown(event: KeyboardEvent): void {
         @keyup="syncCaret"
         @click="syncCaret"
         @blur="mention.moveCaret(null)"
+        @paste="onPaste"
       />
+      <ul v-if="uploads.items.value.length > 0" class="composer-files" :aria-label="t('attachments.list')">
+        <li v-for="item in uploads.items.value" :key="item.key" class="composer-file" :data-status="item.status">
+          <span class="composer-file-name">{{ item.name }}</span>
+          <span class="composer-file-size">{{ formatFileSize(item.size) }}</span>
+          <span v-if="item.status === 'uploading'" class="composer-file-state" role="status">
+            {{ t('attachments.uploading') }}
+          </span>
+          <span v-else-if="item.status === 'error'" :id="errorId(item.key)" class="composer-file-error" role="alert">
+            {{ item.error }}
+          </span>
+          <button
+            v-if="item.status === 'error' && item.retryable"
+            type="button"
+            name="retry-attachment"
+            :aria-label="t('attachments.retryFile', { name: item.name })"
+            class="composer-file-action"
+            :aria-describedby="errorId(item.key)"
+            @click="uploads.retry(item.key)"
+          >
+            {{ t('attachments.retry') }}
+          </button>
+          <button
+            type="button"
+            :name="item.status === 'uploading' ? 'cancel-attachment' : 'remove-attachment'"
+            class="composer-file-action composer-file-remove"
+            :aria-label="
+              item.status === 'uploading'
+                ? t('attachments.cancelFile', { name: item.name })
+                : t('attachments.removeFile', { name: item.name })
+            "
+            @click="uploads.remove(item.key)"
+          >
+            <X :size="14" :stroke-width="2" aria-hidden="true" />
+          </button>
+        </li>
+      </ul>
       <ul v-show="open" :id="listId" role="listbox" class="composer-suggestions" :aria-label="t('channel.composer.suggestions')">
         <li
           v-for="(member, index) in mention.suggestions.value"
@@ -170,6 +261,16 @@ function onKeydown(event: KeyboardEvent): void {
         {{ t('channel.composer.suggestionsCount', { n: mention.suggestions.value.length }) }}
       </span>
       <div class="composer-bar">
+        <input ref="picker" type="file" name="attachments" multiple hidden tabindex="-1" @change="onPicked" />
+        <button
+          type="button"
+          name="attach"
+          class="composer-tool"
+          :aria-label="t('attachments.attach')"
+          @click="pickFiles"
+        >
+          <Paperclip :size="17" :stroke-width="1.8" aria-hidden="true" />
+        </button>
         <button
           type="button"
           name="mention"
@@ -319,6 +420,73 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 .composer-tool:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
+.composer-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.composer-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 8px;
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.composer-file[data-status='error'] {
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.composer-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-file-size,
+.composer-file-state {
+  font-size: 12px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.composer-file-error {
+  flex: 1;
+  font-size: 12px;
+  color: var(--level-error-fg);
+}
+
+.composer-file-action {
+  border: 0;
+  background: transparent;
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-control);
+}
+
+.composer-file-remove {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+
+.composer-file-action:focus-visible {
   outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
 }

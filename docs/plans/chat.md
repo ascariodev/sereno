@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 25
+**Estado:** en curso · Fase actual: 26
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -145,7 +145,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - Composable `useAttachmentUploads` (subir, cancelar con `AbortController`, quitar, errores, ids listos) e i18n de
   adjuntos.
 
-### [ ] Fase 25 — Adjuntar desde el composer (web)
+### [x] Fase 25 — Adjuntar desde el composer (web)
 - Botón "Adjuntar", lista de pendientes en el composer, `send` del canal y del hilo con `attachment_ids`.
 
 ### [ ] Fase 26 — Mostrar los adjuntos de un mensaje (web)
@@ -248,8 +248,16 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - 2026-10-09 — Límites de adjuntos en la web como constantes de `config.ts` (`ATTACHMENT_MAX_SIZE_BYTES` 5120 KB,
   `ATTACHMENT_MAX_PER_MESSAGE` 10), espejo de `config/chat.php` porque el API no los expone: si cambian allí, cambiar
   aquí. Un archivo rechazado en el cliente entra como item en error no reintentable y no ocupa cupo.
+- 2026-10-09 — La prop `send` de `MessageComposer` pasa a `(body, attachmentIds)` y suma `channelId?` (por defecto
+  el del store del canal). Tras un envío con éxito se quitan solo los adjuntos enviados (no `reset()` completo), para
+  no perder uno añadido durante el envío. Con body vacío se envía `body: ''` (el API lo vuelve null).
 
 ## Notas para la próxima sesión
+- Fase 25 hecha: botón Adjuntar, lista de pendientes, arrastrar y soltar y pegar archivos en el composer;
+  `messages.send(body, attachmentIds = [])` y `thread.send(body, attachmentIds = [])`. Sin mirar en el navegador:
+  la lista en `composer-box`, en el hilo y en la hoja móvil, y el estado del drop. Fase 26: mostrar
+  `message.attachments` (con `url` firmada, `formatFileSize`, `attachments.download`, `attachments.previewUnavailable`)
+  y al terminar marcar el paso 6 en `CLAUDE.md`.
 - Fase 24 hecha: `useAttachmentUploads(channelId: () => number, {maxFiles?, maxBytes?})` con `items`
   (`key`, `name`, `size`, `status` 'uploading'|'ready'|'error', `attachment`, `error`, `retryable`), `attachments`,
   `attachmentIds`, `busy`, `full`, `add(files)`, `retry(key)`, `remove(key)`/`cancel(key)`, `reset()`; se reinicia
@@ -427,3 +435,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `allFiles('chat')` entero, y su mensaje de error pasa por `__()`.
 - [ ] M-34 (baja, sonnet): `useAttachmentUploads`: solo red, 429 y 5xx reintentables (403, 404 y 413 no); `watch` del
   canal con `flush: 'sync'`; test explícito del 429; `formatFileSize` sin "1,024 KB" por redondeo.
+- [ ] M-35 (baja, sonnet): composer de adjuntos: una sola región viva para los estados de subida (hoy un
+  `role=status`/`alert` por item, ruidoso con varios archivos y sin el nombre en "Subiendo..."), y quitar los items en
+  error tras un envío con éxito.

@@ -211,6 +211,16 @@ describe('messages store', () => {
     expect(store.messages.map((m) => m.id)).toEqual([1, 2])
   })
 
+  it('sends attachment ids, with an empty body', async () => {
+    const store = useMessagesStore()
+    vi.spyOn(api, 'get').mockResolvedValueOnce(page([1], null) as never)
+    await store.open(5)
+    const post = vi.spyOn(api, 'post').mockResolvedValueOnce({ data: message(2) } as never)
+    await store.send('', [4, 5])
+    expect(post).toHaveBeenCalledWith('/api/channels/5/messages', { body: '', attachment_ids: [4, 5] })
+    expect(store.messages.map((m) => m.id)).toEqual([1, 2])
+  })
+
   it('schedules a new flush after clear with an insert still queued', async () => {
     const store = useMessagesStore()
     vi.spyOn(api, 'get').mockResolvedValue(page([1], null) as never)

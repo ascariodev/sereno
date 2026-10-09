@@ -162,6 +162,15 @@ describe('thread store', () => {
       expect(messages.messages[0].replies_count).toBe(1)
     })
 
+    it('sends attachment ids with an empty body', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([], null) as never)
+      const post = vi.spyOn(api, 'post').mockResolvedValue({ data: reply(12) } as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      await store.send('', [4])
+      expect(post).toHaveBeenCalledWith('/api/channels/5/messages', { body: '', parent_id: 10, attachment_ids: [4] })
+    })
+
     it('does not add a sent reply to a thread cleared or replaced meanwhile', async () => {
       vi.spyOn(api, 'get').mockResolvedValue(page([], null) as never)
       const store = useThreadStore()

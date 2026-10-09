@@ -224,6 +224,7 @@
     "cancel": "Cancelar",
     "cancelFile": "Cancelar la subida de {name}",
     "retry": "Reintentar",
+    "retryFile": "Reintentar {name}",
     "uploading": "Subiendo...",
     "ready": "Listo",
     "list": "Archivos adjuntos",

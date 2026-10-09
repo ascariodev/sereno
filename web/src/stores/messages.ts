@@ -212,11 +212,14 @@ export const useMessagesStore = defineStore('messages', () => {
     }
   }
 
-  async function send(body: string): Promise<void> {
+  async function send(body: string, attachmentIds: number[] = []): Promise<void> {
     if (channelId.value === null) return
     const current = generation
     const id = channelId.value
-    const response = await api.post<{ data: Message }>(`/api/channels/${id}/messages`, { body })
+    const response = await api.post<{ data: Message }>(`/api/channels/${id}/messages`, {
+      body,
+      ...(attachmentIds.length > 0 ? { attachment_ids: attachmentIds } : {}),
+    })
     if (current !== generation) return
     insert(response.data)
     flush()

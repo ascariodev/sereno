@@ -224,6 +224,7 @@
     "cancel": "Cancel",
     "cancelFile": "Cancel the upload of {name}",
     "retry": "Retry",
+    "retryFile": "Retry {name}",
     "uploading": "Uploading...",
     "ready": "Ready",
     "list": "Attached files",

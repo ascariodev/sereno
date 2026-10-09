@@ -146,10 +146,10 @@ export const useThreadStore = defineStore('thread', () => {
   }
 
   /** Sends a reply to the open thread; API errors propagate to the composer. */
-  async function send(body: string): Promise<void> {
+  async function send(body: string, attachmentIds: number[] = []): Promise<void> {
     if (channelId.value === null || rootId.value === null) return
     const current = generation
-    const reply = await sendReply(channelId.value, rootId.value, body)
+    const reply = await sendReply(channelId.value, rootId.value, body, attachmentIds)
     useMessagesStore().insert(reply)
     if (current !== generation) return
     insert(reply)
