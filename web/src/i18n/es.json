@@ -192,6 +192,11 @@
     "healthOpen": "{n} abierto | {n} abiertos",
     "healthCalm": "Todo en calma"
   },
+  "message": {
+    "edited": "(editado)",
+    "editedAt": "Editado {date}",
+    "deleted": "Mensaje eliminado"
+  },
   "channel": {
     "title": "Canal",
     "empty": "Aún no hay mensajes.",

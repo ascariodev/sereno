@@ -46,6 +46,41 @@ describe('MessageItem', () => {
     expect(time.get('[aria-hidden=true]').text()).not.toContain('2026')
   })
 
+  it('shows (edited) only when edited, with the edit date in its tooltip', () => {
+    expect(render().find('[data-test="edited"]').exists()).toBe(false)
+    const w = mount(MessageItem, {
+      props: { message: { ...message, edited_at: '2026-03-04T11:00:00Z' } },
+      global: { plugins: [i18n] },
+    })
+    const edited = w.get('[data-test="edited"]')
+    expect(edited.get('[aria-hidden=true]').text()).toBe('(edited)')
+    expect(edited.get('.sr-only').text()).toContain('Edited')
+    expect(edited.get('.sr-only').text()).toContain('2026')
+  })
+
+  it('shows the deleted marker without body, attachments or edited label, keeping the thread summary', () => {
+    const w = mount(MessageItem, {
+      props: {
+        threadable: true,
+        message: {
+          ...message,
+          body: null,
+          deleted_at: '2026-03-04T12:00:00Z',
+          edited_at: '2026-03-04T11:00:00Z',
+          replies_count: 2,
+          last_reply_at: '2026-03-04T11:30:00Z',
+          attachments: [{ id: 5, original_name: 'a.pdf', mime: 'application/pdf', size: 10, created_at: message.created_at, url: 'http://api/a' }],
+        },
+      },
+      global: { plugins: [i18n] },
+    })
+    expect(w.get('[data-test="deleted"]').text()).toBe('Message deleted')
+    expect(w.find('.message-item__body').exists()).toBe(false)
+    expect(w.find('[data-test="edited"]').exists()).toBe(false)
+    expect(w.text()).not.toContain('a.pdf')
+    expect(w.text()).toMatch(/2/)
+  })
+
   it('renders attachments and skips the empty body paragraph', () => {
     const w = mount(MessageItem, {
       props: {

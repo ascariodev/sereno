@@ -101,6 +101,16 @@ describe('MentionsView', () => {
     expect(link.attributes('href')).toBe('/channels/4')
   })
 
+  it('shows the deleted marker instead of the body of a deleted message', async () => {
+    const base = mention(1)
+    vi.spyOn(mentionsApi, 'listMentions').mockResolvedValue(
+      page([{ ...base, message: { ...base.message, body: null, deleted_at: '2026-03-04T12:00:00Z' } }], 1),
+    )
+    const { wrapper } = await mountView()
+    const link = wrapper.get('a.mention')
+    expect(wrapper.find(`#${link.attributes('aria-describedby')}`).text()).toContain('Message deleted')
+  })
+
   it('shows the attachment count inside the link description, without extra links', async () => {
     const files = [1, 2].map((id) => ({ id, name: `f${id}.png`, mime_type: 'image/png', size: 10, url: '/x' }))
     const base = mention(1)

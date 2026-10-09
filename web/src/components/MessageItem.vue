@@ -17,6 +17,12 @@ const author = computed(() => props.message.user?.name ?? t('channel.unknownUser
 const date = computed(() => new Date(props.message.created_at))
 const shortTime = computed(() => date.value.toLocaleTimeString(locale.value, { timeStyle: 'short' }))
 const fullDate = computed(() => date.value.toLocaleString(locale.value, { dateStyle: 'full', timeStyle: 'medium' }))
+const deleted = computed(() => props.message.deleted_at !== null)
+const editedDate = computed(() =>
+  props.message.edited_at === null
+    ? ''
+    : new Date(props.message.edited_at).toLocaleString(locale.value, { dateStyle: 'full', timeStyle: 'medium' }),
+)
 </script>
 
 <template>
@@ -31,9 +37,15 @@ const fullDate = computed(() => date.value.toLocaleString(locale.value, { dateSt
             <span class="sr-only">{{ fullDate }}</span>
           </time>
         </AppTooltip>
+        <AppTooltip v-if="!deleted && message.edited_at" :text="t('message.editedAt', { date: editedDate })">
+          <span class="message-item__edited" data-test="edited"><span aria-hidden="true">{{ t('message.edited') }}</span><span class="sr-only">{{ t('message.editedAt', { date: editedDate }) }}</span></span>
+        </AppTooltip>
       </p>
-      <p v-if="message.body" class="message-item__body"><MessageBody :body="message.body" :mentions="message.mentions" :own-user-id="ownUserId" /></p>
-      <MessageAttachments :attachments="message.attachments" />
+      <p v-if="deleted" class="message-item__deleted" data-test="deleted">{{ t('message.deleted') }}</p>
+      <template v-else>
+        <p v-if="message.body" class="message-item__body"><MessageBody :body="message.body" :mentions="message.mentions" :own-user-id="ownUserId" /></p>
+        <MessageAttachments :attachments="message.attachments" />
+      </template>
       <ThreadSummary v-if="threadable && message.parent_id === null" :message="message" @open="emit('openThread', $event)" />
     </div>
   </article>
@@ -70,6 +82,17 @@ const fullDate = computed(() => date.value.toLocaleString(locale.value, { dateSt
   position: relative;
   font-size: 12px;
   color: var(--ink-3);
+}
+
+.message-item__edited {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.message-item__deleted {
+  margin: 2px 0 0;
+  color: var(--ink-3);
+  font-style: italic;
 }
 
 .message-item__body {

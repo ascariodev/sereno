@@ -100,8 +100,9 @@ onMounted(() => {
                 {{ title(mention) }}
               </span>
               <span :id="`mention-${mention.id}-body`" class="mention__body">
-                <MessageBody :body="mention.message.body" :mentions="mention.message.mentions" :own-user-id="auth.user?.id" />
-                <span v-if="mention.message.attachments.length > 0" class="mention__files">
+                <em v-if="mention.message.deleted_at" class="mention__deleted">{{ t('message.deleted') }}</em>
+                <MessageBody v-else :body="mention.message.body" :mentions="mention.message.mentions" :own-user-id="auth.user?.id" />
+                <span v-if="!mention.message.deleted_at && mention.message.attachments.length > 0" class="mention__files">
                   {{ t('mentions.attachments', { n: mention.message.attachments.length }, mention.message.attachments.length) }}
                 </span>
               </span>
@@ -231,6 +232,10 @@ onMounted(() => {
 .mention__body {
   color: var(--ink-2);
   overflow-wrap: anywhere;
+}
+
+.mention__deleted {
+  color: var(--ink-3);
 }
 
 .mention__files {

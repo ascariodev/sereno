@@ -68,6 +68,13 @@ describe('ThreadAside', () => {
     expect(w.get('[data-test="thread-count"]').text()).toBe('2 replies')
   })
 
+  it('shows the deleted marker for a deleted root and keeps the replies', async () => {
+    const w = mountAside({ root: { ...root, body: null, deleted_at: '2026-03-04T12:00:00Z' } })
+    await flushPromises()
+    expect(w.get('[data-test="thread-root"]').text()).toContain('Message deleted')
+    expect(w.findAll('.message-item__body').map((el) => el.text())).toEqual(['msg 11', 'msg 12'])
+  })
+
   it('finds the root in the channel store when the prop is omitted', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
