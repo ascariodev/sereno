@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use League\Flysystem\UnableToRetrieveMetadata;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
@@ -29,7 +30,8 @@ class AttachmentController extends Controller
     private const INLINE_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
     // Types a browser may render or execute are sent as opaque bytes even as a download.
-    private const OPAQUE_MIME_PATTERN = '#^text/|html|xml|javascript|ecmascript|svg#i';
+    // pdf too: Firefox opens it in its own viewer despite the attachment disposition.
+    private const OPAQUE_MIME_PATTERN = '#^text/|html|xml|javascript|ecmascript|svg|^application/pdf$#i';
 
     private const MIME_PATTERN = '#^[a-z0-9][a-z0-9!\#$&^_.+-]{0,126}/[a-z0-9][a-z0-9!\#$&^_.+-]{0,126}$#i';
 
@@ -84,19 +86,39 @@ class AttachmentController extends Controller
 
         abort_if($attachment === null, 404, __('Not Found'));
 
-        $stream = Storage::disk($attachment->disk)->readStream($attachment->path);
+        $disk = Storage::disk($attachment->disk);
 
-        abort_if(! is_resource($stream), 404, __('Not Found'));
+        try {
+            $size = $disk->size($attachment->path);
+        } catch (UnableToRetrieveMetadata) {
+            abort(404, __('Not Found'));
+        }
 
         $inline = in_array($attachment->mime, self::INLINE_MIMES, true);
         $maxAge = max(0, (int) $request->query('expires') - now()->getTimestamp());
 
-        return new StreamedResponse(function () use ($stream) {
-            fpassthru($stream);
-            fclose($stream);
+        // The file is opened only to send a body: never on a HEAD, even if the response is sent without prepare().
+        return new StreamedResponse(function () use ($request, $disk, $attachment) {
+            if ($request->isMethod('HEAD')) {
+                return;
+            }
+
+            $stream = $disk->readStream($attachment->path);
+
+            if (! is_resource($stream)) {
+                report(new RuntimeException("Attachment {$attachment->id} could not be opened at {$attachment->disk}:{$attachment->path}."));
+
+                return;
+            }
+
+            try {
+                fpassthru($stream);
+            } finally {
+                fclose($stream);
+            }
         }, 200, [
             'Content-Type' => $inline ? $attachment->mime : $this->downloadMime($attachment->mime),
-            'Content-Length' => (string) (fstat($stream)['size'] ?? $attachment->size),
+            'Content-Length' => (string) $size,
             'Content-Disposition' => $this->disposition($inline ? 'inline' : 'attachment', $attachment->original_name),
             'X-Content-Type-Options' => 'nosniff',
             'Content-Security-Policy' => "default-src 'none'; style-src 'unsafe-inline'; sandbox",

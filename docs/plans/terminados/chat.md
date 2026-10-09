@@ -439,7 +439,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `OLD.message_id IS NOT NULL`) para que los avisos de log no encolen un chequeo diferido; test de la carrera con
   `Event::fake` que afirme que no salen `MessageCreated` ni `MentionCreated`; ordenar los ids del `UPDATE` para evitar
   un deadlock entre dos envíos con los mismos ids.
-- [ ] M-32 (baja, sonnet): servir `application/pdf` como `application/octet-stream` (Firefox lo abre en su visor),
+- [x] M-32 (baja, sonnet): servir `application/pdf` como `application/octet-stream` (Firefox lo abre en su visor),
   abrir el stream dentro del callback para que un HEAD no lo deje abierto, y redondear `expires` a tramos para que el
   navegador reaproveche la caché de imágenes.
 - [x] M-33 (baja, sonnet): `chat:prune-attachments` recorre `chat/` por directorio de organización o canal en vez de

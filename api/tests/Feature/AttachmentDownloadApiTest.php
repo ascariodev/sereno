@@ -14,6 +14,7 @@ use App\Providers\AppServiceProvider;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
@@ -117,18 +118,58 @@ it('serves the urls carried by message.created and mention.created', function ()
     }
 });
 
+function attachmentUrlExpiry(string $url): int
+{
+    parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+    return (int) $query['expires'];
+}
+
 it('keeps the url valid until it expires', function () {
     $this->freezeTime();
     $attachment = downloadableAttachment($this);
     $url = $attachment->downloadUrl();
-    $ttl = config('chat.attachments.url_ttl_minutes');
+    $expires = attachmentUrlExpiry($url);
 
-    $this->travel($ttl * 60 - 1)->seconds();
+    $this->travelTo(now()->setTimestamp($expires - 1));
     fetchAttachment($url)->assertOk();
 
-    $this->travel(2)->seconds();
+    $this->travelTo(now()->setTimestamp($expires + 1));
     fetchAttachment($url)->assertForbidden();
 });
+
+it('rounds the expiry up to the next step, never below the ttl', function (int $offset) {
+    $step = MessageAttachment::URL_EXPIRY_STEP_SECONDS;
+    $this->travelTo(now()->setTimestamp(intdiv(now()->getTimestamp(), $step) * $step + $offset));
+    $minimum = now()->getTimestamp() + config('chat.attachments.url_ttl_minutes') * 60;
+
+    $expires = attachmentUrlExpiry(downloadableAttachment($this)->downloadUrl());
+
+    expect($expires % $step)->toBe(0)
+        ->and($expires)->toBeGreaterThanOrEqual($minimum)
+        ->and($expires - $minimum)->toBeLessThan($step);
+})->with(['on a boundary' => 0, 'just after' => 1, 'mid step' => 300, 'just before the next' => 599]);
+
+it('gives the same url within a step and a new one after it', function (?int $ttl) {
+    if ($ttl !== null) {
+        config(['chat.attachments.url_ttl_minutes' => $ttl]);
+    }
+
+    $step = MessageAttachment::URL_EXPIRY_STEP_SECONDS;
+    $ttlSeconds = config('chat.attachments.url_ttl_minutes') * 60;
+    $boundary = intdiv(now()->getTimestamp() + $ttlSeconds, $step) * $step + $step;
+    $start = $boundary - $step - $ttlSeconds + 1;
+    $attachment = downloadableAttachment($this);
+
+    $this->travelTo(now()->setTimestamp($start));
+    $first = $attachment->downloadUrl();
+
+    $this->travelTo(now()->setTimestamp($start + $step - 1));
+    expect($attachment->downloadUrl())->toBe($first);
+
+    $this->travelTo(now()->setTimestamp($start + $step));
+    expect($attachment->downloadUrl())->not->toBe($first);
+})->with(['default ttl' => null, 'ttl not a multiple of the step' => 15]);
 
 it('caches the file privately only while the url is valid', function () {
     $this->freezeTime();
@@ -137,9 +178,37 @@ it('caches the file privately only while the url is valid', function () {
     $this->travel(10)->minutes();
 
     $cache = fetchAttachment($url)->assertOk()->headers->get('Cache-Control');
-    $seconds = (config('chat.attachments.url_ttl_minutes') - 10) * 60;
+    $seconds = attachmentUrlExpiry($url) - now()->getTimestamp();
 
-    expect(explode(', ', $cache))->toEqualCanonicalizing(['private', "max-age={$seconds}"]);
+    expect($seconds)->toBeGreaterThan(0)
+        ->and(explode(', ', $cache))->toEqualCanonicalizing(['private', "max-age={$seconds}"]);
+});
+
+it('opens the file only when the body is sent and reports it if it is gone', function () {
+    Exceptions::fake();
+    $attachment = downloadableAttachment($this);
+
+    $response = fetchAttachment($attachment->downloadUrl())->assertOk()->assertHeader('Content-Length', '11');
+    Storage::disk('local')->delete($attachment->path);
+
+    expect($response->streamedContent())->toBe('');
+    Exceptions::assertReported(RuntimeException::class);
+});
+
+it('answers a head request with the length from storage', function () {
+    $attachment = downloadableAttachment($this, ['size' => 999]);
+    app(CurrentOrganization::class)->set(null);
+    app('auth')->forgetGuards();
+
+    $disk = Mockery::mock(Storage::disk('local'));
+    $disk->shouldNotReceive('readStream');
+    Storage::set('local', $disk);
+
+    $response = $this->flushHeaders()->call('HEAD', $attachment->downloadUrl())
+        ->assertOk()
+        ->assertHeader('Content-Length', '11');
+
+    expect($response->streamedContent())->toBe('');
 });
 
 it('rejects a missing, altered or borrowed signature with a translated 403', function (Closure $tamper) {
@@ -206,7 +275,7 @@ it('downloads everything else, as opaque bytes when the browser could render it'
     'xhtml' => ['application/xhtml+xml', 'application/octet-stream'],
     'javascript' => ['application/javascript', 'application/octet-stream'],
     'malformed' => ["text/plain\r\nX-Evil: 1", 'application/octet-stream'],
-    'pdf' => ['application/pdf', 'application/pdf'],
+    'pdf' => ['application/pdf', 'application/octet-stream'],
     'zip' => ['application/zip', 'application/zip'],
     'bmp' => ['image/bmp', 'image/bmp'],
 ]);
