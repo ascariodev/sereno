@@ -460,5 +460,5 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-40 (baja, sonnet): `subscribeToUser` con objeto de opciones en vez de callbacks posicionales (actualizar
   `useMembershipWatch`, `stores/mentions.ts` y `echo.spec`).
 - [ ] M-41 (media, sonnet): el 404 de un modelo no encontrado devuelve el texto fijo del framework con la clase y el id
-  (`No query results for model [App\\Models\\Channel] 5`), sin `__()`; renderizarlo en `withExceptions` de
+  (`No query results for model [App\Models\Channel] 5`), sin `__()`; renderizarlo en `withExceptions` de
   `api/bootstrap/app.php` con un mensaje traducido igual para cualquier modelo (afecta a todo el API, no solo al chat).
