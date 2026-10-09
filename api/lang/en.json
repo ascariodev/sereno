@@ -245,6 +245,8 @@
     "admin": "admin",
     "member": "member",
     "The channel is archived.": "The channel is archived.",
+    "The message to reply to does not exist in this channel.": "The message to reply to does not exist in this channel.",
+    "A reply cannot have replies.": "A reply cannot have replies.",
     "Too many attempts. Please try again in :seconds seconds.": "Too many attempts. Please try again in :seconds seconds.",
     "Unauthenticated.": "Unauthenticated.",
     "This project is archived and cannot have new log sources.": "This project is archived and cannot have new log sources.",

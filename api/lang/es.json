@@ -249,6 +249,8 @@
     "admin": "administrador",
     "member": "miembro",
     "The channel is archived.": "El canal está archivado.",
+    "The message to reply to does not exist in this channel.": "El mensaje al que responder no existe en este canal.",
+    "A reply cannot have replies.": "Una respuesta no puede tener respuestas.",
     "Too many attempts. Please try again in :seconds seconds.": "Demasiados intentos. Inténtalo de nuevo en :seconds segundos.",
     "Unauthenticated.": "No autenticado.",
     "The request body is too large.": "El cuerpo de la petición es demasiado grande.",

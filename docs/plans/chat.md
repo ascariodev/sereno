@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -24,7 +24,8 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   barra lateral (Main:43) y fila "Camila te mencionó" (Projects:103).
 - Helpers globales de Pest ya ocupados (L-29): `asChannelReader`, `postingAs`, `insertSystemMessage`,
   `authorizeChannel`, `channelName`, `authorizePresence`, `noticeMessages`, `ingestNotice`, `listMembers`,
-  `changeRole`, `memberWithRole`, `roleIn`, `removeMemberRequest`, `asUser`, `asGroupReader`, `invite`.
+  `changeRole`, `memberWithRole`, `roleIn`, `removeMemberRequest`, `asUser`, `asGroupReader`, `invite`, `replyTo`,
+  `systemRootIn`.
 - Subidas: `api/docker/php/uploads.ini` y `api/docker/nginx/default.conf` limitan a 6 MB.
 
 ## Fases
@@ -41,7 +42,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - **Terminado cuando:** test en `MessageTest`: una respuesta con `parent_id` de otro canal la rechaza la BD; borrar
   el canal borra raíz y respuestas; `migrate:fresh` corre.
 
-### [ ] Fase 2 — Responder en un hilo (api)
+### [x] Fase 2 — Responder en un hilo (api)
 - **Alcance:** `StoreMessageRequest` acepta `parent_id` (mensaje raíz del mismo canal, de cualquier `kind`; una
   respuesta no admite respuestas). `MessageController@store` crea la respuesta y en la misma transacción incrementa
   `replies_count` y fija `last_reply_at` de la raíz con un `UPDATE` atómico. `index` excluye respuestas.
@@ -158,8 +159,15 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - 2026-10-09 — Adjuntos en dos pasos (subir y luego enviar el mensaje con ids) sobre el disco local privado de
   Laravel, sin S3 ni dependencias nuevas; descarga por URL firmada temporal. Tamaño máximo inicial 5 MB por
   archivo (cabe en los 6 MB de `uploads.ini` y nginx), configurable en `config/chat.php`.
+- 2026-10-09 — `parent_id` se valida en `StoreMessageRequest::after()` con `Message::find` (scope de organización):
+  raíz inexistente, de otro canal o de otra organización dan el mismo error en `parent_id`; respuesta a respuesta da
+  otro. `MessageResource` siempre devuelve `parent_id`, `replies_count` y `last_reply_at`. Motivo: no filtrar
+  existencia entre organizaciones (L-04).
 
 ## Notas para la próxima sesión
+- Fase 2 hecha: `store` crea la respuesta y en la misma transacción hace `replies_count = replies_count + 1` y fija
+  `last_reply_at`; `index` filtra `whereNull('parent_id')`. No hay evento que avise del contador de la raíz: la web
+  lo deriva de la respuesta en vivo (fase 4). Fase 3: consultar `parent_id = {message}`, 404 si no es raíz del canal.
 - Fase 1 hecha: migración `2026_10_09_100000_add_thread_columns_to_messages_table` (FK compuesta
   `messages_parent_fk`, `unique(channel_id, id)`), relaciones `parent`/`replies` en `Message`. `parent_id` está fuera
   de Fillable: en tests se asigna por propiedad; el store de la fase 2 debe fijarlo igual (o por la relación).
@@ -177,3 +185,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-5 (media, sonnet): límites de adjuntos y almacenamiento por plan de la organización (`docs/monetizacion.md`).
 - [ ] M-6 (baja, sonnet): hacer parcial el índice `(parent_id, id DESC)` con `WHERE parent_id IS NOT NULL`, para no
   indexar los mensajes raíz.
+- [ ] M-7 (baja, sonnet): fijar `last_reply_at` con `GREATEST(last_reply_at, ...)` para que respuestas concurrentes
+  confirmadas en otro orden no lo hagan retroceder.
+- [ ] M-8 (baja, sonnet): en el test de aislamiento de `parent_id`, afirmar que la raíz de la otra organización sigue
+  con `replies_count` 0.

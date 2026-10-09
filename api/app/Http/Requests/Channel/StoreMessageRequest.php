@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Channel;
 
 use App\Models\Channel;
+use App\Models\Message;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
@@ -20,6 +21,7 @@ class StoreMessageRequest extends FormRequest
     {
         return [
             'body' => ['required', 'string', 'max:'.self::MAX_BODY_LENGTH, 'not_regex:/\x00/'],
+            'parent_id' => ['nullable', 'integer', 'min:1'],
         ];
     }
 
@@ -32,6 +34,19 @@ class StoreMessageRequest extends FormRequest
 
                 if ($channel->archived_at !== null) {
                     $validator->errors()->add('channel', __('The channel is archived.'));
+                }
+
+                if ($validator->errors()->has('parent_id') || $this->input('parent_id') === null) {
+                    return;
+                }
+
+                // The organization scope hides roots of other organizations.
+                $parent = Message::query()->find($this->integer('parent_id'));
+
+                if ($parent === null || $parent->channel_id !== $channel->id) {
+                    $validator->errors()->add('parent_id', __('The message to reply to does not exist in this channel.'));
+                } elseif ($parent->parent_id !== null) {
+                    $validator->errors()->add('parent_id', __('A reply cannot have replies.'));
                 }
             },
         ];

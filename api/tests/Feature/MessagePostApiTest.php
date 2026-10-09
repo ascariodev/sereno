@@ -1,12 +1,15 @@
 <?php
 
 use App\Enums\Role;
+use App\Events\MessageCreated;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
 use App\Providers\AppServiceProvider;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\Sanctum;
 
@@ -130,4 +133,98 @@ it('throttles per user with 429 and does not affect other users', function () {
         ->assertHeader('Retry-After');
 
     postingAs($this->users['admin'], $this->organization)->postJson($url, ['body' => 'x'])->assertCreated();
+});
+
+function replyTo(object $test, Channel $channel, int|string $parentId, string $body = 'reply')
+{
+    return postingAs($test->users['member'], $test->organization)
+        ->postJson("/api/channels/{$channel->id}/messages", ['body' => $body, 'parent_id' => $parentId]);
+}
+
+function systemRootIn(Channel $channel): int
+{
+    return DB::table('messages')->insertGetId([
+        'organization_id' => $channel->organization_id,
+        'channel_id' => $channel->id,
+        'kind' => 'system',
+        'payload' => '{"type":"log.new_group"}',
+    ]);
+}
+
+it('replies to a user message and to a system notice, bumping the root counters', function () {
+    $root = postingAs($this->users['admin'], $this->organization)
+        ->postJson("/api/channels/{$this->channel->id}/messages", ['body' => 'root'])
+        ->assertCreated()
+        ->assertJsonPath('data.parent_id', null)
+        ->assertJsonPath('data.replies_count', 0)
+        ->json('data.id');
+    $notice = systemRootIn($this->channel);
+
+    replyTo($this, $this->channel, $root)->assertCreated()->assertJsonPath('data.parent_id', $root);
+    replyTo($this, $this->channel, $root)->assertCreated();
+    replyTo($this, $this->channel, $notice)->assertCreated()->assertJsonPath('data.parent_id', $notice);
+
+    $rootRow = Message::withoutGlobalScopes()->find($root);
+    $lastReply = Message::withoutGlobalScopes()->where('parent_id', $root)->latest('id')->first();
+    expect($rootRow->replies_count)->toBe(2)
+        ->and($rootRow->last_reply_at->equalTo($lastReply->created_at))->toBeTrue()
+        ->and(Message::withoutGlobalScopes()->find($notice)->replies_count)->toBe(1);
+});
+
+it('excludes replies from the main list', function () {
+    $root = postingAs($this->users['admin'], $this->organization)
+        ->postJson("/api/channels/{$this->channel->id}/messages", ['body' => 'root'])->json('data.id');
+    replyTo($this, $this->channel, $root)->assertCreated();
+
+    postingAs($this->users['member'], $this->organization)
+        ->getJson("/api/channels/{$this->channel->id}/messages")
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $root)
+        ->assertJsonPath('data.0.replies_count', 1);
+});
+
+it('rejects a parent from another channel, another organization, a reply or a missing one', function () {
+    $otherChannel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
+    $foreign = Channel::factory()->for(Project::factory()->for($this->other))->create();
+    $inOtherChannel = systemRootIn($otherChannel);
+    $inOtherOrg = systemRootIn($foreign);
+    $root = systemRootIn($this->channel);
+    $reply = replyTo($this, $this->channel, $root)->assertCreated()->json('data.id');
+
+    replyTo($this, $this->channel, $inOtherChannel)->assertUnprocessable()->assertJsonValidationErrors('parent_id');
+    replyTo($this, $this->channel, $inOtherOrg)->assertUnprocessable()->assertJsonValidationErrors('parent_id');
+    replyTo($this, $this->channel, 999999)->assertUnprocessable()->assertJsonValidationErrors('parent_id');
+    replyTo($this, $this->channel, 'abc')->assertUnprocessable()->assertJsonValidationErrors('parent_id');
+    replyTo($this, $this->channel, $reply)
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.parent_id.0', 'A reply cannot have replies.');
+
+    expect(Message::withoutGlobalScopes()->where('parent_id', '!=', null)->count())->toBe(1)
+        ->and(Message::withoutGlobalScopes()->find($root)->replies_count)->toBe(1);
+});
+
+it('translates the thread errors', function () {
+    $root = systemRootIn($this->channel);
+    $reply = replyTo($this, $this->channel, $root)->json('data.id');
+
+    postingAs($this->users['member'], $this->organization)
+        ->withHeader('Accept-Language', 'es')
+        ->postJson("/api/channels/{$this->channel->id}/messages", ['body' => 'x', 'parent_id' => $reply])
+        ->assertJsonPath('errors.parent_id.0', 'Una respuesta no puede tener respuestas.');
+
+    postingAs($this->users['member'], $this->organization)
+        ->withHeader('Accept-Language', 'es')
+        ->postJson("/api/channels/{$this->channel->id}/messages", ['body' => 'x', 'parent_id' => 999999])
+        ->assertJsonPath('errors.parent_id.0', 'El mensaje al que responder no existe en este canal.');
+});
+
+it('broadcasts the reply with its parent_id', function () {
+    Event::fake([MessageCreated::class]);
+    $root = systemRootIn($this->channel);
+
+    replyTo($this, $this->channel, $root)->assertCreated();
+
+    Event::assertDispatched(MessageCreated::class, fn ($e) => $e->message['parent_id'] === $root
+        && $e->channelId === $this->channel->id);
 });
