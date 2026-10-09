@@ -9,7 +9,12 @@ import { i18n, setLocale } from '../i18n'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
-import { MEMBERSHIP_REVOKED_EVENT, MEMBERSHIP_ROLE_CHANGED_EVENT, setRealtimeClientFactory } from './echo'
+import {
+  MEMBERSHIP_REVOKED_EVENT,
+  MEMBERSHIP_ROLE_CHANGED_EVENT,
+  setRealtimeClientFactory,
+  subscribeToChannel,
+} from './echo'
 import { expectOwnLeave, useMembershipWatch } from './useMembershipWatch'
 
 const user = { id: 1, name: 'Ada', email: 'a@e.com', locale: 'en' }
@@ -53,6 +58,18 @@ function revoke(organizationId: number) {
 
 function changeRole(organizationId: number, role: string) {
   fake.listeners.get(`users.1|${MEMBERSHIP_ROLE_CHANGED_EVENT}`)?.({ organization_id: organizationId, role })
+}
+
+function reconnect() {
+  fake.setStatus('connected')
+  fake.setStatus('disconnected')
+  fake.setStatus('connected')
+}
+
+function denyChannel(organizationId: number, status: number | undefined) {
+  const name = `organizations.${organizationId}.channels.7`
+  subscribeToChannel(organizationId, 7, () => {})
+  fake.rejectChannel(name, { type: 'AuthError', status })
 }
 
 function organizationLoads(get: { mock: { calls: unknown[][] } }) {
@@ -188,21 +205,117 @@ describe('useMembershipWatch', () => {
     expect(organizationLoads(get)).toBe(0)
   })
 
-  it('unmounting drops the user channel and the reconnect listener', async () => {
+  it('joins the session channel', async () => {
     await mountWatch()
+    expect(fake.client.join).toHaveBeenCalledWith('sessions.1')
+  })
+
+  it('unmounting drops the user and session channels, the reconnect and the denied listeners', async () => {
+    const { get } = await mountWatch()
     wrapper!.unmount()
     wrapper = undefined
     expect(fake.client.leave).toHaveBeenCalledWith('users.1')
+    expect(fake.client.leave).toHaveBeenCalledWith('sessions.1')
     expect(fake.statusListeners.size).toBe(0)
+    denyChannel(1, 403)
+    await flushPromises()
+    expect(organizationLoads(get)).toBe(0)
   })
 
-  it('reloads the organizations after a reconnection', async () => {
-    const { get } = await mountWatch()
+  it('a reconnection with the membership intact reloads quietly', async () => {
+    const { get, router } = await mountWatch([one, two])
     fake.setStatus('connected')
     expect(organizationLoads(get)).toBe(0)
     fake.setStatus('disconnected')
     fake.setStatus('connected')
     await flushPromises()
+    expect(organizationLoads(get)).toBe(1)
+    expect(router.currentRoute.value.name).toBe('channel')
+    expect(toasts.value).toHaveLength(0)
+  })
+
+  it('a reconnection that finds the active membership gone toasts and goes to projects', async () => {
+    const { router, organization } = await mountWatch([two])
+    reconnect()
+    await flushPromises()
+    expect(organization.activeId).toBe(2)
+    expect(router.currentRoute.value.name).toBe('projects')
+    expect(toasts.value.map((item) => [item.kind, item.message])).toEqual([['info', 'You no longer belong to One.']])
+  })
+
+  it('a reconnection without an active organization only reloads', async () => {
+    const { get, organization } = await mountWatch([one])
+    organization.$patch({ activeId: null })
+    reconnect()
+    await flushPromises()
+    expect(organizationLoads(get)).toBe(1)
+    expect(toasts.value).toHaveLength(0)
+  })
+
+  it('a reconnection during an own leave of the active organization only reloads', async () => {
+    const { get, router } = await mountWatch([two])
+    const release = expectOwnLeave(1)
+    reconnect()
+    await flushPromises()
+    release()
+    expect(organizationLoads(get)).toBe(1)
+    expect(router.currentRoute.value.name).toBe('channel')
+    expect(toasts.value).toHaveLength(0)
+  })
+
+  it('a 403 on an active organization channel whose membership is gone toasts and navigates', async () => {
+    const { router, organization } = await mountWatch([two])
+    denyChannel(1, 403)
+    await flushPromises()
+    expect(organization.activeId).toBe(2)
+    expect(router.currentRoute.value.name).toBe('projects')
+    expect(toasts.value).toHaveLength(1)
+  })
+
+  it('a 403 on a channel with the membership intact does not toast', async () => {
+    const { get, router } = await mountWatch([one, two])
+    denyChannel(1, 403)
+    await flushPromises()
+    expect(organizationLoads(get)).toBe(1)
+    expect(router.currentRoute.value.name).toBe('channel')
+    expect(toasts.value).toHaveLength(0)
+  })
+
+  it('ignores a channel rejection without a 403', async () => {
+    const { get } = await mountWatch([two])
+    denyChannel(1, undefined)
+    denyChannel(1, 500)
+    await flushPromises()
+    expect(organizationLoads(get)).toBe(0)
+    expect(toasts.value).toHaveLength(0)
+  })
+
+  it('ignores a 403 on a channel of an organization that is not active', async () => {
+    const { get } = await mountWatch([one])
+    denyChannel(2, 403)
+    await flushPromises()
+    expect(organizationLoads(get)).toBe(0)
+  })
+
+  it('the cut after the revocation event notifies once', async () => {
+    const { get, router } = await mountWatch([two])
+    revoke(1)
+    reconnect()
+    await flushPromises()
+    reconnect()
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('projects')
+    expect(toasts.value).toHaveLength(1)
+    expect(organizationLoads(get)).toBe(2)
+  })
+
+  it('a cut without the event notifies once for the reconnection and the rejected channel', async () => {
+    const { get, router } = await mountWatch([two])
+    reconnect()
+    denyChannel(1, 403)
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('projects')
+    expect(toasts.value).toHaveLength(1)
     expect(organizationLoads(get)).toBe(1)
   })
 

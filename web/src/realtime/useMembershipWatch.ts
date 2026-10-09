@@ -5,7 +5,7 @@ import { api, ApiError } from '../api/client'
 import { toast } from '../components/ui/toast'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
-import { leaveOrganization, onReconnect, subscribeToUser } from './echo'
+import { joinSession, leaveOrganization, onChannelDenied, onReconnect, subscribeToUser } from './echo'
 
 const ownLeaves = new Map<number, number>()
 const pendingRevocations = new Map<number, Promise<void>>()
@@ -34,6 +34,7 @@ export function useMembershipWatch(): void {
   const { t } = useI18n()
   let unsubscribeUser: (() => void) | null = null
   let unsubscribeReconnect: (() => void) | null = null
+  let leaveSession: (() => void) | null = null
 
   function revokeOnce(organizationId: number, detect: () => Promise<boolean>): Promise<void> {
     const pending = pendingRevocations.get(organizationId)
@@ -68,6 +69,15 @@ export function useMembershipWatch(): void {
     await revokeOnce(organizationId, () => organization.handleForbidden(organizationId))
   }
 
+  function onReconnected(): void {
+    const activeId = organization.activeId
+    if (activeId === null || ownLeaves.has(activeId)) {
+      organization.load().catch(ignoreApiError)
+      return
+    }
+    void onForbidden(activeId)
+  }
+
   async function onMembershipRoleChanged(organizationId: number, role: string): Promise<void> {
     try {
       await organization.handleMembershipRoleChanged(organizationId, role)
@@ -79,11 +89,16 @@ export function useMembershipWatch(): void {
   function stopWatching(): void {
     unsubscribeUser?.()
     unsubscribeReconnect?.()
+    leaveSession?.()
     unsubscribeUser = null
     unsubscribeReconnect = null
+    leaveSession = null
   }
 
   api.setForbiddenHandler((organizationId) => void onForbidden(organizationId))
+  const unsubscribeDenied = onChannelDenied((organizationId, status) => {
+    if (status === 403) void onForbidden(organizationId)
+  })
 
   watch(
     () => auth.user?.id,
@@ -95,15 +110,15 @@ export function useMembershipWatch(): void {
         (organizationId) => void onMembershipRevoked(organizationId),
         (organizationId, role) => void onMembershipRoleChanged(organizationId, role),
       )
-      unsubscribeReconnect = onReconnect(() => {
-        organization.load().catch(ignoreApiError)
-      })
+      leaveSession = joinSession(userId)
+      unsubscribeReconnect = onReconnect(onReconnected)
     },
     { immediate: true },
   )
 
   onUnmounted(() => {
     stopWatching()
+    unsubscribeDenied()
     api.setForbiddenHandler(null)
   })
 }

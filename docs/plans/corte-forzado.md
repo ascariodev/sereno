@@ -1,7 +1,7 @@
 # Plan: corte-forzado
 
 **Objetivo:** que un miembro quitado de una organización deje de recibir sus mensajes en vivo aunque su cliente ignore el aviso: el API cierra sus conexiones en Reverb, el cliente reconecta, `/broadcasting/auth` rechaza los canales de esa organización y la web lo trata como membresía revocada.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 6 (cerrando)
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -38,7 +38,7 @@
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/test/fakeRealtimeClient.ts`, `web/src/realtime/echo.spec.ts`.
 - **Terminado cuando:** specs de rechazo con 403 que notifica y limpia, rechazo de un canal de usuario que no notifica, y desuscripción del callback pasan.
 
-### [ ] Fase 6 — Reaccionar al corte en la sesión [riesgo]
+### [x] Fase 6 — Reaccionar al corte en la sesión [riesgo]
 - **Alcance:** `useMembershipWatch` se une a `sessions.{id}` junto a `users.{id}`; `onReconnect` y `onChannelDenied` pasan por `revokeOnce(handleForbidden)` para la activa (toast y vuelta a `projects` si ya no pertenece), sin duplicar el aviso si también llega `membership.revoked`. Verificación en el navegador con Reverb real: quitar a un usuario cuyo cliente ignora el evento (p. ej. desuscribir `users.{id}` a mano) y ver que se corta el socket, `/broadcasting/auth` da 403 al reconectar, aparece el aviso y no llegan más mensajes.
 - **Archivos:** `web/src/realtime/useMembershipWatch.ts`, `web/src/realtime/useMembershipWatch.spec.ts`.
 - **Terminado cuando:** specs de unirse y soltar la sesión, reconexión que detecta la revocación de la activa con toast, canal rechazado que la detecta, y un solo aviso con evento más corte pasan, y la verificación en vivo lo confirma.
@@ -62,7 +62,7 @@
 - Fase 3 hecha (worker reiniciado). Si el job agota reintentos queda en `failed_jobs` y el socket sigue abierto hasta que el cliente reconecte.
 - Fase 4 hecha. La fase 6 llama a `joinSession` desde `useMembershipWatch`. Si la fase 5 necesita escuchar eventos del canal de presencia, tipar mejor `join` (hoy `unknown`).
 - Fase 5 hecha (una ronda de corrección: estado de auth arrastrado y canal muerto en la caché de Echo; ver L-36). En la fase 6: `status` puede ser `undefined` (fallo de red): tratar como revocación solo 403, o pasar por `handleForbidden`, que consulta al servidor. Los callbacks de `onChannelDenied` sobreviven a `disconnectRealtime`: desuscribirse al desmontar.
-- Seguir con la fase 6. Leer `docs/lecciones.md` antes. Tras cambiar jobs o listeners: `docker compose restart queue`.
+- Fase 6 hecha y verificada en vivo (usuario temporal creado y borrado): con `private-users.{id}` desuscrito a mano, el DELETE encola el corte, el socket cae (~3 s tras el evento), al reconectar `presence-sessions.{id}` da 200 y `private-organizations.3.channels.2` 403, un solo aviso "Ya no perteneces a Demo." y vuelta a proyectos. Además aparece el aviso existente "Reconectado". Detalle original de la fase: `onReconnect` con activa pasa por `revokeOnce(handleForbidden)` (sin activa o con salida propia, solo `load()`); `onChannelDenied` solo cuenta `status === 403` de la activa. Falta la verificación en vivo: necesita un segundo usuario de prueba miembro de Demo (escritura en la BD de desarrollo, pendiente de confirmación del usuario). Para simular el cliente que ignora el evento: desuscribir `private-users.<id>` desde la consola (instancia de pusher-js) o comentar `subscribeToUser` temporalmente. Leer `docs/lecciones.md` antes. Tras cambiar jobs o listeners: `docker compose restart queue`.
 
 ## Mejoras propuestas
 - [ ] M-1 (baja, sonnet): renombrar el helper global de Pest `authorizePresence` en `api/tests/Feature/BroadcastingAuthTest.php` a uno más específico (`authorizeSessionPresence`), por L-29.
@@ -72,3 +72,5 @@
 - [ ] M-5 (baja, sonnet): en `web/src/realtime/echo.ts` (`subscribe`), extraer a un helper la creación del canal (presence o private) en vez de mezclar las ramas con `channel?.listen` y un `if` aparte.
 - [ ] M-6 (baja, sonnet): en `web/src/realtime/echo.ts`, una constante o helper para el prefijo `private-` que comparten `createAuthorizer` y `handleSubscriptionError`.
 - [ ] M-7 (baja, sonnet): en `web/src/test/fakeRealtimeClient.ts`, guardar varios handlers de `error` por canal en vez de uno solo.
+- [ ] M-8 (baja, sonnet): spec en `web/src/realtime/useMembershipWatch.spec.ts` de cambio de usuario: suelta `sessions.<viejo>` y se une a `sessions.<nuevo>`.
+- [ ] M-9 (baja, sonnet): en `useMembershipWatch.ts`, capturar un rechazo inesperado de `onForbidden` (p. ej. si `router.replace` lanza) en los `void onForbidden(...)` para no dejar promesas sin manejar.
