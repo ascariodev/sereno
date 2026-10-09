@@ -14,6 +14,9 @@ const created: Message = {
   body: 'hola',
   payload: null,
   log_group_id: null,
+  parent_id: null,
+  replies_count: 0,
+  last_reply_at: null,
   user: { id: 1, name: 'Ana' },
   created_at: '2026-01-01T00:00:00Z',
 }

@@ -19,13 +19,16 @@ function indexAfter(list: readonly Message[], id: number): number {
   return low
 }
 
+/** Both lists sorted by id; on the same id the incoming version wins (fresher reply counters). */
 function mergeById(current: readonly Message[], incoming: readonly Message[]): Message[] {
   const merged: Message[] = []
   let i = 0
   let j = 0
   while (i < current.length || j < incoming.length) {
-    const next = j >= incoming.length || (i < current.length && current[i].id <= incoming[j].id) ? current[i++] : incoming[j++]
-    if (merged.length === 0 || merged[merged.length - 1].id !== next.id) merged.push(next)
+    if (i < current.length && j < incoming.length && current[i].id === incoming[j].id) i++
+    const next = j >= incoming.length || (i < current.length && current[i].id < incoming[j].id) ? current[i++] : incoming[j++]
+    if (merged.length > 0 && merged[merged.length - 1].id === next.id) merged[merged.length - 1] = next
+    else merged.push(next)
   }
   return merged
 }
@@ -40,6 +43,7 @@ export const useMessagesStore = defineStore('messages', () => {
   let generation = 0
   let listVersion = 0
   let pending = new Map<number, Message>()
+  let countedReplies = new Set<number>()
   let flushScheduled = false
 
   function has(id: number): boolean {
@@ -65,6 +69,7 @@ export const useMessagesStore = defineStore('messages', () => {
     resetGroupStatuses()
     resetHourlyCounts()
     pending = new Map()
+    countedReplies = new Set()
     flushScheduled = false
     channelId.value = null
     messages.value = []
@@ -74,8 +79,35 @@ export const useMessagesStore = defineStore('messages', () => {
     error.value = null
   }
 
+  function applyReply(reply: Message): boolean {
+    const rootId = reply.parent_id as number
+    if (countedReplies.has(reply.id)) return false
+    countedReplies.add(reply.id)
+    const bump = (root: Message): Message => ({
+      ...root,
+      replies_count: root.replies_count + 1,
+      last_reply_at:
+        root.last_reply_at === null || Date.parse(reply.created_at) > Date.parse(root.last_reply_at)
+          ? reply.created_at
+          : root.last_reply_at,
+    })
+    const queued = pending.get(rootId)
+    if (queued !== undefined) {
+      pending.set(rootId, bump(queued))
+      return true
+    }
+    const index = indexAfter(messages.value, rootId) - 1
+    if (index >= 0 && messages.value[index].id === rootId) {
+      const next = messages.value.slice()
+      next[index] = bump(next[index])
+      messages.value = next
+    }
+    return true
+  }
+
   function insert(message: Message): boolean {
     if (message.channel_id !== channelId.value) return false
+    if (message.parent_id !== null) return applyReply(message)
     if (has(message.id)) return false
     observeStatusMessage(message)
     pending.set(message.id, message)
@@ -135,7 +167,11 @@ export const useMessagesStore = defineStore('messages', () => {
       return
     }
     if (joined || newest === null) {
-      fetched.forEach(insert)
+      flush()
+      const known = new Set(messages.value.map((message) => message.id))
+      const refreshed = fetched.filter((message) => known.has(message.id)).sort((a, b) => a.id - b.id)
+      fetched.filter((message) => !known.has(message.id)).forEach(insert)
+      if (refreshed.length > 0) messages.value = mergeById(messages.value, refreshed)
       flush()
       return
     }

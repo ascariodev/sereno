@@ -17,6 +17,9 @@ const notice = (id: number, groupId: number): Message => ({
   body: null,
   payload: { type: 'log.group_opened', log_group_id: groupId, level: 'error', title: `Group ${groupId}`, events_count: 1 } as MessagePayload,
   log_group_id: groupId,
+  parent_id: null,
+  replies_count: 0,
+  last_reply_at: null,
   user: null,
   created_at: '2026-01-01T00:00:00Z',
 })

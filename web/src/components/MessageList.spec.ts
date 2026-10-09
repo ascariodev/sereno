@@ -12,6 +12,9 @@ const message = (user: Message['user']): Message => ({
   body: 'hello',
   payload: null,
   log_group_id: null,
+  parent_id: null,
+  replies_count: 0,
+  last_reply_at: null,
   user,
   created_at: '2026-01-01T00:00:00Z',
 })

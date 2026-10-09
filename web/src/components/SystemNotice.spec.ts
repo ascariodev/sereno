@@ -14,6 +14,9 @@ const message = (payload: unknown, user: Message['user'] = null): Message => ({
   body: null,
   payload: payload as MessagePayload,
   log_group_id: 5,
+  parent_id: null,
+  replies_count: 0,
+  last_reply_at: null,
   user,
   created_at: '2026-01-01T00:00:00Z',
 })

@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -57,7 +57,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - Ruta `GET channels/{channel}/messages/{message}/replies` con cursor (mismas reglas que `ListMessagesRequest`),
   404 si el mensaje no es raíz del canal. Test de aislamiento entre organizaciones.
 
-### [ ] Fase 4 — Hilos en el store y tipos del canal (web)
+### [x] Fase 4 — Hilos en el store y tipos del canal (web)
 - Tipos (`parent_id`, `replies_count`, `last_reply_at`) y `api` de respuestas; en `stores/messages.ts` una respuesta en
   vivo no entra a la lista: actualiza contador y `last_reply_at` de su raíz si está cargada; `catchUp` refresca los
   contadores (el merge debe preferir la versión entrante). L-27.
@@ -167,8 +167,18 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `whereNumber`), query y forma iguales a la lista principal (`ListMessagesRequest`: `cursor`, `per_page` 1 a 100,
   50 por defecto; `data`, `links`, `meta.next_cursor`), orden `id DESC` (el store del hilo invierte para mostrar).
   404 si el mensaje no existe, es respuesta, o es de otro canal u organización (mismo 404). Motivo: lo usa la web.
+- 2026-10-09 — `mergeById` prefiere la versión entrante ante el mismo id (antes conservaba la actual). Una
+  respuesta en vivo no entra a la lista del canal: `insert` suma 1 a `replies_count` de la raíz cargada o en cola y
+  adelanta `last_reply_at`, una sola vez por id (`countedReplies`, se vacía en `clear`); con la raíz sin cargar se
+  ignora. Motivo: contadores frescos en todos los caminos (L-27).
 
 ## Notas para la próxima sesión
+- Fase 4 hecha: tipos de hilo en `api/types.ts`; `api/messages.ts` con `listReplies(channelId, messageId,
+  {cursor?, perPage?}, signal?)` (devuelve `CursorPage<Message>`, orden `id DESC`) y `sendReply(channelId, parentId,
+  body)` (devuelve `Message`). Para `stores/thread.ts`: invertir la página, filtrar el evento en vivo por
+  `parent_id === raíz`; `messages.send` sigue enviando solo raíces.
+- Entorno web en la nube: `node_modules` se instaló en el host y se copió al volumen `web-node-modules` (los
+  contenedores no tienen red); no correr `npm install` dentro.
 - Fase 3 hecha: `MessageController@replies` con `abort_unless` sobre `channel_id` y `parent_id` nulo; tests en
   `MessageRepliesApiTest`. Sigue la web (fase 4): leer L-09 y los Resources antes de escribir tipos.
 - Fase 2 hecha: `store` crea la respuesta y en la misma transacción hace `replies_count = replies_count + 1` y fija
@@ -198,3 +208,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-9 (baja, sonnet): tests del 403 de `replies` para un miembro sin acceso al canal (privado o archivado), como
   los de `index`.
 - [ ] M-10 (baja, sonnet): en el test de paginación de respuestas, afirmar que una respuesta de otra raíz no aparece.
+- [ ] M-11 (media, sonnet): carreras del contador de respuestas entre `catchUp` (rama `joined`) y respuestas en vivo
+  (pierde el +1 o suma 2 hasta el siguiente refresco); conciliar con `countedReplies` o un evento de contador en la API.
+- [ ] M-12 (baja, sonnet): `applyReply` recibe el `rootId` desde `insert` en vez de `reply.parent_id as number`, y
+  spec de `insert` de una respuesta con `channelId` null.

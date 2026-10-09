@@ -13,6 +13,9 @@ const message = (id: number, channel_id = 5): Message => ({
   body: `m${id}`,
   payload: null,
   log_group_id: null,
+  parent_id: null,
+  replies_count: 0,
+  last_reply_at: null,
   user: { id: 1, name: 'Ana' },
   created_at: '2026-01-01T00:00:00Z',
 })
@@ -357,6 +360,102 @@ describe('messages store', () => {
       expect(store.channelId).toBe(6)
       expect(store.messages.map((m) => m.id)).toEqual([9])
       expect(get).toHaveBeenCalledTimes(5)
+    })
+  })
+
+  describe('threads', () => {
+    const reply = (id: number, parent: number, at = '2026-01-02T00:00:00Z'): Message => ({
+      ...message(id),
+      parent_id: parent,
+      created_at: at,
+    })
+    const root = (id: number, replies_count: number, last_reply_at: string | null = null): Message => ({
+      ...message(id),
+      replies_count,
+      last_reply_at,
+    })
+
+    it('does not add a live reply to the list but bumps the counter and last_reply_at of its root', async () => {
+      vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [root(2, 1, '2026-01-01T00:00:00Z'), message(1)], meta: { next_cursor: null } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      expect(store.insert(reply(9, 2))).toBe(true)
+      expect(store.messages.map((m) => m.id)).toEqual([1, 2])
+      expect(store.messages[1].replies_count).toBe(2)
+      expect(store.messages[1].last_reply_at).toBe('2026-01-02T00:00:00Z')
+      expect(store.messages[0].replies_count).toBe(0)
+    })
+
+    it('counts a repeated reply once and keeps the newest last_reply_at', async () => {
+      vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [root(2, 0)], meta: { next_cursor: null } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      store.insert(reply(9, 2, '2026-01-03T00:00:00Z'))
+      expect(store.insert(reply(9, 2, '2026-01-03T00:00:00Z'))).toBe(false)
+      store.insert(reply(8, 2, '2026-01-02T00:00:00Z'))
+      expect(store.messages[0].replies_count).toBe(2)
+      expect(store.messages[0].last_reply_at).toBe('2026-01-03T00:00:00Z')
+    })
+
+    it('updates a root still queued in the same tick', async () => {
+      vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [message(1)], meta: { next_cursor: null } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      store.insert(message(3))
+      store.insert(reply(9, 3))
+      await nextTick()
+      expect(store.messages.map((m) => m.id)).toEqual([1, 3])
+      expect(store.messages[1].replies_count).toBe(1)
+    })
+
+    it('ignores a reply whose root is not loaded or of another channel', async () => {
+      vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [root(2, 0)], meta: { next_cursor: null } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      store.insert(reply(9, 1))
+      store.insert({ ...reply(10, 2), channel_id: 6 })
+      expect(store.messages.map((m) => m.id)).toEqual([2])
+      expect(store.messages[0].replies_count).toBe(0)
+    })
+
+    it('forgets counted replies on clear', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue({ data: [root(2, 0)], meta: { next_cursor: null } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      store.insert(reply(9, 2))
+      await store.open(5)
+      store.insert(reply(9, 2))
+      expect(store.messages[0].replies_count).toBe(1)
+    })
+
+    it('catchUp refreshes the counters of loaded roots when it joins', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [root(2, 0), message(1)], meta: { next_cursor: null } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      get.mockResolvedValueOnce({ data: [message(4), root(2, 3, '2026-01-05T00:00:00Z')], meta: { next_cursor: null } } as never)
+      await store.catchUp()
+      expect(store.messages.map((m) => m.id)).toEqual([1, 2, 4])
+      expect(store.messages[1].replies_count).toBe(3)
+      expect(store.messages[1].last_reply_at).toBe('2026-01-05T00:00:00Z')
+    })
+
+    it('catchUp reset takes the counters from the newest page', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [message(2)], meta: { next_cursor: null } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      get.mockResolvedValueOnce({ data: [root(120, 4), message(119)], meta: { next_cursor: 'newest' } } as never)
+      get.mockResolvedValue(page([100], 'more') as never)
+      await store.catchUp()
+      expect(store.messages.find((m) => m.id === 120)?.replies_count).toBe(4)
+    })
+
+    it('loadOlder and open keep the counters of the page they load', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [message(4)], meta: { next_cursor: 'c1' } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      get.mockResolvedValueOnce({ data: [root(2, 7), message(1)], meta: { next_cursor: null } } as never)
+      await store.loadOlder()
+      expect(store.messages.find((m) => m.id === 2)?.replies_count).toBe(7)
     })
   })
 })

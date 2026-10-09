@@ -126,6 +126,11 @@ export interface Message {
   body: string | null
   payload: MessagePayload | null
   log_group_id: number | null
+  /** Id of the root message when this is a reply; null for roots. Replies are one level deep. */
+  parent_id: number | null
+  replies_count: number
+  /** ISO timestamp of the latest reply; null when the message has no replies. */
+  last_reply_at: string | null
   user: Pick<User, 'id' | 'name'> | null
   created_at: string
 }
