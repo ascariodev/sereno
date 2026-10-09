@@ -72,14 +72,7 @@ class MessageController extends Controller
 
             $this->linkAttachments($message, $attachmentIds, $request->user()->id);
 
-            foreach ($mentioned as $user) {
-                $mention = new MessageMention;
-                $mention->organization_id = $message->organization_id;
-                $mention->message_id = $message->id;
-                $mention->user_id = $user->id;
-                $mention->save();
-                MentionCreated::dispatch($user->id, $message);
-            }
+            $this->saveMentions($message, $mentioned);
 
             if ($parentId !== null) {
                 Message::query()->whereKey($parentId)->update([
@@ -125,7 +118,32 @@ class MessageController extends Controller
         }
     }
 
-    /** @return Collection<int, User> members of the channel's organization named by `<@id>` tokens, minus the author */
+    /** @param  Collection<int, User>  $mentioned */
+    private function saveMentions(Message $message, Collection $mentioned): void
+    {
+        if ($mentioned->isEmpty()) {
+            return;
+        }
+
+        $now = now();
+        MessageMention::query()->insert($mentioned->map(fn (User $user) => [
+            'organization_id' => $message->organization_id,
+            'message_id' => $message->id,
+            'user_id' => $user->id,
+            'created_at' => $now,
+        ])->all());
+
+        foreach ($mentioned as $user) {
+            MentionCreated::dispatch($user->id, $message);
+        }
+    }
+
+    /**
+     * Members of the channel's organization named by `<@id>` tokens, minus the author, ordered by id. Only
+     * the first `chat.mentions.max_per_message` of them (in order of appearance) count; the body keeps all.
+     *
+     * @return Collection<int, User>
+     */
     private function mentionedUsers(Channel $channel, string $body, int $authorId): Collection
     {
         preg_match_all('/<@([1-9][0-9]{0,17})>/', $body, $matches);
@@ -135,10 +153,16 @@ class MessageController extends Controller
             return new Collection;
         }
 
-        return User::query()
+        $members = User::query()
             ->whereIn('id', $ids)
             ->whereIn('id', DB::table('organization_user')->where('organization_id', $channel->organization_id)->select('user_id'))
-            ->orderBy('id')
-            ->get(['id', 'name']);
+            ->get(['id', 'name'])
+            ->keyBy('id');
+
+        return (new Collection(array_map(fn (int $id) => $members->get($id), $ids)))
+            ->filter()
+            ->take(config('chat.mentions.max_per_message'))
+            ->sortBy('id')
+            ->values();
     }
 }

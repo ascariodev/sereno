@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Events\MentionCreated;
 use App\Events\MessageCreated;
 use App\Models\Channel;
 use App\Models\Organization;
@@ -139,4 +140,34 @@ it('carries the mentions in the message.created payload', function () {
     mentionPost($this, "hey <@{$this->bob->id}>")->assertCreated();
 
     Event::assertDispatched(MessageCreated::class, fn ($e) => $e->message['mentions'] === [['id' => $this->bob->id, 'name' => 'Bob']]);
+});
+
+it('caps the mentions per message at 50 by default', function () {
+    expect(config('chat.mentions.max_per_message'))->toBe(50);
+});
+
+it('keeps only the first valid mentions up to the cap, in order of appearance', function () {
+    Event::fake([MentionCreated::class]);
+    config(['chat.mentions.max_per_message' => 2]);
+    $carl = User::factory()->create(['name' => 'Carl']);
+    $this->organization->addMember($carl, [Role::Member]);
+    $body = "<@{$this->author->id}> <@{$carl->id}> <@{$this->nobody->id}> <@{$carl->id}> "
+        ."<@{$this->foreign->id}> <@{$this->bob->id}> <@{$this->ana->id}>";
+
+    DB::enableQueryLog();
+    $response = mentionPost($this, $body)->assertCreated();
+    $inserts = collect(DB::getQueryLog())->pluck('query')
+        ->filter(fn ($q) => str_starts_with($q, 'insert into "message_mentions"'));
+    DB::disableQueryLog();
+
+    $response->assertJsonPath('data.body', $body)
+        ->assertJsonPath('data.mentions', [
+            ['id' => $this->bob->id, 'name' => 'Bob'],
+            ['id' => $carl->id, 'name' => 'Carl'],
+        ]);
+    expect(mentionedIds($response->json('data.id')))->toBe([$this->bob->id, $carl->id])
+        ->and($inserts)->toHaveCount(1)
+        ->and(DB::table('messages')->where('id', $response->json('data.id'))->value('body'))->toBe($body);
+    Event::assertDispatchedTimes(MentionCreated::class, 2);
+    Event::assertNotDispatched(MentionCreated::class, fn ($e) => $e->userId === $this->ana->id);
 });

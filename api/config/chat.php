@@ -10,4 +10,8 @@ return [
         'orphan_hours' => (int) env('CHAT_ATTACHMENT_ORPHAN_HOURS', 24),
     ],
 
+    'mentions' => [
+        'max_per_message' => (int) env('CHAT_MENTIONS_PER_MESSAGE', 50),
+    ],
+
 ];

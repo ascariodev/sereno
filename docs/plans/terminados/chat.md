@@ -254,6 +254,10 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   fallo de carga se recuerda por `url`, así que una URL firmada nueva se reintenta. "Descargar" sin `download` (la URL
   es de otro origen) y con `aria-label` por archivo. `MentionsView` no muestra adjuntos: la fila es un enlace entero
   (L-21) y no admite enlaces dentro (M-36).
+- 2026-10-09 — (M-20) Tope de menciones por mensaje `chat.mentions.max_per_message` (50, env
+  `CHAT_MENTIONS_PER_MESSAGE`): el API no rechaza el mensaje; tras quitar autor, repetidos y no miembros guarda las
+  primeras N en orden de aparición y solo esas emiten `MentionCreated`; el body se guarda completo, así que un token
+  más allá del tope se muestra como mención genérica en la web. Filas insertadas en lote.
 
 ## Notas para la próxima sesión
 - Plan terminado (26 fases). Suites completas: API 672 tests, web 853. Paso 6 marcado como hecho en `CLAUDE.md`.
@@ -409,7 +413,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [x] M-18 (baja, sonnet): refrescar la etiqueta "hace cuánto" de `ThreadSummary` con el paso del tiempo.
 - [x] M-19 (baja, sonnet): renombrar en `MessageMentionTest` el test "keeps the mention when only the user is not
   deleted..." a algo como "deletes mentions with the mentioned user".
-- [ ] M-20 (media, sonnet): tope de menciones por mensaje (p. ej. 50) e insert en lote de `message_mentions`; hoy un
+- [x] M-20 (media, sonnet): tope de menciones por mensaje (p. ej. 50) e insert en lote de `message_mentions`; hoy un
   mensaje puede mencionar a toda la organización y las fases 11 y 12 lo multiplican en eventos.
 - [x] M-21 (baja, sonnet): test de `MentionCreated` que lo serialice y deserialice como la cola, para blindar que no
   depende de la organización activa.
