@@ -83,6 +83,15 @@ export const useOrganizationStore = defineStore('organization', () => {
     return activeId.value !== previousActiveId
   }
 
+  /** Backup for a lost `membership.revoked`: a 403 only counts as revocation if the reload no longer lists the organization. */
+  async function handleForbidden(organizationId: number): Promise<boolean> {
+    const previousActiveId = activeId.value
+    if (!(await reloadSettled())) return false
+    if (organizations.value.some((o) => o.id === organizationId)) return false
+    leaveOrganization(organizationId)
+    return activeId.value !== previousActiveId
+  }
+
   /** Skips the reload when the store already holds `role` (the change was made from this client). */
   async function handleMembershipRoleChanged(organizationId: number, role: string): Promise<void> {
     const roles = organizations.value.find((o) => o.id === organizationId)?.roles
@@ -104,7 +113,7 @@ export const useOrganizationStore = defineStore('organization', () => {
     setActive(null)
   }
 
-  return { organizations, activeId, active, isOwner, isAdmin, assignableRolesFor, canRemoveMember, canManageInvitations, loaded, version, rolesRevision, load, handleMembershipRevoked, handleMembershipRoleChanged, select, clear }
+  return { organizations, activeId, active, isOwner, isAdmin, assignableRolesFor, canRemoveMember, canManageInvitations, loaded, version, rolesRevision, load, handleMembershipRevoked, handleForbidden, handleMembershipRoleChanged, select, clear }
 })
 
 export function installOrganizationOnApi(): void {

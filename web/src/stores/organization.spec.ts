@@ -156,6 +156,24 @@ describe('organization store', () => {
     expect(store.organizations).toEqual([orgs[0]])
   })
 
+  it('a forbidden when the organization is gone leaves it and switches to another', async () => {
+    const store = setup()
+    await store.load()
+    vi.spyOn(api, 'get').mockResolvedValue({ data: [orgs[1]] })
+    expect(await store.handleForbidden(1)).toBe(true)
+    expect(leaveOrganization).toHaveBeenCalledWith(1)
+    expect(store.activeId).toBe(2)
+  })
+
+  it('a forbidden while the organization is still listed changes nothing', async () => {
+    const store = setup()
+    await store.load()
+    vi.spyOn(api, 'get').mockResolvedValue({ data: orgs })
+    expect(await store.handleForbidden(1)).toBe(false)
+    expect(leaveOrganization).not.toHaveBeenCalled()
+    expect(store.activeId).toBe(1)
+  })
+
   it('a revoke reload in flight when clear runs is discarded', async () => {
     const store = setup()
     await store.load()

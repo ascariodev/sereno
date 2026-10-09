@@ -134,6 +134,32 @@ describe('api client', () => {
     expect(handler).not.toHaveBeenCalled()
   })
 
+  it('notifies the forbidden handler on a 403 that carried an organization header', async () => {
+    const { client } = setup(json({ message: 'You do not belong to this organization.' }, 403))
+    client.setOrganizationProvider(() => 7)
+    const handler = vi.fn()
+    client.setForbiddenHandler(handler)
+
+    const error = await client.get('/api/projects').catch((e) => e)
+
+    expect(handler).toHaveBeenCalledWith(7)
+    expect(error).toMatchObject({ status: 403 })
+  })
+
+  it('does not notify the forbidden handler without an organization header or on other statuses', async () => {
+    const forbidden = setup(json({ message: 'Nope.' }, 403))
+    const handler = vi.fn()
+    forbidden.client.setForbiddenHandler(handler)
+    await forbidden.client.get('/api/me').catch(() => undefined)
+
+    const missing = setup(json({ message: 'Nope.' }, 404))
+    missing.client.setOrganizationProvider(() => 7)
+    missing.client.setForbiddenHandler(handler)
+    await missing.client.get('/api/me').catch(() => undefined)
+
+    expect(handler).not.toHaveBeenCalled()
+  })
+
   it('returns undefined on 204 without a body', async () => {
     const { client } = setup(new Response(null, { status: 204 }))
 

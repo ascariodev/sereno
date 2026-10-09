@@ -35,6 +35,7 @@ export interface ApiClient {
   setLocaleProvider(provider: Provider<string>): void
   setOrganizationProvider(provider: Provider<number | string>): void
   setUnauthorizedHandler(handler: (() => void) | null): void
+  setForbiddenHandler(handler: ((organizationId: number) => void) | null): void
 }
 
 export function createApiClient(options: ApiClientOptions): ApiClient {
@@ -43,6 +44,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
   let getLocale: Provider<string> = null
   let getOrganizationId: Provider<number | string> = null
   let onUnauthorized: (() => void) | null = null
+  let onForbidden: ((organizationId: number) => void) | null = null
 
   async function request<T>(
     method: string,
@@ -60,8 +62,11 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     const organizationId = getOrganizationId?.()
     if (token) headers.Authorization = `Bearer ${token}`
     if (locale) headers['Accept-Language'] = locale
+    let sentOrganizationId: number | null = null
     if (organizationId !== null && organizationId !== undefined && organizationId !== '') {
       headers['X-Organization-Id'] = String(organizationId)
+      const numericId = Number(organizationId)
+      if (Number.isInteger(numericId)) sentOrganizationId = numericId
     }
 
     const init: RequestInit = { method, headers, signal: opts.signal }
@@ -102,6 +107,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         : {}
 
     if (response.status === 401) onUnauthorized?.()
+    if (response.status === 403 && sentOrganizationId !== null) onForbidden?.(sentOrganizationId)
     throw new ApiError(response.status, message, errors)
   }
 
@@ -122,6 +128,9 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     },
     setUnauthorizedHandler: (handler) => {
       onUnauthorized = handler
+    },
+    setForbiddenHandler: (handler) => {
+      onForbidden = handler
     },
   }
 }

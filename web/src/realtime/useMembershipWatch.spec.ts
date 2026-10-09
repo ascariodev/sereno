@@ -71,6 +71,7 @@ beforeEach(() => {
 afterEach(() => {
   wrapper?.unmount()
   wrapper = undefined
+  api.setOrganizationProvider(null)
   setRealtimeClientFactory(() => null)
 })
 
@@ -218,5 +219,49 @@ describe('useMembershipWatch', () => {
     next.setStatus('connected')
     await flushPromises()
     expect(organizationLoads(get)).toBe(1)
+  })
+
+  function mockFetch(organizations: unknown[]) {
+    return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
+      String(input).endsWith('/api/organizations')
+        ? new Response(JSON.stringify({ data: organizations }), { status: 200 })
+        : new Response('{"message":"Forbidden."}', { status: 403 }),
+    )
+  }
+
+  it('a 403 from the active organization whose membership is gone toasts and navigates once', async () => {
+    const { router, organization, get } = await mountWatch()
+    get.mockRestore()
+    const fetchSpy = mockFetch([two])
+    api.setOrganizationProvider(() => 1)
+    await api.get('/api/projects').catch(() => undefined)
+    revoke(1)
+    await flushPromises()
+    expect(organization.activeId).toBe(2)
+    expect(toasts.value).toHaveLength(1)
+    expect(router.currentRoute.value.name).toBe('projects')
+    expect(fetchSpy.mock.calls.filter(([url]) => String(url).endsWith('/api/organizations'))).toHaveLength(1)
+  })
+
+  it('an ordinary 403 with the membership intact does not toast or navigate', async () => {
+    const { router, organization, get } = await mountWatch([one, two])
+    get.mockRestore()
+    mockFetch([one, two])
+    api.setOrganizationProvider(() => 1)
+    await api.get('/api/projects').catch(() => undefined)
+    await flushPromises()
+    expect(organization.activeId).toBe(1)
+    expect(toasts.value).toHaveLength(0)
+    expect(router.currentRoute.value.name).toBe('channel')
+  })
+
+  it('ignores a 403 for an organization that is no longer active', async () => {
+    const { get } = await mountWatch()
+    get.mockRestore()
+    const fetchSpy = mockFetch([one, two])
+    api.setOrganizationProvider(() => 2)
+    await api.get('/api/projects').catch(() => undefined)
+    await flushPromises()
+    expect(fetchSpy.mock.calls.filter(([url]) => String(url).endsWith('/api/organizations'))).toHaveLength(0)
   })
 })
