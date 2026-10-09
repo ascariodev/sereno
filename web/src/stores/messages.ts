@@ -51,7 +51,7 @@ function bumpRoot(root: Message, reply: Message): Message {
   }
 }
 
-/** Whether a server snapshot of a root, with this `last_reply_at`, already counts a reply created at `at`. */
+/** Whether the incoming version carries an edit older than the one already applied in live. */
 export function isOlderEdit(incoming: Message, current: Message): boolean {
   return incoming.edited_at !== null && current.edited_at !== null && Date.parse(incoming.edited_at) < Date.parse(current.edited_at)
 }
@@ -73,6 +73,7 @@ export function keepNewerContent(incoming: Message, current: Message | undefined
   }
 }
 
+/** Whether a server snapshot of a root, with this `last_reply_at`, already counts a reply created at `at`. */
 export function snapshotCounts(snapshotLast: string | null | undefined, at: string): boolean {
   return snapshotLast != null && Date.parse(at) <= Date.parse(snapshotLast)
 }
@@ -267,15 +268,17 @@ export const useMessagesStore = defineStore('messages', () => {
   /** A deletion in live: takes the root counters of the event even if they go down; never inserts. */
   function remove(event: MessageDeletedEvent): boolean {
     if (event.channel_id !== channelId.value) return false
+    const previous = removals.get(event.root.id)
     const removal: Removal = { seq: ++removalSeq, deletedAt: event.deleted_at, counters: event.root }
-    removals.set(event.root.id, removal)
+    const effective = previous !== undefined && Date.parse(previous.deletedAt) > Date.parse(event.deleted_at) ? previous : removal
+    removals.set(event.root.id, effective)
     if (event.parent_id === null) deletedRoots.set(event.id, event.deleted_at)
     else {
       removedReplies.add(event.id)
       countedReplies.delete(event.id)
     }
     snapshots.set(event.root.id, laterDate(event.root.last_reply_at, event.deleted_at))
-    return update(event.root.id, (root) => settle(rebase(root, removal)))
+    return update(event.root.id, (root) => settle(rebase(root, effective)))
   }
 
   async function open(id: number): Promise<void> {

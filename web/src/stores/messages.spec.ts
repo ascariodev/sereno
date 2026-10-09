@@ -607,6 +607,15 @@ describe('messages store', () => {
       expect(store.messages.map((m) => m.id)).toEqual([2])
     })
 
+    it('keeps the counters of a newer deletion when an older deletion of the same root arrives late', async () => {
+      vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [root(2, 3, '2026-01-03T00:00:00Z')], meta: { next_cursor: null } } as never)
+      const store = useMessagesStore()
+      await store.open(5)
+      store.remove(deleted(9, 2, [2, 1, '2026-01-01T00:00:00Z'], '2026-01-06T00:00:00Z'))
+      store.remove(deleted(8, 2, [2, 2, '2026-01-02T00:00:00Z'], '2026-01-04T00:00:00Z'))
+      expect(store.messages[0]).toMatchObject({ replies_count: 1, last_reply_at: '2026-01-01T00:00:00Z' })
+    })
+
     it('does not count again a deleted reply whose created event arrives late', async () => {
       vi.spyOn(api, 'get').mockResolvedValueOnce({ data: [root(2, 1, '2026-01-01T00:00:00Z')], meta: { next_cursor: null } } as never)
       const store = useMessagesStore()
