@@ -9,6 +9,7 @@ export const MEMBERSHIP_ROLE_CHANGED_EVENT = '.membership.role_changed'
 export const MESSAGE_UPDATED_EVENT = '.message.updated'
 export const MESSAGE_DELETED_EVENT = '.message.deleted'
 export const MENTION_CREATED_EVENT = '.mention.created'
+export const MENTION_REMOVED_EVENT = '.mention.removed'
 
 export interface RealtimePayload {
   message?: Message
@@ -17,6 +18,7 @@ export interface RealtimePayload {
   channel_id?: number
   parent_id?: number | null
   id?: number
+  message_id?: number
   deleted_at?: string
   root?: MessageDeletedEvent['root']
 }
@@ -26,6 +28,13 @@ export interface MentionCreatedPayload {
   channelId: number
   parentId: number | null
   message: Message
+}
+
+export interface MentionRemovedPayload {
+  organizationId: number
+  channelId: number
+  parentId: number | null
+  messageId: number
 }
 
 export interface SubscriptionErrorPayload {
@@ -197,11 +206,12 @@ export interface UserSubscriptionHandlers {
   onMembershipRevoked?: (organizationId: number) => void
   onRoleChanged?: (organizationId: number, role: string) => void
   onMention?: (mention: MentionCreatedPayload) => void
+  onMentionRemoved?: (mention: MentionRemovedPayload) => void
 }
 
 export function subscribeToUser(userId: number, handlers: UserSubscriptionHandlers = {}): () => void {
-  const { onMembershipRevoked = () => {}, onRoleChanged = () => {}, onMention = () => {} } = handlers
-  const events = [MEMBERSHIP_REVOKED_EVENT, MEMBERSHIP_ROLE_CHANGED_EVENT, MENTION_CREATED_EVENT]
+  const { onMembershipRevoked = () => {}, onRoleChanged = () => {}, onMention = () => {}, onMentionRemoved = () => {} } = handlers
+  const events = [MEMBERSHIP_REVOKED_EVENT, MEMBERSHIP_ROLE_CHANGED_EVENT, MENTION_CREATED_EVENT, MENTION_REMOVED_EVENT]
   return subscribe(userChannelName(userId), events, (event, data) => {
     if (typeof data.organization_id !== 'number') return
     if (event === MEMBERSHIP_REVOKED_EVENT) onMembershipRevoked(data.organization_id)
@@ -211,6 +221,15 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
       const { message, channel_id: channelId, parent_id: parentId } = data
       if (typeof message?.id !== 'number' || typeof channelId !== 'number') return
       onMention({ organizationId: data.organization_id, channelId, parentId: typeof parentId === 'number' ? parentId : null, message })
+    } else if (event === MENTION_REMOVED_EVENT) {
+      const { message_id: messageId, channel_id: channelId, parent_id: parentId } = data
+      if (typeof messageId !== 'number' || typeof channelId !== 'number') return
+      onMentionRemoved({
+        organizationId: data.organization_id,
+        channelId,
+        parentId: typeof parentId === 'number' ? parentId : null,
+        messageId,
+      })
     }
   })
 }

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/client'
 import * as mentionsApi from '../api/mentions'
 import type { Mention, MentionPage, Message } from '../api/types'
-import { disconnectRealtime, MENTION_CREATED_EVENT, setRealtimeClientFactory } from '../realtime/echo'
+import { disconnectRealtime, MENTION_CREATED_EVENT, MENTION_REMOVED_EVENT, setRealtimeClientFactory } from '../realtime/echo'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import { useMentionsStore } from './mentions'
 import { useOrganizationStore } from './organization'
@@ -493,6 +493,78 @@ describe('mentions store', () => {
       mark.reject(new ApiError(500, 'x'))
       expect(await result).toBe(false)
       expect(store.unreadCount).toBe(3)
+    })
+
+    describe('mention.removed', () => {
+      const removed = (orgId: number, messageId: number) => ({
+        organization_id: orgId,
+        channel_id: 4,
+        parent_id: null,
+        message_id: messageId,
+      })
+
+      it('drops an unread row and lowers the counter; a read row leaves the counter alone', async () => {
+        vi.spyOn(mentionsApi, 'listMentions').mockResolvedValue(page([mention(2), mention(1, true)], 1))
+        const { listeners, store } = startLive()
+        await vi.waitFor(() => expect(store.loaded).toBe(true))
+        const emit = listeners.get(`users.7|${MENTION_REMOVED_EVENT}`)
+        emit?.(removed(1, 102))
+        expect(store.mentions.map((m) => m.id)).toEqual([1])
+        expect(store.unreadCount).toBe(0)
+        emit?.(removed(1, 101))
+        expect(store.mentions).toEqual([])
+        expect(store.unreadCount).toBe(0)
+      })
+
+      it('refreshes the counter when the row is not loaded', async () => {
+        const list = vi
+          .spyOn(mentionsApi, 'listMentions')
+          .mockResolvedValueOnce(page([mention(5)], 3))
+          .mockResolvedValueOnce(page([mention(5)], 2))
+        const { listeners, store } = startLive()
+        await vi.waitFor(() => expect(store.loaded).toBe(true))
+        listeners.get(`users.7|${MENTION_REMOVED_EVENT}`)?.(removed(1, 999))
+        await vi.waitFor(() => expect(store.unreadCount).toBe(2))
+        expect(list).toHaveBeenCalledTimes(2)
+        expect(store.mentions).toHaveLength(1)
+      })
+
+      it('ignores another organization', async () => {
+        const list = vi.spyOn(mentionsApi, 'listMentions').mockResolvedValue(page([mention(1)], 1))
+        const { listeners, store } = startLive()
+        await vi.waitFor(() => expect(store.loaded).toBe(true))
+        listeners.get(`users.7|${MENTION_REMOVED_EVENT}`)?.(removed(2, 101))
+        expect(store.mentions).toHaveLength(1)
+        expect(store.unreadCount).toBe(1)
+        expect(list).toHaveBeenCalledTimes(1)
+      })
+
+      it('does not bring the row back from a refresh that started before the removal', async () => {
+        const stale = deferred<MentionPage>()
+        vi.spyOn(mentionsApi, 'listMentions')
+          .mockResolvedValueOnce(page([mention(1)], 1))
+          .mockReturnValueOnce(stale.promise)
+          .mockResolvedValue(page([], 0))
+        const { listeners, store } = startLive()
+        await vi.waitFor(() => expect(store.loaded).toBe(true))
+        void store.refresh()
+        listeners.get(`users.7|${MENTION_REMOVED_EVENT}`)?.(removed(1, 101))
+        stale.resolve(page([mention(1)], 1))
+        await vi.waitFor(() => expect(store.loading).toBe(false))
+        expect(store.mentions).toEqual([])
+        expect(store.unreadCount).toBe(0)
+      })
+
+      it('shows the mention again if the same message mentions the user again later', async () => {
+        vi.spyOn(mentionsApi, 'listMentions')
+          .mockResolvedValueOnce(page([mention(1)], 1))
+          .mockResolvedValueOnce(page([mention(2)], 1))
+        const { listeners, store } = startLive()
+        await vi.waitFor(() => expect(store.loaded).toBe(true))
+        listeners.get(`users.7|${MENTION_REMOVED_EVENT}`)?.(removed(1, 101))
+        listeners.get(`users.7|${MENTION_CREATED_EVENT}`)?.(live(1, 102))
+        await vi.waitFor(() => expect(store.mentions.map((m) => m.id)).toEqual([2]))
+      })
     })
 
     it('refreshes the counter when the connection comes back (not on first connect)', async () => {

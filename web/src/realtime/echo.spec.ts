@@ -10,6 +10,7 @@ import {
   MEMBERSHIP_REVOKED_EVENT,
   MEMBERSHIP_ROLE_CHANGED_EVENT,
   MENTION_CREATED_EVENT,
+  MENTION_REMOVED_EVENT,
   MESSAGE_CREATED_EVENT,
   MESSAGE_DELETED_EVENT,
   MESSAGE_UPDATED_EVENT,
@@ -222,6 +223,25 @@ describe('realtime', () => {
       { organizationId: 3, channelId: 4, parentId: null, message: { id: 10 } },
     ])
     expect(revoked).toEqual([])
+    expect(client.private).toHaveBeenCalledTimes(1)
+  })
+
+  it('forwards mention.removed with ids only, ignoring malformed payloads', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const received: unknown[] = []
+    subscribeToUser(5, { onMentionRemoved: (mention) => received.push(mention) })
+
+    const emit = listeners.get(`users.5|${MENTION_REMOVED_EVENT}`)
+    emit?.({ channel_id: 4, message_id: 9 })
+    emit?.({ organization_id: 3, channel_id: 4 })
+    emit?.({ organization_id: 3, message_id: 9 })
+    emit?.({ organization_id: 3, channel_id: 4, parent_id: 2, message_id: 9 })
+    emit?.({ organization_id: 3, channel_id: 4, message_id: 10 })
+    expect(received).toEqual([
+      { organizationId: 3, channelId: 4, parentId: 2, messageId: 9 },
+      { organizationId: 3, channelId: 4, parentId: null, messageId: 10 },
+    ])
     expect(client.private).toHaveBeenCalledTimes(1)
   })
 

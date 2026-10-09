@@ -3,7 +3,7 @@ import { ref, shallowRef, watch } from 'vue'
 import { ApiError } from '../api/client'
 import { listMentions, MENTIONS_PER_PAGE, MENTIONS_READ_MAX_IDS, markMentionsRead } from '../api/mentions'
 import type { Mention } from '../api/types'
-import { type MentionCreatedPayload, onReconnect, subscribeToUser } from '../realtime/echo'
+import { type MentionCreatedPayload, type MentionRemovedPayload, onReconnect, subscribeToUser } from '../realtime/echo'
 import { useOrganizationStore } from './organization'
 
 function toApiError(caught: unknown): ApiError {
@@ -47,6 +47,8 @@ export const useMentionsStore = defineStore('mentions', () => {
   let live = false
   let stopLive: (() => void) | null = null
   const liveMessages = new Set<number>()
+  // Messages whose mention was removed live: a response that started before the removal must not bring the row back.
+  const removedMessages = new Set<number>()
 
   function setUnread(count: number): void {
     unreadCount.value = Math.max(0, count)
@@ -60,6 +62,7 @@ export const useMentionsStore = defineStore('mentions', () => {
     controller.abort()
     controller = new AbortController()
     liveMessages.clear()
+    removedMessages.clear()
     mentions.value = []
     unreadCount.value = 0
     nextCursor.value = null
@@ -79,6 +82,10 @@ export const useMentionsStore = defineStore('mentions', () => {
     { flush: 'sync' },
   )
 
+  function withoutRemoved(rows: readonly Mention[]): Mention[] {
+    return removedMessages.size === 0 ? [...rows] : rows.filter((row) => !removedMessages.has(row.message.id))
+  }
+
   /** Loads the first page and merges it into what is already there; the newest request wins. Also the way to reload. */
   function refresh(): Promise<void> {
     if (organization.activeId === null) return Promise.resolve()
@@ -88,7 +95,7 @@ export const useMentionsStore = defineStore('mentions', () => {
     return listMentions({ perPage: MENTIONS_PER_PAGE }, controller.signal)
       .then((page) => {
         if (current !== generation || version !== fetchVersion) return
-        mentions.value = mergeMentions(mentions.value, page.data)
+        mentions.value = mergeMentions(mentions.value, withoutRemoved(page.data))
         if (!loaded.value) {
           nextCursor.value = page.meta.next_cursor
           loaded.value = true
@@ -121,7 +128,7 @@ export const useMentionsStore = defineStore('mentions', () => {
         readAll === readAllVersion
           ? page.data
           : page.data.map((row) => (row.read_at === null ? { ...row, read_at: readAllAt } : row))
-      mentions.value = mergeMentions(mentions.value, rows)
+      mentions.value = mergeMentions(mentions.value, withoutRemoved(rows))
       nextCursor.value = page.meta.next_cursor
       if (counted === countVersion) setUnread(page.meta.unread_count)
     } catch {
@@ -200,15 +207,32 @@ export const useMentionsStore = defineStore('mentions', () => {
     const messageId = payload.message.id
     if (liveMessages.has(messageId) || mentions.value.some((mention) => mention.message.id === messageId)) return
     liveMessages.add(messageId)
+    removedMessages.delete(messageId)
     setUnread(unreadCount.value + 1)
     void refresh()
   }
 
-  /** Subscribes to `mention.created` in the user channel and refreshes on reconnect; call `stop()` on logout or unmount. */
+  /** The payload has only ids: drop the row by message id; if it is not loaded the counter is resynced from the API. */
+  function onMentionRemoved(payload: MentionRemovedPayload): void {
+    if (payload.organizationId !== organization.activeId) return
+    const messageId = payload.messageId
+    removedMessages.add(messageId)
+    liveMessages.delete(messageId)
+    const row = mentions.value.find((mention) => mention.message.id === messageId)
+    if (row === undefined) {
+      void refresh()
+      return
+    }
+    mentions.value = mentions.value.filter((mention) => mention !== row)
+    if (row.read_at === null) setUnread(unreadCount.value - 1)
+    invalidateInFlight()
+  }
+
+  /** Subscribes to `mention.created` and `mention.removed` in the user channel and refreshes on reconnect; call `stop()` on logout or unmount. */
   function start(userId: number): void {
     stop()
     live = true
-    const unsubscribeUser = subscribeToUser(userId, { onMention })
+    const unsubscribeUser = subscribeToUser(userId, { onMention, onMentionRemoved })
     const unsubscribeReconnect = onReconnect(() => void refresh())
     stopLive = () => {
       unsubscribeUser()
