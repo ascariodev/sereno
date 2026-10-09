@@ -8,6 +8,7 @@ import AppMenu, { type AppMenuItem } from './ui/AppMenu.vue'
 import AppTooltip from './ui/AppTooltip.vue'
 import MessageAttachments from './MessageAttachments.vue'
 import MessageBody from './MessageBody.vue'
+import MessageEditor from './MessageEditor.vue'
 import { messageActionsKey } from './messageActions'
 import ThreadSummary from './ThreadSummary.vue'
 
@@ -30,6 +31,13 @@ const canAct = computed(
     !deleted.value &&
     props.message.user?.id === props.ownUserId,
 )
+const editing = computed(
+  () =>
+    canAct.value &&
+    actions?.editingId.value === props.message.id &&
+    !(props.threadable && props.message.parent_id === null && actions.threadRootId.value === props.message.id),
+)
+const showMenu = computed(() => canAct.value && actions?.editingId.value !== props.message.id)
 const menuItems = computed<AppMenuItem[]>(() => [
   { value: 'edit', label: t('message.edit'), icon: Pencil },
   { value: 'delete', label: t('message.delete'), icon: Trash2, danger: true },
@@ -48,7 +56,7 @@ const editedDate = computed(() =>
 <template>
   <article class="message-item">
     <AppAvatar :name="author" :id="message.user?.id ?? 0" :size="34" />
-    <div v-if="canAct" class="message-item__actions" data-test="actions">
+    <div v-if="showMenu" class="message-item__actions" data-test="actions">
       <AppMenu :items="menuItems" align="end" @select="onSelect">
         <button type="button" class="message-item__actions-trigger" :aria-label="t('message.actions')">
           <Ellipsis :size="16" aria-hidden="true" />
@@ -69,6 +77,7 @@ const editedDate = computed(() =>
         </AppTooltip>
       </p>
       <p v-if="deleted" class="message-item__deleted" data-test="deleted">{{ t('message.deleted') }}</p>
+      <MessageEditor v-else-if="editing" :message="message" @done="actions?.stopEdit()" />
       <template v-else>
         <p v-if="message.body" class="message-item__body"><MessageBody :body="message.body" :mentions="message.mentions" :own-user-id="ownUserId" /></p>
         <MessageAttachments :attachments="message.attachments" />

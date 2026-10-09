@@ -32,7 +32,6 @@ const thread = useThreadStore()
 const channel = ref<Channel | null>(null)
 const channelLoadFailed = ref(false)
 const panelRefresh = ref(0)
-// `editingMessageId` is prepared for the inline editor (later phase).
 const editingMessageId = ref<number | null>(null)
 const deletingMessage = ref<Message | null>(null)
 const deleting = ref(false)
@@ -43,6 +42,11 @@ const deleteOpen = computed({
   },
 })
 provide(messageActionsKey, {
+  editingId: editingMessageId,
+  threadRootId: computed(() => threadId.value),
+  stopEdit: () => {
+    editingMessageId.value = null
+  },
   edit: (message) => {
     editingMessageId.value = message.id
   },
@@ -180,6 +184,7 @@ function onLiveUpdated(message: Message): void {
 }
 
 function onLiveDeleted(event: MessageDeletedEvent): void {
+  if (editingMessageId.value === event.id) editingMessageId.value = null
   messages.remove(event)
   thread.remove(event)
 }
@@ -242,6 +247,7 @@ function reload(): void {
   channelLoadFailed.value = false
   leaveRealtime()
   deletingMessage.value = null
+  editingMessageId.value = null
   thread.clear()
   if (!Number.isInteger(channelId.value) || channelId.value < 1) {
     messages.clear()

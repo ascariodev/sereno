@@ -968,3 +968,102 @@ describe('ChannelView delete confirmation', () => {
     wrapper.unmount()
   })
 })
+
+describe('ChannelView inline editor', () => {
+  const root = { ...message(1), replies_count: 1, last_reply_at: '2026-01-01T05:00:00Z' }
+  const own2 = { ...message(2), body: 'body 2' }
+  const reply = { ...message(3), parent_id: 1, body: 'reply 3' }
+  const key = (el: Element, name: string) => el.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true, cancelable: true }))
+  const settle = async () => {
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await flushPromises()
+  }
+
+  async function openEdit(wrapper: Awaited<ReturnType<typeof mountView>>, index: number, selector = '.message-item__actions-trigger') {
+    const trigger = wrapper.findAll(selector)[index].element as HTMLButtonElement
+    trigger.focus()
+    key(trigger, 'ArrowDown')
+    await settle()
+    key(document.activeElement!, 'Enter')
+    await settle()
+  }
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    toast.clear()
+    i18n.global.locale.value = 'en'
+    setRealtimeClientFactory(() => null)
+    useThreadStore().clear()
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') return channels as never
+      if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+      if (/\/replies$/.test(path)) return { data: [reply], meta: { next_cursor: null } } as never
+      if (/\/api\/channels\/\d+\/members|\/api\/members/.test(path)) return { data: [], meta: { last_page: 1 } } as never
+      return { data: [root, own2], meta: { next_cursor: null } } as never
+    })
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+    useProjectsStore().clear()
+  })
+
+  it('opens one editor with focus, hides that menu, and a second edit closes the first', async () => {
+    const wrapper = await mountView('/channels/7', true)
+    await openEdit(wrapper, 0)
+    const editors = () => document.querySelectorAll<HTMLTextAreaElement>('.message-editor textarea')
+    expect(editors()).toHaveLength(1)
+    expect(document.activeElement).toBe(editors()[0])
+    expect(editors()[0].value).toBe('body 1')
+    // The edited item has no menu, so the only trigger left belongs to the other message.
+    expect(wrapper.findAll('.message-item__actions-trigger')).toHaveLength(1)
+    await openEdit(wrapper, 0)
+    expect(editors()).toHaveLength(1)
+    expect(editors()[0].value).toBe('body 2')
+    expect(document.activeElement).toBe(editors()[0])
+    wrapper.unmount()
+  })
+
+  it('closes the editor when the edited message is deleted live', async () => {
+    const realtime = fakeRealtime()
+    const wrapper = await mountView('/channels/7', true)
+    await openEdit(wrapper, 0)
+    expect(document.querySelectorAll('.message-editor textarea')).toHaveLength(1)
+    realtime.emitEvent('.message.deleted', {
+      id: root.id,
+      channel_id: 7,
+      parent_id: null,
+      deleted_at: '2026-01-02T00:00:00Z',
+      root: { id: root.id, replies_count: 1, last_reply_at: root.last_reply_at },
+    })
+    await settle()
+    expect(document.querySelectorAll('.message-editor textarea')).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  it('closes the editor when the channel changes', async () => {
+    const wrapper = await mountView('/channels/7', true)
+    await openEdit(wrapper, 0)
+    expect(document.querySelectorAll('.message-editor textarea')).toHaveLength(1)
+    await wrapper.router.push('/channels/8')
+    await settle()
+    expect(document.querySelectorAll('.message-editor textarea')).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  it('edits a reply in the open thread', async () => {
+    const wrapper = await mountView('/channels/7?thread=1', true)
+    const aside = document.querySelector('aside[aria-label="Thread"]')!
+    const trigger = aside.querySelectorAll<HTMLButtonElement>('.message-item__actions-trigger')[1]
+    trigger.focus()
+    key(trigger, 'ArrowDown')
+    await settle()
+    key(document.activeElement!, 'Enter')
+    await settle()
+    expect(aside.querySelectorAll('.message-editor textarea')).toHaveLength(1)
+    expect(document.querySelectorAll('.message-editor textarea')).toHaveLength(1)
+    expect(aside.querySelector<HTMLTextAreaElement>('textarea[name=body]')).toBe(document.activeElement)
+    wrapper.unmount()
+  })
+})
