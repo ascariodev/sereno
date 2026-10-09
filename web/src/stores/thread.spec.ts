@@ -54,6 +54,13 @@ describe('thread store', () => {
     expect(store.loading).toBe(false)
   })
 
+  it('sorts the first page by id even when the API returns it unordered', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([12, 13, 11], null) as never)
+    const store = useThreadStore()
+    await store.open(5, 10)
+    expect(ids(store.replies)).toEqual([11, 12, 13])
+  })
+
   it('keeps a live reply that arrives while the thread is loading', async () => {
     const pending = deferred()
     vi.spyOn(api, 'get').mockReturnValue(pending.promise as never)
@@ -287,6 +294,20 @@ describe('thread store', () => {
       await store.catchUp()
       expect(get).toHaveBeenCalledTimes(1)
       expect(store.error?.status).toBe(404)
+    })
+
+    it('catches up again after a failed open followed by a successful one', async () => {
+      const get = vi
+        .spyOn(api, 'get')
+        .mockRejectedValueOnce(new ApiError(404, 'nope'))
+        .mockResolvedValueOnce(page([12, 11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      await store.open(5, 10)
+      get.mockResolvedValueOnce(page([13, 12], null) as never)
+      await store.catchUp()
+      expect(get).toHaveBeenCalledTimes(3)
+      expect(ids(store.replies)).toEqual([11, 12, 13])
     })
 
     it('still catches up after a failed loadOlder', async () => {

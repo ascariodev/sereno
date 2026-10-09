@@ -58,7 +58,7 @@ export const useThreadStore = defineStore('thread', () => {
     try {
       const page = await listReplies(channel, root, { perPage: MESSAGES_PER_PAGE }, controller.signal)
       if (current !== generation) return
-      replies.value = withReplies(page.data.slice().reverse(), replies.value)
+      replies.value = withReplies(page.data.slice().sort((a, b) => a.id - b.id), replies.value)
       nextCursor.value = page.meta.next_cursor
     } catch (caught) {
       if (current !== generation) return
@@ -139,7 +139,7 @@ export const useThreadStore = defineStore('thread', () => {
     }
     const oldestId = Math.min(...newest.data.map((reply) => reply.id))
     const live = replies.value.filter((reply) => reply.id > oldestId)
-    replies.value = withReplies(newest.data.slice().reverse(), live)
+    replies.value = withReplies(newest.data.slice().sort((a, b) => a.id - b.id), live)
     nextCursor.value = newest.meta.next_cursor
     listVersion++
     loadingMore.value = false
