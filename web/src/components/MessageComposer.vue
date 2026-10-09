@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { AtSign, Paperclip, SendHorizontal, X } from '@lucide/vue'
-import { computed, nextTick, ref, useId, watch } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { useAttachmentUploads } from '../composables/useAttachmentUploads'
 import { useMentionInput, type MentionDraft } from '../composables/useMentionInput'
+import { useMentionKeyboard } from '../composables/useMentionKeyboard'
 import { formatFileSize } from '../formatFileSize'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
@@ -30,7 +31,6 @@ const auth = useAuthStore()
 const field = ref<HTMLTextAreaElement | null>(null)
 const sending = ref(false)
 const errorText = ref<string | null>(null)
-const activeIndex = ref(0)
 const picker = ref<HTMLInputElement | null>(null)
 const uploads = useAttachmentUploads(() => props.channelId ?? messages.channelId ?? 0)
 
@@ -44,7 +44,13 @@ watch([mention.text, mention.mentions], ([text, mentions]) => {
   if (props.draft !== undefined) emit('update:draft', text === '' ? null : { text, mentions })
 })
 
-const open = computed(() => mention.suggestions.value.length > 0)
+const { activeIndex, open, optionId, setCaret, syncCaret, choose, handleKeydown } = useMentionKeyboard({
+  mention,
+  field,
+  listId,
+  ensureLoaded: () => directory.ensureLoaded(),
+})
+
 const tooLong = computed(() => mention.length.value > MAX_LENGTH)
 const canSend = computed(
   () =>
@@ -54,44 +60,9 @@ const canSend = computed(
     (mention.serialized.value.trim() !== '' || uploads.attachmentIds.value.length > 0),
 )
 
-function optionId(index: number): string {
-  return `${listId}-${index}`
-}
-
-watch(
-  () => mention.query.value,
-  (query) => {
-    if (query) void directory.ensureLoaded()
-  },
-)
-watch(
-  () => mention.suggestions.value.map((m) => m.id).join(','),
-  () => {
-    activeIndex.value = 0
-  },
-)
-
-async function setCaret(position: number | null): Promise<void> {
-  if (position === null) return
-  await nextTick()
-  field.value?.focus()
-  field.value?.setSelectionRange(position, position)
-}
-
 function onInput(event: Event): void {
   const el = event.target as HTMLTextAreaElement
   mention.update(el.value, el.selectionStart)
-}
-
-function syncCaret(): void {
-  const el = field.value
-  if (el) mention.moveCaret(el.selectionStart, el.selectionEnd)
-}
-
-function choose(index: number): void {
-  const member = mention.suggestions.value[index]
-  if (!member) return
-  void setCaret(mention.select(member))
 }
 
 function insertTrigger(): void {
@@ -172,25 +143,7 @@ async function submit(): Promise<void> {
 
 function onKeydown(event: KeyboardEvent): void {
   if (event.isComposing) return
-  if (open.value) {
-    const count = mention.suggestions.value.length
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault()
-      activeIndex.value = (activeIndex.value + (event.key === 'ArrowDown' ? 1 : count - 1)) % count
-      return
-    }
-    if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'Tab') {
-      event.preventDefault()
-      choose(activeIndex.value)
-      return
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      event.stopPropagation()
-      mention.dismiss()
-      return
-    }
-  }
+  if (handleKeydown(event)) return
   if (event.key !== 'Enter' || event.shiftKey) return
   event.preventDefault()
   void submit()

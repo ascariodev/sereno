@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { updateMessage } from '../api/messages'
 import { ApiError } from '../api/client'
 import type { Message } from '../api/types'
 import { useMentionInput } from '../composables/useMentionInput'
+import { useMentionKeyboard } from '../composables/useMentionKeyboard'
 import { parseMentionDraft } from '../mentionToken'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
@@ -27,7 +28,6 @@ const thread = useThreadStore()
 const field = ref<HTMLTextAreaElement | null>(null)
 const saving = ref(false)
 const errorText = ref<string | null>(null)
-const activeIndex = ref(0)
 let alive = true
 
 const mention = useMentionInput({
@@ -36,7 +36,12 @@ const mention = useMentionInput({
 })
 mention.restore(parseMentionDraft(props.message.body ?? '', props.message.mentions))
 
-const open = computed(() => mention.suggestions.value.length > 0)
+const { activeIndex, open, optionId, syncCaret, choose, handleKeydown } = useMentionKeyboard({
+  mention,
+  field,
+  listId,
+  ensureLoaded: () => directory.ensureLoaded(),
+})
 const tooLong = computed(() => mention.length.value > MAX_LENGTH)
 const hasAttachments = computed(() => props.message.attachments.length > 0)
 const canSave = computed(
@@ -44,23 +49,6 @@ const canSave = computed(
 )
 const errorMessage = computed(() => (tooLong.value ? t('channel.composer.tooLong', { max: MAX_LENGTH }) : errorText.value))
 const describedBy = computed(() => (errorMessage.value ? `${hintId} ${errorDomId}` : hintId))
-
-function optionId(index: number): string {
-  return `${listId}-${index}`
-}
-
-watch(
-  () => mention.query.value,
-  (query) => {
-    if (query) void directory.ensureLoaded()
-  },
-)
-watch(
-  () => mention.suggestions.value.map((m) => m.id).join(','),
-  () => {
-    activeIndex.value = 0
-  },
-)
 
 onMounted(() => {
   const el = field.value
@@ -72,28 +60,10 @@ onBeforeUnmount(() => {
   alive = false
 })
 
-async function setCaret(position: number | null): Promise<void> {
-  if (position === null) return
-  await nextTick()
-  field.value?.focus()
-  field.value?.setSelectionRange(position, position)
-}
-
 function onInput(event: Event): void {
   const el = event.target as HTMLTextAreaElement
   errorText.value = null
   mention.update(el.value, el.selectionStart)
-}
-
-function syncCaret(): void {
-  const el = field.value
-  if (el) mention.moveCaret(el.selectionStart, el.selectionEnd)
-}
-
-function choose(index: number): void {
-  const member = mention.suggestions.value[index]
-  if (!member) return
-  void setCaret(mention.select(member))
 }
 
 async function save(): Promise<void> {
@@ -131,25 +101,7 @@ function cancel(): void {
 
 function onKeydown(event: KeyboardEvent): void {
   if (event.isComposing) return
-  if (open.value) {
-    const count = mention.suggestions.value.length
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault()
-      activeIndex.value = (activeIndex.value + (event.key === 'ArrowDown' ? 1 : count - 1)) % count
-      return
-    }
-    if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'Tab') {
-      event.preventDefault()
-      choose(activeIndex.value)
-      return
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      event.stopPropagation()
-      mention.dismiss()
-      return
-    }
-  }
+  if (handleKeydown(event)) return
   if (event.key === 'Escape') {
     event.preventDefault()
     event.stopPropagation()
