@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onUnmounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onUnmounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client'
 import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
 import type { Channel, Message, MessageDeletedEvent } from '../api/types'
+import { messageActionsKey } from '../components/messageActions'
 import LogGroupAside from '../components/LogGroupAside.vue'
 import MessageComposer from '../components/MessageComposer.vue'
 import MessageList from '../components/MessageList.vue'
@@ -30,6 +31,17 @@ const thread = useThreadStore()
 const channel = ref<Channel | null>(null)
 const channelLoadFailed = ref(false)
 const panelRefresh = ref(0)
+// Prepared state for the delete confirmation and the inline editor (later phases).
+const editingMessageId = ref<number | null>(null)
+const deletingMessage = ref<Message | null>(null)
+provide(messageActionsKey, {
+  edit: (message) => {
+    editingMessageId.value = message.id
+  },
+  remove: (message) => {
+    deletingMessage.value = message
+  },
+})
 const panelProjectId = ref<number | null>(null)
 let seenMessageId = 0
 let generation = 0

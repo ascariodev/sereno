@@ -195,7 +195,10 @@
   "message": {
     "edited": "(edited)",
     "editedAt": "Edited {date}",
-    "deleted": "Message deleted"
+    "deleted": "Message deleted",
+    "actions": "Message actions",
+    "edit": "Edit",
+    "delete": "Delete"
   },
   "channel": {
     "title": "Channel",

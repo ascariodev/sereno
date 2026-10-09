@@ -1,8 +1,10 @@
-import { mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { i18n } from '../i18n'
 import type { Message } from '../api/types'
 import MessageItem from './MessageItem.vue'
+import { messageActionsKey } from './messageActions'
 
 const message: Message = {
   id: 1,
@@ -94,5 +96,73 @@ describe('MessageItem', () => {
     })
     expect(w.find('.message-item__body').exists()).toBe(false)
     expect(w.text()).toContain('a.pdf')
+  })
+})
+
+describe('MessageItem actions menu', () => {
+  const edit = vi.fn()
+  const remove = vi.fn()
+
+  function renderOwn(overrides: Partial<Message> = {}, ownUserId: number | null = 7, provided = true) {
+    return mount(MessageItem, {
+      props: { message: { ...message, ...overrides }, ownUserId: ownUserId ?? undefined },
+      global: { plugins: [i18n], provide: provided ? { [messageActionsKey as symbol]: { edit, remove } } : {} },
+      attachTo: document.body,
+    })
+  }
+
+  async function settle() {
+    await flushPromises()
+    await nextTick()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  }
+
+  const trigger = () => document.querySelector<HTMLButtonElement>('.message-item__actions-trigger')!
+
+  beforeEach(() => {
+    i18n.global.locale.value = 'en'
+    edit.mockClear()
+    remove.mockClear()
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('shows the trigger only on own, user, non deleted messages with actions provided', () => {
+    expect(renderOwn().find('[data-test=actions]').exists()).toBe(true)
+    expect(renderOwn({ user: { id: 8, name: 'Bea' } }).find('[data-test=actions]').exists()).toBe(false)
+    expect(renderOwn({ kind: 'system' }).find('[data-test=actions]').exists()).toBe(false)
+    expect(renderOwn({ deleted_at: '2026-03-04T11:00:00Z', body: null }).find('[data-test=actions]').exists()).toBe(false)
+    expect(renderOwn({}, null).find('[data-test=actions]').exists()).toBe(false)
+    expect(renderOwn({}, 7, false).find('[data-test=actions]').exists()).toBe(false)
+  })
+
+  it('keeps the trigger focusable with a name, and reveals it by CSS hover, focus-within and touch', () => {
+    renderOwn()
+    expect(trigger().getAttribute('aria-label')).toBe('Message actions')
+    expect(trigger().tabIndex).toBe(0)
+  })
+
+  it('opens from the keyboard, selects Edit and Delete through the injected actions', async () => {
+    const w = renderOwn()
+    trigger().focus()
+    trigger().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }))
+    await settle()
+    const items = [...document.querySelectorAll('[role=menuitem]')]
+    expect(items.map((el) => el.textContent?.trim())).toEqual(['Edit', 'Delete'])
+    document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+    await settle()
+    expect(edit).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }))
+    expect(document.querySelector('[role=menu]')).toBeNull()
+
+    trigger().focus()
+    trigger().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }))
+    await settle()
+    document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }))
+    document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+    await settle()
+    expect(remove).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }))
+    w.unmount()
   })
 })
