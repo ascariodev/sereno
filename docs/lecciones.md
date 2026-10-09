@@ -45,6 +45,7 @@
 - L-35: Una acción async que devuelve "si cambió el estado" distingue el descarte por `clear()` (contador propio) del reemplazo por una carga más nueva, y en ese caso espera a la última carga: una recarga concurrente (reconexión) no debe ocultar el cambio. — aplicada en: test (organization.spec)
 - L-37: Una acción que decide según si otra falló usa un flag propio de esa acción, no el `error` compartido del store: un fallo de otra acción (paginar) la bloquea en falso. — aplicada en: test (thread.spec)
 - L-38: Un componente nuevo toma los colores de los tokens del tema (`var(--accent-soft)`...), nunca hex copiados del diseño: el tema oscuro redefine los tokens y el hex queda ilegible. — aplicada en: pendiente
+- L-39: Un estado de fallo de un recurso con URL temporal (firmada) se guarda por URL, no por id: el id se reutiliza con una URL nueva y quedaría en fallo para siempre. — aplicada en: test (MessageAttachments.spec)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

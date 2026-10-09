@@ -84,7 +84,7 @@ siempre desde la raíz, dentro de `web/` compose usa otro nombre de proyecto):
 3. Canales de proyecto con avisos de log (Reverb). **Hecho.**
 4. Web mínima: login, proyectos, canal. **Hecho.**
 5. Conectar posveapi y dejar Slack. **Hecho**, salvo retirar Slack (aplazado: queda de respaldo).
-6. Chat completo: hilos, menciones, adjuntos.
+6. Chat completo: hilos, menciones, adjuntos. **Hecho.**
 7. Plan: tareas, tablero, crear tarea desde un aviso.
 8. Escritorio: PWA instalable, luego Tauri.
 9. Móvil, push y facturación SaaS.

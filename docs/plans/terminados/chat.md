@@ -2,8 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 26
-<!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
+**Estado:** terminado
 
 ## Contexto mínimo
 - Apps: `api/` y `web/` (commits con `git` en la raíz). Tres bloques en orden: hilos (1 a 8), menciones (9 a 17),
@@ -148,7 +147,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 ### [x] Fase 25 — Adjuntar desde el composer (web)
 - Botón "Adjuntar", lista de pendientes en el composer, `send` del canal y del hilo con `attachment_ids`.
 
-### [ ] Fase 26 — Mostrar los adjuntos de un mensaje (web)
+### [x] Fase 26 — Mostrar los adjuntos de un mensaje (web)
 - `MessageAttachments.vue`: miniatura de imagen o fila de archivo (nombre, tamaño, descargar), con fallback si la URL
   venció. Al terminar, marcar el paso 6 como hecho en `CLAUDE.md`.
 
@@ -251,8 +250,15 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - 2026-10-09 — La prop `send` de `MessageComposer` pasa a `(body, attachmentIds)` y suma `channelId?` (por defecto
   el del store del canal). Tras un envío con éxito se quitan solo los adjuntos enviados (no `reset()` completo), para
   no perder uno añadido durante el envío. Con body vacío se envía `body: ''` (el API lo vuelve null).
+- 2026-10-09 — `MessageAttachments` previsualiza solo png, jpeg, gif y webp (caja de 240 px, `aspect-ratio: 3/2`); un
+  fallo de carga se recuerda por `url`, así que una URL firmada nueva se reintenta. "Descargar" sin `download` (la URL
+  es de otro origen) y con `aria-label` por archivo. `MentionsView` no muestra adjuntos: la fila es un enlace entero
+  (L-21) y no admite enlaces dentro (M-36).
 
 ## Notas para la próxima sesión
+- Plan terminado (26 fases). Suites completas: API 672 tests, web 853. Paso 6 marcado como hecho en `CLAUDE.md`.
+  Pendiente general: revisar en el navegador los layouts marcados en las notas (panel del hilo, chip de mención, lista
+  de sugerencias, menciones en la barra, adjuntos en el composer y en los mensajes).
 - Fase 25 hecha: botón Adjuntar, lista de pendientes, arrastrar y soltar y pegar archivos en el composer;
   `messages.send(body, attachmentIds = [])` y `thread.send(body, attachmentIds = [])`. Sin mirar en el navegador:
   la lista en `composer-box`, en el hilo y en la hoja móvil, y el estado del drop. Fase 26: mostrar
@@ -438,3 +444,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-35 (baja, sonnet): composer de adjuntos: una sola región viva para los estados de subida (hoy un
   `role=status`/`alert` por item, ruidoso con varios archivos y sin el nombre en "Subiendo..."), y quitar los items en
   error tras un envío con éxito.
+- [ ] M-36 (media, sonnet): indicar adjuntos en `MentionsView` (p. ej. "N adjuntos" sin enlaces, o rediseñar la fila
+  para que no sea un enlace entero).
+- [ ] M-37 (baja, sonnet): un solo `role=status` para los avisos de vista previa no disponible en `MessageAttachments`.

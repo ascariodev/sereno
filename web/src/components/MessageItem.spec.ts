@@ -42,4 +42,19 @@ describe('MessageItem', () => {
     expect(full.attributes('aria-hidden')).toBeUndefined()
     expect(time.get('[aria-hidden=true]').text()).not.toContain('2026')
   })
+
+  it('renders attachments and skips the empty body paragraph', () => {
+    const w = mount(MessageItem, {
+      props: {
+        message: {
+          ...message,
+          body: null,
+          attachments: [{ id: 5, original_name: 'a.pdf', mime: 'application/pdf', size: 10, created_at: message.created_at, url: 'http://api/a' }],
+        },
+      },
+      global: { plugins: [i18n] },
+    })
+    expect(w.find('.message-item__body').exists()).toBe(false)
+    expect(w.text()).toContain('a.pdf')
+  })
 })
