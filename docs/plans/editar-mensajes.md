@@ -2,7 +2,7 @@
 
 **Objetivo:** que el autor de un mensaje pueda editar su texto (con menciones) y borrarlo, con el cambio en vivo
 para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de M-1 de `terminados/chat.md`.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -46,7 +46,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
   y sin adjuntos se confirma; sin `deleted_at` lo sigue rechazando la BD; quitar el último adjunto de un mensaje
   borrado pasa. `migrate:fresh` y `migrate:rollback` de la migración corren.
 
-### [ ] Fase 2 — Policy de mensajes (api)
+### [x] Fase 2 — Policy de mensajes (api)
 - **Alcance:** `MessagePolicy` con `update` y `delete`: solo el autor, solo `kind = user`, no borrado, mensaje de la
   organización activa y canal visible (`ChannelPolicy::view`). El canal archivado lo rechazan los FormRequest de las
   fases 4 y 6, igual que `StoreMessageRequest`.
@@ -144,7 +144,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
   cliente aplica aunque bajen) y `mention.removed`. Mismo throttle `channel-messages` para editar y borrar.
 
 ## Notas para la próxima sesión
-- Fase 1 hecha: `edited_at` y `deleted_at` existen, con cast `datetime` y fuera de Fillable (asignarlas por propiedad o `DB::table`). La función de contenido ignora mensajes con `deleted_at`; el trigger de `messages` salta también al cambiar `deleted_at`. Siguiente: fase 2 (MessagePolicy).
+- Fases 1 y 2 hechas. `edited_at` y `deleted_at` existen (cast `datetime`, fuera de Fillable: asignar por propiedad o `DB::table`). La función de contenido ignora mensajes con `deleted_at`. `MessagePolicy` (`update`, `delete`) se autodescubre; no cubre canal archivado, lo rechazan los FormRequest de las fases 4 y 6. En tests, `Channel::factory()->for(Project::factory()->for($org))`. Siguiente: fase 3 (extraer menciones).
 
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): owner y admin pueden borrar mensajes de otros (moderación), con el actor en el evento.
