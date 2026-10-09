@@ -4,7 +4,7 @@ import { computed, nextTick, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { useAttachmentUploads } from '../composables/useAttachmentUploads'
-import { useMentionInput } from '../composables/useMentionInput'
+import { useMentionInput, type MentionDraft } from '../composables/useMentionInput'
 import { formatFileSize } from '../formatFileSize'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
@@ -16,7 +16,10 @@ const props = defineProps<{
   send?: (body: string, attachmentIds: number[]) => Promise<void>
   placeholder?: string
   channelId?: number
+  /** Opt-in persisted draft (the thread reply): restored on mount and mirrored through `update:draft`. */
+  draft?: MentionDraft | null
 }>()
+const emit = defineEmits<{ 'update:draft': [draft: MentionDraft | null] }>()
 
 const { t } = useI18n()
 const hintId = useId()
@@ -34,6 +37,11 @@ const uploads = useAttachmentUploads(() => props.channelId ?? messages.channelId
 const mention = useMentionInput({
   members: () => directory.members,
   excludeUserId: () => auth.user?.id,
+})
+
+if (props.draft) mention.restore(props.draft)
+watch([mention.text, mention.mentions], ([text, mentions]) => {
+  if (props.draft !== undefined) emit('update:draft', text === '' ? null : { text, mentions })
 })
 
 const open = computed(() => mention.suggestions.value.length > 0)

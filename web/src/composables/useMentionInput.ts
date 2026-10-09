@@ -20,6 +20,12 @@ export interface MentionQuery {
   text: string
 }
 
+/** Text and inserted mentions of an unsent message, to restore it in another composer instance. */
+export interface MentionDraft {
+  text: string
+  mentions: readonly InsertedMention[]
+}
+
 export interface MentionInputOptions<T extends MentionCandidate> {
   members: MaybeRefOrGetter<readonly T[]>
   excludeUserId?: MaybeRefOrGetter<number | null | undefined>
@@ -179,6 +185,13 @@ export function useMentionInput<T extends MentionCandidate>(options: MentionInpu
     if (pending.value) dismissedAt.value = pending.value.start
   }
 
+  function restore(draft: MentionDraft): void {
+    text.value = draft.text
+    caret.value = null
+    mentions.value = [...draft.mentions]
+    dismissedAt.value = null
+  }
+
   function reset(): void {
     text.value = ''
     caret.value = null
@@ -199,6 +212,7 @@ export function useMentionInput<T extends MentionCandidate>(options: MentionInpu
     select,
     insertTrigger,
     dismiss,
+    restore,
     reset,
   }
 }

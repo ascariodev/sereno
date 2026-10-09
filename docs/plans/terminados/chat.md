@@ -464,8 +464,10 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-36 (media, sonnet): indicar adjuntos en `MentionsView` (p. ej. "N adjuntos" sin enlaces, o rediseñar la fila
   para que no sea un enlace entero).
 - [x] M-37 (baja, sonnet): un solo `role=status` para los avisos de vista previa no disponible en `MessageAttachments`.
-- [ ] M-38 (media, sonnet): conservar el borrador del composer del hilo al cruzar el umbral de 767 px (hoy la hoja y
+- [x] M-38 (media, sonnet): conservar el borrador del composer del hilo al cruzar el umbral de 767 px (hoy la hoja y
   el aside son dos `ThreadAside` distintos; subir el borrador a un store o teleportar uno solo).
+  Hecho: el borrador (texto y menciones, por `rootId`) vive en `stores/thread.ts`; los adjuntos pendientes se siguen
+  perdiendo al cruzar el umbral.
 - [x] M-39 (baja, sonnet): tras `markAllRead`, invalidar o relanzar un `loadMore` en vuelo (sus filas nuevas llegan como
   no leídas con `unreadCount` en 0), test de `markAllRead` con `refresh` en vuelo, y comentar en `mergeMentions` que
   depende de que no exista "marcar no leída".

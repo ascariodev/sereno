@@ -351,4 +351,69 @@ describe('thread store', () => {
       expect(ids(store.replies)).toEqual([11, 12, 13, 14])
     })
   })
+
+  describe('draft', () => {
+    const draft = { text: 'hola', mentions: [{ id: 3, name: 'Ana', start: 0, end: 4 }] }
+
+    it('keeps the draft when the same root is reopened and drops it for another root', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      store.setDraft(draft)
+      expect(store.draft).toEqual({ rootId: 10, ...draft })
+      await store.open(5, 10)
+      expect(store.draft).toEqual({ rootId: 10, ...draft })
+      await store.open(5, 11)
+      expect(store.draft).toBeNull()
+    })
+
+    it('clears the draft with clear', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      store.setDraft(draft)
+      store.clear()
+      expect(store.draft).toBeNull()
+    })
+
+    it('ignores setDraft without an open thread', () => {
+      const store = useThreadStore()
+      store.setDraft(draft)
+      expect(store.draft).toBeNull()
+    })
+
+    it('stores null for an empty or null draft', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([11], null) as never)
+      const store = useThreadStore()
+      await store.open(5, 10)
+      store.setDraft(draft)
+      store.setDraft({ text: '', mentions: [] })
+      expect(store.draft).toBeNull()
+      store.setDraft(draft)
+      store.setDraft(null)
+      expect(store.draft).toBeNull()
+    })
+
+    it('still discards a load in flight from a previous generation while keeping the draft', async () => {
+      const first = deferred()
+      const second = deferred()
+      vi.spyOn(api, 'get')
+        .mockReturnValueOnce(first.promise as never)
+        .mockReturnValueOnce(second.promise as never)
+      const store = useThreadStore()
+      const stale = store.open(5, 10)
+      store.setDraft(draft)
+      const fresh = store.open(5, 10)
+      expect(store.draft).toEqual({ rootId: 10, ...draft })
+      first.resolve(page([99], 'old'))
+      await stale
+      expect(store.replies).toEqual([])
+      expect(store.nextCursor).toBeNull()
+      expect(store.loading).toBe(true)
+      second.resolve(page([12, 11], null))
+      await fresh
+      expect(ids(store.replies)).toEqual([11, 12])
+      expect(store.draft).toEqual({ rootId: 10, ...draft })
+    })
+  })
 })

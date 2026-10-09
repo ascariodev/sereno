@@ -710,9 +710,8 @@ describe('ChannelView thread panel', () => {
     expect(query.removeEventListener).toHaveBeenCalledWith('change', query.addEventListener.mock.calls[0][1])
   })
 
-  // Documents current behavior: the sheet (narrow) and the inline aside (wide) are different component
-  // instances, so the reply draft typed in one is lost when the viewport crosses the breakpoint.
-  it('remounts the thread panel and loses the draft when the viewport goes from narrow to wide', async () => {
+  // The sheet (narrow) and the inline aside (wide) are different instances; the draft lives in the thread store.
+  it('remounts the thread panel and keeps the draft when the viewport goes from narrow to wide', async () => {
     const query = { matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }
     window.matchMedia = vi.fn().mockReturnValue(query)
     mockThread()
@@ -733,7 +732,7 @@ describe('ChannelView thread panel', () => {
     const aside = wrapper.find('aside[aria-label="Thread"]')
     expect(aside.exists()).toBe(true)
     expect(aside.text()).toContain('reply 2')
-    expect((aside.find('textarea').element as HTMLTextAreaElement).value).toBe('')
+    expect((aside.find('textarea').element as HTMLTextAreaElement).value).toBe('draft reply')
     expect(useThreadStore().rootId).toBe(1)
     wrapper.unmount()
   })

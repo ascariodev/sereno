@@ -359,3 +359,16 @@ describe('useMentionInput: helpers', () => {
     expect(input.query.value).toEqual({ start: 0, text: '' })
   })
 })
+
+describe('useMentionInput: restore', () => {
+  it('restores text and mentions with correct serialized and length, and keeps ranges on later edits', () => {
+    const input = setup()
+    input.restore({ text: 'hi @Camila ok', mentions: [{ id: 5, name: 'Camila', start: 3, end: 10 }] })
+    expect(input.text.value).toBe('hi @Camila ok')
+    expect(input.serialized.value).toBe(`hi ${mentionToken(5)} ok`)
+    expect(input.length.value).toBe([...`hi ${mentionToken(5)} ok`].length)
+    input.update('yo hi @Camila ok', 3)
+    expect(input.mentions.value).toEqual([{ id: 5, name: 'Camila', start: 6, end: 13 }])
+    expect(input.serialized.value).toBe(`yo hi ${mentionToken(5)} ok`)
+  })
+})

@@ -434,4 +434,36 @@ describe('MessageComposer', () => {
       expect(wrapper.findAll('.composer-file-name').map((n) => n.text())).toEqual(['p.png', 'd.txt'])
     })
   })
+
+  describe('draft', () => {
+    const mountDraft = (props: Record<string, unknown>) => {
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      useMessagesStore().$patch({ channelId: 7 })
+      return mount(MessageComposer, { props, global: { plugins: [pinia, i18n] } })
+    }
+
+    it('restores the draft on mount and emits update:draft while typing', async () => {
+      const wrapper = mountDraft({ draft: { text: 'borrador', mentions: [] } })
+      const field = () => wrapper.find('textarea').element as HTMLTextAreaElement
+      expect(field().value).toBe('borrador')
+      await wrapper.find('textarea').setValue('borrador mas')
+      expect(wrapper.emitted('update:draft')?.at(-1)).toEqual([{ text: 'borrador mas', mentions: [] }])
+    })
+
+    it('emits null after a successful send', async () => {
+      vi.spyOn(api, 'post').mockResolvedValue({ data: created } as never)
+      const wrapper = mountDraft({ draft: null })
+      await wrapper.find('textarea').setValue('hola')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+      expect(wrapper.emitted('update:draft')?.at(-1)).toEqual([null])
+    })
+
+    it('does not emit update:draft without the draft prop', async () => {
+      const wrapper = mountDraft({})
+      await wrapper.find('textarea').setValue('hola')
+      expect(wrapper.emitted('update:draft')).toBeUndefined()
+    })
+  })
 })

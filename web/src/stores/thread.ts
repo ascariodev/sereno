@@ -3,6 +3,7 @@ import { ref, shallowRef } from 'vue'
 import { ApiError } from '../api/client'
 import { listReplies, sendReply } from '../api/messages'
 import type { Message, RepliesPage } from '../api/types'
+import type { MentionDraft } from '../composables/useMentionInput'
 import { CATCH_UP_MAX_PAGES, MESSAGES_PER_PAGE, useMessagesStore } from './messages'
 
 function toApiError(caught: unknown): ApiError {
@@ -35,6 +36,8 @@ export const useThreadStore = defineStore('thread', () => {
   const loading = ref(false)
   const loadingMore = ref(false)
   const error = ref<ApiError | null>(null)
+  /** Unsent reply of the open thread; survives `open` of the same root (the panel remounts across the breakpoint). */
+  const draft = shallowRef<(MentionDraft & { rootId: number }) | null>(null)
   let generation = 0
   let listVersion = 0
   let controller = new AbortController()
@@ -55,6 +58,12 @@ export const useThreadStore = defineStore('thread', () => {
     loading.value = false
     loadingMore.value = false
     error.value = null
+    draft.value = null
+  }
+
+  function setDraft(next: MentionDraft | null): void {
+    if (rootId.value === null) return
+    draft.value = next === null || next.text === '' ? null : { rootId: rootId.value, ...next }
   }
 
   function insert(message: Message): boolean {
@@ -90,7 +99,9 @@ export const useThreadStore = defineStore('thread', () => {
   }
 
   function open(channel: number, root: number): Promise<void> {
+    const kept = draft.value?.rootId === root ? draft.value : null
     clear()
+    draft.value = kept
     channelId.value = channel
     rootId.value = root
     loading.value = true
@@ -177,5 +188,5 @@ export const useThreadStore = defineStore('thread', () => {
     insert(reply)
   }
 
-  return { channelId, rootId, root: threadRoot, replies, nextCursor, loading, loadingMore, error, open, loadOlder, insert, catchUp, send, clear }
+  return { channelId, rootId, root: threadRoot, replies, draft, setDraft, nextCursor, loading, loadingMore, error, open, loadOlder, insert, catchUp, send, clear }
 })
