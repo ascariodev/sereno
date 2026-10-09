@@ -1,6 +1,8 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ref } from 'vue'
+import { messageActionsKey } from './messageActions'
 import { api, ApiError } from '../api/client'
 import type { Message } from '../api/types'
 import { i18n } from '../i18n'
@@ -435,6 +437,76 @@ describe('MessageComposer', () => {
       wrapper.find('.composer-box').element.dispatchEvent(drop)
       await flushPromises()
       expect(wrapper.findAll('.composer-file-name').map((n) => n.text())).toEqual(['p.png', 'd.txt'])
+    })
+  })
+
+  describe('edit last with ArrowUp', () => {
+    const mine = { ...created, id: 5, user: { id: 1, name: 'Ana' } }
+    const other = { ...created, id: 6, user: { id: 2, name: 'Bea' } }
+    const setup = (list: Message[], props: Record<string, unknown> = {}) => {
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      useAuthStore().$patch({ user: { id: 1 } as never })
+      const store = useMessagesStore()
+      store.channelId = 7
+      store.messages = list
+      const edit = vi.fn()
+      const actions = { edit, remove: vi.fn(), stopEdit: vi.fn(), editingId: ref(null), threadRootId: ref(null) }
+      const wrapper = mount(MessageComposer, {
+        props,
+        global: { plugins: [pinia, i18n], provide: { [messageActionsKey as symbol]: actions } },
+      })
+      return { wrapper, edit }
+    }
+
+    it('edits the last own message of the channel when the field is empty', async () => {
+      const { wrapper, edit } = setup([{ ...mine, id: 4 }, mine, other])
+      await wrapper.find('textarea').trigger('keydown', { key: 'ArrowUp' })
+      expect(edit).toHaveBeenCalledWith(expect.objectContaining({ id: 5 }))
+    })
+
+    it('uses the editable list when given (thread replies)', async () => {
+      const { wrapper, edit } = setup([mine], { editable: [{ ...mine, id: 12, parent_id: 5 }, other] })
+      await wrapper.find('textarea').trigger('keydown', { key: 'ArrowUp' })
+      expect(edit).toHaveBeenCalledWith(expect.objectContaining({ id: 12 }))
+    })
+
+    it('does nothing with a pending attachment', async () => {
+      vi.spyOn(api, 'post').mockResolvedValue({
+        data: { id: 1, original_name: 'a.txt', mime: 'text/plain', size: 3, created_at: '2026-01-01T00:00:00Z', url: 'x' },
+      } as never)
+      const { wrapper, edit } = setup([mine])
+      const input = wrapper.find('input[type="file"]')
+      Object.defineProperty(input.element, 'files', {
+        value: [new File([new Uint8Array(3)], 'a.txt', { type: 'text/plain' })],
+        configurable: true,
+      })
+      await input.trigger('change')
+      await flushPromises()
+      expect(wrapper.find('.composer-file-name').text()).toBe('a.txt')
+      await wrapper.find('textarea').trigger('keydown', { key: 'ArrowUp' })
+      expect(edit).not.toHaveBeenCalled()
+    })
+
+    it('does nothing without a session', async () => {
+      const { wrapper, edit } = setup([{ ...mine, user: undefined as never }])
+      useAuthStore().$patch({ user: null })
+      await wrapper.find('textarea').trigger('keydown', { key: 'ArrowUp' })
+      expect(edit).not.toHaveBeenCalled()
+    })
+
+    it('does nothing with text, composition or no editable message', async () => {
+      const deleted = { ...mine, deleted_at: '2026-01-02T00:00:00Z' }
+      const none = setup([other, deleted])
+      await none.wrapper.find('textarea').trigger('keydown', { key: 'ArrowUp' })
+      expect(none.edit).not.toHaveBeenCalled()
+
+      const { wrapper, edit } = setup([mine])
+      await wrapper.find('textarea').trigger('keydown', { key: 'ArrowUp', isComposing: true })
+      expect(edit).not.toHaveBeenCalled()
+      await wrapper.find('textarea').setValue('texto')
+      await wrapper.find('textarea').trigger('keydown', { key: 'ArrowUp' })
+      expect(edit).not.toHaveBeenCalled()
     })
   })
 

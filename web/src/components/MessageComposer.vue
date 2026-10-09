@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { AtSign, Paperclip, SendHorizontal, X } from '@lucide/vue'
-import { computed, ref, useId, watch } from 'vue'
+import { computed, inject, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
+import type { Message } from '../api/types'
+import { messageActionsKey } from './messageActions'
 import { useAttachmentUploads } from '../composables/useAttachmentUploads'
 import { useMentionInput, type MentionDraft } from '../composables/useMentionInput'
 import { useMentionKeyboard } from '../composables/useMentionKeyboard'
@@ -19,6 +21,8 @@ const props = defineProps<{
   channelId?: number
   /** Opt-in persisted draft (the thread reply): restored on mount and mirrored through `update:draft`. */
   draft?: MentionDraft | null
+  /** Messages the up arrow on an empty field can edit (oldest first); defaults to the channel list. */
+  editable?: Message[]
 }>()
 const emit = defineEmits<{ 'update:draft': [draft: MentionDraft | null] }>()
 
@@ -28,6 +32,7 @@ const listId = useId()
 const messages = useMessagesStore()
 const directory = useMemberDirectoryStore()
 const auth = useAuthStore()
+const actions = inject(messageActionsKey, null)
 const field = ref<HTMLTextAreaElement | null>(null)
 const sending = ref(false)
 const errorText = ref<string | null>(null)
@@ -141,9 +146,25 @@ async function submit(): Promise<void> {
   }
 }
 
+function editLast(event: KeyboardEvent): boolean {
+  if (event.key !== 'ArrowUp' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return false
+  if (!actions || mention.text.value !== '' || uploads.items.value.length > 0) return false
+  const me = auth.user?.id
+  if (me === null || me === undefined) return false
+  const own = (props.editable ?? messages.messages).filter(
+    (item) => item.kind === 'user' && item.deleted_at === null && item.user?.id === me,
+  )
+  const last = own.at(-1)
+  if (!last) return false
+  event.preventDefault()
+  actions.edit(last)
+  return true
+}
+
 function onKeydown(event: KeyboardEvent): void {
   if (event.isComposing) return
   if (handleKeydown(event)) return
+  if (editLast(event)) return
   if (event.key !== 'Enter' || event.shiftKey) return
   event.preventDefault()
   void submit()

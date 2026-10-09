@@ -163,7 +163,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): owner y admin pueden borrar mensajes de otros (moderación), con el actor en el evento.
 - [ ] M-2 (media, sonnet): quitar adjuntos al editar un mensaje.
-- [ ] M-3 (baja, sonnet): flecha arriba en el composer vacío edita el último mensaje propio del canal.
+- [x] M-3 (baja, sonnet): flecha arriba en el composer vacío edita el último mensaje propio del canal.
 - [ ] M-4 (alta, plan nuevo): historial de ediciones (auditoría, plan Business de `docs/monetizacion.md`).
 - [x] M-5 (baja, sonnet): bloquear la fila (`lockForUpdate`) en el PATCH para serializar ediciones concurrentes del mismo mensaje (bajo riesgo: solo edita el autor).
 - [x] M-6 (baja, sonnet): en `MessageUpdated`, dejar explícito (o forzar con `load`) que el payload depende de que el controlador cargue antes `recentParticipants`, porque `loadMissing` no recarga.

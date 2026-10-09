@@ -94,6 +94,7 @@ function reload(): void {
         />
         <p v-if="archived" class="thread-aside__archived">{{ t('thread.archived') }}</p>
         <MessageComposer v-else :send="thread.send" :channel-id="channelId" :placeholder="t('thread.replyPlaceholder')"
+          :editable="thread.replies"
           :draft="thread.draft"
           @update:draft="thread.setDraft"
         />
