@@ -25,6 +25,8 @@ class MessageResource extends JsonResource
                 'id' => $this->user->id,
                 'name' => $this->user->name,
             ]),
+            'mentions' => $this->whenLoaded('mentionedUsers', fn () => $this->mentionedUsers
+                ->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()->all()),
             'created_at' => $this->created_at,
         ];
     }

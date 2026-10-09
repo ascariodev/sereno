@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -25,7 +25,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - Helpers globales de Pest ya ocupados (L-29): `asChannelReader`, `postingAs`, `insertSystemMessage`,
   `authorizeChannel`, `channelName`, `authorizePresence`, `noticeMessages`, `ingestNotice`, `listMembers`,
   `changeRole`, `memberWithRole`, `roleIn`, `removeMemberRequest`, `asUser`, `asGroupReader`, `invite`, `replyTo`,
-  `systemRootIn`, `mentionIn`.
+  `systemRootIn`, `mentionIn`, `mentionPost`, `mentionedIds`.
 - Subidas: `api/docker/php/uploads.ini` y `api/docker/nginx/default.conf` limitan a 6 MB.
 
 ## Fases
@@ -84,7 +84,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - Tabla `message_mentions` (organization_id, message_id, user_id, read_at, created_at; único `(message_id, user_id)`;
   índice `(user_id, organization_id, read_at)`), modelo `MessageMention`, `database.md`.
 
-### [ ] Fase 10 — Guardar menciones al crear un mensaje (api)
+### [x] Fase 10 — Guardar menciones al crear un mensaje (api)
 - El body lleva menciones como `<@id>`; al crear se guardan las de miembros de la organización (sin el autor ni
   repetidos). `MessageResource` agrega `mentions: [{id, name}]` con eager load en lista y respuestas.
 
@@ -183,8 +183,16 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - 2026-10-09 — `MessageItem`, `SystemNotice` y `MessageList` tienen la prop opcional `threadable` (apagada por
   defecto); solo `ChannelView` la activa, así que en el panel del hilo no hay resumen ni acción. Las líneas de cambio
   de estado del sistema tampoco lo llevan, solo la tarjeta de aviso abierto. Motivo: un solo nivel de hilo.
+- 2026-10-09 — Token de mención `<@id>` con regex `<@([1-9][0-9]{0,17})>`. El body guarda todos los tokens tal
+  cual; `mentions: [{id, name}]` (orden por id, sin repetidos, `[]` si no hay) solo trae miembros de la organización
+  del canal distintos del autor, así que la web muestra texto genérico para un token sin entrada. Va en `store`,
+  `index`, `replies` y `message.created`. Motivo: no filtrar existencia de usuarios ajenos.
 
 ## Notas para la próxima sesión
+- Fase 10 hecha: relación `Message::mentionedUsers()` (belongsToMany por `message_mentions`). `MessageCreated` se
+  construye en el `created` del modelo, antes de las filas de menciones: el controlador resuelve los usuarios antes del
+  `save()` y los fija con `setRelation('mentionedUsers', ...)`. La fase 11 debe disparar `MentionCreated` tras el
+  commit con esos mismos usuarios. Archivos creados como root en el contenedor: `chown 1000:1000` si pint no escribe.
 - Fase 9 hecha: tabla `message_mentions` (solo `created_at`, `read_at` nullable; único
   `message_mentions_message_id_user_id_unique`), modelo `MessageMention` con `$guarded = ['*']` y
   `BelongsToOrganization`, relación `Message::mentions()`. Fase 10: asignar por propiedad o por `$message->mentions()`,
@@ -262,3 +270,5 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-18 (baja, sonnet): refrescar la etiqueta "hace cuánto" de `ThreadSummary` con el paso del tiempo.
 - [ ] M-19 (baja, sonnet): renombrar en `MessageMentionTest` el test "keeps the mention when only the user is not
   deleted..." a algo como "deletes mentions with the mentioned user".
+- [ ] M-20 (media, sonnet): tope de menciones por mensaje (p. ej. 50) e insert en lote de `message_mentions`; hoy un
+  mensaje puede mencionar a toda la organización y las fases 11 y 12 lo multiplican en eventos.

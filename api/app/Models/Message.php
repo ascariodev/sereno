@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['kind', 'body', 'payload'])]
@@ -63,5 +64,10 @@ class Message extends Model
     public function mentions(): HasMany
     {
         return $this->hasMany(MessageMention::class);
+    }
+
+    public function mentionedUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'message_mentions');
     }
 }

@@ -29,7 +29,7 @@ class MessageCreated implements ShouldBroadcast, ShouldDispatchAfterCommit
     {
         $this->organizationId = $message->organization_id;
         $this->channelId = $message->channel_id;
-        $this->message = (new MessageResource($message->loadMissing('user:id,name')))->resolve();
+        $this->message = (new MessageResource($message->loadMissing(['user:id,name', 'mentionedUsers:id,name'])))->resolve();
     }
 
     public function broadcastOn(): PrivateChannel
