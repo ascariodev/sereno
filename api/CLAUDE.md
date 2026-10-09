@@ -17,6 +17,13 @@ docker compose exec api php artisan <comando>
 docker compose exec api composer <comando>
 ```
 
+`vendor/` vive en el volumen `workspace_vendor` (no en el disco de Windows, que es lento para PHP), compartido
+por `api`, `reverb`, `queue` y `scheduler`. El `api/vendor` del host no se actualiza con Composer, así que el
+autocompletado del editor puede quedar desfasado. Si el volumen se recrea (p. ej. `down -v`):
+`docker compose run --rm --no-deps api composer install`.
+
+`api` sirve con `PHP_CLI_SERVER_WORKERS=4`, lo que exige `--no-reload`: tras cambiar `.env`, `docker compose restart api`.
+
 `docker/postgres/init.sql` solo corre al crear el volumen: si falta `workspace_test`, recrea el volumen
 (`docker compose down -v` **borra los datos de desarrollo**) o crea la base a mano.
 

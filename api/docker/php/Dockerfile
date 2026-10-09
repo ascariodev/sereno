@@ -9,7 +9,7 @@ COPY uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
 
 ARG UID=1000
 ARG GID=1000
-RUN addgroup -g ${GID} app && adduser -D -u ${UID} -G app app
+RUN addgroup -g ${GID} app && adduser -D -u ${UID} -G app app     && mkdir -p /var/www/api/vendor && chown -R app:app /var/www/api
 
 WORKDIR /var/www/api
 USER app

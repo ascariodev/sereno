@@ -11,11 +11,15 @@ services:
       context: ./docker/php
     image: workspace-php
     container_name: workspace_api
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080", "--no-reload"]
     volumes:
       - ./:/var/www/api
+      - workspace_vendor:/var/www/api/vendor
     ports:
       - "8003:8080"
-    environment: *reverb-internal
+    environment:
+      <<: *reverb-internal
+      PHP_CLI_SERVER_WORKERS: 4
     depends_on:
       postgres:
         condition: service_healthy
@@ -26,6 +30,7 @@ services:
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
     volumes:
       - ./:/var/www/api
+      - workspace_vendor:/var/www/api/vendor
     ports:
       - "8086:8080"
     restart: unless-stopped
@@ -39,6 +44,7 @@ services:
     command: ["php", "artisan", "queue:work", "--tries=3"]
     volumes:
       - ./:/var/www/api
+      - workspace_vendor:/var/www/api/vendor
     environment: *reverb-internal
     restart: unless-stopped
     depends_on:
@@ -53,6 +59,7 @@ services:
     command: ["php", "artisan", "schedule:work"]
     volumes:
       - ./:/var/www/api
+      - workspace_vendor:/var/www/api/vendor
     environment: *reverb-internal
     restart: unless-stopped
     depends_on:
@@ -79,3 +86,4 @@ services:
 
 volumes:
   workspace_pgdata:
+  workspace_vendor:
