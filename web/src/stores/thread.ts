@@ -4,6 +4,7 @@ import { ApiError } from '../api/client'
 import { listReplies, sendReply } from '../api/messages'
 import type { Message, RepliesPage } from '../api/types'
 import type { MentionDraft } from '../composables/useMentionInput'
+import { laterDate } from '../laterDate'
 import { CATCH_UP_MAX_PAGES, MESSAGES_PER_PAGE, useMessagesStore } from './messages'
 
 function toApiError(caught: unknown): ApiError {
@@ -22,7 +23,7 @@ function withReplies(current: readonly Message[], incoming: readonly Message[]):
 function withRoot(current: Message | null, incoming: Message | undefined): Message | null {
   if (!incoming) return current
   if (current === null || current.id !== incoming.id) return incoming
-  const last = [current.last_reply_at, incoming.last_reply_at].filter((at): at is string => at !== null).sort().pop() ?? null
+  const last = laterDate(current.last_reply_at, incoming.last_reply_at)
   return { ...incoming, replies_count: Math.max(current.replies_count, incoming.replies_count), last_reply_at: last }
 }
 
@@ -72,11 +73,10 @@ export const useThreadStore = defineStore('thread', () => {
     if (next === replies.value) return false
     replies.value = next
     if (threadRoot.value !== null) {
-      const at = threadRoot.value.last_reply_at
       threadRoot.value = {
         ...threadRoot.value,
         replies_count: threadRoot.value.replies_count + 1,
-        last_reply_at: at !== null && at > message.created_at ? at : message.created_at,
+        last_reply_at: laterDate(threadRoot.value.last_reply_at, message.created_at),
       }
     }
     return true

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import { api, ApiError } from '../api/client'
 import type { CursorPage, Message } from '../api/types'
+import { laterDate } from '../laterDate'
 import { resetHourlyCounts } from '../composables/useHourlyCounts'
 import { observeStatusMessage, resetGroupStatuses } from '../composables/useLogGroupStatuses'
 
@@ -85,10 +86,7 @@ export const useMessagesStore = defineStore('messages', () => {
     const bump = (root: Message): Message => ({
       ...root,
       replies_count: root.replies_count + 1,
-      last_reply_at:
-        root.last_reply_at === null || Date.parse(reply.created_at) > Date.parse(root.last_reply_at)
-          ? reply.created_at
-          : root.last_reply_at,
+      last_reply_at: laterDate(root.last_reply_at, reply.created_at),
     })
     const queued = pending.get(rootId)
     if (queued !== undefined) {

@@ -206,6 +206,14 @@ describe('ThreadAside', () => {
     expect(note.attributes('role')).toBeUndefined()
   })
 
+  it('does not show the missing root note while loading', async () => {
+    vi.spyOn(api, 'get').mockReturnValue(new Promise(() => {}) as never)
+    const w = mountAside()
+    await flushPromises()
+    expect(useThreadStore().loading).toBe(true)
+    expect(w.find('[data-test="thread-root-unavailable"]').exists()).toBe(false)
+  })
+
   it('offers to retry after a failed load', async () => {
     const get = vi.spyOn(api, 'get').mockRejectedValueOnce(new ApiError(500, 'x'))
     const w = mountAside({ root })

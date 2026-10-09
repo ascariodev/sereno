@@ -479,6 +479,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [x] M-42 (baja, sonnet): el `SELECT ... FOR UPDATE` de `linkAttachments` filtra también por `channel_id` y
   `uploaded_by` (hoy ids ajenos bloquean filas de otro autor durante la transacción), quitar el `sort($ids)` que sobra,
   y test de que borrar un adjunto pendiente no encola el chequeo.
-- [ ] M-43 (baja, sonnet): en `stores/thread.ts`, comparar `last_reply_at` con `Date.parse` como `stores/messages.ts`
+- [x] M-43 (baja, sonnet): en `stores/thread.ts`, comparar `last_reply_at` con `Date.parse` como `stores/messages.ts`
   y un helper común para "fecha mayor"; spec de `ThreadAside` que fije que no se muestra `thread-root-unavailable`
   mientras carga.
