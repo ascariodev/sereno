@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 22
+**Estado:** en curso · Fase actual: 23
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -135,7 +135,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - Ruta firmada temporal (sin Bearer, para `<img>`); `inline` solo para png, jpeg, gif y webp, el resto como
   descarga; `nosniff` y CSP `sandbox`. La URL va en el resource.
 
-### [ ] Fase 22 — Limpieza de adjuntos huérfanos (api)
+### [x] Fase 22 — Limpieza de adjuntos huérfanos (api)
 - Comando diario en el scheduler: borra archivo y fila de adjuntos sin mensaje con más de 24 h.
 
 ### [ ] Fase 23 — Cliente de subida (web)
@@ -241,8 +241,15 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   inválida o vencida; 404 si es huérfano, se borró o falta en disco. `inline` solo png, jpeg, gif y webp; lo que el
   navegador podría ejecutar va como `application/octet-stream`. El host sale de `APP_URL` (en producción, la URL
   pública del API). Motivo: `<img>` sin cabeceras y firma válida detrás del proxy.
+- 2026-10-09 — `chat:prune-attachments` (diario 00:30 UTC, `withoutOverlapping`, como `log:maintain`) borra filas
+  huérfanas con más de `orphan_hours` (el `DELETE` repite `message_id IS NULL`; el archivo solo si se borró la fila)
+  y archivos bajo `chat/` del disco configurado sin fila y más viejos que el corte. Un adjunto en otro disco solo se
+  limpia por su fila.
 
 ## Notas para la próxima sesión
+- Bloque API de adjuntos terminado (fases 18 a 22). Fase 22: `PruneOrphanAttachments`, tests en
+  `PruneOrphanAttachmentsTest`. Sigue la web (fase 23): leer los contratos de subida, envío y descarga en
+  "Decisiones" (L-09).
 - Fase 21 hecha: `AttachmentController@download`, `MessageAttachment::downloadUrl()`, render de
   `InvalidSignatureException` en `bootstrap/app.php` (única ruta firmada del proyecto). Tests en
   `AttachmentDownloadApiTest`. 7 archivos de código, aceptado (una línea en varios).
@@ -399,3 +406,5 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-32 (baja, sonnet): servir `application/pdf` como `application/octet-stream` (Firefox lo abre en su visor),
   abrir el stream dentro del callback para que un HEAD no lo deje abierto, y redondear `expires` a tramos para que el
   navegador reaproveche la caché de imágenes.
+- [ ] M-33 (baja, sonnet): `chat:prune-attachments` recorre `chat/` por directorio de organización o canal en vez de
+  `allFiles('chat')` entero, y su mensaje de error pasa por `__()`.
