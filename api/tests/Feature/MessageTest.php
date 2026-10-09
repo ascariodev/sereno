@@ -82,9 +82,12 @@ it('accepts a system message whose payload is a JSON object', function () {
     expect(Message::where('kind', 'system')->count())->toBe(1);
 });
 
-it('rejects a person message without body', function () {
+it('rejects a person message without body nor attachments when the transaction ends', function () {
     Message::factory()->for($this->channel)->create(['body' => null]);
-})->throws(QueryException::class, 'messages_body_payload_check');
+
+    // Deferred constraint trigger: tests run inside a transaction that never commits.
+    DB::statement('SET CONSTRAINTS messages_body_or_attachments IMMEDIATE');
+})->throws(QueryException::class, 'messages_body_or_attachments');
 
 it('keeps the message when the user is deleted', function () {
     $user = User::factory()->create();

@@ -109,3 +109,43 @@ it('has indexes for loading by message and for the orphan sweep', function () {
     expect($indexes->keys()->all())->toContain('message_attachments_message_id_index', 'message_attachments_orphans_index')
         ->and($indexes['message_attachments_orphans_index'])->toContain('created_at', 'message_id IS NULL');
 });
+
+// The rule is a deferred constraint trigger: tests run inside a transaction that never commits.
+function checkMessageContentNow(): void
+{
+    DB::statement('SET CONSTRAINTS messages_body_or_attachments, message_attachments_keep_message_content IMMEDIATE');
+}
+
+it('accepts a person message without body that has an attachment', function () {
+    $message = Message::factory()->for($this->channel)->create(['body' => null]);
+    attachmentIn($this->channel, $message);
+
+    checkMessageContentNow();
+
+    expect($message->fresh()->body)->toBeNull();
+});
+
+it('rejects leaving a message without body and without its last attachment', function () {
+    $message = Message::factory()->for($this->channel)->create(['body' => null]);
+    $attachment = attachmentIn($this->channel, $message);
+    checkMessageContentNow();
+
+    $attachment->delete();
+})->throws(QueryException::class, 'messages_body_or_attachments');
+
+it('rejects clearing the body of a message without attachments', function () {
+    $message = Message::factory()->for($this->channel)->create(['body' => 'hola']);
+    checkMessageContentNow();
+
+    DB::table('messages')->where('id', $message->id)->update(['body' => null]);
+})->throws(QueryException::class, 'messages_body_or_attachments');
+
+it('lets a message without body be deleted with its attachments', function () {
+    $message = Message::factory()->for($this->channel)->create(['body' => null]);
+    attachmentIn($this->channel, $message);
+    checkMessageContentNow();
+
+    $message->delete();
+
+    expect(DB::table('message_attachments')->count())->toBe(0);
+});

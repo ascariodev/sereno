@@ -27,6 +27,10 @@ class MessageResource extends JsonResource
             ]),
             'mentions' => $this->whenLoaded('mentionedUsers', fn () => $this->mentionedUsers
                 ->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])->values()->all()),
+            // Messages broadcast as they are created (log notices) carry no attachments, so the
+            // default avoids a query in the queue worker, which has no active organization.
+            'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->sortBy('id')
+                ->map(fn ($attachment) => (new MessageAttachmentResource($attachment))->resolve($request))->values()->all(), []),
             'created_at' => $this->created_at,
         ];
     }

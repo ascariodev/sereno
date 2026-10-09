@@ -17,7 +17,7 @@ class MentionController extends Controller
         return MentionResource::collection(
             MessageMention::query()
                 ->where('user_id', $request->user()->id)
-                ->with(['message.user:id,name', 'message.mentionedUsers:id,name', 'message.channel:id,name,project_id'])
+                ->with(['message.user:id,name', 'message.mentionedUsers:id,name', 'message.attachments', 'message.channel:id,name,project_id'])
                 ->orderByDesc('id')
                 ->cursorPaginate($request->perPage())
                 ->withQueryString(),

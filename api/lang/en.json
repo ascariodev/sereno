@@ -267,5 +267,6 @@
     "Log source not found in project :project.": "Log source not found in project :project.",
     "Several log sources are named :name in project :project; pass --id with the source id.": "Several log sources are named :name in project :project; pass --id with the source id.",
     "Log source key rotated. Copy the key now, it will not be shown again.": "Log source key rotated. Copy the key now, it will not be shown again.",
-    "The organization must keep at least one owner.": "The organization must keep at least one owner."
+    "The organization must keep at least one owner.": "The organization must keep at least one owner.",
+    "The attachments do not exist or are already in use.": "The attachments do not exist or are already in use."
 }

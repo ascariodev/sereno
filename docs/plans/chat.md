@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 20
+**Estado:** en curso · Fase actual: 21
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -126,7 +126,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - `POST channels/{channel}/attachments` multipart: valida tamaño, rechaza canal archivado, guarda en disco privado
   con nombre aleatorio y devuelve el adjunto sin mensaje. Throttle propio.
 
-### [ ] Fase 20 — Adjuntar archivos al mensaje (api) [riesgo] [límite: 5 archivos]
+### [x] Fase 20 — Adjuntar archivos al mensaje (api) [riesgo] [límite: 5 archivos]
 - `attachment_ids` en `StoreMessageRequest` (propios, del canal, libres); body opcional si hay adjuntos (migración que
   relaja el CHECK); vínculo con `UPDATE ... WHERE message_id IS NULL` que falla si otro mensaje lo tomó;
   `MessageResource` con `attachments`.
@@ -223,8 +223,23 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `max_size_kb`) o en `channel` (archivado); 401, 403, 404 y 429 con `Retry-After`. Ruta en disco
   `chat/{organization_id}/{channel_id}/{Str::random(40)}` sin extensión; MIME detectado con `finfo`; cualquier tipo se
   acepta y la seguridad al servir es de la fase 21. Si falla la fila se borra el archivo.
+- 2026-10-09 — Mensaje de persona con solo adjuntos: el CHECK deja pasar cualquier `user` y la regla "body o
+  adjuntos" vive en dos constraint triggers diferidos (`messages_body_or_attachments`,
+  `message_attachments_keep_message_content`) con la función `messages_require_body_or_attachments()`. Motivo: un
+  CHECK no mira otra tabla. En tests se usa `SET CONSTRAINTS ... IMMEDIATE`. La fase 20 tocó 6 archivos de código (una
+  línea en `MentionController` para no tener N+1), aceptado.
+- 2026-10-09 — Contrato de envío con adjuntos: `POST /api/channels/{channel}/messages` con `{body?, parent_id?,
+  attachment_ids?: int[]}`; `body` obligatorio solo sin adjuntos (vacío o de espacios queda `null`). Ids ajenos, de
+  otro canal u organización, inexistentes, usados o perdidos en una carrera dan el mismo 422 en `attachment_ids`
+  ("The attachments do not exist or are already in use."). `MessageResource.attachments` es siempre una lista
+  `{id, original_name, mime, size, created_at}` por id (`[]` si no se carga la relación), en `store`, `index`,
+  `replies`, `mentions`, `message.created` y `mention.created`.
 
 ## Notas para la próxima sesión
+- Fase 20 hecha: `MessageController::RELATIONS` agrupa las relaciones de las listas; el vínculo es un `UPDATE ...
+  WHERE message_id IS NULL` que cuenta filas y revierte todo con 422 si faltan. Fase 21: añadir la URL firmada al
+  `MessageAttachmentResource` (que ya sale en todos esos caminos). El `down()` de la migración falla si ya hay
+  mensajes de persona sin body.
 - Fase 19 hecha: `AttachmentController@store`, `StoreAttachmentRequest`, `MessageAttachmentResource`; tests en
   `AttachmentUploadApiTest`. Fase 21: usar una ruta firmada propia (no `temporaryUrl` del disco `local`, que tiene
   `serve => true`) y servir como descarga todo lo que no sea png, jpeg, gif o webp. Fase 22: además de las filas
@@ -367,3 +382,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-30 (baja, sonnet): `serve => false` en el disco `local` de `api/config/filesystems.php` (nadie usa
   `/storage/{path}`); al truncar `original_name` quitar espacios o puntos antes de la extensión; test que compare el
   404 de un canal ajeno con el de un id inexistente.
+- [ ] M-31 (baja, sonnet): cláusulas `WHEN` en los constraint triggers (`NEW.kind = 'user' AND NEW.body IS NULL`,
+  `OLD.message_id IS NOT NULL`) para que los avisos de log no encolen un chequeo diferido; test de la carrera con
+  `Event::fake` que afirme que no salen `MessageCreated` ni `MentionCreated`; ordenar los ids del `UPDATE` para evitar
+  un deadlock entre dos envíos con los mismos ids.

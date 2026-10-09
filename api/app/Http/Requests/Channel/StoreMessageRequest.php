@@ -4,6 +4,7 @@ namespace App\Http\Requests\Channel;
 
 use App\Models\Channel;
 use App\Models\Message;
+use App\Models\MessageAttachment;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
@@ -20,8 +21,10 @@ class StoreMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'body' => ['required', 'string', 'max:'.self::MAX_BODY_LENGTH, 'not_regex:/\x00/'],
+            'body' => ['required_without:attachment_ids', 'nullable', 'string', 'max:'.self::MAX_BODY_LENGTH, 'not_regex:/\x00/'],
             'parent_id' => ['nullable', 'integer', 'min:1'],
+            'attachment_ids' => ['nullable', 'list', 'max:'.config('chat.attachments.max_per_message')],
+            'attachment_ids.*' => ['integer', 'min:1', 'distinct'],
         ];
     }
 
@@ -35,6 +38,8 @@ class StoreMessageRequest extends FormRequest
                 if ($channel->archived_at !== null) {
                     $validator->errors()->add('channel', __('The channel is archived.'));
                 }
+
+                $this->checkAttachments($validator, $channel);
 
                 if ($validator->errors()->has('parent_id') || $this->input('parent_id') === null) {
                     return;
@@ -50,5 +55,38 @@ class StoreMessageRequest extends FormRequest
                 }
             },
         ];
+    }
+
+    /** @return list<int> */
+    public function attachmentIds(): array
+    {
+        return array_map('intval', $this->validated('attachment_ids') ?? []);
+    }
+
+    /**
+     * Ids of another user, channel or organization and ids already in use give the same error,
+     * so the response does not reveal which attachments exist.
+     */
+    private function checkAttachments(Validator $validator, Channel $channel): void
+    {
+        $ids = $this->input('attachment_ids');
+
+        if (! is_array($ids) || $ids === [] || $validator->errors()->has('attachment_ids*')) {
+            return;
+        }
+
+        $ids = array_map('intval', $ids);
+
+        // The organization scope hides attachments of other organizations.
+        $available = MessageAttachment::query()
+            ->whereIn('id', $ids)
+            ->where('channel_id', $channel->id)
+            ->where('uploaded_by', $this->user()->id)
+            ->whereNull('message_id')
+            ->count();
+
+        if ($available !== count($ids)) {
+            $validator->errors()->add('attachment_ids', __('The attachments do not exist or are already in use.'));
+        }
     }
 }

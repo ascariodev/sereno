@@ -9,20 +9,25 @@ use App\Http\Requests\Channel\StoreMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Channel;
 use App\Models\Message;
+use App\Models\MessageAttachment;
 use App\Models\MessageMention;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class MessageController extends Controller
 {
+    /** Relations MessageResource shows, eager loaded for lists. */
+    public const RELATIONS = ['user:id,name', 'mentionedUsers:id,name', 'attachments'];
+
     public function index(ListMessagesRequest $request, Channel $channel): AnonymousResourceCollection
     {
         return MessageResource::collection(
             $channel->messages()
                 ->whereNull('parent_id')
-                ->with(['user:id,name', 'mentionedUsers:id,name'])
+                ->with(self::RELATIONS)
                 ->orderByDesc('id')
                 ->cursorPaginate($request->perPage())
                 ->withQueryString(),
@@ -36,7 +41,7 @@ class MessageController extends Controller
         return MessageResource::collection(
             $channel->messages()
                 ->where('parent_id', $message->id)
-                ->with(['user:id,name', 'mentionedUsers:id,name'])
+                ->with(self::RELATIONS)
                 ->orderByDesc('id')
                 ->cursorPaginate($request->perPage())
                 ->withQueryString(),
@@ -46,8 +51,9 @@ class MessageController extends Controller
     public function store(StoreMessageRequest $request, Channel $channel): MessageResource
     {
         $parentId = $request->validated('parent_id');
+        $attachmentIds = $request->attachmentIds();
 
-        $message = DB::transaction(function () use ($request, $channel, $parentId) {
+        $message = DB::transaction(function () use ($request, $channel, $parentId, $attachmentIds) {
             $message = new Message([
                 'kind' => Message::KIND_USER,
                 'body' => $request->validated('body'),
@@ -57,9 +63,14 @@ class MessageController extends Controller
             $message->parent_id = $parentId;
 
             // Set before save: MessageCreated resolves the resource while the model is being created.
-            $mentioned = $this->mentionedUsers($channel, $message->body, $request->user()->id);
+            $mentioned = $this->mentionedUsers($channel, $message->body ?? '', $request->user()->id);
             $message->setRelation('mentionedUsers', $mentioned);
+            $message->setRelation('attachments', $attachmentIds === []
+                ? new Collection
+                : MessageAttachment::query()->whereIn('id', $attachmentIds)->get());
             $message->save();
+
+            $this->linkAttachments($message, $attachmentIds, $request->user()->id);
 
             foreach ($mentioned as $user) {
                 $mention = new MessageMention;
@@ -81,6 +92,32 @@ class MessageController extends Controller
         });
 
         return new MessageResource($message->load('user:id,name'));
+    }
+
+    /**
+     * Takes the attachments only if they are still free: another message sent at the same time may
+     * have taken them after validation, and then the whole message is rolled back.
+     *
+     * @param  list<int>  $ids
+     */
+    private function linkAttachments(Message $message, array $ids, int $authorId): void
+    {
+        if ($ids === []) {
+            return;
+        }
+
+        $linked = MessageAttachment::query()
+            ->whereIn('id', $ids)
+            ->where('channel_id', $message->channel_id)
+            ->where('uploaded_by', $authorId)
+            ->whereNull('message_id')
+            ->update(['message_id' => $message->id]);
+
+        if ($linked !== count($ids)) {
+            throw ValidationException::withMessages([
+                'attachment_ids' => __('The attachments do not exist or are already in use.'),
+            ]);
+        }
     }
 
     /** @return Collection<int, User> members of the channel's organization named by `<@id>` tokens, minus the author */
