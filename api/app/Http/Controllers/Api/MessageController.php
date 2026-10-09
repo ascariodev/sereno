@@ -40,7 +40,7 @@ class MessageController extends Controller
             ->cursorPaginate($request->perPage())
             ->withQueryString();
 
-        $this->loadParticipants($page->items());
+        self::loadParticipants($page->items());
 
         return MessageResource::collection($page);
     }
@@ -51,7 +51,7 @@ class MessageController extends Controller
      *
      * @param  array<int, Message>  $roots
      */
-    private function loadParticipants(array $roots): void
+    public static function loadParticipants(array $roots): void
     {
         $withReplies = collect($roots)->filter(fn (Message $root) => $root->replies_count > 0);
         if ($withReplies->isEmpty()) {
@@ -90,7 +90,7 @@ class MessageController extends Controller
         // The root rides along in meta.root (threads opened outside the loaded channel page);
         // loading it together with the replies keeps one query per relation.
         (new Collection([...$page->items(), $message]))->load(self::RELATIONS);
-        $this->loadParticipants([$message]);
+        self::loadParticipants([$message]);
 
         return MessageResource::collection($page)
             ->additional(['meta' => ['root' => (new MessageResource($message))->resolve($request)]]);
@@ -165,7 +165,7 @@ class MessageController extends Controller
         });
 
         $message->load(self::RELATIONS);
-        $this->loadParticipants([$message]);
+        self::loadParticipants([$message]);
 
         if ($edited) {
             MessageUpdated::dispatch($message);
@@ -184,7 +184,7 @@ class MessageController extends Controller
         abort_if($result === null, 404);
 
         $deleted = $result['message']->load(self::RELATIONS);
-        $this->loadParticipants([$deleted]);
+        self::loadParticipants([$deleted]);
 
         MessageDeleted::dispatch($deleted, $result['root']);
         foreach ($result['removed_mentions'] as $userId) {

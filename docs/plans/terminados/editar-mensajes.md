@@ -164,7 +164,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - [ ] M-3 (baja, sonnet): flecha arriba en el composer vacío edita el último mensaje propio del canal.
 - [ ] M-4 (alta, plan nuevo): historial de ediciones (auditoría, plan Business de `docs/monetizacion.md`).
 - [x] M-5 (baja, sonnet): bloquear la fila (`lockForUpdate`) en el PATCH para serializar ediciones concurrentes del mismo mensaje (bajo riesgo: solo edita el autor).
-- [ ] M-6 (baja, sonnet): en `MessageUpdated`, dejar explícito (o forzar con `load`) que el payload depende de que el controlador cargue antes `recentParticipants`, porque `loadMissing` no recarga.
+- [x] M-6 (baja, sonnet): en `MessageUpdated`, dejar explícito (o forzar con `load`) que el payload depende de que el controlador cargue antes `recentParticipants`, porque `loadMissing` no recarga.
 - [ ] M-7 (media, sonnet): test de concurrencia real con dos conexiones (borrar una respuesta mientras otra se inserta) en vez del hook `created` en la misma conexión; documentar el deadlock teórico (reusar ids de adjuntos de la respuesta que se borra), que Postgres aborta.
 - [ ] M-8 (baja, sonnet): tests de listas con borrados: `DELETE` de la última respuesta de una raíz ya borrada la saca de `index`, y recorrido por cursor de dos páginas con borrados intercalados.
 - [ ] M-9 (media, sonnet): `mention.created` manda el mensaje completo a `users.{id}`; si la membresía cae antes de que la cola lo procese, llega a un ex miembro. Verificar la membresía al emitir (`broadcastWhen`) o reducir el payload.

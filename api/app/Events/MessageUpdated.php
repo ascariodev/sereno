@@ -30,7 +30,11 @@ class MessageUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
     {
         $this->organizationId = $message->organization_id;
         $this->channelId = $message->channel_id;
-        $this->message = (new MessageResource($message->loadMissing(MessageController::RELATIONS)))->resolve();
+        $message->loadMissing(MessageController::RELATIONS);
+        if (! $message->relationLoaded('recentParticipants')) {
+            MessageController::loadParticipants([$message]);
+        }
+        $this->message = (new MessageResource($message))->resolve();
     }
 
     public function broadcastOn(): PrivateChannel
