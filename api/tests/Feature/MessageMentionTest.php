@@ -67,7 +67,7 @@ it('deletes mentions with the organization', function () {
     expect(MessageMention::withoutGlobalScopes()->count())->toBe(0);
 });
 
-it('keeps the mention when only the user is not deleted and drops it with the user', function () {
+it('deletes mentions with the mentioned user', function () {
     mentionIn($this->message, $this->mentioned);
     $this->mentioned->delete();
 
