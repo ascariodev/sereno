@@ -92,6 +92,14 @@ function insertTrigger(): void {
   void directory.ensureLoaded()
 }
 
+const uploadStatus = computed(() => {
+  const items = uploads.items.value
+  const uploading = items.filter((item) => item.status === 'uploading').at(-1)
+  if (uploading) return t('attachments.uploadingFile', { name: uploading.name })
+  const failed = items.filter((item) => item.status === 'error').at(-1)
+  return failed ? t('attachments.failedFile', { name: failed.name, error: failed.error ?? '' }) : ''
+})
+
 function errorId(key: number): string {
   return `${listId}-error-${key}`
 }
@@ -139,7 +147,7 @@ async function submit(): Promise<void> {
     await (props.send ?? messages.send)(sentBody, sentIds)
     if (mention.text.value === sentText) mention.reset()
     for (const item of [...uploads.items.value]) {
-      if (item.attachment && sentIds.includes(item.attachment.id)) uploads.remove(item.key)
+      if (item.status === 'error' || (item.attachment && sentIds.includes(item.attachment.id))) uploads.remove(item.key)
     }
   } catch (caught) {
     if (caught instanceof ApiError && caught.status === 422) {
@@ -209,10 +217,10 @@ function onKeydown(event: KeyboardEvent): void {
         <li v-for="item in uploads.items.value" :key="item.key" class="composer-file" :data-status="item.status">
           <span class="composer-file-name">{{ item.name }}</span>
           <span class="composer-file-size">{{ formatFileSize(item.size) }}</span>
-          <span v-if="item.status === 'uploading'" class="composer-file-state" role="status">
+          <span v-if="item.status === 'uploading'" class="composer-file-state">
             {{ t('attachments.uploading') }}
           </span>
-          <span v-else-if="item.status === 'error'" :id="errorId(item.key)" class="composer-file-error" role="alert">
+          <span v-else-if="item.status === 'error'" :id="errorId(item.key)" class="composer-file-error">
             {{ item.error }}
           </span>
           <button
@@ -260,6 +268,7 @@ function onKeydown(event: KeyboardEvent): void {
       <span class="composer-sr" role="status">
         {{ open ? t('channel.composer.suggestionsCount', { n: mention.suggestions.value.length }) : '' }}
       </span>
+      <span class="composer-sr composer-upload-status" role="status">{{ uploadStatus }}</span>
       <div class="composer-bar">
         <input ref="picker" type="file" name="attachments" multiple hidden tabindex="-1" @change="onPicked" />
         <button

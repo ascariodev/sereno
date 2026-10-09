@@ -445,7 +445,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   `allFiles('chat')` entero, y su mensaje de error pasa por `__()`.
 - [x] M-34 (baja, sonnet): `useAttachmentUploads`: solo red, 429 y 5xx reintentables (403, 404 y 413 no); `watch` del
   canal con `flush: 'sync'`; test explícito del 429; `formatFileSize` sin "1,024 KB" por redondeo.
-- [ ] M-35 (baja, sonnet): composer de adjuntos: una sola región viva para los estados de subida (hoy un
+- [x] M-35 (baja, sonnet): composer de adjuntos: una sola región viva para los estados de subida (hoy un
   `role=status`/`alert` por item, ruidoso con varios archivos y sin el nombre en "Subiendo..."), y quitar los items en
   error tras un envío con éxito.
 - [ ] M-36 (media, sonnet): indicar adjuntos en `MentionsView` (p. ej. "N adjuntos" sin enlaces, o rediseñar la fila

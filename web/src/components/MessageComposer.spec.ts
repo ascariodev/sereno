@@ -313,12 +313,40 @@ describe('MessageComposer', () => {
       const wrapper = mountWithUploads()
       await pick(wrapper, [file('a.txt')])
       expect(wrapper.text()).toContain('Uploading...')
+      expect(wrapper.find('.composer-upload-status').text()).toBe('Uploading a.txt')
       expect(wrapper.find('button[name="cancel-attachment"]').attributes('aria-label')).toBe('Cancel the upload of a.txt')
       await wrapper.find('textarea').setValue('hola')
       expect(wrapper.find('button[name="send"]').attributes('disabled')).toBeDefined()
       await wrapper.find('button[name="cancel-attachment"]').trigger('click')
       expect(wrapper.find('.composer-file').exists()).toBe(false)
       expect(wrapper.find('button[name="send"]').attributes('disabled')).toBeUndefined()
+      expect(wrapper.find('.composer-upload-status').text()).toBe('')
+    })
+
+    it('uses a single live region for upload states and no live role per item', async () => {
+      vi.spyOn(api, 'post').mockRejectedValue(new Error('net'))
+      const wrapper = mountWithUploads()
+      const status = () => wrapper.find('.composer-upload-status')
+      expect(status().attributes('role')).toBe('status')
+      expect(status().text()).toBe('')
+      await pick(wrapper, [file('a.txt')])
+      expect(status().text()).toBe('Could not upload a.txt: Could not upload the file.')
+      expect(wrapper.findAll('.composer-file [role]')).toHaveLength(0)
+      expect(wrapper.findAll('[role="status"][class*="upload"]')).toHaveLength(1)
+    })
+
+    it('drops failed items after a successful send', async () => {
+      vi.spyOn(api, 'post').mockImplementation((url: string) =>
+        url.endsWith('/attachments')
+          ? (Promise.resolve(uploaded(5)) as never)
+          : (Promise.resolve({ data: created }) as never),
+      )
+      const wrapper = mountWithUploads()
+      await pick(wrapper, [file('a.txt'), file('big.bin', 6 * 1024 * 1024)])
+      expect(wrapper.findAll('.composer-file')).toHaveLength(2)
+      await wrapper.find('textarea').trigger('keydown', { key: 'Enter' })
+      await flushPromises()
+      expect(wrapper.find('.composer-file').exists()).toBe(false)
     })
 
     it('sends with an empty body when an attachment is ready, then clears the list', async () => {

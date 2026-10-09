@@ -226,6 +226,8 @@
     "retry": "Retry",
     "retryFile": "Retry {name}",
     "uploading": "Uploading...",
+    "uploadingFile": "Uploading {name}",
+    "failedFile": "Could not upload {name}: {error}",
     "ready": "Ready",
     "list": "Attached files",
     "tooLarge": "{name} is larger than {max}.",

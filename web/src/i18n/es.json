@@ -226,6 +226,8 @@
     "retry": "Reintentar",
     "retryFile": "Reintentar {name}",
     "uploading": "Subiendo...",
+    "uploadingFile": "Subiendo {name}",
+    "failedFile": "No se pudo subir {name}: {error}",
     "ready": "Listo",
     "list": "Archivos adjuntos",
     "tooLarge": "{name} pesa más de {max}.",
