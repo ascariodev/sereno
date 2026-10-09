@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 6 del MVP sobre los canales de proyecto: responder en hilos (también a los avisos de log),
 mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a los mensajes.
-**Estado:** en curso · Fase actual: 23
+**Estado:** en curso · Fase actual: 24
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -138,7 +138,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 ### [x] Fase 22 — Limpieza de adjuntos huérfanos (api)
 - Comando diario en el scheduler: borra archivo y fila de adjuntos sin mensaje con más de 24 h.
 
-### [ ] Fase 23 — Cliente de subida (web)
+### [x] Fase 23 — Cliente de subida (web)
 - `api/client.ts` acepta `FormData` (sin `Content-Type` JSON), `api/attachments.ts`, tipos de adjunto.
 
 ### [ ] Fase 24 — Estado de las subidas en curso (web)
@@ -247,6 +247,13 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   limpia por su fila.
 
 ## Notas para la próxima sesión
+- Fase 23 hecha: `client.post/patch/put` aceptan `FormData` (sin `Content-Type`); `uploadAttachment(channelId, file,
+  {signal?})` devuelve `MessageAttachment` y lanza `ApiError` (422 con `errors.file` o `errors.channel`) o el
+  `AbortError` tal cual; `Message.attachments` obligatorio; `sendReply(channelId, parentId, body, attachmentIds = [])`.
+  El cliente usa `fetch`: la fase 24 muestra estado "subiendo" sin porcentaje. Fase 25: el envío del canal está en
+  `stores/messages.ts` (`send`, `api.post(..., { body })`) y el del hilo en `stores/thread.ts` (`send`): ambos deben
+  aceptar los ids. La `url` de la subida da 404 hasta enviar: no sirve de miniatura en el composer. Validar tamaño en
+  el cliente antes de subir (fase 24) con el máximo del API (5 MB por defecto).
 - Bloque API de adjuntos terminado (fases 18 a 22). Fase 22: `PruneOrphanAttachments`, tests en
   `PruneOrphanAttachmentsTest`. Sigue la web (fase 23): leer los contratos de subida, envío y descarga en
   "Decisiones" (L-09).

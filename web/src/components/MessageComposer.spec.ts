@@ -22,6 +22,7 @@ const created: Message = {
   replies_count: 0,
   last_reply_at: null,
   mentions: [],
+  attachments: [],
   user: { id: 1, name: 'Ana' },
   created_at: '2026-01-01T00:00:00Z',
 }

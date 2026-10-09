@@ -191,6 +191,29 @@ describe('api client', () => {
     expect(error).not.toBeInstanceOf(ApiError)
   })
 
+  it('sends FormData as is, without Content-Type, keeping the other headers', async () => {
+    const { client, fetchMock } = setup(json({ data: { id: 1 } }, 201))
+    client.setTokenProvider(() => 'abc')
+    client.setOrganizationProvider(() => 7)
+    const form = new FormData()
+    form.append('file', new File(['a'], 'a.txt'))
+
+    await client.post('/api/channels/1/attachments', form)
+
+    const { init, headers } = call(fetchMock)
+    expect(init.body).toBe(form)
+    expect(headers).not.toHaveProperty('Content-Type')
+    expect(headers).toMatchObject({ Accept: 'application/json', Authorization: 'Bearer abc', 'X-Organization-Id': '7' })
+  })
+
+  it('still serializes plain objects as JSON with Content-Type', async () => {
+    const { client, fetchMock } = setup(json({}))
+    await client.post('/api/x', { a: 1 })
+    const { init, headers } = call(fetchMock)
+    expect(headers['Content-Type']).toBe('application/json')
+    expect(init.body).toBe('{"a":1}')
+  })
+
   it('passes the abort signal to fetch', async () => {
     const { client, fetchMock } = setup(json({}))
     const controller = new AbortController()

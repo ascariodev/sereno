@@ -70,7 +70,10 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     }
 
     const init: RequestInit = { method, headers, signal: opts.signal }
-    if (opts.body !== undefined) {
+    if (opts.body instanceof FormData) {
+      // No Content-Type: the browser sets multipart/form-data with its boundary.
+      init.body = opts.body
+    } else if (opts.body !== undefined) {
       headers['Content-Type'] = 'application/json'
       init.body = JSON.stringify(opts.body)
     }

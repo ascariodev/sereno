@@ -20,6 +20,7 @@ const message = (id: number): Message => ({
   last_reply_at: null,
   user: { id: 2, name: 'Ana' },
   mentions: [],
+  attachments: [],
   created_at: '2026-10-09T10:00:00Z',
 })
 

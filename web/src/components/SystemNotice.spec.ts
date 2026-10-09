@@ -18,6 +18,7 @@ const message = (payload: unknown, user: Message['user'] = null): Message => ({
   replies_count: 0,
   last_reply_at: null,
   mentions: [],
+  attachments: [],
   user,
   created_at: '2026-01-01T00:00:00Z',
 })

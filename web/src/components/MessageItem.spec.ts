@@ -15,6 +15,7 @@ const message: Message = {
   replies_count: 0,
   last_reply_at: null,
   mentions: [],
+  attachments: [],
   user: { id: 7, name: 'Ana' },
   created_at: '2026-03-04T10:30:00Z',
 }

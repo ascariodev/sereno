@@ -35,4 +35,14 @@ describe('messages api', () => {
     expect(fetchMock.mock.calls[0][1]?.method).toBe('POST')
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ body: 'hola', parent_id: 9 })
   })
+
+  it('sends attachment_ids in a reply only when there are some', async () => {
+    const fetchMock = stubFetch({ data: { id: 12 } }, 201)
+    await sendReply(5, 9, '', [4, 5])
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
+      body: '',
+      parent_id: 9,
+      attachment_ids: [4, 5],
+    })
+  })
 })

@@ -119,6 +119,17 @@ export function isLogGroupStatusChangedPayload(
   )
 }
 
+/** Attachment as returned by the API. `url` is signed and temporary; the upload response carries one that 404s until the attachment is sent in a message. */
+export interface MessageAttachment {
+  id: number
+  original_name: string
+  mime: string
+  size: number
+  /** ISO timestamp. */
+  created_at: string
+  url: string
+}
+
 export interface Message {
   id: number
   channel_id: number
@@ -134,6 +145,8 @@ export interface Message {
   user: Pick<User, 'id' | 'name'> | null
   /** Organization members named by `<@id>` tokens in the body, except the author; others render generic. */
   mentions: { id: number; name: string }[]
+  /** Always a list (`[]` without files), ordered by id. */
+  attachments: MessageAttachment[]
   created_at: string
 }
 

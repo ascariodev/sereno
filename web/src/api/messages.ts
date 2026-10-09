@@ -13,10 +13,16 @@ export function listReplies(
   })
 }
 
-export async function sendReply(channelId: number, parentId: number, body: string): Promise<Message> {
+export async function sendReply(
+  channelId: number,
+  parentId: number,
+  body: string,
+  attachmentIds: number[] = [],
+): Promise<Message> {
   const response = await api.post<DataEnvelope<Message>>(`/api/channels/${channelId}/messages`, {
     body,
     parent_id: parentId,
+    ...(attachmentIds.length > 0 ? { attachment_ids: attachmentIds } : {}),
   })
   return response.data
 }
