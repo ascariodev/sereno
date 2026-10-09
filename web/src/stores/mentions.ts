@@ -10,10 +10,13 @@ function toApiError(caught: unknown): ApiError {
   return caught instanceof ApiError ? caught : new ApiError(0, String(caught))
 }
 
-/** Merges by mention id (the incoming version wins) and sorts newest first. */
+/** Merges by mention id (the incoming version wins, except it never un-reads a local read) and sorts newest first. */
 function mergeMentions(current: readonly Mention[], incoming: readonly Mention[]): Mention[] {
   const byId = new Map(current.map((mention) => [mention.id, mention]))
-  for (const mention of incoming) byId.set(mention.id, mention)
+  for (const mention of incoming) {
+    const local = byId.get(mention.id)
+    byId.set(mention.id, local?.read_at != null && mention.read_at === null ? { ...mention, read_at: local.read_at } : mention)
+  }
   return [...byId.values()].sort((a, b) => b.id - a.id)
 }
 
@@ -121,6 +124,11 @@ export const useMentionsStore = defineStore('mentions', () => {
     mentions.value = mentions.value.map((mention) => (ids.has(mention.id) ? { ...mention, read_at: readAt } : mention))
   }
 
+  /** A read confirmed by the server makes a refresh still in flight stale (its count at least): launch a newer one. */
+  function invalidateInFlight(): void {
+    if (loading.value) void refresh()
+  }
+
   /** Marks the given loaded mentions read, optimistically. Resolves false (state restored, then resynced) if the API fails. */
   async function markRead(targets: Mention | readonly Mention[]): Promise<boolean> {
     const wanted = new Set((Array.isArray(targets) ? targets : [targets]).map((mention: Mention) => mention.id))
@@ -139,6 +147,7 @@ export const useMentionsStore = defineStore('mentions', () => {
       if (current === generation) {
         setReadAt(flipped, readAt)
         setUnread(count)
+        invalidateInFlight()
       }
       return true
     } catch {
@@ -162,6 +171,7 @@ export const useMentionsStore = defineStore('mentions', () => {
       if (current !== generation) return true
       setReadAt(new Set(mentions.value.filter((m) => m.read_at === null).map((m) => m.id)), readAt)
       setUnread(count)
+      invalidateInFlight()
       return true
     } catch {
       if (current !== generation) return false

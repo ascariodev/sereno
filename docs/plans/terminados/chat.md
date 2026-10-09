@@ -419,9 +419,11 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   del conteo de sugerencias siempre montado.
 - [ ] M-24 (media, sonnet): refrescar la caché de miembros cuando cambian dentro de la misma organización (altas o
   bajas en `MembersView`, o al volver a abrir la lista tras un tiempo).
-- [ ] M-25 (baja, sonnet): `markRead`/`markAllRead` invalidan o relanzan un `refresh`/`loadMore` en vuelo, para que
+- [x] M-25 (baja, sonnet): `markRead`/`markAllRead` invalidan o relanzan un `refresh`/`loadMore` en vuelo, para que
   una respuesta previa al commit no deje filas como no leídas (L-35); `start()` con objeto de opciones en vez de
   callbacks posicionales vacíos.
+  Aplicado solo lo de `markRead`/`markAllRead` (merge que no des-lee y relanzar el `refresh` en vuelo); `start()`
+  sigue con callbacks porque cambiar `subscribeToUser` afecta a `useMembershipWatch`.
 - [ ] M-26 (baja, sonnet): `MentionsView` muestra el error de `refresh` aunque la lista ya esté cargada, refresca la
   hora relativa con el tiempo y marca leída también al abrir con clic central o en pestaña nueva (`auxclick`).
 - [ ] M-27 (media, sonnet): test intermitente de `LogView.spec` ("refreshes the project counts once, after 300 ms"):
@@ -451,3 +453,6 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 - [ ] M-37 (baja, sonnet): un solo `role=status` para los avisos de vista previa no disponible en `MessageAttachments`.
 - [ ] M-38 (media, sonnet): conservar el borrador del composer del hilo al cruzar el umbral de 767 px (hoy la hoja y
   el aside son dos `ThreadAside` distintos; subir el borrador a un store o teleportar uno solo).
+- [ ] M-39 (baja, sonnet): tras `markAllRead`, invalidar o relanzar un `loadMore` en vuelo (sus filas nuevas llegan como
+  no leídas con `unreadCount` en 0), test de `markAllRead` con `refresh` en vuelo, y comentar en `mergeMentions` que
+  depende de que no exista "marcar no leída".
