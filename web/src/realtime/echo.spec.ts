@@ -9,6 +9,7 @@ import {
   leaveOrganization,
   MEMBERSHIP_REVOKED_EVENT,
   MEMBERSHIP_ROLE_CHANGED_EVENT,
+  MENTION_CREATED_EVENT,
   MESSAGE_CREATED_EVENT,
   onChannelDenied,
   onReconnect,
@@ -173,6 +174,27 @@ describe('realtime', () => {
     emit?.({ role: 'admin' })
     emit?.({ organization_id: 3, role: 'admin' })
     expect(changed).toEqual([[3, 'admin']])
+    expect(revoked).toEqual([])
+    expect(client.private).toHaveBeenCalledTimes(1)
+  })
+
+  it('forwards mention.created with organization, channel, parent and message, ignoring malformed payloads', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const received: unknown[] = []
+    const revoked: number[] = []
+    subscribeToUser(5, (id) => revoked.push(id), () => {}, (mention) => received.push(mention))
+
+    const emit = listeners.get(`users.5|${MENTION_CREATED_EVENT}`)
+    emit?.({ channel_id: 4, message: { id: 9 } as Message })
+    emit?.({ organization_id: 3, channel_id: 4 })
+    emit?.({ organization_id: 3, message: { id: 9 } as Message })
+    emit?.({ organization_id: 3, channel_id: 4, parent_id: 2, message: { id: 9 } as Message })
+    emit?.({ organization_id: 3, channel_id: 4, message: { id: 10 } as Message })
+    expect(received).toEqual([
+      { organizationId: 3, channelId: 4, parentId: 2, message: { id: 9 } },
+      { organizationId: 3, channelId: 4, parentId: null, message: { id: 10 } },
+    ])
     expect(revoked).toEqual([])
     expect(client.private).toHaveBeenCalledTimes(1)
   })

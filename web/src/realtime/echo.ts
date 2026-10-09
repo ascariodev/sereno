@@ -6,11 +6,21 @@ import { config } from '../config'
 export const MESSAGE_CREATED_EVENT = '.message.created'
 export const MEMBERSHIP_REVOKED_EVENT = '.membership.revoked'
 export const MEMBERSHIP_ROLE_CHANGED_EVENT = '.membership.role_changed'
+export const MENTION_CREATED_EVENT = '.mention.created'
 
 export interface RealtimePayload {
   message?: Message
   organization_id?: number
   role?: string
+  channel_id?: number
+  parent_id?: number | null
+}
+
+export interface MentionCreatedPayload {
+  organizationId: number
+  channelId: number
+  parentId: number | null
+  message: Message
 }
 
 export interface SubscriptionErrorPayload {
@@ -159,11 +169,19 @@ export function subscribeToUser(
   userId: number,
   onMembershipRevoked: (organizationId: number) => void,
   onRoleChanged: (organizationId: number, role: string) => void = () => {},
+  onMention: (mention: MentionCreatedPayload) => void = () => {},
 ): () => void {
-  return subscribe(userChannelName(userId), [MEMBERSHIP_REVOKED_EVENT, MEMBERSHIP_ROLE_CHANGED_EVENT], (event, data) => {
-    if (data.organization_id === undefined) return
+  const events = [MEMBERSHIP_REVOKED_EVENT, MEMBERSHIP_ROLE_CHANGED_EVENT, MENTION_CREATED_EVENT]
+  return subscribe(userChannelName(userId), events, (event, data) => {
+    if (typeof data.organization_id !== 'number') return
     if (event === MEMBERSHIP_REVOKED_EVENT) onMembershipRevoked(data.organization_id)
-    else if (typeof data.role === 'string') onRoleChanged(data.organization_id, data.role)
+    else if (event === MEMBERSHIP_ROLE_CHANGED_EVENT) {
+      if (typeof data.role === 'string') onRoleChanged(data.organization_id, data.role)
+    } else if (event === MENTION_CREATED_EVENT) {
+      const { message, channel_id: channelId, parent_id: parentId } = data
+      if (typeof message?.id !== 'number' || typeof channelId !== 'number') return
+      onMention({ organizationId: data.organization_id, channelId, parentId: typeof parentId === 'number' ? parentId : null, message })
+    }
   })
 }
 
