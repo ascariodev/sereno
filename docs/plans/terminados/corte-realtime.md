@@ -58,7 +58,7 @@
 - [ ] M-2 (media, sonnet): evento `membership.role_changed` al mismo canal para que la pantalla de miembros y los permisos se actualicen en vivo.
 - [ ] M-3 (media, sonnet): manejo global del 403 "no perteneces a esta organización" en el cliente (recargar organizaciones), como respaldo si se perdió el aviso.
 - [x] M-4 (baja, sonnet): quitar el docblock de `api/app/Broadcasting/UserChannel.php` que solo repite el nombre de la clase.
-- [ ] M-5 (baja, sonnet): simplificar la validación del id en `UserChannel` (`ctype_digit` y la comparación del string canónico se solapan con `FILTER_VALIDATE_INT`), cuidando que los casos de `BroadcastingAuthTest` sigan rechazados.
+- [x] M-5 (baja, sonnet): simplificar la validación del id en `UserChannel` (`ctype_digit` y la comparación del string canónico se solapan con `FILTER_VALIDATE_INT`), cuidando que los casos de `BroadcastingAuthTest` sigan rechazados.
 - [ ] M-6 (baja, sonnet): en `MembershipBroadcastTest`, el test de rollback usa `Event::fake()` sin argumentos; pasar a `Event::fake([MembershipRevoked::class])` como el `beforeEach`.
 - [ ] M-7 (baja, sonnet): en `web/src/realtime/echo.ts`, tipar el Map de suscriptores sin el casteo `Subscriber = (value: never) => void` y sacar el prefijo de `leaveOrganization` a un helper junto a `channelName`.
 - [ ] M-8 (baja, sonnet): en `useMembershipWatch`, registrar `onReconnect` dentro del watch junto a la suscripción, para que un cliente nuevo tras `disconnectRealtime` con AppLayout montado no quede sin listener; y acortar el docblock de `expectOwnLeave` a una línea.
