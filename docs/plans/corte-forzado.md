@@ -1,7 +1,7 @@
 # Plan: corte-forzado
 
 **Objetivo:** que un miembro quitado de una organización deje de recibir sus mensajes en vivo aunque su cliente ignore el aviso: el API cierra sus conexiones en Reverb, el cliente reconecta, `/broadcasting/auth` rechaza los canales de esa organización y la web lo trata como membresía revocada.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -13,7 +13,7 @@
 
 ## Fases
 
-### [ ] Fase 1 — Canal de presencia de sesión
+### [x] Fase 1 — Canal de presencia de sesión
 - **Alcance:** canal `sessions.{userId}` en `routes/channels.php` con `App\Broadcasting\SessionChannel`: solo el propio usuario; `join` devuelve `['id' => $user->id]` (sin datos personales) para que Reverb guarde `user_id`. Mismo rechazo de ids que `UserChannel`.
 - **Archivos:** `api/routes/channels.php`, `api/app/Broadcasting/SessionChannel.php` (nuevo), tests en `api/tests/Feature/BroadcastingAuthTest.php`.
 - **Terminado cuando:** tests de `presence-sessions.{id}` para el propio usuario (respuesta con `channel_data` y `user_id`), otro usuario, ids mal formados y 401 pasan.
@@ -50,6 +50,9 @@
 - 2026-10-08 — Sigue sin cubrir un socket que nunca se une a `sessions.{id}` (cliente modificado que lo omite): Reverb no tiene otra forma de identificar el socket. Aprobado por el usuario: se reduce a quien altere el cliente a propósito y aún así pierde todo al reconectar.
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1. Leer `docs/lecciones.md` antes. Tras cambiar jobs o listeners: `docker compose restart queue`.
+- Fase 1 hecha: `SessionChannel::join` devuelve `['id' => $user->id]`; en el `channel_data` de Laravel `user_id` llega como string ("43"). En la verificación en vivo (fase 6) confirmar que `terminate_connections` con el id numérico encuentra el socket.
+- Seguir con la fase 2. Leer `docs/lecciones.md` antes. Tras cambiar jobs o listeners: `docker compose restart queue`.
 
 ## Mejoras propuestas
+- [ ] M-1 (baja, sonnet): renombrar el helper global de Pest `authorizePresence` en `api/tests/Feature/BroadcastingAuthTest.php` a uno más específico (`authorizeSessionPresence`), por L-29.
+- [ ] M-2 (baja, sonnet): quitar el docblock `@return array{id: int}|false` de `api/app/Broadcasting/SessionChannel.php`, que repite la firma.

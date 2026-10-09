@@ -154,3 +154,46 @@ it('requires a token on the user channel', function () {
         ->assertUnauthorized()
         ->assertJsonPath('message', 'Unauthenticated.');
 });
+
+function authorizePresence(string $channelName)
+{
+    return test()->post('/broadcasting/auth', [
+        'socket_id' => '1234.5678',
+        'channel_name' => 'presence-'.$channelName,
+    ]);
+}
+
+it('authorizes the user on their own session presence channel', function () {
+    Sanctum::actingAs($this->member);
+
+    $response = authorizePresence("sessions.{$this->member->id}")
+        ->assertOk()
+        ->assertJsonStructure(['auth', 'channel_data']);
+
+    expect(json_decode($response->json('channel_data'), true))
+        ->toBe(['user_id' => (string) $this->member->id, 'user_info' => ['id' => $this->member->id]]);
+});
+
+it('rejects a user on the session channel of another user', function () {
+    Sanctum::actingAs($this->member);
+
+    authorizePresence("sessions.{$this->outsider->id}")->assertForbidden();
+});
+
+it('rejects malformed session channel ids', function (string $suffix) {
+    Sanctum::actingAs($this->member);
+
+    authorizePresence('sessions.'.str_replace('{id}', (string) $this->member->id, $suffix))->assertForbidden();
+})->with([
+    'letters' => 'abc',
+    'zero' => '0',
+    'leading zero' => '0{id}',
+    'bigint overflow' => '9223372036854775808',
+    'huge' => '99999999999999999999',
+]);
+
+it('requires a token on the session channel', function () {
+    authorizePresence("sessions.{$this->member->id}")
+        ->assertUnauthorized()
+        ->assertJsonPath('message', 'Unauthenticated.');
+});
