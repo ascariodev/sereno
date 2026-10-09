@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\Role;
 use App\Http\Middleware\SetLocale;
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -122,4 +124,26 @@ it('keeps using the user locale with a real Sanctum bearer token', function () {
     $this->getJson('/api/me', ['Authorization' => 'Bearer '.$token, 'Accept-Language' => 'en'])
         ->assertOk()
         ->assertHeader('Content-Language', 'es');
+});
+
+it('returns a translated 404 for a missing model without exposing class or id', function () {
+    $organization = Organization::factory()->create();
+    $user = User::factory()->create();
+    $organization->addMember($user, [Role::Member]);
+    Sanctum::actingAs($user);
+
+    $messages = [];
+    foreach (['en', 'es'] as $locale) {
+        $response = $this->withHeaders(['X-Organization-Id' => (string) $organization->id, 'Accept-Language' => $locale])
+            ->getJson('/api/projects/987654')
+            ->assertNotFound()
+            ->assertHeader('Content-Language', $locale);
+
+        $messages[$locale] = $response->json('message');
+    }
+
+    expect($messages['en'])->toBe(__('Resource not found.', [], 'en'))
+        ->and($messages['es'])->toBe(__('Resource not found.', [], 'es'))
+        ->and($messages['es'])->not->toBe($messages['en'])
+        ->and($messages['en'])->not->toContain('App\\Models')->not->toContain('987654');
 });

@@ -270,5 +270,6 @@
     "The organization must keep at least one owner.": "La organización debe conservar al menos un propietario.",
     "The attachments do not exist or are already in use.": "Los adjuntos no existen o ya están en uso.",
     "The link is invalid or has expired.": "El enlace no es válido o ha vencido.",
+    "Resource not found.": "Recurso no encontrado.",
     "Nothing deleted: the orphan period must be at least :hours hour.": "No se eliminó nada: el periodo de huérfanos debe ser de al menos :hours hora."
 }

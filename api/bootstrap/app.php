@@ -5,12 +5,14 @@ use App\Http\Middleware\ResolveOrganization;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -50,6 +52,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen($wantsJson);
         $exceptions->render(fn (AuthenticationException $e, Request $request) => $wantsJson($request)
             ? response()->json(['message' => __('Unauthenticated.')], 401)
+            : null);
+        // The handler turns ModelNotFoundException into a NotFoundHttpException (keeping it as previous) before
+        // the render callbacks run, and its message exposes the model class and id.
+        $exceptions->render(fn (NotFoundHttpException $e, Request $request) => $e->getPrevious() instanceof ModelNotFoundException && $wantsJson($request)
+            ? response()->json(['message' => __('Resource not found.')], 404)
             : null);
         $exceptions->render(fn (InvalidSignatureException $e) => response()->json([
             'message' => __('The link is invalid or has expired.'),
