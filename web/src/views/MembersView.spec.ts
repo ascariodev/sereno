@@ -69,6 +69,29 @@ describe('MembersView', () => {
     expect(rows[2].find('[data-test=joined]').text()).toBe('-')
   })
 
+  it('refreshes the list and the controls when the own role changes in real time', async () => {
+    const { get, organization } = await mountView([member(1, 'member'), member(2, 'member')])
+    expect(wrapper!.findAll('[data-test=remove]')).toHaveLength(0)
+    get.mockImplementation(async (path: string) =>
+      path === '/api/organizations'
+        ? { data: [{ ...organizations()[0], roles: ['admin'] }] }
+        : { data: [member(1, 'admin'), member(2, 'member')] },
+    )
+    await organization.handleMembershipRoleChanged(1, 'admin')
+    await flushPromises()
+    const rows = wrapper!.findAll('[data-test=member]')
+    expect(rows[0].find('[data-test=role-select]').element).toHaveProperty('value', 'admin')
+    expect(wrapper!.findAll('[data-test=remove]')).toHaveLength(1)
+  })
+
+  it('does not reload the list when the role already matches (own change from the view)', async () => {
+    const { get, organization } = await mountView([member(1, 'member')], ['admin'])
+    const calls = get.mock.calls.length
+    await organization.handleMembershipRoleChanged(1, 'admin')
+    await flushPromises()
+    expect(get.mock.calls.length).toBe(calls)
+  })
+
   it('shows the empty state', async () => {
     await mountView([])
     expect(wrapper!.find('[data-test=empty]').exists()).toBe(true)

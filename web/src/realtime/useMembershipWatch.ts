@@ -52,6 +52,14 @@ export function useMembershipWatch(): void {
     await router.replace({ name: 'projects' })
   }
 
+  async function onMembershipRoleChanged(organizationId: number, role: string): Promise<void> {
+    try {
+      await organization.handleMembershipRoleChanged(organizationId, role)
+    } catch (error) {
+      ignoreApiError(error)
+    }
+  }
+
   function stopWatching(): void {
     unsubscribeUser?.()
     unsubscribeReconnect?.()
@@ -64,7 +72,11 @@ export function useMembershipWatch(): void {
     (userId) => {
       stopWatching()
       if (userId === undefined) return
-      unsubscribeUser = subscribeToUser(userId, (organizationId) => void onMembershipRevoked(organizationId))
+      unsubscribeUser = subscribeToUser(
+        userId,
+        (organizationId) => void onMembershipRevoked(organizationId),
+        (organizationId, role) => void onMembershipRoleChanged(organizationId, role),
+      )
       unsubscribeReconnect = onReconnect(() => {
         organization.load().catch(ignoreApiError)
       })

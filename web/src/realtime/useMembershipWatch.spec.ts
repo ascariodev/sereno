@@ -9,7 +9,7 @@ import { i18n, setLocale } from '../i18n'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
-import { MEMBERSHIP_REVOKED_EVENT, setRealtimeClientFactory } from './echo'
+import { MEMBERSHIP_REVOKED_EVENT, MEMBERSHIP_ROLE_CHANGED_EVENT, setRealtimeClientFactory } from './echo'
 import { expectOwnLeave, useMembershipWatch } from './useMembershipWatch'
 
 const user = { id: 1, name: 'Ada', email: 'a@e.com', locale: 'en' }
@@ -51,6 +51,10 @@ function revoke(organizationId: number) {
   fake.listeners.get(`users.1|${MEMBERSHIP_REVOKED_EVENT}`)?.({ organization_id: organizationId })
 }
 
+function changeRole(organizationId: number, role: string) {
+  fake.listeners.get(`users.1|${MEMBERSHIP_ROLE_CHANGED_EVENT}`)?.({ organization_id: organizationId, role })
+}
+
 function organizationLoads(get: { mock: { calls: unknown[][] } }) {
   return get.mock.calls.filter(([path]) => path === '/api/organizations').length
 }
@@ -75,6 +79,42 @@ describe('useMembershipWatch', () => {
     await mountWatch()
     expect(fake.client.private).toHaveBeenCalledWith('users.1')
     expect(fake.listeners.has(`users.1|${MEMBERSHIP_REVOKED_EVENT}`)).toBe(true)
+  })
+
+  it('on a role change reloads the organizations and bumps the roles revision', async () => {
+    const { get, router, organization } = await mountWatch([{ ...one, roles: ['admin'] }, two])
+    changeRole(1, 'admin')
+    await flushPromises()
+    expect(organizationLoads(get)).toBe(1)
+    expect(organization.isAdmin).toBe(true)
+    expect(organization.rolesRevision).toBe(1)
+    expect(router.currentRoute.value.name).toBe('channel')
+    expect(toasts.value).toHaveLength(0)
+  })
+
+  it('ignores a role change the store already reflects', async () => {
+    const { get, organization } = await mountWatch()
+    changeRole(1, 'member')
+    await flushPromises()
+    expect(organizationLoads(get)).toBe(0)
+    expect(organization.rolesRevision).toBe(0)
+  })
+
+  it('a role change in another organization reloads without bumping the revision', async () => {
+    const { get, organization } = await mountWatch([one, { ...two, roles: ['owner'] }])
+    changeRole(2, 'owner')
+    await flushPromises()
+    expect(organizationLoads(get)).toBe(1)
+    expect(organization.rolesRevision).toBe(0)
+  })
+
+  it('stays quiet when the role-change reload fails', async () => {
+    const { get, organization } = await mountWatch()
+    get.mockRejectedValue(new ApiError(500, 'boom', {}))
+    changeRole(1, 'admin')
+    await flushPromises()
+    expect(organization.rolesRevision).toBe(0)
+    expect(toasts.value).toHaveLength(0)
   })
 
   it('on losing the active organization reloads, notifies and goes to projects', async () => {

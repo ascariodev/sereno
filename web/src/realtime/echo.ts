@@ -5,10 +5,12 @@ import { config } from '../config'
 
 export const MESSAGE_CREATED_EVENT = '.message.created'
 export const MEMBERSHIP_REVOKED_EVENT = '.membership.revoked'
+export const MEMBERSHIP_ROLE_CHANGED_EVENT = '.membership.role_changed'
 
 export interface RealtimePayload {
   message?: Message
   organization_id?: number
+  role?: string
 }
 
 export interface RealtimeClient {
@@ -22,7 +24,7 @@ export interface RealtimeClient {
 export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'reconnecting' | 'failed'
 
 type Fetch = typeof fetch
-type Subscriber = (data: RealtimePayload) => void
+type Subscriber = (event: string, data: RealtimePayload) => void
 
 let getToken: () => string | null | undefined = () => null
 let client: RealtimeClient | null = null
@@ -50,38 +52,33 @@ export function userChannelName(userId: number): string {
   return `users.${userId}`
 }
 
-function subscribe<T>(
-  name: string,
-  event: string,
-  extract: (data: RealtimePayload) => T | undefined,
-  onValue: (value: T) => void,
-): () => void {
+function subscribe(name: string, events: string[], handler: Subscriber): () => void {
   client ??= factory()
   const current = client
   if (current === null) return () => {}
   let entry = subscriptions.get(name)
   if (!entry || entry.client !== current) {
     const callbacks = new Set<Subscriber>()
-    current.private(name).listen(event, (data) => {
-      if (!data) return
-      for (const callback of [...callbacks]) {
-        try {
-          callback(data)
-        } catch (error) {
-          queueMicrotask(() => {
-            throw error
-          })
+    const channel = current.private(name)
+    for (const event of events) {
+      channel.listen(event, (data) => {
+        if (!data) return
+        for (const callback of [...callbacks]) {
+          try {
+            callback(event, data)
+          } catch (error) {
+            queueMicrotask(() => {
+              throw error
+            })
+          }
         }
-      }
-    })
+      })
+    }
     entry = { client: current, callbacks }
     subscriptions.set(name, entry)
   }
   const { callbacks } = entry
-  const subscriber: Subscriber = (data) => {
-    const value = extract(data)
-    if (value !== undefined) onValue(value)
-  }
+  const subscriber: Subscriber = handler
   callbacks.add(subscriber)
   return () => {
     if (!callbacks.delete(subscriber) || callbacks.size > 0) return
@@ -96,11 +93,21 @@ export function subscribeToChannel(
   channelId: number,
   onMessage: (message: Message) => void,
 ): () => void {
-  return subscribe(channelName(organizationId, channelId), MESSAGE_CREATED_EVENT, (data) => data.message, onMessage)
+  return subscribe(channelName(organizationId, channelId), [MESSAGE_CREATED_EVENT], (_event, data) => {
+    if (data.message !== undefined) onMessage(data.message)
+  })
 }
 
-export function subscribeToUser(userId: number, onMembershipRevoked: (organizationId: number) => void): () => void {
-  return subscribe(userChannelName(userId), MEMBERSHIP_REVOKED_EVENT, (data) => data.organization_id, onMembershipRevoked)
+export function subscribeToUser(
+  userId: number,
+  onMembershipRevoked: (organizationId: number) => void,
+  onRoleChanged: (organizationId: number, role: string) => void = () => {},
+): () => void {
+  return subscribe(userChannelName(userId), [MEMBERSHIP_REVOKED_EVENT, MEMBERSHIP_ROLE_CHANGED_EVENT], (event, data) => {
+    if (data.organization_id === undefined) return
+    if (event === MEMBERSHIP_REVOKED_EVENT) onMembershipRevoked(data.organization_id)
+    else if (typeof data.role === 'string') onRoleChanged(data.organization_id, data.role)
+  })
 }
 
 export function leaveOrganization(organizationId: number): void {

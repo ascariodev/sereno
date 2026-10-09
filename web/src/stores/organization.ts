@@ -17,6 +17,7 @@ export const useOrganizationStore = defineStore('organization', () => {
   const activeId = ref<number | null>(null)
   const loaded = ref(false)
   const version = ref(0)
+  const rolesRevision = ref(0)
   let generation = 0
   let clearCount = 0
   let latestLoad: Promise<void> = Promise.resolve()
@@ -63,9 +64,8 @@ export const useOrganizationStore = defineStore('organization', () => {
     return latestLoad
   }
 
-  async function handleMembershipRevoked(organizationId: number): Promise<boolean> {
-    leaveOrganization(organizationId)
-    const previousActiveId = activeId.value
+  /** Reloads and waits for the newest load; false when a `clear()` happened meanwhile. */
+  async function reloadSettled(): Promise<boolean> {
     const clearsBefore = clearCount
     let awaited = load()
     await awaited
@@ -73,8 +73,22 @@ export const useOrganizationStore = defineStore('organization', () => {
       awaited = latestLoad
       await awaited
     }
-    if (clearsBefore !== clearCount) return false
+    return clearsBefore === clearCount
+  }
+
+  async function handleMembershipRevoked(organizationId: number): Promise<boolean> {
+    leaveOrganization(organizationId)
+    const previousActiveId = activeId.value
+    if (!(await reloadSettled())) return false
     return activeId.value !== previousActiveId
+  }
+
+  /** Skips the reload when the store already holds `role` (the change was made from this client). */
+  async function handleMembershipRoleChanged(organizationId: number, role: string): Promise<void> {
+    const roles = organizations.value.find((o) => o.id === organizationId)?.roles
+    if (roles?.length === 1 && roles[0] === role) return
+    if (!(await reloadSettled())) return
+    if (activeId.value === organizationId) rolesRevision.value++
   }
 
   function select(id: number): void {
@@ -90,7 +104,7 @@ export const useOrganizationStore = defineStore('organization', () => {
     setActive(null)
   }
 
-  return { organizations, activeId, active, isOwner, isAdmin, assignableRolesFor, canRemoveMember, canManageInvitations, loaded, version, load, handleMembershipRevoked, select, clear }
+  return { organizations, activeId, active, isOwner, isAdmin, assignableRolesFor, canRemoveMember, canManageInvitations, loaded, version, rolesRevision, load, handleMembershipRevoked, handleMembershipRoleChanged, select, clear }
 })
 
 export function installOrganizationOnApi(): void {

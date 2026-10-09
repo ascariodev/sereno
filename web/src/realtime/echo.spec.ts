@@ -7,6 +7,7 @@ import {
   disconnectRealtime,
   leaveOrganization,
   MEMBERSHIP_REVOKED_EVENT,
+  MEMBERSHIP_ROLE_CHANGED_EVENT,
   MESSAGE_CREATED_EVENT,
   onReconnect,
   setRealtimeClientFactory,
@@ -152,6 +153,38 @@ describe('realtime', () => {
 
     leave()
     expect(client.leave).toHaveBeenCalledWith('users.5')
+  })
+
+  it('forwards membership.role_changed with organization and role, ignoring malformed payloads', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const revoked: number[] = []
+    const changed: Array<[number, string]> = []
+    subscribeToUser(
+      5,
+      (organizationId) => revoked.push(organizationId),
+      (organizationId, role) => changed.push([organizationId, role]),
+    )
+
+    const emit = listeners.get(`users.5|${MEMBERSHIP_ROLE_CHANGED_EVENT}`)
+    emit?.({ organization_id: 3 })
+    emit?.({ role: 'admin' })
+    emit?.({ organization_id: 3, role: 'admin' })
+    expect(changed).toEqual([[3, 'admin']])
+    expect(revoked).toEqual([])
+    expect(client.private).toHaveBeenCalledTimes(1)
+  })
+
+  it('shares one user channel for both events and leaves it with the last subscriber', () => {
+    const { client } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const leaveFirst = subscribeToUser(5, () => {}, () => {})
+    const leaveSecond = subscribeToUser(5, () => {})
+    expect(client.private).toHaveBeenCalledTimes(1)
+    leaveFirst()
+    expect(client.leave).not.toHaveBeenCalled()
+    leaveSecond()
+    expect(client.leave).toHaveBeenCalledTimes(1)
   })
 
   it('keeps the user channel open until its last subscriber leaves', () => {

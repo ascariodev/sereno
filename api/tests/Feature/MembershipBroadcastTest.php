@@ -2,6 +2,7 @@
 
 use App\Enums\Role;
 use App\Events\MembershipRevoked;
+use App\Events\MembershipRoleChanged;
 use App\Exceptions\LastOwnerException;
 use App\Models\Organization;
 use App\Models\User;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
-    Event::fake([MembershipRevoked::class]);
+    Event::fake([MembershipRevoked::class, MembershipRoleChanged::class]);
     $this->organization = Organization::factory()->create();
     $this->owner = User::factory()->create();
     $this->member = User::factory()->create();
@@ -73,4 +74,47 @@ it('is not broadcast when the role changes', function () {
     $this->organization->changeMemberRole($this->member, Role::Admin);
 
     Event::assertNotDispatched(MembershipRevoked::class);
+});
+
+it('broadcasts the new role to the affected user private channel when it changes', function () {
+    $this->organization->changeMemberRole($this->member, Role::Admin);
+
+    Event::assertDispatchedTimes(MembershipRoleChanged::class, 1);
+    Event::assertDispatched(MembershipRoleChanged::class, function (MembershipRoleChanged $event) {
+        return $event->broadcastOn()->name === "private-users.{$this->member->id}"
+            && $event->broadcastAs() === 'membership.role_changed'
+            && $event->broadcastWith() === ['organization_id' => $this->organization->id, 'role' => 'admin'];
+    });
+});
+
+it('does not broadcast a role change when it would demote the last owner', function () {
+    expect(fn () => $this->organization->changeMemberRole($this->owner, Role::Member))
+        ->toThrow(LastOwnerException::class);
+
+    Event::assertNotDispatched(MembershipRoleChanged::class);
+});
+
+it('does not broadcast a role change when the user is not a member', function () {
+    expect(fn () => $this->organization->changeMemberRole(User::factory()->create(), Role::Admin))
+        ->toThrow(ModelNotFoundException::class);
+
+    Event::assertNotDispatched(MembershipRoleChanged::class);
+});
+
+it('does not broadcast a role change when the surrounding transaction rolls back', function () {
+    try {
+        DB::transaction(function () {
+            $this->organization->changeMemberRole($this->member, Role::Admin);
+            throw new RuntimeException('rollback');
+        });
+    } catch (RuntimeException) {
+    }
+
+    Event::assertNotDispatched(MembershipRoleChanged::class);
+});
+
+it('does not broadcast a role change when a member is removed', function () {
+    $this->organization->removeMember($this->member);
+
+    Event::assertNotDispatched(MembershipRoleChanged::class);
 });

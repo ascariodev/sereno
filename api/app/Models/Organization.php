@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\Locale;
 use App\Enums\Role;
 use App\Events\MembershipRevoked;
+use App\Events\MembershipRoleChanged;
 use App\Exceptions\LastOwnerException;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -109,6 +110,8 @@ class Organization extends Model
             }
 
             $user->syncRoles([$role]);
+
+            MembershipRoleChanged::dispatch($user->id, $this->id, $role->value);
         });
     }
 

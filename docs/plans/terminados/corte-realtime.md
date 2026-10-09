@@ -55,7 +55,7 @@
 
 ## Mejoras propuestas
 - [ ] M-1 (alta, plan nuevo): corte forzado del lado servidor: que el cliente se una a un canal de presencia propio para que la conexión lleve `user_id` y llamar a `terminate_connections` (`Pusher::terminateUserConnections`) al quitar; el cliente reconecta y `/broadcasting/auth` rechaza la organización quitada.
-- [ ] M-2 (media, sonnet): evento `membership.role_changed` al mismo canal para que la pantalla de miembros y los permisos se actualicen en vivo.
+- [x] M-2 (media, sonnet): evento `membership.role_changed` al mismo canal para que la pantalla de miembros y los permisos se actualicen en vivo.
 - [ ] M-3 (media, sonnet): manejo global del 403 "no perteneces a esta organización" en el cliente (recargar organizaciones), como respaldo si se perdió el aviso.
 - [x] M-4 (baja, sonnet): quitar el docblock de `api/app/Broadcasting/UserChannel.php` que solo repite el nombre de la clase.
 - [x] M-5 (baja, sonnet): simplificar la validación del id en `UserChannel` (`ctype_digit` y la comparación del string canónico se solapan con `FILTER_VALIDATE_INT`), cuidando que los casos de `BroadcastingAuthTest` sigan rechazados.
@@ -64,3 +64,6 @@
 - [x] M-8 (baja, sonnet): en `useMembershipWatch`, registrar `onReconnect` dentro del watch junto a la suscripción, para que un cliente nuevo tras `disconnectRealtime` con AppLayout montado no quede sin listener; y acortar el docblock de `expectOwnLeave` a una línea.
 - [x] M-9 (baja, sonnet): `src/views/SessionErrorView.spec.ts` deja 18 "Unhandled Rejection" (`organizations.value.find is not a function` en `stores/organization.ts`): el mock devuelve una forma que no es lista; corregir el mock para que la suite quede sin errores.
 - [x] M-10 (baja, sonnet): `InvitationApiTest` "it throttles invitation preview" (línea ~386) depende del reloj: espera 60 segundos y llega 59 si las peticiones tardan más de un segundo (falla de forma estable en Docker sobre Windows). Congelar el tiempo (`$this->freezeTime()`) antes de agotar el límite. Ajeno a este plan.
+- [ ] M-11 (baja, sonnet): en `echo.ts` `subscribe()`, la lista de eventos de un canal la fija el primer suscriptor; validar o documentar que otro suscriptor del mismo canal no puede pedir otros eventos.
+- [ ] M-12 (baja, sonnet): `Organization::changeMemberRole` emite `MembershipRoleChanged` aunque el rol nuevo sea igual al actual; omitirlo.
+- [ ] M-13 (media, sonnet): notificar el cambio de rol a los demás admins con la lista de miembros abierta (hoy solo se avisa al afectado) y redirigir si el nuevo rol deja al usuario en una ruta que ya no debería ver.

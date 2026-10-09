@@ -192,6 +192,14 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => organization.rolesRevision,
+  () => {
+    if (leaving || organization.activeId === null) return
+    void load()
+  },
+)
+
 onUnmounted(() => {
   generation++
   controller?.abort()
