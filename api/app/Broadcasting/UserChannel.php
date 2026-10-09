@@ -4,9 +4,6 @@ namespace App\Broadcasting;
 
 use App\Models\User;
 
-/**
- * Personal channel: only the user itself can join, with no organization involved.
- */
 class UserChannel
 {
     public function join(User $user, string $userId): bool
