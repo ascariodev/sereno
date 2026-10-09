@@ -391,7 +391,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   los de `index`.
   Hecho como test de 200 en canal archivado: no hay canales privados y `ChannelPolicy::view` deja ver todos a
   cualquier miembro; el 403 de no miembro ya estaba cubierto.
-- [ ] M-10 (baja, sonnet): en el test de paginación de respuestas, afirmar que una respuesta de otra raíz no aparece.
+- [x] M-10 (baja, sonnet): en el test de paginación de respuestas, afirmar que una respuesta de otra raíz no aparece.
 - [ ] M-11 (media, sonnet): carreras del contador de respuestas entre `catchUp` (rama `joined`) y respuestas en vivo
   (pierde el +1 o suma 2 hasta el siguiente refresco); conciliar con `countedReplies` o un evento de contador en la API.
 - [ ] M-12 (baja, sonnet): `applyReply` recibe el `rootId` desde `insert` en vez de `reply.parent_id as number`, y

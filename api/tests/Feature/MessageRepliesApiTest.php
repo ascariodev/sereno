@@ -41,13 +41,14 @@ it('lists the replies of a root newest first with the message shape and cursor p
     $root = threadMessageIn($this->channel);
     $other = threadMessageIn($this->channel);
     $ids = collect(range(1, 3))->map(fn ($i) => threadMessageIn($this->channel, $root, "r{$i}"));
-    threadMessageIn($this->channel, $other, 'elsewhere');
+    $foreign = threadMessageIn($this->channel, $other, 'elsewhere');
 
     $page = listRepliesAs($this->member, $this->organization, $this->channel, $root, '?per_page=2')
         ->assertOk()
         ->assertJsonCount(2, 'data')
         ->assertJsonPath('data.0.id', $ids[2])
         ->assertJsonPath('data.1.id', $ids[1])
+        ->assertJsonMissing(['id' => $foreign])
         ->assertJsonPath('data.0.parent_id', $root)
         ->assertJsonStructure(['data' => [['id', 'parent_id', 'replies_count', 'last_reply_at']], 'links', 'meta' => ['next_cursor']]);
 
@@ -58,6 +59,7 @@ it('lists the replies of a root newest first with the message shape and cursor p
         ->assertOk()
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.id', $ids[0])
+        ->assertJsonMissing(['id' => $foreign])
         ->assertJsonPath('meta.next_cursor', null);
 });
 
