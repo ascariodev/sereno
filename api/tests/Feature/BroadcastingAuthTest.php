@@ -197,3 +197,60 @@ it('requires a token on the session channel', function () {
         ->assertUnauthorized()
         ->assertJsonPath('message', 'Unauthenticated.');
 });
+
+function projectChannelName(Organization $organization, Project $project): string
+{
+    return "organizations.{$organization->id}.projects.{$project->id}";
+}
+
+it('authorizes a member on the project channel without X-Organization-Id', function () {
+    Sanctum::actingAs($this->member);
+
+    authorizeChannel(projectChannelName($this->organization, Project::withoutGlobalScopes()->findOrFail($this->channel->project_id)))
+        ->assertOk()
+        ->assertJsonStructure(['auth']);
+});
+
+it('rejects a non member on the project channel', function () {
+    Sanctum::actingAs($this->outsider);
+
+    authorizeChannel(projectChannelName($this->organization, Project::withoutGlobalScopes()->findOrFail($this->channel->project_id)))->assertForbidden();
+});
+
+it('rejects a project of another organization on the project channel', function () {
+    $foreign = Project::factory()->for($this->other)->create();
+    $this->other->addMember($this->member, [Role::Member]);
+    Sanctum::actingAs($this->member);
+
+    authorizeChannel(projectChannelName($this->organization, $foreign))->assertForbidden();
+    authorizeChannel(projectChannelName($this->other, $foreign))->assertOk();
+});
+
+it('rejects a nonexistent project on the project channel', function () {
+    Sanctum::actingAs($this->member);
+
+    authorizeChannel("organizations.{$this->organization->id}.projects.".($this->channel->project_id + 1000))->assertForbidden();
+});
+
+it('rejects malformed project channel parameters', function (string $channelName) {
+    Sanctum::actingAs($this->member);
+
+    authorizeChannel(str_replace(
+        ['{organization}', '{project}'],
+        [$this->organization->id, $this->channel->project_id],
+        $channelName,
+    ))->assertForbidden();
+})->with([
+    'letters' => 'organizations.{organization}.projects.abc',
+    'organization overflow' => 'organizations.99999999999999999999.projects.{project}',
+    'zero' => 'organizations.{organization}.projects.0',
+    'leading zero project' => 'organizations.{organization}.projects.0{project}',
+    'leading zero organization' => 'organizations.0{organization}.projects.{project}',
+    'bigint overflow' => 'organizations.{organization}.projects.9223372036854775808',
+]);
+
+it('requires a token on the project channel', function () {
+    authorizeChannel(projectChannelName($this->organization, Project::withoutGlobalScopes()->findOrFail($this->channel->project_id)))
+        ->assertUnauthorized()
+        ->assertJsonPath('message', 'Unauthenticated.');
+});

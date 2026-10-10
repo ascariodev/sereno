@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -83,7 +83,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - Al quitar a alguien de la organización, sus tareas de esa organización quedan sin asignado (misma transacción que
   la baja). Test.
 
-### [ ] Fase 10 — Canal privado del proyecto (api)
+### [x] Fase 10 — Canal privado del proyecto (api)
 - `organizations.{organization}.projects.{project}` en `routes/channels.php` con su clase de autorización (miembro y
   proyecto de esa organización, sin tenant activo), como `ChannelChannel`. Test en `BroadcastingAuthTest` o propio.
 
@@ -182,7 +182,8 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   (el tablero las ve al recargar).
 
 ## Notas para la próxima sesión
-- Fases 1 a 9 hechas. Helpers de la 9: `removalTask`, `assigneeOf`. `LogGroupResource` trae `task` con `whenLoaded`: todo lugar que lo devuelva (hoy solo
+- Fases 1 a 10 hechas. Helpers de la 9: `removalTask`, `assigneeOf`; de la 10: `projectChannelName`
+  (BroadcastingAuthTest). Canal: `ProjectChannel` en `organizations.{organization}.projects.{project}`. `LogGroupResource` trae `task` con `whenLoaded`: todo lugar que lo devuelva (hoy solo
   `LogGroupController`; si la fase 11 lo usa en un evento) carga `task` y llama `bindTaskProject`. graphify no está
   instalado en la nube: usar grep. Helpers de la 8: `groupTaskUrl`, `groupTaskGet`. Helpers de test: `columnTask`, `moveTaskAs`, `movedColumn` (fase 6),
   `deleteTaskAs` (fase 7). Tras una petición el tenant queda en su organización: los tests consultan con
@@ -215,3 +216,5 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   constante.
 - [ ] M-13 (media, sonnet): avisar en vivo al tablero de las tareas desasignadas al quitar un miembro (evento por
   proyecto afectado tras el commit).
+- [ ] M-14 (baja, sonnet): extraer `positiveId` (duplicado en `ProjectChannel` y `ChannelChannel`) a un helper
+  compartido; en `BroadcastingAuthTest`, el proyecto del canal en el `beforeEach`.
