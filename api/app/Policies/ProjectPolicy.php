@@ -5,7 +5,7 @@ namespace App\Policies;
 use App\Enums\Role;
 use App\Models\Project;
 use App\Models\User;
-use App\Support\CurrentOrganization;
+use App\Policies\Concerns\ChecksActiveOrganization;
 use App\Support\ProjectAccess;
 use Illuminate\Auth\Access\Response;
 
@@ -15,6 +15,8 @@ use Illuminate\Auth\Access\Response;
  */
 class ProjectPolicy
 {
+    use ChecksActiveOrganization;
+
     public function viewAny(User $user): bool
     {
         return $this->hasActiveOrganization() && $user->hasAnyRole(array_column(Role::cases(), 'value'));
@@ -47,23 +49,5 @@ class ProjectPolicy
     public function archive(User $user, Project $project): bool
     {
         return $this->update($user, $project);
-    }
-
-    private function canManage(User $user): bool
-    {
-        return $this->hasActiveOrganization()
-            && $user->hasAnyRole([Role::Owner->value, Role::Admin->value]);
-    }
-
-    private function hasActiveOrganization(): bool
-    {
-        return app(CurrentOrganization::class)->id() !== null;
-    }
-
-    private function belongsToActiveOrganization(Project $project): bool
-    {
-        $activeId = app(CurrentOrganization::class)->id();
-
-        return $activeId !== null && $project->organization_id === $activeId;
     }
 }

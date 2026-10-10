@@ -5,7 +5,7 @@ namespace App\Policies;
 use App\Enums\Role;
 use App\Models\Channel;
 use App\Models\User;
-use App\Support\CurrentOrganization;
+use App\Policies\Concerns\ChecksActiveOrganization;
 use App\Support\ProjectAccess;
 use Illuminate\Auth\Access\Response;
 
@@ -15,9 +15,11 @@ use Illuminate\Auth\Access\Response;
  */
 class ChannelPolicy
 {
+    use ChecksActiveOrganization;
+
     public function viewAny(User $user): bool
     {
-        return $this->activeOrganizationId() !== null
+        return $this->hasActiveOrganization()
             && $user->hasAnyRole(array_column(Role::cases(), 'value'));
     }
 
@@ -48,23 +50,5 @@ class ChannelPolicy
     public function archive(User $user, Channel $channel): bool
     {
         return $this->update($user, $channel);
-    }
-
-    private function canManage(User $user): bool
-    {
-        return $this->activeOrganizationId() !== null
-            && $user->hasAnyRole([Role::Owner->value, Role::Admin->value]);
-    }
-
-    private function belongsToActiveOrganization(Channel $channel): bool
-    {
-        $activeId = $this->activeOrganizationId();
-
-        return $activeId !== null && $channel->organization_id === $activeId;
-    }
-
-    private function activeOrganizationId(): ?int
-    {
-        return app(CurrentOrganization::class)->id();
     }
 }

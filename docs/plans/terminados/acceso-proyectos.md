@@ -193,7 +193,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
   correos de toda la organización.
 - [ ] M-2 (media, sonnet): acortar el TTL de las URLs firmadas de adjuntos (hoy 60 min, siguen valiendo tras perder
   el acceso).
-- [ ] M-3 (baja, sonnet): helper o trait común para `belongsToActiveOrganization`/`canManage`, repetidos en cada
+- [x] M-3 (baja, sonnet): helper o trait común para `belongsToActiveOrganization`/`canManage`, repetidos en cada
   policy.
 - [ ] M-4 (baja, sonnet): un member de ejemplo con proyectos asignados en `DatabaseSeeder`.
 - [ ] M-5 (baja, sonnet): en `.claude/rules/database.md`, quitar la línea en blanco que separa el bullet de `project_user` del de `projects`.
