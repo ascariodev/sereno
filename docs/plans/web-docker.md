@@ -2,7 +2,7 @@
 
 **Objetivo:** que la web se desarrolle en Docker (Vite con recarga, tests y typecheck dentro del contenedor) y que
 `api/` y `web/` tengan un stack de producción en Docker desplegable como bidfletes/fletes-api (Gitea).
-**Estado:** pausado (esperando datos de Gitea y servidor) · Fase actual: 6
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -79,28 +79,48 @@
   `-p` y otros puertos (sin tocar el stack de desarrollo ni leer `.env`), `/up` da 200 a través de nginx, un job de la
   cola se procesa y reverb acepta conexión.
 
-### [ ] Fase 6 — Despliegue del API por Gitea (`api/`) [riesgo]
-- **Requiere:** ruta del servidor, dominio y nombre del proyecto compose (los da el usuario), y el repo `sereno`
-  publicado (fase 8 de `monorepo-sereno`). `ejecutar-plan` se detiene antes si faltan.
-- **Alcance:** `.gitea/workflows/deploy-api.yml` con `on.push.branches: [main]` y
-  `paths: ['api/**', '.gitea/workflows/deploy-api.yml']`. Scripts adaptados de fletes-api en `api/docker/deploy/`:
-  `rsync` de `api/` (sin `.env`/`vendor`/`storage`) a la ruta del API en el servidor, rebuild por hash de
-  `api/docker/` + `api/docker-compose.prod.yml`, composer `--no-dev`, permisos, `optimize`, `migrate --force`, reinicio
-  de queue y reverb.
-- **Archivos:** `.gitea/workflows/deploy-api.yml` y los scripts de `api/docker/deploy/`.
-- **Terminado cuando:** los scripts corren en local contra el stack de la fase 5, el workflow pasa una validación de
-  sintaxis y un cambio solo en `web/` no lo dispara (filtro `paths` revisado); el primer deploy real lo confirma el
-  usuario.
+### [ ] Fase 6 — Imagen por ambiente y scripts de deploy del API (`api/`) [riesgo]
+- **Alcance:** en `api/docker-compose.prod.yml`, `image: ${API_IMAGE:-workspace-api-fpm}` para que cada ambiente
+  tenga su imagen. Scripts en `api/docker/deploy/`, adaptados de fletes-api y parametrizados por ambiente
+  (`prod`/`qa`/`dev`): `compose.sh` (docker:cli con la ruta del host montada en la misma ruta, `-p sereno-<env>-api`),
+  `rebuild-images.sh` (build + `up -d` solo si cambió el hash de `docker/`, `docker-compose.prod.yml` y
+  `.dockerignore`; hash en `.deploy/` de la ruta del ambiente) y `deploy.sh`: crea la estructura de `storage/`,
+  `up -d postgres app nginx`, `composer install --no-dev` dentro de `app`, `chown` de `storage` y `bootstrap/cache` a
+  `app` (como root), `optimize`, `migrate --force`, `db:seed --class=RoleSeeder --force` (verificar que sea
+  idempotente), `up -d --remove-orphans` y reinicio de `app`, `queue`, `scheduler` y `reverb`
+  (`validate_timestamps=0`). Todo artisan como `app`.
+- **Archivos:** `api/docker-compose.prod.yml`, `api/docker/deploy/*.sh` (nuevos).
+- **Terminado cuando:** `docker compose -f docker-compose.prod.yml config --quiet` pasa con y sin `API_IMAGE`;
+  `bash -n` pasa en los scripts; `deploy.sh` corre en local contra un stack de prueba (otro `-p`, otros puertos,
+  `.env` de prueba creado para la prueba) y deja `/up` en 200.
 
-### [ ] Fase 7 — Despliegue de la web por Gitea (`web/`) [riesgo]
-- **Requiere:** lo mismo que la fase 6, la ruta de la web en el servidor y dónde viven los `VITE_*` de producción
-  (servidor o secretos de Gitea).
-- **Alcance:** `.gitea/workflows/deploy-web.yml` con `paths: ['web/**', '.gitea/workflows/deploy-web.yml']`: en
-  `web/`, `npm ci && npm run build` con los `VITE_*` de producción, `rsync` de `web/dist/` y
-  `web/docker/nginx/default.conf`, y `up -d` de `web/docker-compose.prod.yml` solo si cambió.
+### [ ] Fase 7 — Workflow de deploy del API (`.gitea/workflows/deploy-api.yml`) [riesgo]
+- **Alcance:** `on.push.branches: [main, qa, dev]` con `paths: ['api/**', '.gitea/workflows/deploy-api.yml']`. Un paso
+  resuelve el ambiente por rama (`main` → `prod`, `qa` → `qa`, `dev` → `dev`) y fija `HOST_DIR`
+  (`/var/www/html/workspace/<env>/api`) y `SERVER_DIR` (`/workspace/<env>/api`, montaje del runner). Instala `rsync` y
+  el cliente docker como fletes-api; falla si no existe `$SERVER_DIR/.env`; `rsync -a --delete` de `api/` sin
+  `.git`, `.env`, `/storage/`, `/vendor/`, `/.deploy/`; luego `rebuild-images.sh` y `deploy.sh`, y guarda el hash.
+- **Archivos:** `.gitea/workflows/deploy-api.yml`.
+- **Terminado cuando:** el YAML pasa una validación de sintaxis, el filtro `paths` no dispara con un cambio solo en
+  `web/`, y el mapeo rama → ambiente se revisó para las tres ramas.
+
+### [ ] Fase 8 — Deploy de la web (`web/`) [riesgo]
+- **Alcance:** `.gitea/workflows/deploy-web.yml`, mismas ramas y mapeo, `paths: ['web/**',
+  '.gitea/workflows/deploy-web.yml']`. `actions/setup-node` con Node 24 (`engines`), copia
+  `$SERVER_DIR/.env` (las `VITE_*` y `WEB_PORT` del ambiente, viven en el servidor) a `web/.env.production.local`,
+  `npm ci && npm run build`, `rsync --delete` de `web/dist/`, `web/docker/nginx/default.conf` y
+  `web/docker-compose.prod.yml` a `/workspace/<env>/web`, y `up -d` con `-p sereno-<env>-web` (recrea solo si cambió
+  la conf). Falla si falta el `.env` del servidor.
 - **Archivos:** `.gitea/workflows/deploy-web.yml` (+ script en `web/docker/deploy/` si hace falta).
-- **Terminado cuando:** el build del workflow corre en local con `VITE_*` de prueba, el workflow pasa una validación
-  de sintaxis y un cambio solo en `api/` no lo dispara; el primer deploy real lo confirma el usuario.
+- **Terminado cuando:** el build corre en local con un `.env.production.local` de prueba, el YAML pasa una validación
+  de sintaxis y un cambio solo en `api/` no lo dispara.
+
+### [ ] Fase 9 — Primer deploy de producción (con el usuario)
+- **Alcance:** el usuario crea en el servidor `/var/www/html/workspace/prod/{api,web}/.env` con las plantillas que
+  se le pasan (sin que Claude vea los valores), habilita Actions en `sereno` y se hace el merge a `main`. Se revisa el
+  job y se verifica `https://sereno-api.ascario.dev/up`, la web y la conexión a `sereno-ws.ascario.dev`.
+- **Terminado cuando:** los tres responden, login y un canal funcionan en producción, y el primer deploy queda
+  confirmado por el usuario.
 
 ## Decisiones
 - 2026-10-07 — Se sigue el patrón de fletes-api: el código no va dentro de la imagen; producción monta el repo
@@ -131,6 +151,17 @@
   de `X-Forwarded-For`), con `TrustProxiesTest`. Por M-3 solo confía en `X-Forwarded-For` y `X-Forwarded-Proto`:
   el host público sale del `Host` que recibe nginx, sin subpath ni puerto público distinto de 80/443.
 
+- 2026-10-09 — Servidor `server.ascario.dev` (Debian 13): HTTPS por Cloudflare Tunnel (`cloudflared` en el host), sin
+  nginx de por medio; el runner `gitea_runner` (act_runner 0.6.1, etiquetas `ubuntu-latest`) monta en los jobs
+  `/var/www/html/workspace` en `/workspace` (`options` y `valid_volumes` de su `config.yaml`, ya hecho).
+- 2026-10-09 — Tres ambientes en `/var/www/html/workspace/{prod,qa,dev}/{api,web}`, uno por rama (`main`, `qa`,
+  `dev`), proyectos compose `sereno-<env>-api` y `sereno-<env>-web`. Puertos solo en `127.0.0.1`: prod web 8090, API
+  8091, Reverb 8092, Postgres 5440; qa 8093-8095 y 5441; dev 8096-8098 y 5442 (8080, 8000 y 8081 están ocupados).
+  Los puertos, `API_IMAGE` y las `VITE_*` de cada ambiente van en el `.env` de su carpeta en el servidor.
+- 2026-10-09 — Hostnames (un nivel, por el certificado universal de Cloudflare): `sereno`, `sereno-api`, `sereno-ws`
+  `.ascario.dev` para prod; `sereno-qa*` y `sereno-dev*` para los otros. Ya dados de alta en el túnel.
+- 2026-10-09 — Fases 6 y 7 originales reemplazadas por las 6 a 9 (ambientes, scripts, workflows y primer deploy).
+
 ## Notas para la próxima sesión
 - Fase 6: con `validate_timestamps=0` el deploy reinicia `app`, `queue`, `scheduler` y `reverb`. El UID 1000 debe
   coincidir con el dueño del repo en el servidor (chown de `storage` y `bootstrap/cache`; `.env` legible por `app`).
@@ -140,8 +171,6 @@
   publicar `API_BIND` en `0.0.0.0`. Si conviven dev y prod en la misma máquina, cambiar los puertos por defecto. El tag
   `workspace-api-fpm` es compartido por todos los proyectos compose de la máquina.
 - `web/dist/` local quedó con un build de prueba (`VITE_*` falsos); ignorado por git, reconstruir si se usa.
-- Fases 6 y 7: pedir al usuario ruta del servidor, dominios, proyecto compose y dónde van los `VITE_*` antes de
-  empezar; el repo `sereno` tiene que estar publicado.
 
 ## Mejoras propuestas
 - [x] M-1 (baja, sonnet) — `workspace-web/docker-compose.yml`: correr el servicio `web` como `user: node` para que
