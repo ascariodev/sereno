@@ -331,7 +331,7 @@ describe('IntegrationsView', () => {
     await confirmAction()
     expect(sourceCalls(get)).toHaveLength(2)
     expect(toasts.value.map((item) => item.message)).toEqual([
-      'The key was changed or revoked by someone else. The list was reloaded.',
+      'The key was not rotated: it was changed or revoked by someone else. The list was reloaded.',
     ])
     expect(document.body.querySelector('[data-test=key]')).toBeNull()
     expect(wrapper!.find('[data-test=revoked]').exists()).toBe(true)
@@ -345,8 +345,21 @@ describe('IntegrationsView', () => {
     await confirmAction()
     expect(sourceCalls(get)).toHaveLength(2)
     expect(toasts.value.map((item) => item.message)).toEqual([
-      'This log source is revoked or its project is archived. The list was reloaded.',
+      'The log source was not revoked: it is already revoked or its project is archived. The list was reloaded.',
     ])
     expect(document.body.querySelector('[data-test=confirm-text]')).toBeNull()
+  })
+
+  it.each([
+    [{ project: ['archived'] }, 'The key was not rotated: the project is archived. The list was reloaded.'],
+    [{ source: ['revoked'] }, 'The key was not rotated: the log source is revoked. The list was reloaded.'],
+    [{}, 'The key was not rotated: the log source is revoked or its project is archived. The list was reloaded.'],
+  ])('tells why a 422 when rotating failed (%j)', async (errors, message) => {
+    stubGet(() => ({ data: [source(1)] }))
+    vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'invalid', errors))
+    await mountView(['owner'])
+    await openAction('rotate')
+    await confirmAction()
+    expect(toasts.value.map((item) => item.message)).toEqual([message])
   })
 })

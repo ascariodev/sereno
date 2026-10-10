@@ -203,7 +203,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - [x] M-5 — Quitar la variable sin uso `_key` en `IntegrationsView.vue` (`onCreated`). Complejidad: baja (sonnet).
 - [x] M-6 — Claves i18n duplicadas en `integrations` (`rotate`/`rotateAction`, `revoke`/`revokeAction`): reutilizar
   una de cada par. Complejidad: baja (sonnet).
-- [ ] M-7 — Los avisos de 409 y 422 de rotar o revocar no dicen qué acción falló; el 422 es genérico (archivado o
+- [x] M-7 — Los avisos de 409 y 422 de rotar o revocar no dicen qué acción falló; el 422 es genérico (archivado o
   revocada). Complejidad: baja (sonnet).
 - [x] M-8 — En posveapi, `WorkspaceEventFormatter` hace `(string) $value` con floats no finitos, que lanza en PHP 8.5:
   aplicar el arreglo de la fase 8 si posveapi no pasa al paquete o corre PHP 8.5. Queda resuelto si la fase 12 se
@@ -218,3 +218,6 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - [ ] M-12 — Si una recarga (cambio de proyecto u organización) cierra el diálogo de crear con la creación en vuelo,
   la fuente queda creada en el servidor y la key, que solo se ve una vez, se pierde: avisar o rotar. Caso raro.
   Complejidad: baja (sonnet).
+- [ ] M-13 — Revocar es idempotente en el API (nunca 409 ni 422): `revokeConflict`, `revokeUnavailable`, la rama
+  `revoke` de `unavailableKey` y el spec de revocar con 422 cubren un caso inalcanzable; quitarlos o dejarlos como
+  defensa, a decidir. Complejidad: baja (sonnet).
