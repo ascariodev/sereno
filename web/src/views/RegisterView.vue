@@ -51,6 +51,13 @@ onUnmounted(() => {
   generation++
 })
 
+async function retryStatus(): Promise<void> {
+  const current = generation
+  await retry()
+  await nextTick()
+  if (current === generation) nameInput.value?.focus()
+}
+
 async function submit(): Promise<void> {
   if (submitting.value) return
   const current = generation
@@ -97,9 +104,11 @@ async function submit(): Promise<void> {
     <div v-if="failed" class="register__panel" data-test="status-error">
       <h1>{{ t('register.title') }}</h1>
       <p class="register__error" role="alert">{{ t('register.statusError') }}</p>
-      <button class="register__submit" type="button" data-test="retry" @click="retry">{{ t('register.retry') }}</button>
+      <button class="register__submit" type="button" data-test="retry" @click="retryStatus">{{ t('register.retry') }}</button>
       <RouterLink class="register__link" :to="loginLocation">{{ t('register.toLogin') }}</RouterLink>
     </div>
+
+    <p v-else-if="enabled === null" class="register__loading" role="status" data-test="loading">{{ t('common.loading') }}</p>
 
     <div v-else-if="enabled === false" class="register__panel" data-test="closed">
       <h1>{{ t('register.title') }}</h1>
@@ -282,6 +291,11 @@ async function submit(): Promise<void> {
   color: var(--ink-2);
   font-size: 13px;
   text-align: center;
+}
+.register__loading {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 13px;
 }
 .register__error {
   margin: 0;

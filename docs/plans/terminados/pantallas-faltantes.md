@@ -191,6 +191,6 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   `useOpenProjectCreate()` cae al no-op por falta de provider.
 - [x] M-12 (baja, sonnet) — `api/tests/Feature/AuthTest.php`, test "inviter can no longer grant the role": poner el
   cambio de `setPermissionsTeamId` en `try/finally` (L-03).
-- [ ] M-13 (baja, sonnet) — `web/src/views/RegisterView.vue`: durante `retry()` del estado de registro mostrar un
+- [x] M-13 (baja, sonnet) — `web/src/views/RegisterView.vue`: durante `retry()` del estado de registro mostrar un
   estado de carga (hoy la pantalla queda en blanco), pasar el foco al nombre cuando aparece el formulario tras un
   reintento exitoso, y probar que un segundo fallo vuelve a mostrar el error.
