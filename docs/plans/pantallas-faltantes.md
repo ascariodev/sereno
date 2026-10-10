@@ -2,7 +2,7 @@
 
 **Objetivo:** que una persona pueda registrarse, crear su organización y crear proyectos desde la web, sin `curl`, y que
 el registro abierto se pueda cerrar por entorno dejando solo la entrada por invitación.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -80,7 +80,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - **Terminado cuando:** el spec cubre registro cerrado, registro exitoso, 422 por campo con ARIA, 403, 429, red y
   redirección de un usuario ya autenticado; typecheck y tests pasan.
 
-### [ ] Fase 8 — Enlace de login a registro
+### [x] Fase 8 — Enlace de login a registro
 - **Alcance:** en `LoginView`, enlace "¿No tienes cuenta? Regístrate" a `/register` conservando `?redirect`, solo si
   el registro está abierto.
 - **Archivos:** `web/src/views/LoginView.vue`, `i18n/es.json`, `i18n/en.json`, spec.
@@ -144,6 +144,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   lanza (queda `projects.failed`). La fase 11 debe contemplar que el canal no esté en `channelByProject`.
 - Fase 7 hecha: `RegisterView` en `/register` (nombre de ruta `register`); el 403 usa `register.closedError`; con el
   estado `null` no muestra nada. La fase 8 apunta el enlace a `{ name: 'register', query: { redirect } }`.
+- Fase 8 hecha: enlace `login.noAccount` en `LoginView`, solo con `enabled === true`.
 - Editar con Edit o `sed`: escribir con Python en Windows mete CRLF y rompe Pint (`line_ending`).
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
