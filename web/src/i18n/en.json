@@ -342,7 +342,18 @@
   "plan": {
     "title": "Plan",
     "notFound": "This project does not exist or you cannot access it.",
-    "loadFailed": "Could not load the tasks."
+    "loadFailed": "Could not load the tasks.",
+    "board": "Task board",
+    "status": {
+      "todo": "To do",
+      "inProgress": "In progress",
+      "inReview": "In review",
+      "done": "Done"
+    },
+    "empty": "No tasks",
+    "unassigned": "Unassigned",
+    "assignedTo": "Assigned to {name}",
+    "fromNotice": "From a log notice"
   },
   "log": {
     "title": "Log",

@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 16
+**Estado:** en curso · Fase actual: 17
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -107,7 +107,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 ### [x] Fase 15 — Plan en la barra lateral y la paleta (web)
 - `AppSidebar` reconoce la ruta para el proyecto activo; `CommandPalette` agrega "Plan" por proyecto.
 
-### [ ] Fase 16 — Tablero de solo lectura (web) [límite: 5 archivos]
+### [x] Fase 16 — Tablero de solo lectura (web) [límite: 5 archivos]
 - Cuatro columnas con contador y `TaskCard` (chip del aviso con nivel, título, clave, avatar); tokens de color de
   columna en `style.css` (claro y oscuro); vacío por columna; i18n.
 
@@ -195,7 +195,9 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `plan.*`. Los límites de archivos de las fases cuentan solo código de producción, no specs.
 
 ## Notas para la próxima sesión
-- API terminado (fases 1 a 11). Web: fase 15 hecha (barra lateral y paleta). Fase 14 (`PlanView` abre el store por `projectId`, `clear()` al
+- API terminado (fases 1 a 11). Web: fase 16 hecha: tablero en `PlanView` (sin componente de columna) con
+  `TaskCard` (RouterLink a `?task=<id>` que conserva la query; probada en `PlanView.spec`); tokens `--column-bg` y
+  `--column-{todo,in-progress,in-review,done}`. Layout del tablero sin revisar en navegador (L-22). Fase 15 hecha. Fase 14 (`PlanView` abre el store por `projectId`, `clear()` al
   desmontar; un spec que monte `ProjectHeader` con router propio registra `project-plan`). Fase 13: `useTasksStore` con `open`, `refresh` (reconexión), `clear`,
   `columns`, `visibleColumns`, `filter` (`all|mine|from_notices`, no lo reinicia `clear`), `find`, `insert`/`replace`/
   `remove` (eventos), `create`/`update`/`move`/`destroy` (lanzan `ApiError`, devuelven la tarea). Fase 12 (`api/types.ts` con `Task`, `TASK_STATUSES` en orden de
@@ -249,3 +251,6 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   cargado, decidir qué mostrar; guard en vez de `as number` al olvidar el tombstone más viejo.
 - [ ] M-20 (baja, sonnet): `PlanView.spec`: test del cambio de organización; orden de imports de iconos en
   `ProjectHeader.vue`.
+- [ ] M-21 (baja, sonnet): tablero: token de sombra para la tarjeta (diseño `0 1px 2px`), `border-radius` de
+  `.task-card` con token `--radius-*`, contraste de `--column-in-review` en oscuro, fusionar los tests de carga
+  solapados de `PlanView.spec` y revisar el layout en el navegador a 1024 px y en móvil.

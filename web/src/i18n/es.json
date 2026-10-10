@@ -342,7 +342,18 @@
   "plan": {
     "title": "Plan",
     "notFound": "Este proyecto no existe o no tienes acceso.",
-    "loadFailed": "No se pudieron cargar las tareas."
+    "loadFailed": "No se pudieron cargar las tareas.",
+    "board": "Tablero de tareas",
+    "status": {
+      "todo": "Por hacer",
+      "inProgress": "En curso",
+      "inReview": "En revisión",
+      "done": "Hecho"
+    },
+    "empty": "Sin tareas",
+    "unassigned": "Sin asignar",
+    "assignedTo": "Asignada a {name}",
+    "fromNotice": "Desde un aviso de log"
   },
   "log": {
     "title": "Log",

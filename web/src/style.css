@@ -37,6 +37,11 @@
   --avatar-2-fg: #93370D;
   --avatar-3-bg: #D3F0E3;
   --avatar-3-fg: #05603A;
+  --column-bg: #F7F8FA;
+  --column-todo: #A3A8B3;
+  --column-in-progress: #4B4FD8;
+  --column-in-review: #E9A23B;
+  --column-done: #12B76A;
   color-scheme: light;
 }
 
@@ -80,6 +85,11 @@
     --avatar-2-fg: #FBC9A8;
     --avatar-3-bg: #12382A;
     --avatar-3-fg: #9BE3C1;
+    --column-bg: #1B1F25;
+    --column-todo: #6B7280;
+    --column-in-progress: #6E71E8;
+    --column-in-review: #E9A23B;
+    --column-done: #32D583;
     color-scheme: dark;
   }
 }
@@ -123,6 +133,11 @@
   --avatar-2-fg: #FBC9A8;
   --avatar-3-bg: #12382A;
   --avatar-3-fg: #9BE3C1;
+  --column-bg: #1B1F25;
+  --column-todo: #6B7280;
+  --column-in-progress: #6E71E8;
+  --column-in-review: #E9A23B;
+  --column-done: #32D583;
   color-scheme: dark;
 }
 
