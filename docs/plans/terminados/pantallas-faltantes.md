@@ -180,7 +180,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   POST de `create()` (rama `reloadSettled() === false`).
 - [x] M-7 (media, sonnet) — `web/src/stores/projects.ts`: `reload()` vacía `projects` antes de recargar, así que la
   lista (barra lateral, `ProjectsView`) parpadea al crear un proyecto; conservar la lista hasta tener la nueva.
-- [ ] M-8 (media, sonnet) — `web/src/composables/useRegistrationStatus.ts` y `RegisterView`: distinguir "no se pudo
+- [x] M-8 (media, sonnet) — `web/src/composables/useRegistrationStatus.ts` y `RegisterView`: distinguir "no se pudo
   saber" (error de red) de "cerrado"; hoy un fallo de red al cargar `/register` muestra "registro cerrado".
 - [ ] M-9 (baja, sonnet) — `web/src/components/OrganizationCreateDialog.spec.ts`: probar que un cierre externo
   (`open=false` desde el padre) con `create` en curso descarta `created` y el toast; y separar en tests propios los
@@ -191,3 +191,6 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   `useOpenProjectCreate()` cae al no-op por falta de provider.
 - [ ] M-12 (baja, sonnet) — `api/tests/Feature/AuthTest.php`, test "inviter can no longer grant the role": poner el
   cambio de `setPermissionsTeamId` en `try/finally` (L-03).
+- [ ] M-13 (baja, sonnet) — `web/src/views/RegisterView.vue`: durante `retry()` del estado de registro mostrar un
+  estado de carga (hoy la pantalla queda en blanco), pasar el foco al nombre cuando aparece el formulario tras un
+  reintento exitoso, y probar que un segundo fallo vuelve a mostrar el error.

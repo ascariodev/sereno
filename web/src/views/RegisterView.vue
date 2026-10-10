@@ -14,7 +14,7 @@ const { t } = useI18n()
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
-const { enabled, ready } = useRegistrationStatus()
+const { enabled, failed, ready, retry } = useRegistrationStatus()
 
 const nameInput = ref<HTMLInputElement | null>(null)
 const name = ref('')
@@ -94,7 +94,14 @@ async function submit(): Promise<void> {
       <span class="register__brand-name">{{ t('app.name') }}</span>
     </div>
 
-    <div v-if="enabled === false" class="register__panel" data-test="closed">
+    <div v-if="failed" class="register__panel" data-test="status-error">
+      <h1>{{ t('register.title') }}</h1>
+      <p class="register__error" role="alert">{{ t('register.statusError') }}</p>
+      <button class="register__submit" type="button" data-test="retry" @click="retry">{{ t('register.retry') }}</button>
+      <RouterLink class="register__link" :to="loginLocation">{{ t('register.toLogin') }}</RouterLink>
+    </div>
+
+    <div v-else-if="enabled === false" class="register__panel" data-test="closed">
       <h1>{{ t('register.title') }}</h1>
       <p>{{ t('register.closed') }}</p>
       <RouterLink :to="loginLocation" data-test="login-link">{{ t('register.toLogin') }}</RouterLink>

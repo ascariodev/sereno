@@ -11,8 +11,10 @@ import { useAuthStore } from '../stores/auth'
 
 const user = { id: 1, name: 'Test', email: 't@e.com', locale: 'en' }
 
-async function mountRegister(path = '/register', attachTo?: HTMLElement, open = true) {
-  vi.spyOn(registration, 'registrationStatus').mockResolvedValue(open)
+async function mountRegister(path = '/register', attachTo?: HTMLElement, open: boolean | Error = true) {
+  const status = vi.spyOn(registration, 'registrationStatus')
+  if (open instanceof Error) status.mockRejectedValue(open)
+  else status.mockResolvedValue(open)
   const pinia = createPinia()
   setActivePinia(pinia)
   const router = createAppRouter(createMemoryHistory())
@@ -45,6 +47,18 @@ describe('RegisterView', () => {
     expect(wrapper.find('form').exists()).toBe(false)
     expect(wrapper.find('[data-test=closed]').text()).toContain(i18n.global.t('register.closed'))
     expect(wrapper.find('[data-test=login-link]').attributes('href')).toBe('/login?redirect=/channels/3')
+  })
+
+  it('shows an error with a retry button, not the closed message, when the status check fails', async () => {
+    const { wrapper } = await mountRegister('/register', undefined, new Error('network'))
+    expect(wrapper.find('[data-test=closed]').exists()).toBe(false)
+    expect(wrapper.find('form').exists()).toBe(false)
+    expect(wrapper.find('[data-test=status-error]').text()).toContain(i18n.global.t('register.statusError'))
+    vi.spyOn(registration, 'registrationStatus').mockResolvedValue(true)
+    await wrapper.find('[data-test=retry]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-test=status-error]').exists()).toBe(false)
+    expect(wrapper.find('form').exists()).toBe(true)
   })
 
   it('focuses the name field when open', async () => {

@@ -42,6 +42,8 @@
     "haveAccount": "¿Ya tienes cuenta? Inicia sesión",
     "closed": "El registro está cerrado, pide una invitación.",
     "toLogin": "Ir a iniciar sesión",
+    "statusError": "No pudimos comprobar si el registro está abierto. Inténtalo de nuevo.",
+    "retry": "Reintentar",
     "closedError": "El registro está cerrado, pide una invitación.",
     "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
     "network": "No se pudo conectar con el servidor.",

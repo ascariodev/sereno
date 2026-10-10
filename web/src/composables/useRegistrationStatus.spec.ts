@@ -21,12 +21,16 @@ describe('useRegistrationStatus', () => {
     expect(enabled.value).toBe(false)
   })
 
-  it('treats a failed request as closed and retries next time', async () => {
+  it('reports a failed request as unknown, does not cache it and retries', async () => {
     const spy = vi.spyOn(registration, 'registrationStatus').mockRejectedValue(new Error('network'))
     const first = useRegistrationStatus()
-    await first.ready
-    expect(first.enabled.value).toBe(false)
+    expect(await first.ready).toBeNull()
+    expect(first.enabled.value).toBeNull()
+    expect(first.failed.value).toBe(true)
     spy.mockResolvedValue(true)
+    expect(await first.retry()).toBe(true)
+    expect(first.enabled.value).toBe(true)
+    expect(first.failed.value).toBe(false)
     const second = useRegistrationStatus()
     await second.ready
     expect(second.enabled.value).toBe(true)

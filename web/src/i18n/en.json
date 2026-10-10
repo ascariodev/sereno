@@ -42,6 +42,8 @@
     "haveAccount": "Already have an account? Sign in",
     "closed": "Registration is closed, ask for an invitation.",
     "toLogin": "Go to sign in",
+    "statusError": "We couldn't check whether registration is open. Try again.",
+    "retry": "Retry",
     "closedError": "Registration is closed, ask for an invitation.",
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "network": "Could not reach the server.",
