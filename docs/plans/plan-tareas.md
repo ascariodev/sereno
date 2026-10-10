@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -87,7 +87,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - `organizations.{organization}.projects.{project}` en `routes/channels.php` con su clase de autorización (miembro y
   proyecto de esa organización, sin tenant activo), como `ChannelChannel`. Test en `BroadcastingAuthTest` o propio.
 
-### [ ] Fase 11 — Eventos en vivo de tareas (api)
+### [x] Fase 11 — Eventos en vivo de tareas (api)
 - `TaskCreated`, `TaskUpdated` (incluye movimientos) y `TaskDeleted` en el canal del proyecto, tras el commit, con el
   resource resuelto (L-37 para lo que cargue) y la condición de entrega en `broadcastOn()` si hace falta (L-42).
 
@@ -180,9 +180,16 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - 2026-10-10 — Fase 9: `Organization::removeMember` (único camino de baja) desasigna con `DB::table('tasks')` en la
   transacción de `mutateMembership`, sin eventos de modelo: esas desasignaciones no emiten `TaskUpdated` en vivo
   (el tablero las ve al recargar).
+- 2026-10-10 — Fase 11, contrato en vivo: canal privado `organizations.{org}.projects.{project}`, eventos
+  `.task.created` y `.task.updated` con `{ task: TaskResource }` (mover emite `task.updated`) y `.task.deleted` con
+  `{ id, project_id }`. Sin `toOthers()`: quien actúa recibe su propio evento (la web aplica de forma idempotente).
+  Un update sin cambios también emite. La renumeración de columna en `move` (muy rara, hueco <= 1e-9) no emite
+  eventos para las demás tareas: la web tolera posiciones desfasadas y se corrige al recargar.
 
 ## Notas para la próxima sesión
-- Fases 1 a 10 hechas. Helpers de la 9: `removalTask`, `assigneeOf`; de la 10: `projectChannelName`
+- API terminado (fases 1 a 11); sigue la web desde la fase 12. Trampa de tests: una tarea creada a mano debe
+  subir `projects.last_task_number`, o el store choca con `(project_id, number)` y da un 422 engañoso.
+  Fases 1 a 10: Helpers de la 9: `removalTask`, `assigneeOf`; de la 10: `projectChannelName`
   (BroadcastingAuthTest). Canal: `ProjectChannel` en `organizations.{organization}.projects.{project}`. `LogGroupResource` trae `task` con `whenLoaded`: todo lugar que lo devuelva (hoy solo
   `LogGroupController`; si la fase 11 lo usa en un evento) carga `task` y llama `bindTaskProject`. graphify no está
   instalado en la nube: usar grep. Helpers de la 8: `groupTaskUrl`, `groupTaskGet`. Helpers de test: `columnTask`, `moveTaskAs`, `movedColumn` (fase 6),
@@ -218,3 +225,9 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   proyecto afectado tras el commit).
 - [ ] M-14 (baja, sonnet): extraer `positiveId` (duplicado en `ProjectChannel` y `ChannelChannel`) a un helper
   compartido; en `BroadcastingAuthTest`, el proyecto del canal en el `beforeEach`.
+- [ ] M-15 (media, sonnet): `renumberColumn` emite `task.updated` por cada tarea renumerada (o un evento de columna),
+  para que el tablero en vivo no quede desfasado.
+- [ ] M-16 (baja, sonnet): el `catch (UniqueConstraintViolationException)` de `TaskController@store` solo traduce a 422
+  la violación de `tasks_log_group_id_unique` y relanza las demás.
+- [ ] M-17 (baja, sonnet): base común para `TaskCreated` y `TaskUpdated`; test de que un delete con 404 o 403 no
+  emite `TaskDeleted`.

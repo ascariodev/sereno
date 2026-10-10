@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\TaskStatus;
+use App\Events\TaskCreated;
+use App\Events\TaskDeleted;
+use App\Events\TaskUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Task\DeleteTaskRequest;
 use App\Http\Requests\Task\MoveTaskRequest;
@@ -22,7 +25,7 @@ use Illuminate\Validation\ValidationException;
 
 class TaskController extends Controller
 {
-    private const RELATIONS = ['assignee:id,name', 'logGroup:id,level,title,status,events_count'];
+    public const RELATIONS = ['assignee:id,name', 'logGroup:id,level,title,status,events_count'];
 
     /** Below this gap between neighbors the column is renumbered instead of halving it again. */
     private const MIN_POSITION_GAP = 1e-9;
@@ -90,6 +93,7 @@ class TaskController extends Controller
         }
 
         $task->load(self::RELATIONS)->setRelation('project', $project);
+        TaskCreated::dispatch($task);
 
         return (new TaskResource($task))->response()->setStatusCode(201);
     }
@@ -107,6 +111,7 @@ class TaskController extends Controller
         $task->save();
 
         $task->load(self::RELATIONS)->setRelation('project', $project);
+        TaskUpdated::dispatch($task);
 
         return new TaskResource($task);
     }
@@ -116,6 +121,7 @@ class TaskController extends Controller
         abort_unless($task->project_id === $project->id, 404);
 
         $task->delete();
+        TaskDeleted::dispatch($task);
 
         return response()->noContent();
     }
@@ -172,6 +178,7 @@ class TaskController extends Controller
         });
 
         $task->load(self::RELATIONS)->setRelation('project', $project);
+        TaskUpdated::dispatch($task);
 
         return new TaskResource($task);
     }
