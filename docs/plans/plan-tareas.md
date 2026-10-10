@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -47,7 +47,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   proyecto falla y en otro proyecto no; dos tareas con el mismo `log_group_id` fallan; borrar el grupo deja la tarea
   con `log_group_id` null; una tarea con proyecto de otra organización la rechaza el modelo; `migrate:fresh` corre.
 
-### [ ] Fase 2 — Policy de tareas (api)
+### [x] Fase 2 — Policy de tareas (api)
 - **Alcance:** `TaskPolicy`: `viewAny`, `view`, `create`, `update` para cualquier rol de la organización activa;
   `delete` para el creador, admin u owner. Siempre exige que la tarea sea de la organización activa. El proyecto
   archivado lo rechazan los FormRequest de las fases siguientes.
@@ -166,7 +166,8 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   carga todas las tareas del proyecto sin paginar; los filtros se aplican en el cliente.
 
 ## Notas para la próxima sesión
-- Fase 1 hecha. `Task` no tiene factory: los tests usan el helper global `makeTask` (`TaskTest`); crear
+- Fases 1 y 2 hechas. Helpers de test ocupados: `makeTask` (TaskTest), `taskPolicyTask` (TaskPolicyTest).
+  Los FormRequest de las fases 4 a 7 rechazan el proyecto archivado (la policy no lo hace). `Task` no tiene factory: los tests usan el helper global `makeTask` (`TaskTest`); crear
   `TaskFactory` si las fases siguientes lo necesitan. `Task::key()` carga `project` perezoso: `with('project')` en
   listados (fase 3).
 
@@ -177,3 +178,4 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - [ ] M-3 (media, sonnet): avisar al asignado por `users.{id}` (solo ids, L-38).
 - [ ] M-4 (media, sonnet): paginar o limitar la columna Hecho si crece.
 - [ ] M-5 (media, sonnet): efectos cruzados opcionales entre tarea y grupo (Hecho resuelve, reabierto avisa).
+- [ ] M-6 (baja, sonnet): test de `TaskPolicy` sin organización activa (falla cerrada en `viewAny` y `create`).
