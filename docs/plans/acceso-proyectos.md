@@ -2,7 +2,7 @@
 
 **Objetivo:** membresía por proyecto: owner y admin ven toda la organización; un `member` solo ve los proyectos
 asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asignan desde la web y al invitar.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -26,7 +26,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 
 ## Fases
 
-### [ ] Fase 1 — Limpieza de mejoras obsoletas y estado del MVP
+### [x] Fase 1 — Limpieza de mejoras obsoletas y estado del MVP
 - **Alcance:** marcar como resueltas `nucleo` M-21 (`trustProxies` ya en `api/bootstrap/app.php`), `corte-realtime`
   M-1 (resuelta por el plan `corte-forzado`) e `invitaciones-web` M-1 (resuelta por `miembros`), con la referencia;
   en `CLAUDE.md`, paso 8 con la PWA hecha (falta Tauri) y el deploy por Gitea hecho.
@@ -159,9 +159,14 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
   sus sockets: Reverb no re-autoriza suscripciones abiertas.
 - 2026-10-10 — `/api/members` sigue listando toda la organización (pantalla de miembros); menciones y asignados usan
   los miembros del proyecto.
+- 2026-10-10 — El plan se ejecuta en el worktree `.claude/worktrees/acceso-proyectos` (rama `feat/acceso-proyectos`).
+  Los contenedores montan el checkout principal: los tests corren con `docker run` sobre la imagen `workspace-php` o
+  `node:24`, montando el worktree, los volúmenes `workspace_workspace_vendor` o `workspace_web-node-modules` y
+  `api/.env` del checkout principal, en la red `workspace_default` (como en `pantallas-faltantes`).
 
 ## Notas para la próxima sesión
-- Plan recién creado; empezar por la fase 1.
+- Fase 1 hecha: mejoras obsoletas marcadas y CLAUDE.md al día (PWA hecha, falta Tauri; deploy por Gitea hecho).
+- Siguiente: fase 2, tabla `project_user`. Trabajar en el worktree (ver Decisiones).
 
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): limitar `/api/members` a owner y admin, o sin email para members, para no exponer los

@@ -85,7 +85,7 @@
 - Pendiente del usuario: agregar `FRONTEND_URL=http://localhost:5174` a `api/.env.example` (una regla de permisos impide al agente leerlo o editarlo) y al `.env` de producción al desplegar.
 
 ## Mejoras propuestas
-- [ ] M-1 (alta, plan nuevo): gestión de miembros (listar, cambiar rol, quitar), que hoy no existe en el API.
+- [x] M-1 (alta, plan nuevo): gestión de miembros (listar, cambiar rol, quitar), que hoy no existe en el API. Resuelta por el plan `docs/plans/terminados/miembros.md`.
 - [ ] M-2 (media, sonnet): componentes `AppInput` y `AppButton` para no copiar los estilos de `LoginView` en cada formulario.
 - [x] M-3 (baja, haiku): `InvitationController::show` carga `organization` con una consulta aparte; usar `load('organization')` o equivalente.
 - [x] M-4 (baja, haiku): test de que un admin que lista ve también las invitaciones de rol owner.

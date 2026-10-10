@@ -54,7 +54,7 @@
 - Plan completo. Datos de prueba de la verificación en vivo en la base local: usuario `rt-verify@example.test`, organización `rt-verify` y dos tokens Sanctum (`rt-a`, `rt-b`).
 
 ## Mejoras propuestas
-- [ ] M-1 (alta, plan nuevo): corte forzado del lado servidor: que el cliente se una a un canal de presencia propio para que la conexión lleve `user_id` y llamar a `terminate_connections` (`Pusher::terminateUserConnections`) al quitar; el cliente reconecta y `/broadcasting/auth` rechaza la organización quitada.
+- [x] M-1 (alta, plan nuevo): corte forzado del lado servidor: que el cliente se una a un canal de presencia propio para que la conexión lleve `user_id` y llamar a `terminate_connections` (`Pusher::terminateUserConnections`) al quitar; el cliente reconecta y `/broadcasting/auth` rechaza la organización quitada. Resuelta por el plan `docs/plans/terminados/corte-forzado.md`.
 - [x] M-2 (media, sonnet): evento `membership.role_changed` al mismo canal para que la pantalla de miembros y los permisos se actualicen en vivo.
 - [x] M-3 (media, sonnet): manejo global del 403 "no perteneces a esta organización" en el cliente (recargar organizaciones), como respaldo si se perdió el aviso.
 - [x] M-4 (baja, sonnet): quitar el docblock de `api/app/Broadcasting/UserChannel.php` que solo repite el nombre de la clase.
