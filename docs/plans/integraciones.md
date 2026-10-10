@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -81,7 +81,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - **Archivos:** `composer.json`, `phpunit.xml`, `.gitignore`, `tests/TestCase.php`, test trivial.
 - **Terminado cuando:** `composer install` y la suite corren en Docker y pasan.
 
-### [ ] Fase 8 — Formatter en el paquete
+### [x] Fase 8 — Formatter en el paquete
 - **Alcance:** traer `WorkspaceEventFormatter` como `Ascario\Sereno\Logging\EventFormatter` con sus tests, sin
   cambiar el comportamiento.
 - **Archivos:** `src/Logging/EventFormatter.php` (+ test).
@@ -136,6 +136,9 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   el aviso de proyecto inexistente, para poder volver a canal, plan y log desde Integraciones.
 
 ## Notas para la próxima sesión
+- Fase 8: `EventFormatter` igual al de posveapi salvo floats no finitos: `'NAN'`/`'INF'`/`'-INF'` explícitos en vez de
+  `(string) $value`, que en PHP 8.5 lanza "coerced to string" (misma salida). Su test usa la base Testbench
+  `Ascario\Sereno\Tests\TestCase`. Escribir PHP con Edit/Write: heredocs, sed y python rompen las `\` de namespaces.
 - Fase 7: tests PHPUnit en clases (como posveapi); `phpunit.xml` solo tiene el suite `tests/Unit`: ampliarlo si la
   fase 10 agrega `tests/Feature`. Escribir JSON con Write/Edit, no con heredocs (el escape de `\` rompió
   `composer.json`).
@@ -175,3 +178,6 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   una de cada par. Complejidad: baja (sonnet).
 - [ ] M-7 — Los avisos de 409 y 422 de rotar o revocar no dicen qué acción falló; el 422 es genérico (archivado o
   revocada). Complejidad: baja (sonnet).
+- [ ] M-8 — En posveapi, `WorkspaceEventFormatter` hace `(string) $value` con floats no finitos, que lanza en PHP 8.5:
+  aplicar el arreglo de la fase 8 si posveapi no pasa al paquete o corre PHP 8.5. Queda resuelto si la fase 12 se
+  hace. Complejidad: baja (sonnet).
