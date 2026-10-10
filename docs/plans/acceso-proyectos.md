@@ -2,7 +2,7 @@
 
 **Objetivo:** membresía por proyecto: owner y admin ven toda la organización; un `member` solo ve los proyectos
 asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asignan desde la web y al invitar.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -69,7 +69,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - **Terminado cuando:** un member no lista, crea ni mueve tareas de un proyecto ajeno (404) ni asigna a alguien sin
   acceso (422).
 
-### [ ] Fase 7 — Acceso a logs
+### [x] Fase 7 — Acceso a logs
 - **Alcance:** `LogGroupPolicy` por proyecto; `ListLogGroupsRequest`, `HourlyLogGroupsRequest` y
   `LogSourceController::index` autorizan `view` del proyecto.
 - **Archivos:** `LogGroupPolicy.php`, `ListLogGroupsRequest.php`, `HourlyLogGroupsRequest.php`,
@@ -170,9 +170,10 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - 2026-10-10 — (Fase 5) `ChannelPolicy::view` devuelve `Response|bool` (`ProjectAccess::canViewId`, `denyAsNotFound`); es el único sitio de la regla para mensajes, hilos y adjuntos (`MessagePolicy` la hereda). Los FormRequests que deben dar 404 usan `Gate::authorize(...)->allowed()`: con `Gate::allows` el 404 de la policy se vuelve 403. Editar o borrar un mensaje en un canal sin acceso sigue en 403 (solo llega al autor).
 - 2026-10-10 — (Fase 5) Tests: el helper `assignMembersToAllProjects()` de `tests/Pest.php` (mismo SQL que la migración de la fase 3) asigna los members a todos los proyectos existentes; los tests de acceso crean el proyecto o canal ajeno después de llamarlo. Las fases 6 a 9 ajustan sus tests igual y corren la suite completa del API antes de dar la fase por hecha.
 - 2026-10-10 — (Fase 6) `TaskPolicy::view`, `update` y `delete` usan `ProjectAccess::canViewId` con el proyecto de la tarea (404 sin acceso; `delete` propaga ese 404 y después exige creador, owner o admin: 403). `StoreTaskRequest::validateAssigneeAccess()` (estática, reutilizada por `UpdateTaskRequest`) valida en `after()` que el asignado vea el proyecto: 422 en `assignee_id` con `__('The selected assignee does not have access to this project.')`, y se salta si ya falló la regla de organización.
+- 2026-10-10 — (Fase 7) `LogGroupPolicy::view` y `update` por el proyecto del grupo (404 sin acceso); las Requests de logs con `Gate::authorize(...)->allowed()`; `LogSourceController::index` autoriza `view` del proyecto; `LogSourcePolicy` sin cambios (store, rotate y destroy ya son de owner o admin). "Crear tarea desde un aviso" es `POST projects/{p}/tasks` con `log_group_id`: lo cubre la fase 6. La ingesta por API key no pasa por policies.
 
 ## Notas para la próxima sesión
-- Fases 1 a 6 hechas (suite API 887 ok en el worktree). Siguiente: fase 7, acceso a logs; incluye "crear tarea desde un aviso" en `LogGroupController`, que aún no revisa el acceso al proyecto.
+- Fases 1 a 7 hechas (suite API 890 ok en el worktree). Siguiente: fase 8, autorización realtime con `ProjectAccess::canViewId` (organización explícita, sin team activo).
 - Trabajar en el worktree (ver Decisiones). Al editar con Python en Windows, dejar finales LF (Pint falla con `line_ending`).
 - La migración de datos no se corrió en la base de desarrollo: corre con el próximo `migrate` tras el merge.
 - Hasta la fase 9, `MentionController` sigue mostrando menciones de canales sin acceso (con el mensaje).
@@ -191,3 +192,5 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - [ ] M-8 (baja, sonnet): `UpdateMessageRequest` y `DeleteMessageRequest` con `Gate::authorize(...)->allowed()` para que editar o borrar en un canal sin acceso dé 404 como el resto, con su test.
 - [ ] M-9 (baja, sonnet): `assignMembersToAllProjects()` repite el SQL de la migración de la fase 3; extraerlo a un lugar común o dejar un test que compare ambos resultados.
 - [ ] M-10 (media, sonnet): `UpdateTaskRequest` valida el acceso del asignado aunque no cambie; si el asignado actual perdió el acceso (p. ej. admin degradado a member sin proyectos), cualquier edición que reenvíe `assignee_id` da 422. Validar solo cuando cambia respecto de `$task->assignee_id`.
+- [ ] M-11 (baja, sonnet): en las Requests que hacen `Gate::authorize(...)->allowed()`, el `->allowed()` es redundante (authorize lanza); dejar una forma única y clara en todas.
+- [ ] M-12 (baja, sonnet): tests de logs faltantes: PATCH de un grupo con un proyecto ajeno en la URL, y member sobre `store`, `rotate-key` y `destroy` de fuentes.

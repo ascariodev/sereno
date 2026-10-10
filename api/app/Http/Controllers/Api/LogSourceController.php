@@ -17,6 +17,7 @@ class LogSourceController extends Controller
     public function index(Project $project): AnonymousResourceCollection
     {
         Gate::authorize('viewAny', LogSource::class);
+        Gate::authorize('view', $project);
 
         return LogSourceResource::collection(
             $project->logSources()->orderBy('created_at')->orderBy('id')->get(),
