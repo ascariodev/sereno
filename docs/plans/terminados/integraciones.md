@@ -194,7 +194,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   no acoplar el permiso de integraciones al de invitaciones. Complejidad: baja (sonnet).
 - [x] M-2 — Revisar que el sidebar marque el proyecto activo también en la ruta `project-integrations` si lo decide
   por nombre de ruta. Complejidad: baja (sonnet).
-- [ ] M-3 — `projectMissing` en `IntegrationsView` exige `!projects.loading && !projects.failed`: si la vista monta
+- [x] M-3 — `projectMissing` en `IntegrationsView` exige `!projects.loading && !projects.failed`: si la vista monta
   antes de que el store empiece a cargar puede verse un instante "no encontrado"; distinguir "nunca cargó".
   Complejidad: baja (sonnet).
 - [ ] M-4 — Una carga de la lista en vuelo al crear puede pisar la fuente recién agregada (`IntegrationsView` `load()`

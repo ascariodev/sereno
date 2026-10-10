@@ -187,6 +187,25 @@ describe('IntegrationsView', () => {
     expect(wrapper!.find('[data-test=not-found]').exists()).toBe(false)
   })
 
+  it('does not show the not found notice before the projects store starts loading', async () => {
+    stubGet(() => ({ data: [] }))
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'tok')
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useAuthStore().$patch({ user })
+    useOrganizationStore().$patch({
+      organizations: [{ id: 1, name: 'Acme', slug: 'acme', settings: null, roles: ['owner'] }],
+      activeId: 1,
+      loaded: true,
+    })
+    useProjectsStore().clear()
+    const router = createAppRouter(createMemoryHistory())
+    await router.push('/projects/7/integrations')
+    wrapper = mount(IntegrationsView, { attachTo: document.body, global: { plugins: [pinia, i18n, router] } })
+    expect(wrapper.find('[data-test=not-found]').exists()).toBe(false)
+    expect(wrapper.find('[data-test=loading]').exists()).toBe(true)
+  })
+
   async function createFromDialog(name: string) {
     await wrapper!.find('[data-test=create]').trigger('click')
     await flushPromises()

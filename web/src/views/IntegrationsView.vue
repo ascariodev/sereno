@@ -22,7 +22,7 @@ const projectId = computed(() => Number(route.params.projectId))
 const validId = computed(() => Number.isInteger(projectId.value) && projectId.value > 0)
 const project = computed(() => projects.projects.find((item) => item.id === projectId.value) ?? null)
 const channelId = computed(() => projects.channelByProject[projectId.value] ?? null)
-const projectMissing = computed(() => validId.value && !project.value && !projects.loading && !projects.failed)
+const projectMissing = computed(() => validId.value && !project.value && projects.loaded)
 
 const sources = ref<LogSource[]>([])
 const createOpen = ref(false)
@@ -164,7 +164,7 @@ onUnmounted(reset)
             {{ t('integrations.create') }}
           </button>
         </div>
-        <p v-if="loading || (!project && projects.loading)" data-test="loading">{{ t('common.loading') }}</p>
+        <p v-if="loading || (!project && !projects.failed && !projects.loaded)" data-test="loading">{{ t('common.loading') }}</p>
         <p v-else-if="failed || (!project && projects.failed)" role="alert" data-test="load-failed">
           {{ t('integrations.loadFailed') }}
           <button type="button" name="retry" @click="retry">{{ t('common.retry') }}</button>
