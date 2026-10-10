@@ -243,3 +243,20 @@ it('answers 404 to a member on the messages, replies, posts and uploads of an un
     asChannelReader($this->users['admin'], $this->organization)->getJson("/api/channels/{$hidden->id}/messages")->assertOk();
     expect(Message::withoutGlobalScopes()->where('channel_id', $hidden->id)->count())->toBe(1);
 });
+
+it('answers 404 to a member who edits or deletes their own message in an unassigned channel', function () {
+    $hidden = unassignedChannelFor($this->organization);
+    $member = $this->users['member'];
+    $message = Message::factory()->for($hidden)->create([
+        'kind' => Message::KIND_USER,
+        'user_id' => $member->id,
+        'body' => 'mine',
+    ]);
+
+    asChannelReader($member, $this->organization)
+        ->patchJson("/api/channels/{$hidden->id}/messages/{$message->id}", ['body' => 'changed'])->assertNotFound();
+    asChannelReader($member, $this->organization)
+        ->deleteJson("/api/channels/{$hidden->id}/messages/{$message->id}")->assertNotFound();
+
+    expect($message->refresh()->body)->toBe('mine')->and($message->deleted_at)->toBeNull();
+});

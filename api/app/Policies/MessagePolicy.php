@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Message;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -13,25 +14,28 @@ use Illuminate\Support\Facades\Gate;
  */
 class MessagePolicy
 {
-    public function update(User $user, Message $message): bool
+    public function update(User $user, Message $message): Response|bool
     {
         return $this->isAuthorOfLiveMessage($user, $message);
     }
 
-    public function delete(User $user, Message $message): bool
+    public function delete(User $user, Message $message): Response|bool
     {
         return $this->isAuthorOfLiveMessage($user, $message);
     }
 
-    private function isAuthorOfLiveMessage(User $user, Message $message): bool
+    private function isAuthorOfLiveMessage(User $user, Message $message): Response|bool
     {
         $activeId = app(CurrentOrganization::class)->id();
 
-        return $activeId !== null
-            && $message->organization_id === $activeId
-            && $message->kind === Message::KIND_USER
-            && $message->user_id === $user->id
-            && $message->deleted_at === null
-            && Gate::forUser($user)->allows('view', $message->channel);
+        if ($activeId === null
+            || $message->organization_id !== $activeId
+            || $message->kind !== Message::KIND_USER
+            || $message->user_id !== $user->id
+            || $message->deleted_at !== null) {
+            return false;
+        }
+
+        return Gate::forUser($user)->inspect('view', $message->channel);
     }
 }
