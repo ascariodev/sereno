@@ -118,7 +118,7 @@ class Organization extends Model
     }
 
     /**
-     * Detaches the member and deletes their roles in this organization only.
+     * Detaches the member, deletes their roles and unassigns their tasks in this organization only.
      *
      * @throws LastOwnerException when the user is the last owner
      * @throws ModelNotFoundException when the user is not a member
@@ -132,6 +132,11 @@ class Organization extends Model
 
             $user->syncRoles([]);
             $this->users()->detach($user->id);
+
+            DB::table('tasks')
+                ->where('organization_id', $this->id)
+                ->where('assignee_id', $user->id)
+                ->update(['assignee_id' => null, 'updated_at' => now()]);
 
             MembershipRevoked::dispatch($user->id, $this->id);
             $this->scheduleConnectionCut($user->id);

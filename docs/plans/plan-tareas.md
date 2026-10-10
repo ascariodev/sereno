@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -79,7 +79,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 ### [x] Fase 8 — Tarea vinculada en el grupo de log (api)
 - `LogGroupResource` agrega `task {id, key, status}` o null, con carga eficiente en la lista y el detalle de grupos.
 
-### [ ] Fase 9 — Quitar un miembro desasigna sus tareas (api)
+### [x] Fase 9 — Quitar un miembro desasigna sus tareas (api)
 - Al quitar a alguien de la organización, sus tareas de esa organización quedan sin asignado (misma transacción que
   la baja). Test.
 
@@ -177,9 +177,12 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   1. Al inicio queda `next - 1`, así que `position` puede ser cero o negativa. Bloqueos: proyecto `FOR NO KEY UPDATE`
   y luego tarea y columna destino `FOR UPDATE`; un vecino que no está en la columna da 422. Con hueco <= 1e-9 la
   columna se renumera 1, 2, 3... con `DB::table` (sin tocar `updated_at` de las demás).
+- 2026-10-10 — Fase 9: `Organization::removeMember` (único camino de baja) desasigna con `DB::table('tasks')` en la
+  transacción de `mutateMembership`, sin eventos de modelo: esas desasignaciones no emiten `TaskUpdated` en vivo
+  (el tablero las ve al recargar).
 
 ## Notas para la próxima sesión
-- Fases 1 a 8 hechas. `LogGroupResource` trae `task` con `whenLoaded`: todo lugar que lo devuelva (hoy solo
+- Fases 1 a 9 hechas. Helpers de la 9: `removalTask`, `assigneeOf`. `LogGroupResource` trae `task` con `whenLoaded`: todo lugar que lo devuelva (hoy solo
   `LogGroupController`; si la fase 11 lo usa en un evento) carga `task` y llama `bindTaskProject`. graphify no está
   instalado en la nube: usar grep. Helpers de la 8: `groupTaskUrl`, `groupTaskGet`. Helpers de test: `columnTask`, `moveTaskAs`, `movedColumn` (fase 6),
   `deleteTaskAs` (fase 7). Tras una petición el tenant queda en su organización: los tests consultan con
@@ -210,3 +213,5 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   simplificar `TaskController@update`; 404 de tarea de otro proyecto antes de validar.
 - [ ] M-12 (baja, sonnet): `LogGroupTaskApiTest`: quitar el umbral arbitrario `toBeLessThan(12)`; basta el conteo
   constante.
+- [ ] M-13 (media, sonnet): avisar en vivo al tablero de las tareas desasignadas al quitar un miembro (evento por
+  proyecto afectado tras el commit).
