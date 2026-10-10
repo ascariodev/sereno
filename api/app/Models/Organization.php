@@ -145,10 +145,7 @@ class Organization extends Model
                 ->where('user_id', $user->id)
                 ->delete();
 
-            DB::table('tasks')
-                ->where('organization_id', $this->id)
-                ->where('assignee_id', $user->id)
-                ->update(['assignee_id' => null, 'updated_at' => now()]);
+            Task::unassignUser($this->id, $user->id);
 
             MembershipRevoked::dispatch($user->id, $this->id);
             TerminateUserConnections::scheduleAfterCommit($user->id);

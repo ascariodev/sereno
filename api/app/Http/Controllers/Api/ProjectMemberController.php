@@ -10,6 +10,7 @@ use App\Http\Resources\MemberResource;
 use App\Jobs\TerminateUserConnections;
 use App\Models\Organization;
 use App\Models\Project;
+use App\Models\Task;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -89,10 +90,7 @@ class ProjectMemberController extends Controller
                 return;
             }
 
-            DB::table('tasks')
-                ->where('project_id', $project->id)
-                ->where('assignee_id', $user->id)
-                ->update(['assignee_id' => null, 'updated_at' => now()]);
+            Task::unassignUser($project->organization_id, $user->id, $project->id);
 
             ProjectAccessChanged::dispatch($user->id, $project->organization_id, $project->id, false);
             TerminateUserConnections::scheduleAfterCommit($user->id);
