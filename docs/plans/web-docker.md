@@ -2,7 +2,7 @@
 
 **Objetivo:** que la web se desarrolle en Docker (Vite con recarga, tests y typecheck dentro del contenedor) y que
 `api/` y `web/` tengan un stack de producción en Docker desplegable como bidfletes/fletes-api (Gitea).
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -94,7 +94,7 @@
   `bash -n` pasa en los scripts; `deploy.sh` corre en local contra un stack de prueba (otro `-p`, otros puertos,
   `.env` de prueba creado para la prueba) y deja `/up` en 200.
 
-### [ ] Fase 7 — Workflow de deploy del API (`.gitea/workflows/deploy-api.yml`) [riesgo]
+### [x] Fase 7 — Workflow de deploy del API (`.gitea/workflows/deploy-api.yml`) [riesgo]
 - **Alcance:** `on.push.branches: [main, qa, dev]` con `paths: ['api/**', '.gitea/workflows/deploy-api.yml']`. Un paso
   resuelve el ambiente por rama (`main` → `prod`, `qa` → `qa`, `dev` → `dev`) y fija `HOST_DIR`
   (`/var/www/html/workspace/<env>/api`) y `SERVER_DIR` (`/workspace/<env>/api`, montaje del runner). Instala `rsync` y
@@ -170,6 +170,11 @@
   rsync del job deja el repo de root); composer dentro de `app` con sus scripts; `migrate`, `RoleSeeder`
   (idempotente) y luego `optimize`; reinicia `nginx` después de `app` (guarda la IP de `app` al arrancar: 502). Sin
   `storage:link`: los adjuntos usan el disco `local` por stream.
+- 2026-10-09 — Fase 7: `deploy-api.yml` resuelve el ambiente en `$GITHUB_ENV`, comprueba `$SERVER_DIR/.env` antes del
+  checkout (sin `mkdir` del destino: lo crea el usuario con su `.env`, con dueño 1000), y hace `rsync -a --delete` de
+  `api/` sin `.git`, `.env`, `node_modules`, `/storage/`, `/vendor/`, `/.deploy/` ni `/bootstrap/cache/` (los cachés de
+  `optimize`). Los scripts corren desde el checkout. Sin `concurrency`: Gitea 1.25.5 no lo soporta; con `capacity` del
+  runner mayor que 1, dos deploys del mismo ambiente podrían pisarse.
 
 ## Notas para la próxima sesión
 - Fase 6: con `validate_timestamps=0` el deploy reinicia `app`, `queue`, `scheduler` y `reverb`. El UID 1000 debe
@@ -199,3 +204,5 @@
   el `.env`; mencionar también que `app` puede no poder entrar al directorio.
 - [ ] M-8 (media, sonnet) — Caché persistente de composer para el deploy (volumen o carpeta en `/var/www/html/workspace`),
   para no descargar todo cuando se recrea `app`.
+- [ ] M-9 (baja, sonnet) — Agregar `concurrency` por ambiente a los workflows de deploy cuando Gitea lo soporte (no
+  está en 1.25.5), o confirmar `capacity: 1` en el `config.yaml` del runner.
