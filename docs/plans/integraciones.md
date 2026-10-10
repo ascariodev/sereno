@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -87,7 +87,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - **Archivos:** `src/Logging/EventFormatter.php` (+ test).
 - **Terminado cuando:** los tests portados de posveapi pasan.
 
-### [ ] Fase 9 — Handler en el paquete
+### [x] Fase 9 — Handler en el paquete
 - **Alcance:** traer `WorkspaceLogHandler` como `Ascario\Sereno\Logging\SerenoLogHandler` con sus tests; el
   canal de respaldo por defecto pasa a ser configurable (hoy fijo en `daily`).
 - **Archivos:** `src/Logging/SerenoLogHandler.php` (+ test), `composer.json` (`illuminate/events` e
@@ -98,7 +98,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - **Alcance:** `SerenoServiceProvider` (auto-discovery) que fusiona `config/sereno.php` (`url`, `key`, `timeout`,
   `level`, `fallback_channel`, desde `SERENO_LOG_*`), lo publica y registra el canal `sereno` en
   `logging.channels` si la app no lo define; factory `CreateSerenoLogger` para `driver => custom`. Sin URL o key,
-  el canal no envía nada.
+  el canal no envía nada. Un `fallback_channel` vacío se normaliza a `daily` (`Log::channel('')` falla en silencio).
 - **Archivos:** `src/SerenoServiceProvider.php`, `src/Logging/CreateSerenoLogger.php`, `config/sereno.php`,
   `composer.json` (+ test con Testbench).
 - **Terminado cuando:** test: `Log::channel('sereno')` usa el handler con la config; sin variables no hace HTTP.
@@ -128,7 +128,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - 2026-10-10 — Paquete: repo `../sereno-laravel` (main con commit vacío), trabajo en su worktree
   `.claude/worktrees/paquete` (rama `feat/paquete`). Tests en Docker con la imagen oficial `composer:2` (no depende
   del monorepo), desde la raíz del paquete:
-  `MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W):/app" -w /app composer:2 sh -c 'composer install --no-interaction --no-progress -q && vendor/bin/phpunit'`.
+  `MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W):/app" -w /app composer:2 sh -c 'composer update --no-interaction --no-progress -q && vendor/bin/phpunit'`.
   `illuminate/{contracts,http,log,support}` ^13.0, `monolog/monolog` ^3.10 (como posveapi), dev `orchestra/testbench`
   ^11.0 y `phpunit/phpunit` ^12.5.12. `composer.lock` no se versiona (librería). La imagen trae PHP 8.5: el mínimo
   ^8.3 no se prueba.
@@ -136,6 +136,10 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   el aviso de proyecto inexistente, para poder volver a canal, plan y log desde Integraciones.
 
 ## Notas para la próxima sesión
+- Fase 9: `SerenoLogHandler` igual al de posveapi salvo nombres, mensajes de fallo "Sereno log ..." y el último
+  parámetro del constructor `string $fallbackChannel` (default `DEFAULT_FALLBACK_CHANNEL` = `daily`): la factory de
+  la fase 10 usa argumentos con nombre. Tests con `composer update` (el lock local queda viejo al cambiar
+  `composer.json`).
 - Fase 8: `EventFormatter` igual al de posveapi salvo floats no finitos: `'NAN'`/`'INF'`/`'-INF'` explícitos en vez de
   `(string) $value`, que en PHP 8.5 lanza "coerced to string" (misma salida). Su test usa la base Testbench
   `Ascario\Sereno\Tests\TestCase`. Escribir PHP con Edit/Write: heredocs, sed y python rompen las `\` de namespaces.
