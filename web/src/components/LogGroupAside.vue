@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { LogGroupStatus } from '../api/types'
+import type { LogGroupStatus, Task } from '../api/types'
 import { useLogGroup } from '../composables/useLogGroup'
 import { setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
+import { useProjectsStore } from '../stores/projects'
 import LogGroupPanel from './LogGroupPanel.vue'
 import { toast } from './ui/toast'
 import AppDialog from './ui/AppDialog.vue'
@@ -13,11 +14,17 @@ const props = defineProps<{ projectId: number; groupId: number; refreshToken?: n
 const emit = defineEmits<{ close: [replace?: boolean]; status: [status: LogGroupStatus] }>()
 
 const { t } = useI18n()
-const { group, loading, loadError, hourly, setStatus } = useLogGroup(
+const { group, loading, loadError, hourly, setStatus, setTask } = useLogGroup(
   () => props.projectId,
   () => props.groupId,
   () => props.refreshToken,
 )
+
+const projects = useProjectsStore()
+const canCreateTask = computed(() => {
+  const project = projects.projects.find((item) => item.id === props.projectId)
+  return project !== undefined && project.archived_at === null
+})
 
 let closed = false
 
@@ -98,7 +105,9 @@ function onOpenChange(open: boolean): void {
       :loading="loading"
       :load-error="loadError"
       :hourly="hourly"
+      :can-create-task="canCreateTask"
       @status="applyStatus"
+      @task="(task: Task) => setTask(task)"
       @close="emit('close')"
     />
   </AppDialog>
@@ -112,7 +121,9 @@ function onOpenChange(open: boolean): void {
     :loading="loading"
     :load-error="loadError"
     :hourly="hourly"
+    :can-create-task="canCreateTask"
     @status="applyStatus"
+    @task="(task: Task) => setTask(task)"
     @close="emit('close')"
   />
 </template>

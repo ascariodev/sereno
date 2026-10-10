@@ -1,7 +1,7 @@
 import { onUnmounted, ref, watch } from 'vue'
 import { ApiError } from '../api/client'
 import { getHourlyCounts, getLogGroup } from '../api/logGroups'
-import type { LogGroup, LogGroupStatus } from '../api/types'
+import type { LogGroup, LogGroupStatus, Task } from '../api/types'
 
 export type LogGroupLoadError = 'failed' | 'notFound'
 
@@ -80,5 +80,11 @@ export function useLogGroup(
     if (group.value) group.value = { ...group.value, status }
   }
 
-  return { group, loading, loadError, hourly, setStatus }
+  function setTask(task: Task): void {
+    if (group.value && group.value.id === task.log_group?.id) {
+      group.value = { ...group.value, task: { id: task.id, key: task.key, status: task.status } }
+    }
+  }
+
+  return { group, loading, loadError, hourly, setStatus, setTask }
 }

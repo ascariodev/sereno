@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { Check, EyeOff, X } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { Check, EyeOff, ListPlus, X } from '@lucide/vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { statusFrom, updateLogGroupStatus } from '../api/logGroups'
-import type { LogGroup, LogGroupStatus } from '../api/types'
+import type { LogGroup, LogGroupStatus, Task } from '../api/types'
+import { TASK_TITLE_MAX_LENGTH } from './taskLimits'
+import TaskCreateDialog from './TaskCreateDialog.vue'
 import { toast } from './ui/toast'
 import Sparkline from './ui/Sparkline.vue'
 import LevelPill from './ui/LevelPill.vue'
@@ -17,12 +19,28 @@ const props = defineProps<{
   loading: boolean
   loadError: 'failed' | 'notFound' | null
   hourly?: number[] | null
+  /** Shows the create-task button (false in an archived or unknown project). */
+  canCreateTask?: boolean
 }>()
-const emit = defineEmits<{ close: []; status: [status: LogGroupStatus] }>()
+const emit = defineEmits<{ close: []; status: [status: LogGroupStatus]; task: [task: Task] }>()
 
 const { t, locale } = useI18n()
 
 const pending = ref(false)
+const createOpen = ref(false)
+const taskLink = ref<{ $el: HTMLElement } | null>(null)
+
+watch(
+  () => props.groupId,
+  () => (createOpen.value = false),
+)
+
+const initialTitle = computed(() => [...(props.group?.title ?? '')].slice(0, TASK_TITLE_MAX_LENGTH).join(''))
+
+function onTaskCreated(task: Task): void {
+  emit('task', task)
+  void nextTick(() => taskLink.value?.$el.focus())
+}
 
 async function act(status: LogGroupStatus): Promise<void> {
   if (pending.value || !props.group) return
@@ -122,18 +140,47 @@ const eventText = computed(() => {
           <Check :size="15" :stroke-width="2" aria-hidden="true" />
           {{ t('notice.actions.resolve') }}
         </button>
-        <button
-          v-if="group.status !== 'ignored'"
-          type="button"
-          name="ignore"
-          class="log-group-panel__secondary"
-          :disabled="pending"
-          @click="act('ignored')"
-        >
-          <EyeOff :size="15" :stroke-width="1.8" aria-hidden="true" />
-          {{ t('notice.actions.ignore') }}
-        </button>
+        <div v-if="group.status !== 'ignored' || group.task || canCreateTask" class="log-group-panel__row">
+          <button
+            v-if="group.status !== 'ignored'"
+            type="button"
+            name="ignore"
+            class="log-group-panel__secondary"
+            :disabled="pending"
+            @click="act('ignored')"
+          >
+            <EyeOff :size="15" :stroke-width="1.8" aria-hidden="true" />
+            {{ t('notice.actions.ignore') }}
+          </button>
+          <RouterLink
+            v-if="group.task"
+            ref="taskLink"
+            class="log-group-panel__secondary"
+            data-test="group-task-link"
+            :to="{ name: 'project-plan', params: { projectId }, query: { task: String(group.task.id) } }"
+          >
+            {{ t('logGroup.viewTask', { key: group.task.key }) }}
+          </RouterLink>
+          <button
+            v-else-if="canCreateTask"
+            type="button"
+            name="create-task"
+            class="log-group-panel__secondary"
+            @click="createOpen = true"
+          >
+            <ListPlus :size="15" :stroke-width="1.8" aria-hidden="true" />
+            {{ t('logGroup.createTask') }}
+          </button>
+        </div>
       </div>
+      <TaskCreateDialog
+        v-if="canCreateTask && !group.task"
+        v-model:open="createOpen"
+        :project-id="projectId"
+        :initial-title="initialTitle"
+        :log-group-id="group.id"
+        @created="onTaskCreated"
+      />
     </template>
   </aside>
 </template>
@@ -270,6 +317,22 @@ const eventText = computed(() => {
   border-radius: 9px;
   font-weight: 500;
   cursor: pointer;
+}
+.log-group-panel__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 8px;
+}
+.log-group-panel__actions a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  border-radius: 9px;
+  font-weight: 500;
+  text-decoration: none;
+  box-sizing: border-box;
 }
 .log-group-panel__actions button:disabled {
   opacity: 0.6;

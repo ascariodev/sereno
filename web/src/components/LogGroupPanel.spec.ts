@@ -1,5 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import type { LogGroup } from '../api/types'
 import { i18n } from '../i18n'
@@ -24,10 +26,15 @@ const group = (overrides: Partial<LogGroup> = {}): LogGroup => ({
 
 type Props = { groupId: number; group: LogGroup | null; loading: boolean; loadError: 'failed' | 'notFound' | null; hourly: number[] | null }
 
-function mountPanel(props: Partial<Props> = {}) {
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [{ path: '/', component: { render: () => null } }, { path: '/projects/:projectId/plan', name: 'project-plan', component: { render: () => null } }],
+})
+
+function mountPanel(props: Partial<Props> & { canCreateTask?: boolean } = {}) {
   return mount(LogGroupPanel, {
     props: { projectId: 3, groupId: 5, group: group(), loading: false, loadError: null, ...props },
-    global: { plugins: [i18n] },
+    global: { plugins: [createPinia(), i18n, router] },
   })
 }
 
@@ -130,5 +137,13 @@ describe('LogGroupPanel', () => {
     const wrapper = mountPanel()
     await wrapper.find('button[name="close-group"]').trigger('click')
     expect(wrapper.emitted('close')).toHaveLength(1)
+  })
+
+  it('shows create task only when allowed and the group has no task; otherwise the link', () => {
+    expect(mountPanel().find('button[name=create-task]').exists()).toBe(false)
+    expect(mountPanel({ canCreateTask: true }).find('button[name=create-task]').text()).toBe('Create task')
+    const linked = mountPanel({ canCreateTask: true, group: group({ task: { id: 4, key: 'P-3', status: 'todo' } }) })
+    expect(linked.find('button[name=create-task]').exists()).toBe(false)
+    expect(linked.get('[data-test=group-task-link]').text()).toBe('View P-3')
   })
 })

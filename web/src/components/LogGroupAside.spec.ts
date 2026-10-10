@@ -1,8 +1,13 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { resetGroupStatuses, setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
 import { i18n } from '../i18n'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
+import { useOrganizationStore } from '../stores/organization'
+import { useProjectsStore } from '../stores/projects'
 import { toast, toasts } from './ui/toast'
 import LogGroupAside from './LogGroupAside.vue'
 
@@ -32,11 +37,23 @@ function fakeMatchMedia(matches: boolean) {
   })
 }
 
-function mountAside() {
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [{ path: '/', component: { render: () => null } }, { path: '/projects/:projectId/plan', name: 'project-plan', component: { render: () => null } }],
+})
+
+function mountAside(archivedAt: string | null = null, projectKnown = true) {
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  useOrganizationStore().$patch({ activeId: 1 })
+  vi.spyOn(useMemberDirectoryStore(), 'ensureLoaded').mockResolvedValue()
+  if (projectKnown) {
+    useProjectsStore().$patch({ projects: [{ id: 3, name: 'P', key: 'P', description: null, archived_at: archivedAt, created_at: '', updated_at: '' }] })
+  }
   wrapper = mount(LogGroupAside, {
     props: { projectId: 3, groupId: 5 },
     attrs: { class: 'wide-panel' },
-    global: { plugins: [i18n] },
+    global: { plugins: [pinia, i18n, router] },
     attachTo: document.body,
   })
   return wrapper
@@ -306,5 +323,77 @@ describe('LogGroupAside', () => {
     await flushPromises()
     expect(sheet()!.contains(document.activeElement)).toBe(true)
     expect(document.activeElement).not.toBe(card)
+  })
+
+  describe('create task', () => {
+    const created = {
+      id: 9, project_id: 3, key: 'P-12', number: 12, title: 'Timeout in webhook', description: null, status: 'todo', position: 1,
+      created_by: 1, assignee: null, log_group: { id: 5, level: 'error', title: 'Timeout in webhook', status: 'open', events_count: 3 },
+      created_at: '', updated_at: '',
+    }
+    const dialogs = () => document.body.querySelectorAll('[role="dialog"]')
+
+    it('hides the button in an archived or unknown project', async () => {
+      fakeMatchMedia(false)
+      mountAside('2026-10-01T00:00:00Z')
+      await flushPromises()
+      expect(wrapper!.find('button[name=create-task]').exists()).toBe(false)
+      wrapper!.unmount()
+      mountAside(null, false)
+      await flushPromises()
+      expect(wrapper!.find('button[name=create-task]').exists()).toBe(false)
+    })
+
+    it('creates the task, swaps the button for the link and focuses it', async () => {
+      fakeMatchMedia(false)
+      const post = vi.spyOn(api, 'post').mockResolvedValue({ data: created } as never)
+      mountAside()
+      await flushPromises()
+      await wrapper!.find('button[name=create-task]').trigger('click')
+      await flushPromises()
+      const input = document.body.querySelector<HTMLInputElement>('#task-create-title')!
+      expect(input.value).toBe('Timeout in webhook')
+      document.body.querySelector<HTMLButtonElement>('[data-test=submit]')!.click()
+      await flushPromises()
+      expect(post.mock.calls[0][1]).toMatchObject({ title: 'Timeout in webhook', log_group_id: 5 })
+      expect(wrapper!.find('button[name=create-task]').exists()).toBe(false)
+      const link = wrapper!.get('[data-test=group-task-link]')
+      expect(link.text()).toBe('View P-12')
+      expect(link.attributes('href')).toBe('/projects/3/plan?task=9')
+      expect(document.activeElement).toBe(link.element)
+    })
+
+    it('prefills at most 200 characters of the title', async () => {
+      fakeMatchMedia(false)
+      vi.mocked(api.get).mockResolvedValue({ data: { ...loaded.data, title: 'é'.repeat(250) } } as never)
+      mountAside()
+      await flushPromises()
+      await wrapper!.find('button[name=create-task]').trigger('click')
+      await flushPromises()
+      expect([...document.body.querySelector<HTMLInputElement>('#task-create-title')!.value]).toHaveLength(200)
+    })
+
+    it('shows the link when the group already has a task', async () => {
+      fakeMatchMedia(false)
+      vi.mocked(api.get).mockResolvedValue({ data: { ...loaded.data, task: { id: 4, key: 'P-3', status: 'todo' } } } as never)
+      mountAside()
+      await flushPromises()
+      expect(wrapper!.find('button[name=create-task]').exists()).toBe(false)
+      expect(wrapper!.get('[data-test=group-task-link]').attributes('href')).toBe('/projects/3/plan?task=4')
+    })
+
+    it('stacks the dialog over the sheet on narrow viewports and keeps the sheet open', async () => {
+      fakeMatchMedia(true)
+      mountAside()
+      await flushPromises()
+      expect(dialogs()).toHaveLength(1)
+      document.body.querySelector<HTMLButtonElement>('button[name=create-task]')!.click()
+      await flushPromises()
+      expect(dialogs()).toHaveLength(2)
+      document.body.querySelector<HTMLButtonElement>('[data-test=cancel]')!.click()
+      await flushPromises()
+      expect(dialogs()).toHaveLength(1)
+      expect(wrapper!.emitted('close')).toBeUndefined()
+    })
   })
 })
