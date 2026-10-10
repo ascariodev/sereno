@@ -267,11 +267,11 @@ export interface Invitation {
   created_at: string
 }
 
-/** `role` is null if the member has no role in the active organization. */
+/** `role` is null if the member has no role in the active organization. `GET /api/members` omits `email` for a member viewer, except their own. */
 export interface Member {
   id: number
   name: string
-  email: string
+  email?: string
   role: InvitationRole | null
   joined_at: string | null
 }

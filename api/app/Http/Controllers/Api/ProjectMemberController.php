@@ -40,7 +40,13 @@ class ProjectMemberController extends Controller
             ->orderBy('users.id')
             ->get();
 
-        return MemberResource::collection($viewers);
+        $members = MemberResource::collection($viewers);
+
+        foreach ($members->collection as $member) {
+            $member->showEmail();
+        }
+
+        return $members;
     }
 
     public function store(StoreProjectMemberRequest $request, Project $project): MemberResource
@@ -127,6 +133,6 @@ class ProjectMemberController extends Controller
     {
         $member = app(CurrentOrganization::class)->get()->users()->with('roles')->whereKey($user->id)->firstOrFail();
 
-        return new MemberResource($member);
+        return (new MemberResource($member))->showEmail();
     }
 }

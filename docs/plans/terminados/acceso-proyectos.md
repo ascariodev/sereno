@@ -191,8 +191,8 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - Falta: merge de `feat/acceso-proyectos` a `main` (pedirlo), `migrate` en desarrollo (corre la migración de datos de la fase 3) y probar en el navegador el diálogo de miembros, el directorio por proyecto y el selector de proyectos al invitar.
 
 ## Mejoras propuestas
-- [ ] M-1 (media, sonnet): limitar `/api/members` a owner y admin, o sin email para members, para no exponer los
-  correos de toda la organización.
+- [x] M-1 (media, sonnet): limitar `/api/members` a owner y admin, o sin email para members, para no exponer los
+  correos de toda la organización. Aplicada: `/api/members` da el email a owner y admin y a un member solo el suyo (`MemberPolicy::viewEmail`, `MemberResource::showEmail()`, cerrado por defecto); `/api/projects/{p}/members` lo mantiene a propósito (menciones).
 - [ ] M-2 (media, sonnet): acortar el TTL de las URLs firmadas de adjuntos (hoy 60 min, siguen valiendo tras perder
   el acceso).
 - [x] M-3 (baja, sonnet): helper o trait común para `belongsToActiveOrganization`/`canManage`, repetidos en cada
