@@ -141,7 +141,22 @@
     "neverUsed": "Never",
     "created": "Created",
     "revoked": "Revoked",
-    "noPermission": "Only owners and admins can manage integrations."
+    "noPermission": "Only owners and admins can manage integrations.",
+    "rotate": "Rotate key",
+    "revoke": "Revoke",
+    "cancel": "Cancel",
+    "working": "Working...",
+    "rotateTitle": "Rotate key",
+    "rotateConfirm": "Rotate the key of \"{name}\"? The current key stops working immediately.",
+    "rotateAction": "Rotate key",
+    "revokeTitle": "Revoke log source",
+    "revokeConfirm": "Revoke \"{name}\"? It will stop accepting events and this cannot be undone.",
+    "revokeAction": "Revoke",
+    "revokedToast": "\"{name}\" was revoked.",
+    "conflict": "The key was changed or revoked by someone else. The list was reloaded.",
+    "unavailable": "This log source is revoked or its project is archived. The list was reloaded.",
+    "actionForbidden": "You are not allowed to do that.",
+    "actionFailed": "The action failed. Try again."
   },
   "createLogSource": {
     "title": "Create log source",

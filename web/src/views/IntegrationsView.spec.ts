@@ -7,6 +7,7 @@ import { i18n, setLocale } from '../i18n'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { toasts } from '../components/ui/toast'
 import { useProjectsStore } from '../stores/projects'
 import IntegrationsView from './IntegrationsView.vue'
 
@@ -78,6 +79,7 @@ afterEach(() => {
   wrapper?.unmount()
   wrapper = undefined
   document.body.innerHTML = ''
+  toasts.value = []
 })
 
 describe('IntegrationsView', () => {
@@ -229,5 +231,95 @@ describe('IntegrationsView', () => {
     store.projects = store.projects.map((item) => ({ ...item, archived_at: '2026-10-01T00:00:00Z' }))
     await flushPromises()
     expect(wrapper!.find('[data-test=create]').exists()).toBe(false)
+  })
+
+  async function openAction(kind: 'rotate' | 'revoke', index = 0) {
+    await wrapper!.findAll(`[data-test=${kind}]`)[index].trigger('click')
+    await flushPromises()
+    expect(document.body.querySelector('[data-test=confirm-text]')).not.toBeNull()
+  }
+
+  async function confirmAction() {
+    document.body.querySelector<HTMLButtonElement>('[data-test=confirm]')!.click()
+    await flushPromises()
+  }
+
+  it('rotates a key after confirming and shows the new key without keeping it in the list', async () => {
+    stubGet(() => ({ data: [source(1)] }))
+    const post = vi
+      .spyOn(api, 'post')
+      .mockResolvedValue({ data: { ...source(1, { key_prefix: 'wsk_new1' }), key: 'wsk_rotated_full' } } as never)
+    await mountView(['owner'])
+    await openAction('rotate')
+    expect(post).not.toHaveBeenCalled()
+    await confirmAction()
+    expect(post).toHaveBeenCalledWith('/api/projects/7/log-sources/1/rotate-key')
+    expect(document.body.querySelector('[data-test=key]')!.textContent).toBe('wsk_rotated_full')
+    expect(wrapper!.find('[data-test=prefix]').text()).toBe('wsk_new1…')
+    expect(wrapper!.text()).not.toContain('wsk_rotated_full')
+  })
+
+  it('does nothing when the confirmation is cancelled', async () => {
+    stubGet(() => ({ data: [source(1)] }))
+    const post = vi.spyOn(api, 'post')
+    await mountView(['owner'])
+    await openAction('rotate')
+    document.body.querySelector<HTMLButtonElement>('[data-test=cancel]')!.click()
+    await flushPromises()
+    expect(document.body.querySelector('[data-test=confirm-text]')).toBeNull()
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('revokes a source after confirming, updates its row and removes its actions', async () => {
+    stubGet(() => ({ data: [source(1), source(2)] }))
+    const del = vi
+      .spyOn(api, 'delete')
+      .mockResolvedValue({ data: source(1, { revoked_at: '2026-10-10T09:00:00Z' }) } as never)
+    await mountView(['admin'])
+    await openAction('revoke', 0)
+    await confirmAction()
+    expect(del).toHaveBeenCalledWith('/api/projects/7/log-sources/1')
+    const rows = wrapper!.findAll('[data-test=source]')
+    expect(rows[0].find('[data-test=revoked]').exists()).toBe(true)
+    expect(rows[0].find('[data-test=rotate]').exists()).toBe(false)
+    expect(rows[0].find('[data-test=revoke]').exists()).toBe(false)
+    expect(rows[1].find('[data-test=rotate]').exists()).toBe(true)
+    expect(document.body.querySelector('[data-test=confirm-text]')).toBeNull()
+  })
+
+  it('offers no actions on already revoked sources', async () => {
+    stubGet(() => ({ data: [source(1, { revoked_at: '2026-10-09T11:00:00Z' })] }))
+    await mountView(['owner'])
+    expect(wrapper!.find('[data-test=rotate]').exists()).toBe(false)
+    expect(wrapper!.find('[data-test=revoke]').exists()).toBe(false)
+  })
+
+  it('reloads the list and warns on a 409 when rotating', async () => {
+    let revoked = false
+    const get = stubGet(() => ({ data: [source(1, revoked ? { revoked_at: '2026-10-10T09:00:00Z' } : {})] }))
+    vi.spyOn(api, 'post').mockRejectedValue(new ApiError(409, 'changed', {}))
+    await mountView(['owner'])
+    revoked = true
+    await openAction('rotate')
+    await confirmAction()
+    expect(sourceCalls(get)).toHaveLength(2)
+    expect(toasts.value.map((item) => item.message)).toEqual([
+      'The key was changed or revoked by someone else. The list was reloaded.',
+    ])
+    expect(document.body.querySelector('[data-test=key]')).toBeNull()
+    expect(wrapper!.find('[data-test=revoked]').exists()).toBe(true)
+  })
+
+  it('reloads the list and warns on a 422 when revoking', async () => {
+    const get = stubGet(() => ({ data: [source(1)] }))
+    vi.spyOn(api, 'delete').mockRejectedValue(new ApiError(422, 'revoked', {}))
+    await mountView(['owner'])
+    await openAction('revoke')
+    await confirmAction()
+    expect(sourceCalls(get)).toHaveLength(2)
+    expect(toasts.value.map((item) => item.message)).toEqual([
+      'This log source is revoked or its project is archived. The list was reloaded.',
+    ])
+    expect(document.body.querySelector('[data-test=confirm-text]')).toBeNull()
   })
 })

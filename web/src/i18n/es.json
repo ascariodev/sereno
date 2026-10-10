@@ -141,7 +141,22 @@
     "neverUsed": "Nunca",
     "created": "Creada",
     "revoked": "Revocada",
-    "noPermission": "Solo los propietarios y administradores pueden gestionar las integraciones."
+    "noPermission": "Solo los propietarios y administradores pueden gestionar las integraciones.",
+    "rotate": "Rotar clave",
+    "revoke": "Revocar",
+    "cancel": "Cancelar",
+    "working": "Procesando...",
+    "rotateTitle": "Rotar clave",
+    "rotateConfirm": "¿Rotar la clave de \"{name}\"? La clave actual deja de funcionar de inmediato.",
+    "rotateAction": "Rotar clave",
+    "revokeTitle": "Revocar fuente de log",
+    "revokeConfirm": "¿Revocar \"{name}\"? Dejará de aceptar eventos y no se puede deshacer.",
+    "revokeAction": "Revocar",
+    "revokedToast": "\"{name}\" fue revocada.",
+    "conflict": "La clave fue cambiada o revocada por otra persona. Se recargó la lista.",
+    "unavailable": "Esta fuente está revocada o su proyecto está archivado. Se recargó la lista.",
+    "actionForbidden": "No tienes permiso para hacer eso.",
+    "actionFailed": "La acción falló. Inténtalo de nuevo."
   },
   "createLogSource": {
     "title": "Crear fuente de log",

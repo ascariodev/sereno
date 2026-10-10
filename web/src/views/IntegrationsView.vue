@@ -3,11 +3,13 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { ApiError } from '../api/client'
-import { listLogSources } from '../api/logSources'
+import { listLogSources, revokeLogSource, rotateLogSourceKey } from '../api/logSources'
 import type { LogSource, LogSourceWithKey } from '../api/types'
 import CreateLogSourceDialog from '../components/CreateLogSourceDialog.vue'
 import LogSourceKeyDialog from '../components/LogSourceKeyDialog.vue'
 import ProjectHeader from '../components/ProjectHeader.vue'
+import AppDialog from '../components/ui/AppDialog.vue'
+import { toast } from '../components/ui/toast'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 
@@ -25,10 +27,19 @@ const projectMissing = computed(() => validId.value && !project.value && !projec
 const sources = ref<LogSource[]>([])
 const createOpen = ref(false)
 const issuedSource = ref<LogSourceWithKey | null>(null)
+const pending = ref<{ kind: 'rotate' | 'revoke'; source: LogSource } | null>(null)
+const busy = ref(false)
 const loading = ref(false)
 const failed = ref(false)
 let generation = 0
 let controller: AbortController | null = null
+
+const confirmOpen = computed({
+  get: () => pending.value !== null,
+  set: (open: boolean) => {
+    if (!open && !busy.value) pending.value = null
+  },
+})
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleString(locale.value, { dateStyle: 'medium', timeStyle: 'short' })
@@ -40,6 +51,7 @@ function reset(): void {
   sources.value = []
   createOpen.value = false
   issuedSource.value = null
+  pending.value = null
   failed.value = false
   loading.value = false
 }
@@ -66,6 +78,48 @@ function onCreated(created: LogSourceWithKey): void {
   const { key: _key, ...listed } = created
   sources.value = [...sources.value.filter((item) => item.id !== listed.id), listed]
   issuedSource.value = created
+}
+
+function replaceSource(updated: LogSource): void {
+  sources.value = sources.value.map((item) => (item.id === updated.id ? updated : item))
+}
+
+async function confirmAction(): Promise<void> {
+  const action = pending.value
+  if (!action || busy.value) return
+  const current = generation
+  busy.value = true
+  try {
+    if (action.kind === 'rotate') {
+      const rotated = await rotateLogSourceKey(projectId.value, action.source.id)
+      if (current !== generation) return
+      const { key: _key, ...listed } = rotated
+      replaceSource(listed)
+      issuedSource.value = rotated
+    } else {
+      const revoked = await revokeLogSource(projectId.value, action.source.id)
+      if (current !== generation) return
+      replaceSource(revoked)
+      toast.success(t('integrations.revokedToast', { name: action.source.name }))
+    }
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error
+    if (current !== generation) return
+    if (error.status === 409) {
+      toast.error(t('integrations.conflict'))
+      void load()
+    } else if (error.status === 422) {
+      toast.error(t('integrations.unavailable'))
+      void load()
+    } else if (error.status === 403) {
+      toast.error(t('integrations.actionForbidden'))
+    } else {
+      toast.error(t('integrations.actionFailed'))
+    }
+  } finally {
+    busy.value = false
+    if (current === generation) pending.value = null
+  }
 }
 
 function retry(): void {
@@ -140,12 +194,59 @@ onUnmounted(reset)
                 <dd data-test="revoked">{{ formatDate(source.revoked_at) }}</dd>
               </div>
             </dl>
+            <div v-if="!source.revoked_at && project && !project.archived_at" class="integrations__actions">
+              <button
+                type="button"
+                class="integrations__action"
+                data-test="rotate"
+                :aria-label="`${t('integrations.rotate')} ${source.name}`"
+                @click="pending = { kind: 'rotate', source }"
+              >
+                {{ t('integrations.rotate') }}
+              </button>
+              <button
+                type="button"
+                class="integrations__action integrations__action--danger"
+                data-test="revoke"
+                :aria-label="`${t('integrations.revoke')} ${source.name}`"
+                @click="pending = { kind: 'revoke', source }"
+              >
+                {{ t('integrations.revoke') }}
+              </button>
+            </div>
           </li>
         </ul>
       </template>
     </div>
     <CreateLogSourceDialog v-model:open="createOpen" :project-id="projectId" @created="onCreated" />
     <LogSourceKeyDialog v-model:source="issuedSource" />
+    <AppDialog
+      v-model:open="confirmOpen"
+      :title="pending?.kind === 'rotate' ? t('integrations.rotateTitle') : t('integrations.revokeTitle')"
+      :close-label="t('integrations.cancel')"
+    >
+      <p v-if="pending" data-test="confirm-text">
+        {{
+          pending.kind === 'rotate'
+            ? t('integrations.rotateConfirm', { name: pending.source.name })
+            : t('integrations.revokeConfirm', { name: pending.source.name })
+        }}
+      </p>
+      <div class="integrations__confirm-actions">
+        <button type="button" class="integrations__action" data-test="cancel" :disabled="busy" @click="pending = null">
+          {{ t('integrations.cancel') }}
+        </button>
+        <button
+          type="button"
+          class="integrations__action integrations__action--danger"
+          data-test="confirm"
+          :disabled="busy"
+          @click="confirmAction"
+        >
+          {{ busy ? t('integrations.working') : pending?.kind === 'rotate' ? t('integrations.rotateAction') : t('integrations.revokeAction') }}
+        </button>
+      </div>
+    </AppDialog>
   </section>
 </template>
 
@@ -262,6 +363,48 @@ onUnmounted(reset)
 .integrations__details dd {
   margin: 0;
   color: var(--ink-2);
+}
+
+.integrations__actions,
+.integrations__confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.integrations__confirm-actions {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.integrations__action {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.integrations__action--danger {
+  color: var(--level-error-fg);
+}
+
+.integrations__confirm-actions .integrations__action--danger {
+  border-color: var(--level-error-fg);
+  background: var(--level-error-bg);
+}
+
+.integrations__action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.integrations__action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 @media (max-width: 600px) {

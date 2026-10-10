@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -66,7 +66,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - **Archivos:** `components/CreateLogSourceDialog.vue` (+ spec), `views/IntegrationsView.vue`, i18n.
 - **Terminado cuando:** specs: alta correcta abre la key; 422 se muestra en el campo; archivado sin botón.
 
-### [ ] Fase 6 — Rotar y revocar fuentes
+### [x] Fase 6 — Rotar y revocar fuentes
 - **Alcance:** acciones por fila con confirmación en `AppDialog`; rotar abre `LogSourceKeyDialog` con la key nueva;
   revocar actualiza la fila. Mensajes para 409 (recargar) y 422 (archivado o revocada). Revocadas sin acciones.
 - **Archivos:** `views/IntegrationsView.vue` (+ spec), i18n.
@@ -128,6 +128,10 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   el aviso de proyecto inexistente, para poder volver a canal, plan y log desde Integraciones.
 
 ## Notas para la próxima sesión
+- Fase 6: acciones `data-test=rotate|revoke` con confirmación (`confirm`, `cancel`); 409 y 422 dan toast y recargan.
+  Prueba manual hecha en una Vite temporal del worktree (`docker run ... -p 5175:5174`, CORS del API es `*`, login
+  con el usuario del seeder): crear, curl del diálogo (202), aviso en el canal, rotar y revocar. Quedó revocada la
+  fuente `integraciones-manual` en DEMO.
 - Fase 5: `CreateLogSourceDialog` valida vacío y 255 caracteres (`[...s].length`). La vista agrega la fuente sin `key`
   y asigna la completa a `issuedSource`; `reset()` cierra diálogos y descarta la key al cambiar proyecto,
   organización o permiso: rotar (fase 6) reutiliza `issuedSource`. El store de proyectos filtra archivados, así que
@@ -156,3 +160,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   asigna `sources` sin mirar lo creado): ocultar o deshabilitar el botón de crear mientras `loading`, con spec.
   Complejidad: baja (sonnet).
 - [ ] M-5 — Quitar la variable sin uso `_key` en `IntegrationsView.vue` (`onCreated`). Complejidad: baja (sonnet).
+- [ ] M-6 — Claves i18n duplicadas en `integrations` (`rotate`/`rotateAction`, `revoke`/`revokeAction`): reutilizar
+  una de cada par. Complejidad: baja (sonnet).
+- [ ] M-7 — Los avisos de 409 y 422 de rotar o revocar no dicen qué acción falló; el 422 es genérico (archivado o
+  revocada). Complejidad: baja (sonnet).
