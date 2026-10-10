@@ -213,3 +213,5 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - [ ] M-10 — `test_no_pisa_un_canal_definido_por_la_app` llama a `register()` a mano: definir el canal en
   `defineEnvironment` para seguir el orden real de arranque; y opcionalmente probar `vendor:publish --tag=sereno-config`.
   Complejidad: baja (sonnet).
+- [ ] M-11 — Con organización activa `null`, `clear()` deja `projects.loaded = false` y `IntegrationsView` mostraría
+  "cargando" sin fin; hoy las rutas exigen organización. Complejidad: baja (sonnet).
