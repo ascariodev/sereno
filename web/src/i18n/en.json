@@ -441,6 +441,24 @@
     "network": "Could not reach the server.",
     "failed": "Could not create the organization. Try again."
   },
+  "projCreate": {
+    "title": "New project",
+    "nameLabel": "Name",
+    "nameRequired": "Enter a name.",
+    "nameTooLong": "The name cannot exceed {max} characters.",
+    "keyLabel": "Key",
+    "keyInvalid": "The key starts with a letter and has 2 to 10 uppercase letters or digits.",
+    "descriptionLabel": "Description (optional)",
+    "descriptionTooLong": "The description cannot exceed {max} characters.",
+    "submit": "Create project",
+    "creating": "Creating...",
+    "cancel": "Cancel",
+    "created": "Project {name} created.",
+    "forbidden": "Only owners and admins can create projects.",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not create the project. Try again."
+  },
   "log": {
     "title": "Log",
     "loadFailed": "Could not load the log groups.",

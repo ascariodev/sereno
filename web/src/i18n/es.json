@@ -441,6 +441,24 @@
     "network": "No se pudo conectar con el servidor.",
     "failed": "No se pudo crear la organización. Inténtalo de nuevo."
   },
+  "projCreate": {
+    "title": "Nuevo proyecto",
+    "nameLabel": "Nombre",
+    "nameRequired": "Escribe un nombre.",
+    "nameTooLong": "El nombre no puede superar {max} caracteres.",
+    "keyLabel": "Clave",
+    "keyInvalid": "La clave empieza con una letra y tiene de 2 a 10 letras mayúsculas o números.",
+    "descriptionLabel": "Descripción (opcional)",
+    "descriptionTooLong": "La descripción no puede superar {max} caracteres.",
+    "submit": "Crear proyecto",
+    "creating": "Creando...",
+    "cancel": "Cancelar",
+    "created": "Proyecto {name} creado.",
+    "forbidden": "Solo los propietarios y administradores pueden crear proyectos.",
+    "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo crear el proyecto. Inténtalo de nuevo."
+  },
   "log": {
     "title": "Log",
     "loadFailed": "No se pudieron cargar los grupos de log.",

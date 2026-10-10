@@ -2,7 +2,7 @@
 
 **Objetivo:** que una persona pueda registrarse, crear su organización y crear proyectos desde la web, sin `curl`, y que
 el registro abierto se pueda cerrar por entorno dejando solo la entrada por invitación.
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -100,7 +100,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - **Terminado cuando:** los specs cubren abrir el diálogo desde los dos lugares y que tras crear la organización se
   renderiza la vista de proyectos.
 
-### [ ] Fase 11 — Diálogo para crear proyecto
+### [x] Fase 11 — Diálogo para crear proyecto
 - **Alcance:** `ProjectCreateDialog`: nombre, clave (sugerida desde el nombre mientras no se edite a mano, en
   mayúsculas, validación local con la misma regex) y descripción opcional; `projects.create()`; al crear navega al
   canal del proyecto y muestra un toast. Errores 422 por campo (incluida la clave duplicada), 403 y red.
@@ -136,6 +136,8 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - 2026-10-10 — (Fase 10) `AppLayout` es el único dueño de `OrganizationCreateDialog`; `OrgSwitcher` emite `create` y
   `AppSidebar` lo reenvía como `createOrganization` (se tocó `AppSidebar.vue`, fuera de la lista del plan). Al abrir el
   diálogo se cierra el cajón móvil (L-23). La fase 12 puede seguir el mismo patrón para `ProjectCreateDialog`.
+- 2026-10-10 — (Fase 11) `ProjectCreateDialog` usa `v-model:open`, emite `created(project)` y `useRouter()`; tras crear
+  navega a `{name:'channel'}` si `channelByProject[id]` existe, si no a `{name:'projects'}`.
 
 ## Notas para la próxima sesión
 - Fase 1 hecha: con el registro cerrado, registrarse exige una invitación usable del mismo email, pero no la acepta.
@@ -153,6 +155,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - Fase 9 hecha: `OrganizationCreateDialog` (claves `orgCreate.*`). Desde el estado vacío de `AppLayout`, la vista
   normal aparece sola porque `create()` selecciona la nueva.
 - Fase 10 hecha: botón `create-organization` en el estado vacío e ítem "Nueva organización" en `OrgSwitcher`.
+- Fase 11 hecha: `ProjectCreateDialog` (claves `projCreate.*`). La fase 12 lo monta en un único dueño, como la 10.
 - Editar con Edit o `sed`: escribir con Python en Windows mete CRLF y rompe Pint (`line_ending`).
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
