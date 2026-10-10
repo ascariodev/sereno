@@ -143,6 +143,70 @@ describe('projects store', () => {
       expect(store.channelByProject).toEqual({ 5: 9 })
     })
 
+    it('keeps the current list visible while reloading after the post', async () => {
+      let resolveReload: (value: unknown) => void = () => {}
+      let reloading = false
+      vi.spyOn(api, 'get').mockImplementation((path: string) => {
+        if (path !== '/api/projects') return Promise.resolve({ data: [channel(7, 1)] } as never)
+        if (reloading) return new Promise((resolve) => (resolveReload = resolve)) as never
+        return Promise.resolve({ data: [project(1, 'A')], meta: meta() } as never)
+      })
+      vi.spyOn(api, 'post').mockImplementation(async () => {
+        reloading = true
+        return { data: project(5, 'Fresh') } as never
+      })
+      const store = setup()
+      await flushPromises()
+      const creating = store.create({ name: 'Fresh', key: 'K5' })
+      await flushPromises()
+      expect(store.loading).toBe(true)
+      expect(store.projects.map((p) => p.name)).toEqual(['A'])
+      expect(store.channelByProject).toEqual({ 1: 7 })
+      resolveReload({ data: [project(1, 'A'), project(5, 'Fresh')], meta: meta() })
+      await creating
+      expect(store.projects.map((p) => p.name)).toEqual(['A', 'Fresh'])
+    })
+
+    it('flags failure and keeps the previous list when the reload after the post fails', async () => {
+      let failing = false
+      vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (failing) throw new ApiError(500, 'boom')
+        return path === '/api/projects' ? ({ data: [project(1, 'A')], meta: meta() } as never) : ({ data: [channel(7, 1)] } as never)
+      })
+      vi.spyOn(api, 'post').mockImplementation(async () => {
+        failing = true
+        return { data: project(5, 'Fresh') } as never
+      })
+      const store = setup()
+      await flushPromises()
+      await store.create({ name: 'Fresh', key: 'K5' })
+      expect(store.failed).toBe(true)
+      expect(store.loading).toBe(false)
+      expect(store.projects.map((p) => p.name)).toEqual(['A'])
+      expect(store.channelByProject).toEqual({ 1: 7 })
+    })
+
+    it('empties the list when the organization changes during the reload after the post', async () => {
+      let hold = false
+      vi.spyOn(api, 'get').mockImplementation((path: string) => {
+        if (path !== '/api/projects') return Promise.resolve({ data: [] } as never)
+        if (hold) return new Promise(() => {}) as never
+        return Promise.resolve({ data: [project(1, 'A')], meta: meta() } as never)
+      })
+      vi.spyOn(api, 'post').mockImplementation(async () => {
+        hold = true
+        return { data: project(5, 'Fresh') } as never
+      })
+      const store = setup()
+      await flushPromises()
+      void store.create({ name: 'Fresh', key: 'K5' })
+      await flushPromises()
+      expect(store.projects).toHaveLength(1)
+      useOrganizationStore().$patch({ activeId: 2 })
+      await flushPromises()
+      expect(store.projects).toEqual([])
+    })
+
     it('propagates the error and leaves the list untouched', async () => {
       const get = vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
         path === '/api/projects' ? ({ data: [project(1, 'A')], meta: meta() } as never) : ({ data: [channel(7, 1)] } as never),

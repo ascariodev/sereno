@@ -34,7 +34,7 @@ const greeting = computed(() => (user.value ? t('projects.greeting', { name: use
         {{ t('projects.create') }}
       </button>
     </div>
-    <p v-if="loading">{{ t('common.loading') }}</p>
+    <p v-if="loading && projects.length === 0">{{ t('common.loading') }}</p>
     <p v-else-if="failed" role="alert">
       {{ t('projects.loadFailed') }}
       <button type="button" name="retry" @click="reload">{{ t('common.retry') }}</button>

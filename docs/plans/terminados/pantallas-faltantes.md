@@ -178,7 +178,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   la petición en vuelo (generación) para que no escriba la caché después del reset.
 - [x] M-6 (baja, sonnet) — `web/src/stores/organization.spec.ts`: probar `clear()` durante la recarga posterior al
   POST de `create()` (rama `reloadSettled() === false`).
-- [ ] M-7 (media, sonnet) — `web/src/stores/projects.ts`: `reload()` vacía `projects` antes de recargar, así que la
+- [x] M-7 (media, sonnet) — `web/src/stores/projects.ts`: `reload()` vacía `projects` antes de recargar, así que la
   lista (barra lateral, `ProjectsView`) parpadea al crear un proyecto; conservar la lista hasta tener la nueva.
 - [ ] M-8 (media, sonnet) — `web/src/composables/useRegistrationStatus.ts` y `RegisterView`: distinguir "no se pudo
   saber" (error de red) de "cerrado"; hoy un fallo de red al cargar `/register` muestra "registro cerrado".

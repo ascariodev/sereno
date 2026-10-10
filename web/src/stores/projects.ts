@@ -45,11 +45,13 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = false
   }
 
-  async function reload(): Promise<void> {
+  async function load(keepCurrent: boolean): Promise<void> {
     const current = ++generation
     cancelCountsRefresh()
-    projects.value = []
-    channelByProject.value = {}
+    if (!keepCurrent) {
+      projects.value = []
+      channelByProject.value = {}
+    }
     failed.value = false
     loading.value = true
     try {
@@ -68,9 +70,13 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
+  function reload(): Promise<void> {
+    return load(false)
+  }
+
   async function create(input: CreateProjectInput): Promise<Project> {
     const created = await createProject(input)
-    await reload()
+    await load(true)
     return created
   }
 
