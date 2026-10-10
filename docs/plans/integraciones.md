@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -37,7 +37,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - **Archivos:** `web/src/api/types.ts`, `web/src/api/logSources.ts` (+ `logSources.spec.ts`).
 - **Terminado cuando:** el spec verifica método, ruta y cuerpo de cada función; typecheck limpio.
 
-### [ ] Fase 2 — Vista de integraciones con la lista de fuentes
+### [x] Fase 2 — Vista de integraciones con la lista de fuentes
 - **Alcance:** getter `canManageLogSources` (owner o admin); ruta `projects/:projectId/integrations`; vista que
   lista las fuentes (nombre, `key_prefix…`, último uso, creada, revocada) con carga, vacío y error; sin permiso,
   aviso en vez de la lista.
@@ -46,9 +46,12 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - **Terminado cuando:** spec de la vista cubre lista, vacío, error y sin permiso.
 
 ### [ ] Fase 3 — Pestaña Integraciones en el proyecto
-- **Alcance:** enlace en `ProjectHeader` visible solo con `canManageLogSources`.
-- **Archivos:** `components/ProjectHeader.vue` (+ spec si existe), i18n.
-- **Terminado cuando:** test: owner/admin ven la pestaña, member no.
+- **Alcance:** enlace en `ProjectHeader` visible solo con `canManageLogSources`. `IntegrationsView` monta
+  `ProjectHeader` como `LogView` y `PlanView` (proyecto del store, sin `<h1>` duplicado) y avisa si el proyecto no
+  existe o no está en el store (hoy `notFound` solo cubre un id inválido).
+- **Archivos:** `components/ProjectHeader.vue` (+ spec si existe), `views/IntegrationsView.vue` (+ spec), i18n.
+- **Terminado cuando:** test: owner/admin ven la pestaña, member no; la vista muestra el header y el aviso de
+  proyecto inexistente.
 
 ### [ ] Fase 4 — Diálogo de key recién emitida
 - **Alcance:** `CopyButton` (Clipboard API, toast al copiar o al fallar) y `LogSourceKeyDialog`: muestra la key
@@ -121,9 +124,18 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - 2026-10-10 — La pestaña Integraciones es solo para owner y admin, aunque la API deja listar a cualquier rol.
 - 2026-10-10 — La API de fuentes no cambia; si acceso-proyectos (fase 7) cambia la autorización del index, la web
   la hereda.
+- 2026-10-10 — La fase 3 suma montar `ProjectHeader` en `IntegrationsView` (como las demás pestañas del proyecto) y
+  el aviso de proyecto inexistente, para poder volver a canal, plan y log desde Integraciones.
 
 ## Notas para la próxima sesión
+- Fase 2: `canManageLogSources` delega en `canManageInvitations`; sin permiso, aviso `data-test="no-permission"` sin
+  llamar a la API. Filas `data-test="source"` con `name`, `prefix`, `last-used` ("Never" si null), `created`, `revoked`.
+  La vista descarta respuestas viejas (generación y AbortController).
 - Fase 1: `api/logSources.ts` con list, create, rotate (POST sin cuerpo) y revoke (DELETE, devuelve la fuente); `LogSourceWithKey` solo al crear o rotar.
 - Ejecución en el worktree `.claude/worktrees/plan-integraciones` (rama `docs/plan-integraciones`, main mergeado el 2026-10-10). Los contenedores montan el checkout principal: verificar web con `docker run --rm -v "$PWD/web:/app" -v workspace_web-node-modules:/app/node_modules -w /app node:24 npm run test -- --run <spec>` (y `npm run typecheck`).
 
 ## Mejoras propuestas
+- [ ] M-1 — `canManageLogSources` es un alias de `canManageInvitations`: definirlo con su propia regla de roles para
+  no acoplar el permiso de integraciones al de invitaciones. Complejidad: baja (sonnet).
+- [ ] M-2 — Revisar que el sidebar marque el proyecto activo también en la ruta `project-integrations` si lo decide
+  por nombre de ruta. Complejidad: baja (sonnet).

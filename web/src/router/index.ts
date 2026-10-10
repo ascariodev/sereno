@@ -8,6 +8,7 @@ import { ApiError } from '../api/client'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
 import ChannelView from '../views/ChannelView.vue'
+import IntegrationsView from '../views/IntegrationsView.vue'
 import InvitationsView from '../views/InvitationsView.vue'
 import InviteView from '../views/InviteView.vue'
 import LogView from '../views/LogView.vue'
@@ -43,6 +44,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
           { path: 'channels/:id', name: 'channel', component: ChannelView },
           { path: 'projects/:projectId/log', name: 'project-log', component: LogView },
           { path: 'projects/:projectId/plan', name: 'project-plan', component: PlanView },
+          { path: 'projects/:projectId/integrations', name: 'project-integrations', component: IntegrationsView },
           { path: 'settings/invitations', name: 'invitations', component: InvitationsView },
           { path: 'settings/members', name: 'members', component: MembersView },
         ],

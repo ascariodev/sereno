@@ -129,6 +129,19 @@
     "theme": "Tema",
     "language": "Idioma"
   },
+  "integrations": {
+    "title": "Integraciones",
+    "description": "Las fuentes de log envían los eventos de este proyecto a su canal.",
+    "loadFailed": "No se pudieron cargar las fuentes de log.",
+    "notFound": "Proyecto no encontrado.",
+    "empty": "Este proyecto aún no tiene fuentes de log.",
+    "keyPrefix": "Clave",
+    "lastUsed": "Último uso",
+    "neverUsed": "Nunca",
+    "created": "Creada",
+    "revoked": "Revocada",
+    "noPermission": "Solo los propietarios y administradores pueden gestionar las integraciones."
+  },
   "invitations": {
     "invite": "Invitar",
     "title": "Invitaciones pendientes",

@@ -129,6 +129,19 @@
     "theme": "Theme",
     "language": "Language"
   },
+  "integrations": {
+    "title": "Integrations",
+    "description": "Log sources send this project's events to its channel.",
+    "loadFailed": "Could not load the log sources.",
+    "notFound": "Project not found.",
+    "empty": "This project has no log sources yet.",
+    "keyPrefix": "Key",
+    "lastUsed": "Last used",
+    "neverUsed": "Never",
+    "created": "Created",
+    "revoked": "Revoked",
+    "noPermission": "Only owners and admins can manage integrations."
+  },
   "invitations": {
     "invite": "Invite",
     "title": "Pending invitations",
