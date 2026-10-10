@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 14
+**Estado:** en curso · Fase actual: 15
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -101,7 +101,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   del API, `insert`/`replace`/`remove` para eventos en vivo e idempotentes con la respuesta propia, filtros Todas,
   Mías y Desde avisos.
 
-### [ ] Fase 14 — Ruta y pestaña Plan (web) [límite: 5 archivos]
+### [x] Fase 14 — Ruta y pestaña Plan (web) [límite: 5 archivos]
 - Ruta `projects/:projectId/plan` con `PlanView` (cabecera y estado de carga), pestaña Plan en `ProjectHeader`, i18n.
 
 ### [ ] Fase 15 — Plan en la barra lateral y la paleta (web)
@@ -191,9 +191,12 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   nunca cargó bien; luego un `refresh()` fallido conserva la lista. `open()` del proyecto ya abierto solo recarga y
   no invalida las acciones en vuelo. Las fases 21 y 22 calculan `afterId`/`beforeId` sobre `columns`, nunca sobre
   `visibleColumns` (el API exige vecinos contiguos en la columna completa).
+- 2026-10-10 — Fase 14: ruta `project-plan` (`projects/:projectId/plan`), pestañas Canal, Plan, Log; i18n bajo
+  `plan.*`. Los límites de archivos de las fases cuentan solo código de producción, no specs.
 
 ## Notas para la próxima sesión
-- API terminado (fases 1 a 11). Web: fase 13 hecha: `useTasksStore` con `open`, `refresh` (reconexión), `clear`,
+- API terminado (fases 1 a 11). Web: fase 14 hecha (`PlanView` abre el store por `projectId`, `clear()` al
+  desmontar; un spec que monte `ProjectHeader` con router propio registra `project-plan`). Fase 13: `useTasksStore` con `open`, `refresh` (reconexión), `clear`,
   `columns`, `visibleColumns`, `filter` (`all|mine|from_notices`, no lo reinicia `clear`), `find`, `insert`/`replace`/
   `remove` (eventos), `create`/`update`/`move`/`destroy` (lanzan `ApiError`, devuelven la tarea). Fase 12 (`api/types.ts` con `Task`, `TASK_STATUSES` en orden de
   columnas, `isTaskStatus` para validar eventos, L-13; `api/tasks.ts` con parámetros en camelCase). Trampa de tests: una tarea creada a mano debe
@@ -244,3 +247,5 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   solo con los campos definidos, como `updateTask`.
 - [ ] M-19 (baja, sonnet): `tasks` store: `destroy` quita la tarea si el API responde 404; con "Mías" y sin usuario
   cargado, decidir qué mostrar; guard en vez de `as number` al olvidar el tombstone más viejo.
+- [ ] M-20 (baja, sonnet): `PlanView.spec`: test del cambio de organización; orden de imports de iconos en
+  `ProjectHeader.vue`.

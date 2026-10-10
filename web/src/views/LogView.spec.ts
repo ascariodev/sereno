@@ -390,9 +390,9 @@ describe('LogView', () => {
     mockApi(() => page([group(1)]))
     const wrapper = await mountView('/projects/5/log?status=all')
     const tabs = wrapper.findAll('nav[aria-label="Project views"] a')
-    expect(tabs.map((tab) => tab.attributes('href'))).toEqual(['/channels/7', '/projects/5/log'])
+    expect(tabs.map((tab) => tab.attributes('href'))).toEqual(['/channels/7', '/projects/5/plan', '/projects/5/log'])
     expect(tabs[0].attributes('aria-current')).toBeUndefined()
-    expect(tabs[1].attributes('aria-current')).toBe('page')
+    expect(tabs[2].attributes('aria-current')).toBe('page')
 
     await tabs[0].trigger('click')
     await vi.waitFor(() => expect(wrapper.router.currentRoute.value.name).toBe('channel'))

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Activity, MessageSquare } from '@lucide/vue'
+import { Activity, SquareKanban, MessageSquare } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import ProjectKey from './ui/ProjectKey.vue'
 
@@ -35,6 +35,10 @@ const { t } = useI18n()
           <MessageSquare :size="15" aria-hidden="true" />
           {{ t('projectTabs.channel') }}
         </span>
+        <RouterLink :to="{ name: 'project-plan', params: { projectId } }" class="project-header__tab">
+          <SquareKanban :size="15" aria-hidden="true" />
+          {{ t('projectTabs.plan') }}
+        </RouterLink>
         <RouterLink :to="{ name: 'project-log', params: { projectId } }" class="project-header__tab">
           <Activity :size="15" aria-hidden="true" />
           {{ t('projectTabs.log') }}

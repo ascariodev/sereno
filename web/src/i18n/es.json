@@ -336,7 +336,13 @@
   "projectTabs": {
     "label": "Vistas del proyecto",
     "channel": "Canal",
+    "plan": "Plan",
     "log": "Log"
+  },
+  "plan": {
+    "title": "Plan",
+    "notFound": "Este proyecto no existe o no tienes acceso.",
+    "loadFailed": "No se pudieron cargar las tareas."
   },
   "log": {
     "title": "Log",
