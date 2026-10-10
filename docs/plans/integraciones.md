@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12 (esperando decisiones del usuario)
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -103,7 +103,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   `composer.json` (+ test con Testbench).
 - **Terminado cuando:** test: `Log::channel('sereno')` usa el handler con la config; sin variables no hace HTTP.
 
-### [ ] Fase 11 — README y primera versión del paquete
+### [x] Fase 11 — README y primera versión del paquete
 - **Alcance:** README (instalar con repositorio `vcs` de Gitea, variables, agregar `sereno` al `stack`, lotes,
   sin reintentos, FPM, acceso a repo privado con token); commit y tag `v0.1.0`. El usuario crea el repo en Gitea;
   el push solo con su pedido.
@@ -136,6 +136,14 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   el aviso de proyecto inexistente, para poder volver a canal, plan y log desde Integraciones.
 
 ## Notas para la próxima sesión
+- Fase 11: README en inglés; tag local `v0.1.0` en el último commit de `feat/paquete` (sin merge a `main` del
+  paquete ni push: los pide el usuario). Repo privado con `http-basic.gitea.ascario.dev USUARIO TOKEN` (Composer no
+  soporta `gitea-token`; verificado con Composer 2.10.3). Supuestos a confirmar: URL
+  `https://gitea.ascario.dev/ascario/sereno-laravel.git` y scope del token `read:repository`. Sin licencia en el
+  README (`composer.json` dice `proprietary`).
+- Antes de la fase 12 el usuario decide: rama de posveapi (desde `feat/workspace-logs`), `WORKSPACE_LOG_*` o
+  `SERENO_LOG_*`, y cómo instala posveapi el paquete sin el repo en Gitea (crear y subir el repo, o un repositorio
+  `path` local temporal).
 - Fase 10: el provider registra el canal `sereno` en `register()` solo si `logging.channels.sereno` no existe (vale
   con `config:cache`); publica con el tag `sereno-config`. Variables `SERENO_LOG_URL`, `_KEY`, `_TIMEOUT`, `_LEVEL`,
   `_FALLBACK_CHANNEL`. Testbench no usa el auto-discovery del paquete raíz: `tests/TestCase.php` declara el provider
