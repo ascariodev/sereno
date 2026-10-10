@@ -363,6 +363,17 @@
     "assignedTo": "Asignada a {name}",
     "fromNotice": "Desde un aviso de log"
   },
+  "taskAside": {
+    "label": "Detalle de la tarea",
+    "close": "Cerrar detalle",
+    "save": "Guardar cambios",
+    "saving": "Guardando...",
+    "notFound": "Esta tarea ya no existe.",
+    "readOnly": "Este proyecto está archivado; la tarea es de solo lectura.",
+    "fromNotice": "Aviso de origen",
+    "openNotice": "Ver el aviso",
+    "failed": "No se pudo guardar la tarea. Inténtalo de nuevo."
+  },
   "taskCreate": {
     "title": "Nueva tarea",
     "titleLabel": "Título",

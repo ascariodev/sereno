@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 19
+**Estado:** en curso · Fase actual: 20
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -118,7 +118,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - Diálogo `TaskCreateDialog` (título, descripción, asignado desde `memberDirectory`) desde "Nueva tarea" y "Agregar
   tarea" de cada columna; errores 422/429; foco al cerrar.
 
-### [ ] Fase 19 — Panel de detalle de la tarea (web)
+### [x] Fase 19 — Panel de detalle de la tarea (web)
 - `?task=<id>` abre `TaskAside` (hoja en móvil): editar título, descripción y asignado; enlace al aviso de origen.
 
 ### [ ] Fase 20 — Borrar una tarea (web)
@@ -195,7 +195,10 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `plan.*`. Los límites de archivos de las fases cuentan solo código de producción, no specs.
 
 ## Notas para la próxima sesión
-- API terminado (fases 1 a 11). Web: fase 18 hecha: `TaskCreateDialog` (props `projectId`, `status`,
+- API terminado (fases 1 a 11). Web: fase 19 hecha: `TaskAside` (columna de 340px, hoja en móvil) se monta
+  solo tras la carga; tarea ausente, borrada en vivo o 404 cierran con toast y `router.replace` sin `task` (conserva
+  la query). Edición en vivo no pisa un formulario tocado. Límites compartidos en `components/taskLimits.ts`.
+  Layout del panel sin revisar en navegador. Fase 18: `TaskCreateDialog` (props `projectId`, `status`,
   `initialTitle`, `logGroupId`, `v-model:open`; emite `created(task)`; devuelve el foco a quien lo abrió). Para 24 y
   25: si el botón se reemplaza por el enlace "Ver POSVE-12", enfocar el enlace desde `@created`; recortar a 200
   caracteres el título del grupo al prellenar. Botones de crear ocultos en proyecto archivado. Fase 17: filtro en `?filter=` (fuente de verdad, copia a
@@ -262,3 +265,5 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   "Desde avisos" (diseño) y reescribir un `?filter=` inválido.
 - [ ] M-23 (baja, sonnet): `TaskCreateDialog`: alternativa de foco cuando `document.activeElement` es `body` al abrir
   (Safari no enfoca botones al hacer clic).
+- [ ] M-24 (baja, sonnet): `TaskAside.spec`: sembrar usuario autenticado y restaurar `window.matchMedia`;
+  `PlanView.spec`: borrado en vivo con el panel abierto quita `?task=` y conserva `?filter=`.

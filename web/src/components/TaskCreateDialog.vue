@@ -6,10 +6,8 @@ import type { Task, TaskStatus } from '../api/types'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { useTasksStore } from '../stores/tasks'
+import { TASK_DESCRIPTION_MAX_LENGTH, TASK_TITLE_MAX_LENGTH } from './taskLimits'
 import AppDialog from './ui/AppDialog.vue'
-
-const TASK_TITLE_MAX_LENGTH = 200
-const TASK_DESCRIPTION_MAX_LENGTH = 10000
 
 const props = withDefaults(
   defineProps<{

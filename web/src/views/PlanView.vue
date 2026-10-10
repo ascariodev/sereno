@@ -4,6 +4,7 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ProjectHeader from '../components/ProjectHeader.vue'
+import TaskAside from '../components/TaskAside.vue'
 import TaskCard from '../components/TaskCard.vue'
 import TaskCreateDialog from '../components/TaskCreateDialog.vue'
 import { TASK_STATUSES, type TaskStatus } from '../api/types'
@@ -41,6 +42,10 @@ const activeFilter = computed<TaskFilter>(() => {
 const canCreate = computed(() => project.value !== null && project.value.archived_at === null)
 const createOpen = ref(false)
 const createStatus = ref<TaskStatus>('todo')
+const taskId = computed(() => {
+  const raw = Array.isArray(route.query.task) ? route.query.task[0] : route.query.task
+  return typeof raw === 'string' && /^[1-9]\d*$/.test(raw) ? Number(raw) : null
+})
 const showLoading = computed(() => validId.value && loadError.value === null && tasks.loading)
 
 function load(): void {
@@ -51,6 +56,13 @@ function load(): void {
 function openCreate(status: TaskStatus): void {
   createStatus.value = status
   createOpen.value = true
+}
+
+function closeTask(replace = false): void {
+  const query = { ...route.query }
+  delete query.task
+  if (replace) void router.replace({ query })
+  else void router.push({ query })
 }
 
 function setFilter(value: TaskFilter): void {
@@ -95,7 +107,8 @@ onUnmounted(() => tasks.clear())
         <button type="button" name="retry" @click="load">{{ t('common.retry') }}</button>
       </p>
       <p v-else-if="showLoading">{{ t('common.loading') }}</p>
-      <template v-else>
+      <div v-else class="plan-view__layout">
+      <div class="plan-view__content">
       <div class="plan-view__filters" role="group" :aria-label="t('plan.filters.label')">
         <button
           v-for="item in TASK_FILTERS"
@@ -137,7 +150,16 @@ onUnmounted(() => tasks.clear())
           </button>
         </section>
       </div>
-      </template>
+      </div>
+      <TaskAside
+        v-if="taskId !== null"
+        class="plan-view__aside"
+        :project-id="projectId"
+        :task-id="taskId"
+        :read-only="!canCreate"
+        @close="closeTask"
+      />
+      </div>
     </div>
     <TaskCreateDialog
       v-if="canCreate"
@@ -160,6 +182,20 @@ onUnmounted(() => tasks.clear())
 .plan-view__main {
   min-width: 0;
   padding: var(--space-5) 28px 28px;
+}
+.plan-view__layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.plan-view__content {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.plan-view__aside {
+  flex: 0 0 min(340px, 40%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
 }
 .plan-view__filters {
   display: flex;

@@ -9,6 +9,7 @@ import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import { useTasksStore } from '../stores/tasks'
+import { toast } from '../components/ui/toast'
 import PlanView from './PlanView.vue'
 
 enableAutoUnmount(afterEach)
@@ -280,6 +281,72 @@ describe('PlanView', () => {
       const wrapper = await mountView()
       expect(wrapper.find('button[name=new-task]').exists()).toBe(false)
       expect(wrapper.find('button[name=add-todo]').exists()).toBe(false)
+    })
+  })
+
+  describe('task panel', () => {
+    const task = (id: number, extra: Record<string, unknown> = {}) => ({
+      id, project_id: 5, key: `POSVE-${id}`, number: id, title: `Task ${id}`, description: null, status: 'todo', position: id,
+      created_by: 1, assignee: null, log_group: null, created_at: '2026-10-10T00:00:00.000000Z', updated_at: '2026-10-10T00:00:00.000000Z', ...extra,
+    })
+
+    it('opens the panel from ?task= and closing keeps ?filter=', async () => {
+      mockApi(() => ({ data: [task(1), task(2)] }))
+      const wrapper = await mountView('/projects/5/plan?filter=all&task=2&x=1')
+      expect((wrapper.get('#task-aside-title').element as HTMLInputElement).value).toBe('Task 2')
+      await wrapper.get('button[name=close-task]').trigger('click')
+      await flushPromises()
+      expect(wrapper.router.currentRoute.value.query).toEqual({ filter: 'all', x: '1' })
+      expect(wrapper.find('#task-aside-title').exists()).toBe(false)
+    })
+
+    it('replaces the URL and shows no panel when the task does not exist', async () => {
+      mockApi(() => ({ data: [task(1)] }))
+      const wrapper = await mountView('/projects/5/plan?filter=mine&task=99')
+      expect(wrapper.find('#task-aside-title').exists()).toBe(false)
+      expect(wrapper.router.currentRoute.value.query).toEqual({ filter: 'mine' })
+    })
+
+    it('does not close a deep link while the tasks are still loading', async () => {
+      const error = vi.spyOn(toast, 'error')
+      let release!: () => void
+      const gate = new Promise<void>((resolve) => (release = resolve))
+      mockApi(async () => {
+        await gate
+        return { data: [task(1)] }
+      })
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      useAuthStore().$patch({ token: 't', user: { id: 1, name: 'Ana', email: 'a@b.c', locale: null } })
+      useOrganizationStore().$patch({ activeId: 1 })
+      const router = createAppRouter(createMemoryHistory())
+      await router.push('/projects/5/plan?task=1')
+      const wrapper = mount(PlanView, { global: { plugins: [pinia, i18n, router] } })
+      await flushPromises()
+      expect(wrapper.find('#task-aside-title').exists()).toBe(false)
+      expect(error).not.toHaveBeenCalled()
+      expect(router.currentRoute.value.query).toEqual({ task: '1' })
+      release()
+      await flushPromises()
+      expect((wrapper.get('#task-aside-title').element as HTMLInputElement).value).toBe('Task 1')
+      expect(error).not.toHaveBeenCalled()
+    })
+
+    it('ignores a malformed ?task=', async () => {
+      mockApi(() => ({ data: [task(1)] }))
+      const wrapper = await mountView('/projects/5/plan?task=abc')
+      expect(wrapper.find('#task-aside-title').exists()).toBe(false)
+    })
+
+    it('is read-only in an archived project', async () => {
+      vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/projects') return { data: [{ ...project(5, 'POSVE'), archived_at: '2026-01-01' }], meta: { last_page: 1 } } as never
+        if (path === '/api/channels') return { data: [] } as never
+        return { data: [task(1)] } as never
+      })
+      const wrapper = await mountView('/projects/5/plan?task=1')
+      expect((wrapper.get('#task-aside-title').element as HTMLInputElement).readOnly).toBe(true)
+      expect(wrapper.find('[data-test=submit]').exists()).toBe(false)
     })
   })
 })

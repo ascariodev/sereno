@@ -363,6 +363,17 @@
     "assignedTo": "Assigned to {name}",
     "fromNotice": "From a log notice"
   },
+  "taskAside": {
+    "label": "Task details",
+    "close": "Close details",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "notFound": "This task no longer exists.",
+    "readOnly": "This project is archived; the task is read-only.",
+    "fromNotice": "Origin notice",
+    "openNotice": "View the notice",
+    "failed": "Could not save the task. Try again."
+  },
   "taskCreate": {
     "title": "New task",
     "titleLabel": "Title",

@@ -57,6 +57,8 @@
 
 - L-44: El error de la carga inicial se decide con un flag propio del recurso ("nunca cargó bien"), no con un parámetro por llamada: una recarga que reemplaza a la inicial y falla deja la vista vacía, sin error ni carga. — aplicada en: test (tasks.spec)
 
+- L-45: Un `vi.spyOn` sobre una función de la API lleva siempre implementación (`mockResolvedValue`): sin ella llama al API real, la petición queda en vuelo y el test falla según lo que tarde (intermitente solo en corridas combinadas). — aplicada en: test (TaskAside.spec)
+
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
 -->
