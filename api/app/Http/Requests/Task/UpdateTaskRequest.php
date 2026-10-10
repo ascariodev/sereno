@@ -44,7 +44,13 @@ class UpdateTaskRequest extends FormRequest
                     $validator->errors()->add('project', __('This project is archived and its tasks cannot be edited.'));
                 }
 
-                StoreTaskRequest::validateAssigneeAccess($validator, $project, $this->input('assignee_id'));
+                /** @var Task $task */
+                $task = $this->route('task');
+                $assigneeId = $this->input('assignee_id');
+
+                if ($assigneeId === null || (int) $assigneeId !== $task->assignee_id) {
+                    StoreTaskRequest::validateAssigneeAccess($validator, $project, $assigneeId);
+                }
             },
         ];
     }

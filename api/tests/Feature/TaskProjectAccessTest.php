@@ -77,3 +77,30 @@ it('rejects an assignee without access to the project', function () {
     taskAccessCall($this->admin, $this->organization, 'PATCH', "/{$this->mine->id}/tasks/{$task->id}", ['assignee_id' => $this->owner->id])
         ->assertOk();
 });
+
+it('keeps editing a task whose current assignee lost access, rejecting only a changed assignee', function () {
+    $lost = User::factory()->create();
+    $this->organization->addMember($lost, [Role::Member]);
+    $other = User::factory()->create();
+    $this->organization->addMember($other, [Role::Member]);
+
+    $task = new Task(['title' => 'Old', 'status' => 'todo', 'position' => 1.0]);
+    $task->project_id = $this->mine->id;
+    $task->number = 1;
+    $task->assignee_id = $lost->id;
+    $task->save();
+
+    $url = "/{$this->mine->id}/tasks/{$task->id}";
+
+    // Resending the unchanged assignee (who has no access) is not a reassignment: the edit goes through.
+    taskAccessCall($this->admin, $this->organization, 'PATCH', $url, ['title' => 'New', 'assignee_id' => $lost->id])
+        ->assertOk()->assertJsonPath('data.title', 'New');
+    taskAccessCall($this->admin, $this->organization, 'POST', "{$url}/move", ['status' => 'in_progress'])
+        ->assertOk();
+    expect($task->fresh()->assignee_id)->toBe($lost->id);
+
+    // Changing to another assignee without access still fails.
+    taskAccessCall($this->admin, $this->organization, 'PATCH', $url, ['assignee_id' => $other->id])
+        ->assertUnprocessable()->assertJsonValidationErrors(['assignee_id']);
+    expect($task->fresh()->assignee_id)->toBe($lost->id);
+});
