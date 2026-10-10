@@ -111,7 +111,7 @@ describe('AppLayout', () => {
     const { wrapper } = await mountApp()
     await openMenu('button[name=organization]')
     const options = [...document.querySelectorAll('[role^=menuitem]')]
-    expect(options.map((el) => el.textContent?.trim())).toEqual(['One', 'Two'])
+    expect(options.map((el) => el.textContent?.trim())).toEqual(['One', 'Two', 'New organization'])
     await pick('2')
     expect(useOrganizationStore().activeId).toBe(2)
     expect(wrapper.find('button[name=organization]').text()).toBe('Two')
@@ -120,9 +120,58 @@ describe('AppLayout', () => {
   it('shows a message without organizations and no page', async () => {
     const { wrapper } = await mountApp(async () => ({ data: [] }))
     expect(wrapper.text()).toContain('You do not belong to any organization yet.')
-    expect(wrapper.find('.app-layout__empty').text()).toContain('Ask an owner or admin')
+    expect(wrapper.find('.app-layout__empty').text()).toContain('ask an owner or admin')
     expect(wrapper.text()).not.toContain('Projects')
     expect(wrapper.find('button[name=organization]').exists()).toBe(false)
+  })
+
+  async function createOrganizationThroughDialog(name: string) {
+    const input = document.querySelector<HTMLInputElement>('#org-create-name')!
+    input.value = name
+    input.dispatchEvent(new Event('input'))
+    await settle()
+    document.querySelector<HTMLFormElement>('[role=dialog] form')!.dispatchEvent(new Event('submit', { cancelable: true }))
+    await settle()
+  }
+
+  it('creates an organization from the empty state and then renders the projects view', async () => {
+    let current: unknown[] = []
+    const created = { id: 9, name: 'Acme', slug: 'acme', settings: null, roles: ['owner'] }
+    const { wrapper } = await mountApp(async () => ({ data: current }))
+    vi.spyOn(api, 'post').mockImplementation(async () => {
+      current = [created]
+      return { data: created } as never
+    })
+    wrapper.find<HTMLButtonElement>('button[name=create-organization]').element.click()
+    await settle()
+    expect(document.querySelector('[role=dialog]')).not.toBeNull()
+
+    await createOrganizationThroughDialog('Acme')
+
+    expect(useOrganizationStore().activeId).toBe(9)
+    expect(wrapper.find('.app-layout__empty').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Projects')
+    expect(document.querySelector('[role=dialog]')).toBeNull()
+  })
+
+  it('opens the create dialog from the organization menu', async () => {
+    await mountApp()
+    await openMenu('button[name=organization]')
+    await pick('create')
+    expect(document.querySelector('[role=dialog] #org-create-name')).not.toBeNull()
+    expect(useOrganizationStore().activeId).toBe(1)
+  })
+
+  it('opening the create dialog from the drawer closes the drawer', async () => {
+    await mountApp()
+    document.querySelector<HTMLButtonElement>('button[name=open-sidebar]')!.click()
+    await settle()
+    expect(document.querySelectorAll('[role=dialog]')).toHaveLength(1)
+    await openMenu('[role=dialog] button[name=organization]')
+    await pick('create')
+    const dialogs = [...document.querySelectorAll('[role=dialog]')]
+    expect(dialogs).toHaveLength(1)
+    expect(dialogs[0].querySelector('#org-create-name')).not.toBeNull()
   })
 
   it('shows an error when loading fails', async () => {

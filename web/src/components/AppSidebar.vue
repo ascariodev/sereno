@@ -16,7 +16,7 @@ import BrandMark from './ui/BrandMark.vue'
 import ProjectKey from './ui/ProjectKey.vue'
 
 const props = defineProps<{ collapsed?: boolean; collapsible?: boolean }>()
-defineEmits<{ search: []; toggle: [] }>()
+defineEmits<{ search: []; toggle: []; createOrganization: [] }>()
 
 const { t } = useI18n()
 const organization = useOrganizationStore()
@@ -93,7 +93,7 @@ function currentFor(projectId: number): 'page' | undefined {
       </AppTooltip>
     </div>
 
-    <OrgSwitcher />
+    <OrgSwitcher @create="$emit('createOrganization')" />
 
     <div class="app-sidebar__group">
       <AppTooltip :text="t('command.open')" side="right" :disabled="!collapsed">

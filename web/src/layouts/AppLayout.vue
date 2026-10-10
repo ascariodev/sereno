@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 import AppSidebar from '../components/AppSidebar.vue'
 import CommandPalette from '../components/CommandPalette.vue'
 import MobileTopBar from '../components/MobileTopBar.vue'
+import OrganizationCreateDialog from '../components/OrganizationCreateDialog.vue'
 import AppDialog from '../components/ui/AppDialog.vue'
 import { useMembershipWatch } from '../realtime/useMembershipWatch'
 import { useAuthStore } from '../stores/auth'
@@ -18,6 +19,7 @@ const auth = useAuthStore()
 const mentions = useMentionsStore()
 const drawerOpen = ref(false)
 const paletteOpen = ref(false)
+const orgCreateOpen = ref(false)
 
 useMembershipWatch()
 
@@ -52,6 +54,10 @@ function toggleSidebar(): void {
 }
 
 watch(paletteOpen, (open) => {
+  if (open) drawerOpen.value = false
+})
+
+watch(orgCreateOpen, (open) => {
   if (open) drawerOpen.value = false
 })
 
@@ -118,7 +124,7 @@ onBeforeUnmount(() => {
       :close-label="t('sidebar.close')"
     >
       <div @click="closeDrawerOnLink">
-        <AppSidebar @search="paletteOpen = true" />
+        <AppSidebar @search="paletteOpen = true" @create-organization="orgCreateOpen = true" />
       </div>
     </AppDialog>
     <AppSidebar
@@ -127,8 +133,10 @@ onBeforeUnmount(() => {
       :collapsed="sidebarCollapsed"
       @search="paletteOpen = true"
       @toggle="toggleSidebar"
+      @create-organization="orgCreateOpen = true"
     />
     <CommandPalette v-model:open="paletteOpen" />
+    <OrganizationCreateDialog v-model:open="orgCreateOpen" />
     <main class="app-layout__main">
       <p v-if="loading">{{ t('common.loading') }}</p>
       <p v-else-if="failed" role="alert">
@@ -138,6 +146,9 @@ onBeforeUnmount(() => {
       <p v-else-if="organization.loaded && organization.activeId === null" class="app-layout__empty">
         <strong>{{ t('organization.none') }}</strong>
         <span>{{ t('organization.noneHint') }}</span>
+        <button type="button" name="create-organization" class="app-layout__create" @click="orgCreateOpen = true">
+          {{ t('organization.create') }}
+        </button>
       </p>
       <RouterView v-else-if="organization.activeId !== null" />
     </main>
@@ -187,6 +198,19 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-panel);
   color: var(--ink-3);
   text-align: center;
+}
+
+.app-layout__create {
+  min-height: 44px;
+  margin-top: var(--space-2);
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .app-layout__empty strong {

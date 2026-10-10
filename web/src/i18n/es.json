@@ -96,7 +96,8 @@
   "organization": {
     "label": "Organización",
     "none": "Aún no perteneces a ninguna organización.",
-    "noneHint": "Pide a un propietario o administrador de tu equipo que te envíe una invitación.",
+    "noneHint": "Crea una organización o pide a un propietario o administrador de tu equipo que te envíe una invitación.",
+    "create": "Crear organización",
     "loadFailed": "No se pudieron cargar tus organizaciones.",
     "revoked": "Ya no perteneces a {organization}.",
     "revokedUnknown": "Ya no perteneces a esa organización."

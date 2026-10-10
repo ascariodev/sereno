@@ -2,7 +2,7 @@
 
 **Objetivo:** que una persona pueda registrarse, crear su organización y crear proyectos desde la web, sin `curl`, y que
 el registro abierto se pueda cerrar por entorno dejando solo la entrada por invitación.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -92,7 +92,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - **Archivos:** `web/src/components/OrganizationCreateDialog.vue` (nuevo), `i18n/es.json`, `i18n/en.json`, spec.
 - **Terminado cuando:** el spec cubre éxito, 422 con ARIA, red y que no cierra mientras envía.
 
-### [ ] Fase 10 — Entradas para crear organización
+### [x] Fase 10 — Entradas para crear organización
 - **Alcance:** botón "Crear organización" en el estado vacío de `AppLayout` (al crear, la vista normal aparece con la
   nueva organización) e ítem "Nueva organización" en `OrgSwitcher`. Ajustar `organization.noneHint`.
 - **Archivos:** `web/src/layouts/AppLayout.vue`, `web/src/components/OrgSwitcher.vue`, `i18n/es.json`, `i18n/en.json`,
@@ -133,6 +133,9 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   usan `vi.spyOn(registration, 'registrationStatus').mockResolvedValue(...)` (módulo `web/src/api/registration.ts`).
 - 2026-10-10 — (Fase 9) `OrganizationCreateDialog` usa `v-model:open` y emite `created(org)`; no lleva el watcher de
   `organization.activeId` de `TaskCreateDialog` (lo cerraría antes de tiempo, porque `create()` cambia la activa).
+- 2026-10-10 — (Fase 10) `AppLayout` es el único dueño de `OrganizationCreateDialog`; `OrgSwitcher` emite `create` y
+  `AppSidebar` lo reenvía como `createOrganization` (se tocó `AppSidebar.vue`, fuera de la lista del plan). Al abrir el
+  diálogo se cierra el cajón móvil (L-23). La fase 12 puede seguir el mismo patrón para `ProjectCreateDialog`.
 
 ## Notas para la próxima sesión
 - Fase 1 hecha: con el registro cerrado, registrarse exige una invitación usable del mismo email, pero no la acepta.
@@ -149,6 +152,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - Fase 8 hecha: enlace `login.noAccount` en `LoginView`, solo con `enabled === true`.
 - Fase 9 hecha: `OrganizationCreateDialog` (claves `orgCreate.*`). Desde el estado vacío de `AppLayout`, la vista
   normal aparece sola porque `create()` selecciona la nueva.
+- Fase 10 hecha: botón `create-organization` en el estado vacío e ítem "Nueva organización" en `OrgSwitcher`.
 - Editar con Edit o `sed`: escribir con Python en Windows mete CRLF y rompe Pint (`line_ending`).
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
