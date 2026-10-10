@@ -7,6 +7,8 @@ import { i18n } from '../i18n'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { useProjectsStore } from '../stores/projects'
+import { openProjectCreateKey } from '../composables/useProjectCreate'
 import ProjectsView from './ProjectsView.vue'
 
 const project = (id: number, name: string, archived_at: string | null = null) => ({
@@ -102,6 +104,37 @@ describe('ProjectsView', () => {
     expect(wrapper.text()).not.toContain('Stale')
   })
 
+  it('keeps the list visible while reloading after create and shows loading with an empty list', async () => {
+    const page = { current_page: 1, last_page: 1, per_page: 100, total: 1 }
+    let hold = false
+    let resolveReload: (value: unknown) => void = () => {}
+    vi.spyOn(api, 'get').mockImplementation((path: string) => {
+      if (path !== '/api/projects') return Promise.resolve({ data: [] } as never)
+      if (hold) return new Promise((resolve) => (resolveReload = resolve)) as never
+      return Promise.resolve({ data: [project(1, 'Alpha')], meta: page } as never)
+    })
+    vi.spyOn(api, 'post').mockImplementation(async () => {
+      hold = true
+      return { data: project(2, 'Beta') } as never
+    })
+    const wrapper = await mountView()
+    const store = useProjectsStore()
+    const creating = store.create({ name: 'Beta', key: 'K2' })
+    await flushPromises()
+    expect(store.loading).toBe(true)
+    expect(wrapper.text()).toContain('Alpha')
+    expect(wrapper.text()).not.toContain(i18n.global.t('common.loading'))
+    resolveReload({ data: [project(1, 'Alpha'), project(2, 'Beta')], meta: page })
+    await creating
+    await flushPromises()
+    expect(wrapper.findAll('li')).toHaveLength(2)
+
+    void store.reload()
+    await flushPromises()
+    expect(wrapper.text()).toContain(i18n.global.t('common.loading'))
+    expect(wrapper.findAll('li')).toHaveLength(0)
+  })
+
   it('shows an error on failure', async () => {
     vi.spyOn(api, 'get').mockRejectedValue(new ApiError(500, 'boom'))
     const wrapper = await mountView()
@@ -181,5 +214,40 @@ describe('ProjectsView', () => {
     const wrapper = await mountView()
     expect(wrapper.find('#project-1-health').exists()).toBe(false)
     expect(wrapper.find('a').attributes('aria-describedby')).toBeUndefined()
+  })
+
+  describe('create project entry', () => {
+    const setRoles = (roles: string[]) =>
+      useOrganizationStore().$patch({ organizations: [{ id: 1, name: 'One', slug: 'one', settings: null, roles }] })
+
+    async function mountWith(roles: string[], open: () => void) {
+      vi.spyOn(api, 'get').mockResolvedValue({ data: [], meta: { current_page: 1, last_page: 1, per_page: 100, total: 0 } } as never)
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      useOrganizationStore().$patch({ activeId: 1 })
+      setRoles(roles)
+      useAuthStore().$patch({ user: { id: 1, name: 'Sergio', email: 's@x.test', locale: 'en' } })
+      const router = createAppRouter(createMemoryHistory())
+      const wrapper = mount(ProjectsView, {
+        global: { plugins: [pinia, i18n, router], provide: { [openProjectCreateKey as symbol]: open } },
+      })
+      await flushPromises()
+      return wrapper
+    }
+
+    it.each([['owner'], ['admin']])('shows both buttons to %s and each opens the dialog', async (role) => {
+      const open = vi.fn()
+      const wrapper = await mountWith([role], open)
+      await wrapper.find('button[name=create-project]').trigger('click')
+      await wrapper.find('button[name=create-project-empty]').trigger('click')
+      expect(open).toHaveBeenCalledTimes(2)
+    })
+
+    it('hides the buttons from a member and keeps the empty state', async () => {
+      const wrapper = await mountWith(['member'], vi.fn())
+      expect(wrapper.find('button[name=create-project]').exists()).toBe(false)
+      expect(wrapper.find('button[name=create-project-empty]').exists()).toBe(false)
+      expect(wrapper.text()).toContain('No projects yet.')
+    })
   })
 })

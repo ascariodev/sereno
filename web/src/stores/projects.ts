@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { api } from '../api/client'
+import { createProject, type CreateProjectInput } from '../api/projects'
 import type { Channel, Paginated, Project } from '../api/types'
 import { useOrganizationStore } from './organization'
 
@@ -44,11 +45,13 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = false
   }
 
-  async function reload(): Promise<void> {
+  async function load(keepCurrent: boolean): Promise<void> {
     const current = ++generation
     cancelCountsRefresh()
-    projects.value = []
-    channelByProject.value = {}
+    if (!keepCurrent) {
+      projects.value = []
+      channelByProject.value = {}
+    }
     failed.value = false
     loading.value = true
     try {
@@ -65,6 +68,16 @@ export const useProjectsStore = defineStore('projects', () => {
     } finally {
       if (current === generation) loading.value = false
     }
+  }
+
+  function reload(): Promise<void> {
+    return load(false)
+  }
+
+  async function create(input: CreateProjectInput): Promise<Project> {
+    const created = await createProject(input)
+    await load(true)
+    return created
   }
 
   async function fetchCounts(): Promise<void> {
@@ -106,5 +119,5 @@ export const useProjectsStore = defineStore('projects', () => {
     { immediate: true },
   )
 
-  return { projects, channelByProject, loading, failed, reload, clear, refreshCounts }
+  return { projects, channelByProject, loading, failed, reload, create, clear, refreshCounts }
 })

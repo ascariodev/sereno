@@ -41,6 +41,11 @@ class AuthController extends Controller
         return $this->tokenResponse($user, $request->input('device_name'));
     }
 
+    public function registration(): JsonResponse
+    {
+        return response()->json(['enabled' => (bool) config('auth.registration_enabled')]);
+    }
+
     public function logout(Request $request): Response
     {
         $request->user()->currentAccessToken()->delete();

@@ -21,6 +21,7 @@
     "heroTitle": "Tus sistemas te avisan donde ya conversas.",
     "heroText": "El aviso, la conversación y la tarea viven en el mismo canal del proyecto.",
     "invited": "¿Te invitaron a una organización? Abre el enlace de tu correo.",
+    "noAccount": "¿No tienes cuenta? Regístrate",
     "title": "Iniciar sesión",
     "email": "Correo electrónico",
     "password": "Contraseña",
@@ -29,6 +30,24 @@
     "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
     "network": "No se pudo conectar con el servidor.",
     "failed": "No se pudo iniciar sesión. Inténtalo de nuevo."
+  },
+  "register": {
+    "title": "Crear cuenta",
+    "name": "Nombre",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "passwordConfirmation": "Confirmar contraseña",
+    "submit": "Crear cuenta",
+    "submitting": "Creando cuenta...",
+    "haveAccount": "¿Ya tienes cuenta? Inicia sesión",
+    "closed": "El registro está cerrado, pide una invitación.",
+    "toLogin": "Ir a iniciar sesión",
+    "statusError": "No pudimos comprobar si el registro está abierto. Inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "closedError": "El registro está cerrado, pide una invitación.",
+    "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo crear la cuenta. Inténtalo de nuevo."
   },
   "sessionError": {
     "title": "No se pudo cargar tu sesión.",
@@ -73,13 +92,15 @@
     "signInInstead": "Inicia sesión para aceptar",
     "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
     "registerFailed": "No se pudo crear la cuenta. Inténtalo de nuevo.",
+    "registerClosed": "El registro está cerrado y esta invitación no permite crear una cuenta. Pide una nueva a quien te invitó.",
     "accountCreatedNotJoined": "Tu cuenta se creó, pero aún no te uniste a la organización.",
     "accountCreatedUnusable": "Tu cuenta se creó, pero no se pudo aceptar la invitación."
   },
   "organization": {
     "label": "Organización",
     "none": "Aún no perteneces a ninguna organización.",
-    "noneHint": "Pide a un propietario o administrador de tu equipo que te envíe una invitación.",
+    "noneHint": "Crea una organización o pide a un propietario o administrador de tu equipo que te envíe una invitación.",
+    "create": "Crear organización",
     "loadFailed": "No se pudieron cargar tus organizaciones.",
     "revoked": "Ya no perteneces a {organization}.",
     "revokedUnknown": "Ya no perteneces a esa organización."
@@ -189,6 +210,7 @@
     "loadFailed": "No se pudieron cargar los proyectos.",
     "empty": "Aún no hay proyectos.",
     "emptyHint": "Los proyectos a los que perteneces aparecen aquí.",
+    "create": "Nuevo proyecto",
     "healthOpen": "{n} abierto | {n} abiertos",
     "healthCalm": "Todo en calma"
   },
@@ -409,6 +431,37 @@
     "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
     "network": "No se pudo conectar con el servidor.",
     "failed": "No se pudo crear la tarea. Inténtalo de nuevo."
+  },
+  "orgCreate": {
+    "title": "Nueva organización",
+    "nameLabel": "Nombre de la organización",
+    "nameRequired": "Escribe un nombre.",
+    "nameTooLong": "El nombre no puede superar {max} caracteres.",
+    "submit": "Crear organización",
+    "creating": "Creando...",
+    "cancel": "Cancelar",
+    "created": "Organización {name} creada.",
+    "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo crear la organización. Inténtalo de nuevo."
+  },
+  "projCreate": {
+    "title": "Nuevo proyecto",
+    "nameLabel": "Nombre",
+    "nameRequired": "Escribe un nombre.",
+    "nameTooLong": "El nombre no puede superar {max} caracteres.",
+    "keyLabel": "Clave",
+    "keyInvalid": "La clave empieza con una letra y tiene de 2 a 10 letras mayúsculas o números.",
+    "descriptionLabel": "Descripción (opcional)",
+    "descriptionTooLong": "La descripción no puede superar {max} caracteres.",
+    "submit": "Crear proyecto",
+    "creating": "Creando...",
+    "cancel": "Cancelar",
+    "created": "Proyecto {name} creado.",
+    "forbidden": "Solo los propietarios y administradores pueden crear proyectos.",
+    "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo crear el proyecto. Inténtalo de nuevo."
   },
   "log": {
     "title": "Log",

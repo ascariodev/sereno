@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AtSign, House, PanelLeftClose, PanelLeftOpen, Search } from '@lucide/vue'
+import { AtSign, House, PanelLeftClose, PanelLeftOpen, Plus, Search } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
@@ -16,7 +16,7 @@ import BrandMark from './ui/BrandMark.vue'
 import ProjectKey from './ui/ProjectKey.vue'
 
 const props = defineProps<{ collapsed?: boolean; collapsible?: boolean }>()
-defineEmits<{ search: []; toggle: [] }>()
+defineEmits<{ search: []; toggle: []; createOrganization: []; createProject: [] }>()
 
 const { t } = useI18n()
 const organization = useOrganizationStore()
@@ -93,7 +93,7 @@ function currentFor(projectId: number): 'page' | undefined {
       </AppTooltip>
     </div>
 
-    <OrgSwitcher />
+    <OrgSwitcher @create="$emit('createOrganization')" />
 
     <div class="app-sidebar__group">
       <AppTooltip :text="t('command.open')" side="right" :disabled="!collapsed">
@@ -178,6 +178,19 @@ function currentFor(projectId: number): 'page' | undefined {
           </span>
         </AppTooltip>
       </template>
+      <AppTooltip v-if="organization.canCreateProject" :text="t('projects.create')" side="right" :disabled="!collapsed">
+        <button
+          type="button"
+          name="create-project"
+          class="app-sidebar__link app-sidebar__create"
+          aria-haspopup="dialog"
+          :aria-label="collapsed ? t('projects.create') : undefined"
+          @click="$emit('createProject')"
+        >
+          <Plus :size="17" aria-hidden="true" />
+          <span v-if="!collapsed" class="app-sidebar__name">{{ t('projects.create') }}</span>
+        </button>
+      </AppTooltip>
       <p v-if="projectsStore.failed" class="app-sidebar__note">{{ t('projects.loadFailed') }}</p>
     </div>
 
@@ -298,7 +311,17 @@ function currentFor(projectId: number): 'page' | undefined {
   cursor: pointer;
 }
 
-.app-sidebar__search:focus-visible {
+.app-sidebar__create {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-sidebar__search:focus-visible,
+.app-sidebar__create:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }

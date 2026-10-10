@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
+import { useRegistrationStatus } from '../composables/useRegistrationStatus'
 import AppSegmented from '../components/ui/AppSegmented.vue'
 import BrandMark from '../components/ui/BrandMark.vue'
 import { toast } from '../components/ui/toast'
@@ -14,6 +15,12 @@ const { t, locale } = useI18n()
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+
+const { enabled: registrationOpen } = useRegistrationStatus()
+const registerLocation = computed(() => {
+  const redirect = safeRedirect(route.query.redirect)
+  return redirect ? { name: 'register', query: { redirect } } : { name: 'register' }
+})
 
 const emailInput = ref<HTMLInputElement | null>(null)
 const email = ref('')
@@ -148,6 +155,9 @@ async function submit(): Promise<void> {
           <button class="login__submit" type="submit" :disabled="submitting">
             {{ submitting ? t('login.submitting') : t('login.submit') }}
           </button>
+          <RouterLink v-if="registrationOpen" class="login__link" :to="registerLocation" data-test="register-link">
+            {{ t('login.noAccount') }}
+          </RouterLink>
           <p class="login__hint">{{ t('login.invited') }}</p>
         </form>
       </div>
@@ -265,6 +275,11 @@ async function submit(): Promise<void> {
 .login__hint {
   margin: 0;
   color: var(--ink-3);
+  font-size: 13px;
+  text-align: center;
+}
+.login__link {
+  color: var(--ink-2);
   font-size: 13px;
   text-align: center;
 }

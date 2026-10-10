@@ -21,6 +21,7 @@
     "heroTitle": "Your systems alert you where you already talk.",
     "heroText": "The alert, the conversation and the task live in the same project channel.",
     "invited": "Were you invited to an organization? Open the link in your email.",
+    "noAccount": "Don't have an account? Sign up",
     "title": "Sign in",
     "email": "Email",
     "password": "Password",
@@ -29,6 +30,24 @@
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "network": "Could not reach the server.",
     "failed": "Could not sign in. Try again."
+  },
+  "register": {
+    "title": "Create account",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "passwordConfirmation": "Confirm password",
+    "submit": "Create account",
+    "submitting": "Creating account...",
+    "haveAccount": "Already have an account? Sign in",
+    "closed": "Registration is closed, ask for an invitation.",
+    "toLogin": "Go to sign in",
+    "statusError": "We couldn't check whether registration is open. Try again.",
+    "retry": "Retry",
+    "closedError": "Registration is closed, ask for an invitation.",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not create the account. Try again."
   },
   "sessionError": {
     "title": "Could not load your session.",
@@ -73,13 +92,15 @@
     "signInInstead": "Sign in to accept",
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "registerFailed": "Could not create the account. Try again.",
+    "registerClosed": "Registration is closed and this invitation can't be used to create an account. Ask whoever invited you for a new one.",
     "accountCreatedNotJoined": "Your account was created, but you have not joined the organization yet.",
     "accountCreatedUnusable": "Your account was created, but the invitation could not be accepted."
   },
   "organization": {
     "label": "Organization",
     "none": "You do not belong to any organization yet.",
-    "noneHint": "Ask an owner or admin of your team to send you an invitation.",
+    "noneHint": "Create an organization, or ask an owner or admin of your team to send you an invitation.",
+    "create": "Create organization",
     "loadFailed": "Could not load your organizations.",
     "revoked": "You no longer belong to {organization}.",
     "revokedUnknown": "You no longer belong to that organization."
@@ -189,6 +210,7 @@
     "loadFailed": "Could not load the projects.",
     "empty": "No projects yet.",
     "emptyHint": "Projects you belong to appear here.",
+    "create": "New project",
     "healthOpen": "{n} open | {n} open",
     "healthCalm": "All calm"
   },
@@ -409,6 +431,37 @@
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "network": "Could not reach the server.",
     "failed": "Could not create the task. Try again."
+  },
+  "orgCreate": {
+    "title": "New organization",
+    "nameLabel": "Organization name",
+    "nameRequired": "Enter a name.",
+    "nameTooLong": "The name cannot exceed {max} characters.",
+    "submit": "Create organization",
+    "creating": "Creating...",
+    "cancel": "Cancel",
+    "created": "Organization {name} created.",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not create the organization. Try again."
+  },
+  "projCreate": {
+    "title": "New project",
+    "nameLabel": "Name",
+    "nameRequired": "Enter a name.",
+    "nameTooLong": "The name cannot exceed {max} characters.",
+    "keyLabel": "Key",
+    "keyInvalid": "The key starts with a letter and has 2 to 10 uppercase letters or digits.",
+    "descriptionLabel": "Description (optional)",
+    "descriptionTooLong": "The description cannot exceed {max} characters.",
+    "submit": "Create project",
+    "creating": "Creating...",
+    "cancel": "Cancel",
+    "created": "Project {name} created.",
+    "forbidden": "Only owners and admins can create projects.",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not create the project. Try again."
   },
   "log": {
     "title": "Log",

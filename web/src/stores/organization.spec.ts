@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { api } from '../api/client'
+import { ApiError, api } from '../api/client'
 import { leaveOrganization } from '../realtime/echo'
 import { useAuthStore } from './auth'
 import { ORGANIZATION_STORAGE_KEY, installOrganizationOnApi, useOrganizationStore } from './organization'
@@ -115,6 +115,72 @@ describe('organization store', () => {
     await store.load()
     useAuthStore().clearSession()
     expect(store.activeId).toBeNull()
+  })
+
+  it('create posts, reloads and activates the new organization', async () => {
+    const store = setup()
+    await store.load()
+    const created = { id: 3, name: 'Three', slug: 'three', settings: null, roles: ['owner'] }
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: created })
+    vi.spyOn(api, 'get').mockResolvedValue({ data: [...orgs, created] })
+    const result = await store.create('Three')
+    expect(post).toHaveBeenCalledWith('/api/organizations', { name: 'Three' })
+    expect(result).toEqual(created)
+    expect(store.activeId).toBe(3)
+    expect(localStorage.getItem(ORGANIZATION_STORAGE_KEY)).toBe('3')
+  })
+
+  it('create from the empty state activates the new organization', async () => {
+    const store = setup([])
+    await store.load()
+    const created = { id: 3, name: 'Three', slug: 'three', settings: null, roles: ['owner'] }
+    vi.spyOn(api, 'post').mockResolvedValue({ data: created })
+    vi.spyOn(api, 'get').mockResolvedValue({ data: [created] })
+    await store.create('Three')
+    expect(store.activeId).toBe(3)
+  })
+
+  it('create rethrows a 422 and keeps the active organization', async () => {
+    const store = setup()
+    await store.load()
+    const error = new ApiError(422, 'Invalid', { name: ['The name field is required.'] })
+    vi.spyOn(api, 'post').mockRejectedValue(error)
+    const get = vi.mocked(api.get)
+    get.mockClear()
+    await expect(store.create('')).rejects.toBe(error)
+    expect(store.activeId).toBe(1)
+    expect(get).not.toHaveBeenCalled()
+  })
+
+  it('create does not repopulate the store when clear runs meanwhile', async () => {
+    const store = setup()
+    await store.load()
+    let resolve!: (value: { data: unknown }) => void
+    vi.spyOn(api, 'post').mockReturnValue(new Promise((r) => (resolve = r)))
+    const pending = store.create('Three')
+    store.clear()
+    resolve({ data: { id: 3, name: 'Three', slug: 'three', settings: null, roles: ['owner'] } })
+    await pending
+    expect(store.organizations).toEqual([])
+    expect(store.activeId).toBeNull()
+  })
+
+  it('create does not activate the new organization when clear runs during the reload', async () => {
+    const store = setup()
+    await store.load()
+    const created = { id: 3, name: 'Three', slug: 'three', settings: null, roles: ['owner'] }
+    vi.spyOn(api, 'post').mockResolvedValue({ data: created })
+    const resolvers: Array<(value: { data: typeof orgs }) => void> = []
+    vi.spyOn(api, 'get').mockImplementation(() => new Promise((r) => resolvers.push(r)))
+    const pending = store.create('Three')
+    await vi.waitFor(() => expect(resolvers).toHaveLength(1))
+    store.clear()
+    const relogin = store.load()
+    resolvers[1]({ data: [...orgs, created] })
+    await relogin
+    resolvers[0]({ data: orgs })
+    await pending
+    expect(store.activeId).toBe(1)
   })
 
   it('feeds the api client header provider', async () => {

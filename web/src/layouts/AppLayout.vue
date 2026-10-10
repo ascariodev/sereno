@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import AppSidebar from '../components/AppSidebar.vue'
 import CommandPalette from '../components/CommandPalette.vue'
 import MobileTopBar from '../components/MobileTopBar.vue'
+import OrganizationCreateDialog from '../components/OrganizationCreateDialog.vue'
+import ProjectCreateDialog from '../components/ProjectCreateDialog.vue'
 import AppDialog from '../components/ui/AppDialog.vue'
+import { openProjectCreateKey } from '../composables/useProjectCreate'
 import { useMembershipWatch } from '../realtime/useMembershipWatch'
 import { useAuthStore } from '../stores/auth'
 import { useMentionsStore } from '../stores/mentions'
@@ -18,6 +21,12 @@ const auth = useAuthStore()
 const mentions = useMentionsStore()
 const drawerOpen = ref(false)
 const paletteOpen = ref(false)
+const orgCreateOpen = ref(false)
+const projectCreateOpen = ref(false)
+
+provide(openProjectCreateKey, () => {
+  projectCreateOpen.value = true
+})
 
 useMembershipWatch()
 
@@ -53,6 +62,10 @@ function toggleSidebar(): void {
 
 watch(paletteOpen, (open) => {
   if (open) drawerOpen.value = false
+})
+
+watch([orgCreateOpen, projectCreateOpen], ([orgOpen, projectOpen]) => {
+  if (orgOpen || projectOpen) drawerOpen.value = false
 })
 
 const loading = ref(false)
@@ -118,7 +131,11 @@ onBeforeUnmount(() => {
       :close-label="t('sidebar.close')"
     >
       <div @click="closeDrawerOnLink">
-        <AppSidebar @search="paletteOpen = true" />
+        <AppSidebar
+          @search="paletteOpen = true"
+          @create-organization="orgCreateOpen = true"
+          @create-project="projectCreateOpen = true"
+        />
       </div>
     </AppDialog>
     <AppSidebar
@@ -127,8 +144,12 @@ onBeforeUnmount(() => {
       :collapsed="sidebarCollapsed"
       @search="paletteOpen = true"
       @toggle="toggleSidebar"
+      @create-organization="orgCreateOpen = true"
+      @create-project="projectCreateOpen = true"
     />
     <CommandPalette v-model:open="paletteOpen" />
+    <OrganizationCreateDialog v-model:open="orgCreateOpen" />
+    <ProjectCreateDialog v-model:open="projectCreateOpen" />
     <main class="app-layout__main">
       <p v-if="loading">{{ t('common.loading') }}</p>
       <p v-else-if="failed" role="alert">
@@ -138,6 +159,9 @@ onBeforeUnmount(() => {
       <p v-else-if="organization.loaded && organization.activeId === null" class="app-layout__empty">
         <strong>{{ t('organization.none') }}</strong>
         <span>{{ t('organization.noneHint') }}</span>
+        <button type="button" name="create-organization" class="app-layout__create" @click="orgCreateOpen = true">
+          {{ t('organization.create') }}
+        </button>
       </p>
       <RouterView v-else-if="organization.activeId !== null" />
     </main>
@@ -187,6 +211,19 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-panel);
   color: var(--ink-3);
   text-align: center;
+}
+
+.app-layout__create {
+  min-height: 44px;
+  margin-top: var(--space-2);
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .app-layout__empty strong {

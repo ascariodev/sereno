@@ -12,6 +12,7 @@ import InvitationsView from '../views/InvitationsView.vue'
 import InviteView from '../views/InviteView.vue'
 import LogView from '../views/LogView.vue'
 import LoginView from '../views/LoginView.vue'
+import RegisterView from '../views/RegisterView.vue'
 import MembersView from '../views/MembersView.vue'
 import MentionsView from '../views/MentionsView.vue'
 import PlanView from '../views/PlanView.vue'
@@ -30,6 +31,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
     history,
     routes: [
       { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
+      { path: '/register', name: 'register', component: RegisterView, meta: { public: true } },
       { path: '/session-error', name: 'session-error', component: SessionErrorView },
       { path: '/invite/:token', name: 'invite', component: InviteView, meta: { anySession: true } },
       {

@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Role;
+use App\Models\Invitation;
 use App\Models\User;
 use App\Providers\AppServiceProvider;
 
@@ -144,4 +146,123 @@ it('throttles register attempts per ip', function () {
     $this->postJson('/api/auth/register', [])
         ->assertTooManyRequests()
         ->assertHeader('Retry-After');
+});
+
+function closedRegistrationPayload(array $overrides = []): array
+{
+    return [
+        'name' => 'Ana Perez',
+        'email' => 'ana@example.com',
+        'password' => 'secret-pass-123',
+        'password_confirmation' => 'secret-pass-123',
+        ...$overrides,
+    ];
+}
+
+it('ignores the invitation token while registration is open', function () {
+    $this->postJson('/api/auth/register', closedRegistrationPayload(['invitation_token' => 'unknown']))
+        ->assertCreated();
+});
+
+describe('closed registration', function () {
+    beforeEach(function () {
+        config(['auth.registration_enabled' => false]);
+    });
+
+    it('rejects registering without an invitation token', function () {
+        $this->postJson('/api/auth/register', closedRegistrationPayload())
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Registration is closed.');
+
+        expect(User::where('email', 'ana@example.com')->exists())->toBeFalse();
+    });
+
+    it('rejects an unknown invitation token', function () {
+        $this->postJson('/api/auth/register', closedRegistrationPayload(['invitation_token' => 'unknown']))
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Registration is closed.');
+    });
+
+    it('rejects an expired invitation', function () {
+        Invitation::factory()->withPlainToken('plain')->create([
+            'email' => 'ana@example.com',
+            'expires_at' => now()->subMinute(),
+        ]);
+
+        $this->postJson('/api/auth/register', closedRegistrationPayload(['invitation_token' => 'plain']))
+            ->assertForbidden();
+    });
+
+    it('rejects an accepted invitation', function () {
+        Invitation::factory()->withPlainToken('plain')->create([
+            'email' => 'ana@example.com',
+            'accepted_at' => now(),
+        ]);
+
+        $this->postJson('/api/auth/register', closedRegistrationPayload(['invitation_token' => 'plain']))
+            ->assertForbidden();
+    });
+
+    it('rejects an invitation for another email without revealing registered emails', function () {
+        User::factory()->create(['email' => 'taken@example.com']);
+        Invitation::factory()->withPlainToken('plain')->create(['email' => 'ana@example.com']);
+
+        $this->postJson('/api/auth/register', closedRegistrationPayload([
+            'email' => 'taken@example.com',
+            'invitation_token' => 'plain',
+        ]))->assertForbidden()->assertJsonPath('message', 'Registration is closed.');
+    });
+
+    it('rejects an invitation whose inviter can no longer grant the role', function () {
+        $invitation = Invitation::factory()->withPlainToken('plain')->create([
+            'email' => 'ana@example.com',
+            'role' => Role::Admin->value,
+        ]);
+
+        setPermissionsTeamId($invitation->organization_id);
+        $invitation->inviter->syncRoles([Role::Member]);
+        setPermissionsTeamId(null);
+
+        $this->postJson('/api/auth/register', closedRegistrationPayload(['invitation_token' => 'plain']))
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Registration is closed.');
+
+        expect(User::where('email', 'ana@example.com')->exists())->toBeFalse();
+    });
+
+    it('rejects an invitation whose inviter left the organization', function () {
+        $invitation = Invitation::factory()->withPlainToken('plain')->create(['email' => 'ana@example.com']);
+        $invitation->organization->users()->detach($invitation->invited_by);
+
+        $this->postJson('/api/auth/register', closedRegistrationPayload(['invitation_token' => 'plain']))
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Registration is closed.');
+
+        expect(User::where('email', 'ana@example.com')->exists())->toBeFalse();
+    });
+
+    it('registers with a usable invitation for the same email, ignoring case', function () {
+        $invitation = Invitation::factory()->withPlainToken('plain')->create(['email' => 'Ana@Example.com']);
+
+        $this->postJson('/api/auth/register', closedRegistrationPayload(['invitation_token' => 'plain']))
+            ->assertCreated()
+            ->assertJsonPath('user.email', 'ana@example.com');
+
+        expect($invitation->fresh()->accepted_at)->toBeNull();
+    });
+
+    it('translates the closed registration message', function () {
+        $this->withHeader('Accept-Language', 'es')
+            ->postJson('/api/auth/register', closedRegistrationPayload())
+            ->assertForbidden()
+            ->assertJsonPath('message', 'El registro está cerrado.');
+    });
+});
+
+it('reports whether registration is enabled without authentication', function () {
+    $this->getJson('/api/auth/registration')->assertOk()->assertExactJson(['enabled' => true]);
+
+    config(['auth.registration_enabled' => false]);
+
+    $this->getJson('/api/auth/registration')->assertOk()->assertExactJson(['enabled' => false]);
 });

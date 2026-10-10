@@ -6,6 +6,8 @@ import { api, ApiError } from '../api/client'
 import { i18n, LOCALE_STORAGE_KEY, setLocale } from '../i18n'
 import { createAppRouter } from '../router'
 import { toast, toasts } from '../components/ui/toast'
+import * as registration from '../api/registration'
+import { resetRegistrationStatus } from '../composables/useRegistrationStatus'
 
 const user = { id: 1, name: 'Test', email: 't@e.com', locale: 'en' }
 
@@ -33,6 +35,27 @@ describe('LoginView', () => {
     vi.restoreAllMocks()
     toast.clear()
     setLocale('en')
+    resetRegistrationStatus()
+    vi.spyOn(registration, 'registrationStatus').mockResolvedValue(false)
+  })
+
+  it('links to registration keeping the redirect when registration is open', async () => {
+    vi.spyOn(registration, 'registrationStatus').mockResolvedValue(true)
+    const { wrapper } = await mountLogin('/login?redirect=/projects')
+    const link = wrapper.find('[data-test=register-link]')
+    expect(link.text()).toBe("Don't have an account? Sign up")
+    expect(link.attributes('href')).toBe('/register?redirect=/projects')
+  })
+
+  it('links to registration without redirect when there is none', async () => {
+    vi.spyOn(registration, 'registrationStatus').mockResolvedValue(true)
+    const { wrapper } = await mountLogin()
+    expect(wrapper.find('[data-test=register-link]').attributes('href')).toBe('/register')
+  })
+
+  it('hides the registration link when registration is closed', async () => {
+    const { wrapper } = await mountLogin()
+    expect(wrapper.find('[data-test=register-link]').exists()).toBe(false)
   })
 
   it('saves the language chosen before signing in and updates the page', async () => {
