@@ -107,6 +107,50 @@ describe('ProjectMembersDialog', () => {
     expect(q('#project-members-select')?.getAttribute('aria-describedby')).toBe('project-members-error')
   })
 
+  it('reloads the list on a 404 when assigning', async () => {
+    const { wrapper, get, post } = mountHeader()
+    post.mockRejectedValue(new ApiError(404, 'Not found.', {}))
+    await openDialog(wrapper)
+    get.mockClear()
+    const select = q<HTMLSelectElement>('#project-members-select')!
+    select.value = '3'
+    select.dispatchEvent(new Event('change'))
+    await flushPromises()
+    q<HTMLButtonElement>('[data-test=assign]')!.click()
+    await flushPromises()
+    expect(get).toHaveBeenCalledWith('/api/projects/5/members', expect.anything())
+    expect(q('[data-test=action-error]')).toBeNull()
+    expect(qa('[data-test=member]')).toHaveLength(2)
+  })
+
+  it('reloads the list on a 404 when removing', async () => {
+    const { wrapper, get, del } = mountHeader()
+    del.mockRejectedValue(new ApiError(404, 'Not found.', {}))
+    await openDialog(wrapper)
+    get.mockClear()
+    get.mockImplementation(async (path: string) => ({
+      data: path === '/api/members' ? organizationMembers : [ownerMember],
+    }))
+    q<HTMLButtonElement>('[data-test=remove]')!.click()
+    await flushPromises()
+    expect(get).toHaveBeenCalledWith('/api/projects/5/members', expect.anything())
+    expect(q('[data-test=action-error]')).toBeNull()
+    expect(qa('[data-test=member]')).toHaveLength(1)
+  })
+
+  it('shows the server message on a 403 when assigning', async () => {
+    const { wrapper, post } = mountHeader()
+    post.mockRejectedValue(new ApiError(403, 'Forbidden by server.', {}))
+    await openDialog(wrapper)
+    const select = q<HTMLSelectElement>('#project-members-select')!
+    select.value = '3'
+    select.dispatchEvent(new Event('change'))
+    await flushPromises()
+    q<HTMLButtonElement>('[data-test=assign]')!.click()
+    await flushPromises()
+    expect(q('[data-test=action-error]')?.textContent).toContain('Forbidden by server.')
+  })
+
   it('removes a member', async () => {
     const { wrapper, del } = mountHeader()
     const invalidate = vi.spyOn(useMemberDirectoryStore(), 'invalidate')

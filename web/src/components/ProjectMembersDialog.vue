@@ -87,6 +87,7 @@ async function assign(): Promise<void> {
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
+    if (error.status === 404) return load()
     actionError.value = failureMessage(error, 'projectMembers.addFailed')
   } finally {
     if (current === generation) busy.value = false
@@ -107,6 +108,7 @@ async function unassign(member: Member): Promise<void> {
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
+    if (error.status === 404) return load()
     actionError.value = failureMessage(error, 'projectMembers.removeFailed')
   } finally {
     if (current === generation) busy.value = false
@@ -138,7 +140,7 @@ onUnmounted(() => {
       <p v-if="loading" data-test="loading">{{ t('common.loading') }}</p>
       <p v-else-if="failed" role="alert" data-test="load-failed">
         {{ t('projectMembers.loadFailed') }}
-        <button type="button" name="retry" @click="load">{{ t('common.retry') }}</button>
+        <button type="button" name="retry" @click="load()">{{ t('common.retry') }}</button>
       </p>
       <template v-else>
         <ul class="project-members__list">
