@@ -4,7 +4,9 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { ApiError } from '../api/client'
 import { listLogSources } from '../api/logSources'
-import type { LogSource } from '../api/types'
+import type { LogSource, LogSourceWithKey } from '../api/types'
+import CreateLogSourceDialog from '../components/CreateLogSourceDialog.vue'
+import LogSourceKeyDialog from '../components/LogSourceKeyDialog.vue'
 import ProjectHeader from '../components/ProjectHeader.vue'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
@@ -21,6 +23,8 @@ const channelId = computed(() => projects.channelByProject[projectId.value] ?? n
 const projectMissing = computed(() => validId.value && !project.value && !projects.loading && !projects.failed)
 
 const sources = ref<LogSource[]>([])
+const createOpen = ref(false)
+const issuedSource = ref<LogSourceWithKey | null>(null)
 const loading = ref(false)
 const failed = ref(false)
 let generation = 0
@@ -34,6 +38,8 @@ function reset(): void {
   generation++
   controller?.abort()
   sources.value = []
+  createOpen.value = false
+  issuedSource.value = null
   failed.value = false
   loading.value = false
 }
@@ -54,6 +60,12 @@ async function load(): Promise<void> {
   } finally {
     if (current === generation) loading.value = false
   }
+}
+
+function onCreated(created: LogSourceWithKey): void {
+  const { key: _key, ...listed } = created
+  sources.value = [...sources.value.filter((item) => item.id !== listed.id), listed]
+  issuedSource.value = created
 }
 
 function retry(): void {
@@ -93,6 +105,11 @@ onUnmounted(reset)
       </p>
       <template v-else>
         <p class="integrations__description">{{ t('integrations.description') }}</p>
+        <div v-if="project && !project.archived_at" class="integrations__toolbar">
+          <button type="button" class="integrations__create" data-test="create" @click="createOpen = true">
+            {{ t('integrations.create') }}
+          </button>
+        </div>
         <p v-if="loading || (!project && projects.loading)" data-test="loading">{{ t('common.loading') }}</p>
         <p v-else-if="failed || (!project && projects.failed)" role="alert" data-test="load-failed">
           {{ t('integrations.loadFailed') }}
@@ -127,10 +144,34 @@ onUnmounted(reset)
         </ul>
       </template>
     </div>
+    <CreateLogSourceDialog v-model:open="createOpen" :project-id="projectId" @created="onCreated" />
+    <LogSourceKeyDialog v-model:source="issuedSource" />
   </section>
 </template>
 
 <style scoped>
+.integrations__toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.integrations__create {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.integrations__create:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .integrations__body {
   display: flex;
   flex-direction: column;

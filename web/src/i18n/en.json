@@ -135,12 +135,26 @@
     "loadFailed": "Could not load the log sources.",
     "notFound": "Project not found.",
     "empty": "This project has no log sources yet.",
+    "create": "Create log source",
     "keyPrefix": "Key",
     "lastUsed": "Last used",
     "neverUsed": "Never",
     "created": "Created",
     "revoked": "Revoked",
     "noPermission": "Only owners and admins can manage integrations."
+  },
+  "createLogSource": {
+    "title": "Create log source",
+    "name": "Name",
+    "nameHint": "A name that identifies the system that sends the logs, for example \"posveapi production\".",
+    "nameRequired": "Name is required.",
+    "nameTooLong": "Name must be at most {max} characters.",
+    "forbidden": "You are not allowed to create log sources.",
+    "network": "Could not reach the server.",
+    "failed": "Could not create the log source. Try again.",
+    "cancel": "Cancel",
+    "submit": "Create",
+    "creating": "Creating..."
   },
   "invitations": {
     "invite": "Invite",

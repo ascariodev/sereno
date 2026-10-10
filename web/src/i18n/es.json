@@ -135,12 +135,26 @@
     "loadFailed": "No se pudieron cargar las fuentes de log.",
     "notFound": "Proyecto no encontrado.",
     "empty": "Este proyecto aún no tiene fuentes de log.",
+    "create": "Crear fuente",
     "keyPrefix": "Clave",
     "lastUsed": "Último uso",
     "neverUsed": "Nunca",
     "created": "Creada",
     "revoked": "Revocada",
     "noPermission": "Solo los propietarios y administradores pueden gestionar las integraciones."
+  },
+  "createLogSource": {
+    "title": "Crear fuente de log",
+    "name": "Nombre",
+    "nameHint": "Un nombre que identifique el sistema que envía los logs, por ejemplo \"posveapi producción\".",
+    "nameRequired": "El nombre es obligatorio.",
+    "nameTooLong": "El nombre admite como máximo {max} caracteres.",
+    "forbidden": "No tienes permiso para crear fuentes de log.",
+    "network": "No se pudo contactar con el servidor.",
+    "failed": "No se pudo crear la fuente de log. Inténtalo de nuevo.",
+    "cancel": "Cancelar",
+    "submit": "Crear",
+    "creating": "Creando..."
   },
   "invitations": {
     "invite": "Invitar",

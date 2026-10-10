@@ -7,6 +7,7 @@ import { i18n, setLocale } from '../i18n'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { useProjectsStore } from '../stores/projects'
 import IntegrationsView from './IntegrationsView.vue'
 
 const user = { id: 1, name: 'Test', email: 't@e.com', locale: 'en' }
@@ -182,5 +183,51 @@ describe('IntegrationsView', () => {
     stubGet(() => ({ data: [] }))
     await mountView(['owner'])
     expect(wrapper!.find('[data-test=not-found]').exists()).toBe(false)
+  })
+
+  async function createFromDialog(name: string) {
+    await wrapper!.find('[data-test=create]').trigger('click')
+    await flushPromises()
+    const input = document.body.querySelector<HTMLInputElement>('#log-source-name')!
+    input.value = name
+    input.dispatchEvent(new Event('input'))
+    document.body.querySelector<HTMLFormElement>('form')!.dispatchEvent(new Event('submit', { cancelable: true }))
+    await flushPromises()
+  }
+
+  it('creates a source, adds it to the list and opens the key dialog without keeping the key in the list', async () => {
+    stubGet(() => ({ data: [source(1)] }))
+    const post = vi
+      .spyOn(api, 'post')
+      .mockResolvedValue({ data: { ...source(2, { name: 'New one' }), key: 'wsk_secret_full' } } as never)
+    await mountView(['owner'])
+    await createFromDialog('New one')
+    expect(post).toHaveBeenCalledWith('/api/projects/7/log-sources', { name: 'New one' })
+    expect(wrapper!.findAll('[data-test=name]').map((el) => el.text())).toEqual(['Source 1', 'New one'])
+    expect(document.body.querySelector('[data-test=key]')!.textContent).toBe('wsk_secret_full')
+    expect(wrapper!.text()).not.toContain('wsk_secret_full')
+    document.body.querySelector<HTMLButtonElement>('[data-test=done]')!.click()
+    await flushPromises()
+    expect(document.body.querySelector('[data-test=key]')).toBeNull()
+  })
+
+  it('shows the 422 of the name inside the dialog and keeps the list unchanged', async () => {
+    stubGet(() => ({ data: [source(1)] }))
+    vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'invalid', { name: ['The name is invalid.'] }))
+    await mountView(['admin'])
+    await createFromDialog('x')
+    expect(document.body.querySelector('[data-test=error-name]')!.textContent).toContain('The name is invalid.')
+    expect(wrapper!.findAll('[data-test=source]')).toHaveLength(1)
+    expect(document.body.querySelector('[data-test=key]')).toBeNull()
+  })
+
+  it('hides the create button when the project is archived', async () => {
+    stubGet(() => ({ data: [source(1)] }))
+    await mountView(['owner'])
+    expect(wrapper!.find('[data-test=create]').exists()).toBe(true)
+    const store = useProjectsStore()
+    store.projects = store.projects.map((item) => ({ ...item, archived_at: '2026-10-01T00:00:00Z' }))
+    await flushPromises()
+    expect(wrapper!.find('[data-test=create]').exists()).toBe(false)
   })
 })

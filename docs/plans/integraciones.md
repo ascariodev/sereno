@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -60,7 +60,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - **Archivos:** `components/ui/CopyButton.vue`, `components/LogSourceKeyDialog.vue` (+ specs), i18n.
 - **Terminado cuando:** specs: copia el texto correcto, muestra la URL de `config.apiUrl`, al cerrar no queda la key.
 
-### [ ] Fase 5 — Crear fuente
+### [x] Fase 5 — Crear fuente
 - **Alcance:** `CreateLogSourceDialog` (nombre; errores 422 de `name` y `project` archivado); al crear, agrega la
   fuente a la lista y abre `LogSourceKeyDialog`. Botón oculto si el proyecto está archivado.
 - **Archivos:** `components/CreateLogSourceDialog.vue` (+ spec), `views/IntegrationsView.vue`, i18n.
@@ -128,6 +128,10 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   el aviso de proyecto inexistente, para poder volver a canal, plan y log desde Integraciones.
 
 ## Notas para la próxima sesión
+- Fase 5: `CreateLogSourceDialog` valida vacío y 255 caracteres (`[...s].length`). La vista agrega la fuente sin `key`
+  y asigna la completa a `issuedSource`; `reset()` cierra diálogos y descarta la key al cambiar proyecto,
+  organización o permiso: rotar (fase 6) reutiliza `issuedSource`. El store de proyectos filtra archivados, así que
+  el `v-if` del botón es defensa.
 - Fase 4: `LogSourceKeyDialog` con `v-model:source` (`LogSourceWithKey | null`): abierto mientras no es null, al
   cerrar queda null; las fases 5 y 6 solo asignan la fuente devuelta. `SERENO_LOG_URL` = `config.apiUrl` sin ruta
   (el handler agrega `/api/ingest/events`). `CopyButton` recibe `text` y `label`.
@@ -148,3 +152,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - [ ] M-3 — `projectMissing` en `IntegrationsView` exige `!projects.loading && !projects.failed`: si la vista monta
   antes de que el store empiece a cargar puede verse un instante "no encontrado"; distinguir "nunca cargó".
   Complejidad: baja (sonnet).
+- [ ] M-4 — Una carga de la lista en vuelo al crear puede pisar la fuente recién agregada (`IntegrationsView` `load()`
+  asigna `sources` sin mirar lo creado): ocultar o deshabilitar el botón de crear mientras `loading`, con spec.
+  Complejidad: baja (sonnet).
+- [ ] M-5 — Quitar la variable sin uso `_key` en `IntegrationsView.vue` (`onCreated`). Complejidad: baja (sonnet).
