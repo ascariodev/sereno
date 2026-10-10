@@ -427,6 +427,19 @@
     "network": "Could not reach the server.",
     "failed": "Could not create the task. Try again."
   },
+  "orgCreate": {
+    "title": "New organization",
+    "nameLabel": "Organization name",
+    "nameRequired": "Enter a name.",
+    "nameTooLong": "The name cannot exceed {max} characters.",
+    "submit": "Create organization",
+    "creating": "Creating...",
+    "cancel": "Cancel",
+    "created": "Organization {name} created.",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not create the organization. Try again."
+  },
   "log": {
     "title": "Log",
     "loadFailed": "Could not load the log groups.",

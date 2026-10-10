@@ -427,6 +427,19 @@
     "network": "No se pudo conectar con el servidor.",
     "failed": "No se pudo crear la tarea. Inténtalo de nuevo."
   },
+  "orgCreate": {
+    "title": "Nueva organización",
+    "nameLabel": "Nombre de la organización",
+    "nameRequired": "Escribe un nombre.",
+    "nameTooLong": "El nombre no puede superar {max} caracteres.",
+    "submit": "Crear organización",
+    "creating": "Creando...",
+    "cancel": "Cancelar",
+    "created": "Organización {name} creada.",
+    "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo crear la organización. Inténtalo de nuevo."
+  },
   "log": {
     "title": "Log",
     "loadFailed": "No se pudieron cargar los grupos de log.",

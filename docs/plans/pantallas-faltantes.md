@@ -2,7 +2,7 @@
 
 **Objetivo:** que una persona pueda registrarse, crear su organización y crear proyectos desde la web, sin `curl`, y que
 el registro abierto se pueda cerrar por entorno dejando solo la entrada por invitación.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -86,7 +86,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - **Archivos:** `web/src/views/LoginView.vue`, `i18n/es.json`, `i18n/en.json`, spec.
 - **Terminado cuando:** el spec afirma el enlace con el registro abierto (conservando `redirect`) y su ausencia cerrado.
 
-### [ ] Fase 9 — Diálogo para crear organización
+### [x] Fase 9 — Diálogo para crear organización
 - **Alcance:** `OrganizationCreateDialog` (campo nombre) sobre `AppDialog`, con el patrón de `TaskCreateDialog`; usa
   `organization.create()`, emite `created`, toast de éxito.
 - **Archivos:** `web/src/components/OrganizationCreateDialog.vue` (nuevo), `i18n/es.json`, `i18n/en.json`, spec.
@@ -131,6 +131,8 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   (`null` mientras carga); cachea solo éxitos a nivel de módulo y comparte la petición en vuelo; un error (red, 4xx,
   5xx) cuenta como cerrado y no se cachea. Los specs de vistas llaman `resetRegistrationStatus()` en `beforeEach` y
   usan `vi.spyOn(registration, 'registrationStatus').mockResolvedValue(...)` (módulo `web/src/api/registration.ts`).
+- 2026-10-10 — (Fase 9) `OrganizationCreateDialog` usa `v-model:open` y emite `created(org)`; no lleva el watcher de
+  `organization.activeId` de `TaskCreateDialog` (lo cerraría antes de tiempo, porque `create()` cambia la activa).
 
 ## Notas para la próxima sesión
 - Fase 1 hecha: con el registro cerrado, registrarse exige una invitación usable del mismo email, pero no la acepta.
@@ -145,6 +147,8 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - Fase 7 hecha: `RegisterView` en `/register` (nombre de ruta `register`); el 403 usa `register.closedError`; con el
   estado `null` no muestra nada. La fase 8 apunta el enlace a `{ name: 'register', query: { redirect } }`.
 - Fase 8 hecha: enlace `login.noAccount` en `LoginView`, solo con `enabled === true`.
+- Fase 9 hecha: `OrganizationCreateDialog` (claves `orgCreate.*`). Desde el estado vacío de `AppLayout`, la vista
+  normal aparece sola porque `create()` selecciona la nueva.
 - Editar con Edit o `sed`: escribir con Python en Windows mete CRLF y rompe Pint (`line_ending`).
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
@@ -164,3 +168,6 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   lista (barra lateral, `ProjectsView`) parpadea al crear un proyecto; conservar la lista hasta tener la nueva.
 - [ ] M-8 (media, sonnet) — `web/src/composables/useRegistrationStatus.ts` y `RegisterView`: distinguir "no se pudo
   saber" (error de red) de "cerrado"; hoy un fallo de red al cargar `/register` muestra "registro cerrado".
+- [ ] M-9 (baja, sonnet) — `web/src/components/OrganizationCreateDialog.spec.ts`: probar que un cierre externo
+  (`open=false` desde el padre) con `create` en curso descarta `created` y el toast; y separar en tests propios los
+  casos 429, red y 500, que hoy comparten montaje.
