@@ -69,6 +69,12 @@ it('forbids members from assigning or removing, before validating', function () 
     expect($this->project->members()->pluck('users.id')->all())->toBe([$this->assigned->id]);
 });
 
+it('forbids members removing an unknown id instead of revealing it with a 404', function () {
+    projectMembersCall($this->assigned, $this->organization, 'DELETE', "{$this->project->id}/members/999999")->assertForbidden();
+    projectMembersCall($this->other, $this->organization, 'DELETE', "{$this->project->id}/members/".User::factory()->create()->id)->assertForbidden();
+    projectMembersCall($this->admin, $this->organization, 'DELETE', "{$this->project->id}/members/999999")->assertNotFound();
+});
+
 it('rejects users that are not members of the organization', function () {
     $stranger = User::factory()->create();
     $foreignOrganization = Organization::factory()->create();
@@ -86,7 +92,7 @@ it('rejects users that are not members of the organization', function () {
 it('rejects assigning an owner or admin with the role message', function () {
     projectMembersCall($this->owner, $this->organization, 'POST', "{$this->project->id}/members", ['user_id' => $this->admin->id])
         ->assertUnprocessable()
-        ->assertJsonPath('errors.user_id.0', 'Only members of the organization can be assigned to a project.');
+        ->assertJsonPath('errors.user_id.0', 'Only users with the member role can be assigned to a project.');
 
     expect($this->project->members()->count())->toBe(1);
 });
@@ -111,5 +117,5 @@ it('translates the role message', function () {
     $this->admin->update(['locale' => 'es']);
 
     projectMembersCall($this->admin, $this->organization, 'POST', "{$this->project->id}/members", ['user_id' => $this->owner->id])
-        ->assertJsonPath('errors.user_id.0', 'Solo los miembros con rol member de la organización se pueden asignar a un proyecto.');
+        ->assertJsonPath('errors.user_id.0', 'Solo los usuarios con rol member se pueden asignar a un proyecto.');
 });

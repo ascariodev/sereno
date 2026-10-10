@@ -43,7 +43,7 @@ class StoreProjectMemberRequest extends FormRequest
                 $user = User::query()->find($this->integer('user_id'));
 
                 if ($user === null || ! $user->hasRole(Role::Member->value)) {
-                    $validator->errors()->add('user_id', __('Only members of the organization can be assigned to a project.'));
+                    $validator->errors()->add('user_id', __('Only users with the member role can be assigned to a project.'));
                 }
             },
         ];

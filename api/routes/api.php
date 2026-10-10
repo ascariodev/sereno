@@ -61,7 +61,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::post('projects/{project}/tasks/{task}/move', [TaskController::class, 'move']);
     Route::get('projects/{project}/members', [ProjectMemberController::class, 'index']);
     Route::post('projects/{project}/members', [ProjectMemberController::class, 'store']);
-    Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy']);
+    Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy'])->whereNumber('user');
     Route::get('members', [MemberController::class, 'index']);
     Route::patch('members/{user}', [MemberController::class, 'update']);
     Route::delete('members/{user}', [MemberController::class, 'destroy']);

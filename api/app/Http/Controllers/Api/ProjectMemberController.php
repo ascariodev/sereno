@@ -48,17 +48,17 @@ class ProjectMemberController extends Controller
         return $this->resource($user);
     }
 
-    public function destroy(Project $project, User $user): Response
+    public function destroy(Project $project, int $user): Response
     {
         Gate::authorize('manageMembers', $project);
 
         $organization = app(CurrentOrganization::class)->get();
 
-        abort_unless($organization->users()->whereKey($user->id)->exists(), 404);
+        $user = $organization->users()->whereKey($user)->firstOrFail();
 
         if (! $user->hasRole(Role::Member->value)) {
             throw ValidationException::withMessages([
-                'user' => __('Only members of the organization can be removed from a project.'),
+                'user' => __('Only users with the member role can be removed from a project.'),
             ]);
         }
 
