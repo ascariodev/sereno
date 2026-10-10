@@ -1,0 +1,91 @@
+name: Deploy web
+on:
+  push:
+    branches:
+      - main
+      - qa
+      - dev
+    paths:
+      - 'web/**'
+      - '.gitea/workflows/deploy-web.yml'
+
+jobs:
+  deploy-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolver ambiente
+        run: |
+          case "${{ gitea.ref_name }}" in
+            main) DEPLOY_ENV=prod ;;
+            qa) DEPLOY_ENV=qa ;;
+            dev) DEPLOY_ENV=dev ;;
+            *)
+              echo "error: la rama '${{ gitea.ref_name }}' no tiene ambiente" >&2
+              exit 1
+              ;;
+          esac
+          {
+            echo "DEPLOY_ENV=$DEPLOY_ENV"
+            echo "HOST_DIR=/var/www/html/workspace/$DEPLOY_ENV/web"
+            echo "SERVER_DIR=/workspace/$DEPLOY_ENV/web"
+          } >> "$GITHUB_ENV"
+          echo "ambiente: $DEPLOY_ENV"
+
+      - name: Comprobar .env del servidor
+        run: |
+          if [ ! -f "$SERVER_DIR/.env" ]; then
+            echo "error: falta $HOST_DIR/.env en el servidor; se crea a mano antes del primer deploy" >&2
+            exit 1
+          fi
+
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Compilar la web
+        working-directory: web
+        run: |
+          # Las VITE_* del ambiente se fijan al compilar; vite lee .env.production.local en modo production.
+          cp "$SERVER_DIR/.env" .env.production.local
+          npm ci
+          npm run build
+
+      - name: Preparar rsync y cliente docker
+        run: |
+          apt-get update
+          if ! apt-get install -y rsync curl; then
+            # La imagen del runner es Debian 11 (bullseye), fuera de soporte: su repositorio de seguridad
+            # anuncia paquetes que ya no sirve (404). Sin él, rsync se instala desde el repositorio principal.
+            sed -i '/-security/d' /etc/apt/sources.list
+            rm -f /etc/apt/sources.list.d/*security*
+            apt-get update
+            apt-get install -y rsync curl
+          fi
+          # Fuera del checkout: el tar trae una carpeta docker/ que pisaría la del repo.
+          curl -fsSL -o /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86_64/docker-24.0.9.tgz
+          tar -xzf /tmp/docker.tgz -C /tmp docker/docker
+          mv /tmp/docker/docker /usr/local/bin/docker
+          chmod +x /usr/local/bin/docker
+          rm -rf /tmp/docker /tmp/docker.tgz
+
+      - name: Sincronizar la web al servidor
+        run: |
+          # Con --delete, un build vacío dejaría al servidor sin web.
+          test -f web/dist/index.html -a -f web/docker-compose.prod.yml -a -f web/docker/nginx/default.conf
+          mkdir -p "$SERVER_DIR/dist" "$SERVER_DIR/docker/nginx"
+          # Primero los assets nuevos, para que el index.html nuevo no apunte a archivos que aún no llegaron.
+          if [ -d web/dist/assets ]; then
+            rsync -a web/dist/assets/ "$SERVER_DIR/dist/assets/"
+          fi
+          # rsync actualiza dentro de dist/ sin recrear la carpeta: el montaje de nginx sigue apuntando a ella.
+          rsync -a --delete-after web/dist/ "$SERVER_DIR/dist/"
+          # Archivos sueltos y sin --delete: el .env y .deploy/ del servidor no se tocan.
+          rsync -a web/docker/nginx/default.conf "$SERVER_DIR/docker/nginx/default.conf"
+          rsync -a web/docker-compose.prod.yml "$SERVER_DIR/docker-compose.prod.yml"
+
+      - name: Levantar nginx
+        run: bash web/docker/deploy/deploy.sh

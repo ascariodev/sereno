@@ -2,7 +2,7 @@
 
 **Objetivo:** que la web se desarrolle en Docker (Vite con recarga, tests y typecheck dentro del contenedor) y que
 `api/` y `web/` tengan un stack de producción en Docker desplegable como bidfletes/fletes-api (Gitea).
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9 (espera al usuario en el servidor)
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -104,7 +104,7 @@
 - **Terminado cuando:** el YAML pasa una validación de sintaxis, el filtro `paths` no dispara con un cambio solo en
   `web/`, y el mapeo rama → ambiente se revisó para las tres ramas.
 
-### [ ] Fase 8 — Deploy de la web (`web/`) [riesgo]
+### [x] Fase 8 — Deploy de la web (`web/`) [riesgo]
 - **Alcance:** `.gitea/workflows/deploy-web.yml`, mismas ramas y mapeo, `paths: ['web/**',
   '.gitea/workflows/deploy-web.yml']`. `actions/setup-node` con Node 24 (`engines`), copia
   `$SERVER_DIR/.env` (las `VITE_*` y `WEB_PORT` del ambiente, viven en el servidor) a `web/.env.production.local`,
@@ -175,6 +175,12 @@
   `api/` sin `.git`, `.env`, `node_modules`, `/storage/`, `/vendor/`, `/.deploy/` ni `/bootstrap/cache/` (los cachés de
   `optimize`). Los scripts corren desde el checkout. Sin `concurrency`: Gitea 1.25.5 no lo soporta; con `capacity` del
   runner mayor que 1, dos deploys del mismo ambiente podrían pisarse.
+- 2026-10-09 — Fase 8: `deploy-web.yml` sigue el esquema del API (ambiente en `$GITHUB_ENV`, chequeo de `.env` antes del
+  checkout, `setup-node@v4` con Node 24); copia `$SERVER_DIR/.env` a `web/.env.production.local` y compila. Sincroniza
+  primero `dist/assets/` sin borrar y luego `dist/` con `--delete-after` (actualiza dentro del directorio montado, no lo
+  recrea); conf y compose archivo a archivo, sin `--delete`. `web/docker/deploy/deploy.sh` recrea nginx con
+  `--force-recreate` solo si cambió el hash de compose + conf (`.deploy/nginx.sha256`, guardado tras un 200 en `/`);
+  el hash no incluye el `.env` (compose detecta solo un cambio de `WEB_PORT`).
 
 ## Notas para la próxima sesión
 - Fase 6: con `validate_timestamps=0` el deploy reinicia `app`, `queue`, `scheduler` y `reverb`. El UID 1000 debe
@@ -206,3 +212,7 @@
   para no descargar todo cuando se recrea `app`.
 - [ ] M-9 (baja, sonnet) — Agregar `concurrency` por ambiente a los workflows de deploy cuando Gitea lo soporte (no
   está en 1.25.5), o confirmar `capacity: 1` en el `config.yaml` del runner.
+- [ ] M-10 (baja, sonnet) — `.gitea/workflows/deploy-web.yml`: `--chmod=D755,F644` en los rsync de `dist/` y de la conf,
+  para no depender del umask del runner.
+- [ ] M-11 (media, sonnet) — Conservar los assets del deploy anterior en `dist/assets/` (p. ej. borrar solo los de más
+  de N deploys), para que una pestaña abierta con el `index.html` viejo no dé 404 al cargar rutas diferidas.
