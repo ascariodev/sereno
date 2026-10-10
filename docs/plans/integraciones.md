@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** pendiente · Fase actual: 1
+**Estado:** en curso · Fase actual: 1
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -123,6 +123,6 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   la hereda.
 
 ## Notas para la próxima sesión
-- Plan recién creado; empezar por la fase 1 cuando se active.
+- Ejecución en el worktree `.claude/worktrees/plan-integraciones` (rama `docs/plan-integraciones`, main mergeado el 2026-10-10). Los contenedores montan el checkout principal: verificar web con `docker run --rm -v "$PWD/web:/app" -v workspace_web-node-modules:/app/node_modules -w /app node:24 npm run test -- --run <spec>` (y `npm run typecheck`).
 
 ## Mejoras propuestas
