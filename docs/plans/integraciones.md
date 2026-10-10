@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -73,7 +73,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - **Terminado cuando:** specs de rotar, revocar, 409 y 422; prueba manual en `http://localhost:5174` creando una
   fuente y enviando un evento con el `curl` del diálogo.
 
-### [ ] Fase 7 — Esqueleto del paquete sereno-laravel [riesgo]
+### [x] Fase 7 — Esqueleto del paquete sereno-laravel [riesgo]
 - **Alcance:** `git init` en `../sereno-laravel`; `composer.json` (`ascario/sereno-laravel`, namespace
   `Ascario\Sereno\`, PHP ^8.3, `illuminate/*` y `monolog/monolog` en las versiones que use posveapi, Testbench
   compatible con Laravel 13 verificado en su documentación); PHPUnit; comando de tests en Docker
@@ -90,7 +90,8 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 ### [ ] Fase 9 — Handler en el paquete
 - **Alcance:** traer `WorkspaceLogHandler` como `Ascario\Sereno\Logging\SerenoLogHandler` con sus tests; el
   canal de respaldo por defecto pasa a ser configurable (hoy fijo en `daily`).
-- **Archivos:** `src/Logging/SerenoLogHandler.php` (+ test).
+- **Archivos:** `src/Logging/SerenoLogHandler.php` (+ test), `composer.json` (`illuminate/events` e
+  `illuminate/queue` ^13.0, que usa `Event::listen(Looping::class)`).
 - **Terminado cuando:** los tests portados pasan.
 
 ### [ ] Fase 10 — Integración con Laravel
@@ -124,10 +125,20 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - 2026-10-10 — La pestaña Integraciones es solo para owner y admin, aunque la API deja listar a cualquier rol.
 - 2026-10-10 — La API de fuentes no cambia; si acceso-proyectos (fase 7) cambia la autorización del index, la web
   la hereda.
+- 2026-10-10 — Paquete: repo `../sereno-laravel` (main con commit vacío), trabajo en su worktree
+  `.claude/worktrees/paquete` (rama `feat/paquete`). Tests en Docker con la imagen oficial `composer:2` (no depende
+  del monorepo), desde la raíz del paquete:
+  `MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W):/app" -w /app composer:2 sh -c 'composer install --no-interaction --no-progress -q && vendor/bin/phpunit'`.
+  `illuminate/{contracts,http,log,support}` ^13.0, `monolog/monolog` ^3.10 (como posveapi), dev `orchestra/testbench`
+  ^11.0 y `phpunit/phpunit` ^12.5.12. `composer.lock` no se versiona (librería). La imagen trae PHP 8.5: el mínimo
+  ^8.3 no se prueba.
 - 2026-10-10 — La fase 3 suma montar `ProjectHeader` en `IntegrationsView` (como las demás pestañas del proyecto) y
   el aviso de proyecto inexistente, para poder volver a canal, plan y log desde Integraciones.
 
 ## Notas para la próxima sesión
+- Fase 7: tests PHPUnit en clases (como posveapi); `phpunit.xml` solo tiene el suite `tests/Unit`: ampliarlo si la
+  fase 10 agrega `tests/Feature`. Escribir JSON con Write/Edit, no con heredocs (el escape de `\` rompió
+  `composer.json`).
 - Fase 6: acciones `data-test=rotate|revoke` con confirmación (`confirm`, `cancel`); 409 y 422 dan toast y recargan.
   Prueba manual hecha en una Vite temporal del worktree (`docker run ... -p 5175:5174`, CORS del API es `*`, login
   con el usuario del seeder): crear, curl del diálogo (202), aviso en el canal, rotar y revocar. Quedó revocada la
