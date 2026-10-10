@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 23
+**Estado:** en curso · Fase actual: 24
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -131,7 +131,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - HTML5 drag and drop entre y dentro de columnas con indicador de destino; sin dependencia nueva; el menú de la
   fase 21 queda como alternativa en táctil y teclado.
 
-### [ ] Fase 23 — Tablero en vivo (web)
+### [x] Fase 23 — Tablero en vivo (web)
 - `subscribeToProject` en `echo.ts` (conteo de referencias, L-28; incluido en `leaveOrganization`), `PlanView` aplica
   los eventos y recarga al reconectar.
 
@@ -196,7 +196,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `plan.*`. Los límites de archivos de las fases cuentan solo código de producción, no specs.
 
 ## Notas para la próxima sesión
-- API terminado (fases 1 a 11). Web: fase 22 hecha: arrastre HTML5 con `useTaskDrag` y `components/taskMove.ts` (`moveNeighbours(column, taskId, anchor)` sobre la columna completa, `moveErrorMessage`), compartidos con `TaskMoveMenu`; la columna es la zona de soltar y la posición sale de la mitad de cada tarjeta (`data-task-id`); el contenedor de la tarjeta es `draggable` y el enlace no. La fase 23 debe cubrir una tarea borrada en vivo mientras se arrastra. Fase 21 hecha: `TaskMoveMenu` (AppMenu "…": Subir, Bajar, Mover a otra columna, que queda al final); calcula `beforeId`/`afterId` sobre `tasks.columns` completo (la fase 22 puede extraer ese cálculo a un helper); `TaskCard` es un `div.task-card-wrap` con el enlace y el botón hermanos; sin menú en solo lectura. Fase 20 hecha: borrar desde `TaskAside` (visible para creador, admin u owner y no en solo lectura; confirmación con `AppDialog`, generación L-32, `resetForm` cierra el diálogo al cambiar de tarea); al borrar emite `close(true)` sin el toast de "no encontrada". Specs con varios montajes: desmontar con `wrapper.unmount()`, no vaciar `document.body`. Fase 19 hecha: `TaskAside` (columna de 340px, hoja en móvil) se monta
+- API terminado (fases 1 a 11). Web: fase 23 hecha: `subscribeToProject(org, project, {onTaskCreated, onTaskUpdated, onTaskDeleted})` y `projectChannelName` en `echo.ts` (eventos `.task.*`, guards L-13); `PlanView` suscribe, `refresh` al reconectar y suelta al cambiar de proyecto u organización y al desmontar. Sin probar contra Reverb real. Fase 22 hecha: arrastre HTML5 con `useTaskDrag` y `components/taskMove.ts` (`moveNeighbours(column, taskId, anchor)` sobre la columna completa, `moveErrorMessage`), compartidos con `TaskMoveMenu`; la columna es la zona de soltar y la posición sale de la mitad de cada tarjeta (`data-task-id`); el contenedor de la tarjeta es `draggable` y el enlace no. La fase 23 debe cubrir una tarea borrada en vivo mientras se arrastra. Fase 21 hecha: `TaskMoveMenu` (AppMenu "…": Subir, Bajar, Mover a otra columna, que queda al final); calcula `beforeId`/`afterId` sobre `tasks.columns` completo (la fase 22 puede extraer ese cálculo a un helper); `TaskCard` es un `div.task-card-wrap` con el enlace y el botón hermanos; sin menú en solo lectura. Fase 20 hecha: borrar desde `TaskAside` (visible para creador, admin u owner y no en solo lectura; confirmación con `AppDialog`, generación L-32, `resetForm` cierra el diálogo al cambiar de tarea); al borrar emite `close(true)` sin el toast de "no encontrada". Specs con varios montajes: desmontar con `wrapper.unmount()`, no vaciar `document.body`. Fase 19 hecha: `TaskAside` (columna de 340px, hoja en móvil) se monta
   solo tras la carga; tarea ausente, borrada en vivo o 404 cierran con toast y `router.replace` sin `task` (conserva
   la query). Edición en vivo no pisa un formulario tocado. Límites compartidos en `components/taskLimits.ts`.
   Layout del panel sin revisar en navegador. Fase 18: `TaskCreateDialog` (props `projectId`, `status`,

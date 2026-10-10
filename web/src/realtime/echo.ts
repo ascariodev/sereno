@@ -1,6 +1,6 @@
 import Echo from 'laravel-echo'
 import Pusher, { type ChannelAuthorizationCallback } from 'pusher-js'
-import type { Message, MessageDeletedEvent } from '../api/types'
+import { isTaskStatus, type Message, type MessageDeletedEvent, type Task, type TaskDeletedEvent } from '../api/types'
 import { config } from '../config'
 
 export const MESSAGE_CREATED_EVENT = '.message.created'
@@ -10,6 +10,9 @@ export const MESSAGE_UPDATED_EVENT = '.message.updated'
 export const MESSAGE_DELETED_EVENT = '.message.deleted'
 export const MENTION_CREATED_EVENT = '.mention.created'
 export const MENTION_REMOVED_EVENT = '.mention.removed'
+export const TASK_CREATED_EVENT = '.task.created'
+export const TASK_UPDATED_EVENT = '.task.updated'
+export const TASK_DELETED_EVENT = '.task.deleted'
 
 export interface RealtimePayload {
   message?: Message
@@ -21,6 +24,8 @@ export interface RealtimePayload {
   message_id?: number
   deleted_at?: string
   root?: MessageDeletedEvent['root']
+  task?: Partial<Task>
+  project_id?: number
 }
 
 export interface MentionCreatedPayload {
@@ -79,6 +84,10 @@ export function setRealtimeClientFactory(newFactory: (() => RealtimeClient | nul
 
 export function channelName(organizationId: number, channelId: number): string {
   return `${organizationChannelPrefix(organizationId)}channels.${channelId}`
+}
+
+export function projectChannelName(organizationId: number, projectId: number): string {
+  return `${organizationChannelPrefix(organizationId)}projects.${projectId}`
 }
 
 function organizationChannelPrefix(organizationId: number): string {
@@ -199,6 +208,42 @@ export function subscribeToChannel(
     if (typeof data.message?.id !== 'number' || typeof data.message.channel_id !== 'number') return
     if (event === MESSAGE_UPDATED_EVENT) onUpdated(data.message)
     else onCreated(data.message)
+  })
+}
+
+export interface ProjectSubscriptionHandlers {
+  onTaskCreated?: (task: Task) => void
+  onTaskUpdated?: (task: Task) => void
+  onTaskDeleted?: (event: TaskDeletedEvent) => void
+}
+
+function validTask(task: Partial<Task> | undefined): task is Task {
+  return (
+    typeof task?.id === 'number' &&
+    typeof task.project_id === 'number' &&
+    isTaskStatus(task.status) &&
+    typeof task.title === 'string' &&
+    typeof task.updated_at === 'string'
+  )
+}
+
+export function subscribeToProject(
+  organizationId: number,
+  projectId: number,
+  handlers: ProjectSubscriptionHandlers,
+): () => void {
+  const { onTaskCreated = () => {}, onTaskUpdated = () => {}, onTaskDeleted = () => {} } = handlers
+  const events = [TASK_CREATED_EVENT, TASK_UPDATED_EVENT, TASK_DELETED_EVENT]
+  return subscribe(projectChannelName(organizationId, projectId), events, (event, data) => {
+    if (event === TASK_DELETED_EVENT) {
+      if (typeof data.id === 'number' && typeof data.project_id === 'number') {
+        onTaskDeleted({ id: data.id, project_id: data.project_id })
+      }
+      return
+    }
+    if (!validTask(data.task)) return
+    if (event === TASK_UPDATED_EVENT) onTaskUpdated(data.task)
+    else onTaskCreated(data.task)
   })
 }
 

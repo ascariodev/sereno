@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { Message, MessageDeletedEvent } from '../api/types'
+import type { Message, MessageDeletedEvent, TaskDeletedEvent } from '../api/types'
 import { config } from '../config'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import {
@@ -19,7 +19,11 @@ import {
   setRealtimeClientFactory,
   setRealtimeTokenProvider,
   subscribeToChannel,
+  subscribeToProject,
   subscribeToUser,
+  TASK_CREATED_EVENT,
+  TASK_DELETED_EVENT,
+  TASK_UPDATED_EVENT,
 } from './echo'
 
 describe('realtime', () => {
@@ -67,6 +71,58 @@ describe('realtime', () => {
     expect(created).toEqual([])
     expect(updated).toEqual([9])
     expect(deleted).toEqual([{ id: 5, channel_id: 7, parent_id: 4, deleted_at: '2026-10-09T10:00:00Z', root }])
+  })
+
+  it('forwards task events of the project channel, ignores malformed payloads and keeps the channel by reference count', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const name = 'organizations.3.projects.5'
+    const created: number[] = []
+    const updated: number[] = []
+    const deleted: TaskDeletedEvent[] = []
+    const other: number[] = []
+    const leaveFirst = subscribeToProject(3, 5, {
+      onTaskCreated: (task) => created.push(task.id),
+      onTaskUpdated: (task) => updated.push(task.id),
+      onTaskDeleted: (event) => deleted.push(event),
+    })
+    const leaveSecond = subscribeToProject(3, 5, { onTaskUpdated: (task) => other.push(task.id) })
+    const emit = (event: string, data: object) => listeners.get(`${name}|${event}`)?.(data)
+    const task = { id: 1, project_id: 5, status: 'todo', title: 'A', updated_at: '2026-10-10T00:00:00.000000Z' }
+
+    expect(client.private).toHaveBeenCalledTimes(1)
+    expect(client.private).toHaveBeenCalledWith(name)
+    emit(TASK_CREATED_EVENT, { task })
+    emit(TASK_UPDATED_EVENT, { task: { ...task, id: 2 } })
+    emit(TASK_DELETED_EVENT, { id: 3, project_id: 5 })
+    emit(TASK_CREATED_EVENT, { task: { ...task, id: '9' } })
+    emit(TASK_UPDATED_EVENT, { task: { ...task, status: 'bogus' } })
+    emit(TASK_UPDATED_EVENT, { task: { ...task, updated_at: undefined } })
+    emit(TASK_UPDATED_EVENT, {})
+    emit(TASK_DELETED_EVENT, { id: 3 })
+    emit(TASK_DELETED_EVENT, { project_id: 5 })
+    expect(created).toEqual([1])
+    expect(updated).toEqual([2])
+    expect(other).toEqual([2])
+    expect(deleted).toEqual([{ id: 3, project_id: 5 }])
+
+    leaveFirst()
+    expect(client.leave).not.toHaveBeenCalled()
+    leaveSecond()
+    expect(client.leave).toHaveBeenCalledWith(name)
+  })
+
+  it('leaveOrganization drops the project channels of that organization', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const received: number[] = []
+    subscribeToProject(3, 5, { onTaskCreated: (task) => received.push(task.id) })
+    leaveOrganization(3)
+    expect(client.leave).toHaveBeenCalledWith('organizations.3.projects.5')
+    listeners.get(`organizations.3.projects.5|${TASK_CREATED_EVENT}`)?.({
+      task: { id: 1, project_id: 5, status: 'todo', title: 'A', updated_at: 'x' },
+    })
+    expect(received).toEqual([])
   })
 
   it('keeps the channel open until the last subscriber to it leaves', () => {

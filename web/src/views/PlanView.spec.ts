@@ -9,6 +9,8 @@ import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import { useTasksStore } from '../stores/tasks'
+import { setRealtimeClientFactory } from '../realtime/echo'
+import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import { toast } from '../components/ui/toast'
 import PlanView from './PlanView.vue'
 
@@ -574,6 +576,106 @@ describe('PlanView', () => {
       await flushPromises()
       expect(post).not.toHaveBeenCalled()
       expect(wrapper.find('.plan-view__column--drop').exists()).toBe(false)
+    })
+  })
+
+  describe('live board', () => {
+    const mk = (id: number, status = 'todo', extra: Record<string, unknown> = {}) => ({
+      id, project_id: 5, key: `POSVE-${id}`, number: id, title: `Task ${id}`, description: null, status, position: id,
+      created_by: 1, assignee: null, log_group: null,
+      created_at: '2026-10-10T00:00:00.000000Z', updated_at: '2026-10-10T00:00:00.000000Z', ...extra,
+    })
+    const NAME = 'organizations.1.projects.5'
+
+    function live() {
+      const fake = createFakeRealtimeClient()
+      setRealtimeClientFactory(() => fake.client)
+      const emit = (event: string, data: object) => fake.listeners.get(`${NAME}|${event}`)?.(data)
+      return { ...fake, emit }
+    }
+
+    afterEach(() => setRealtimeClientFactory(() => null))
+
+    it('applies created, updated and deleted events idempotently', async () => {
+      const fake = live()
+      mockApi(() => ({ data: [mk(1)] }))
+      const wrapper = await mountView()
+      expect(fake.client.private).toHaveBeenCalledWith(NAME)
+      fake.emit('.task.created', { task: mk(2) })
+      fake.emit('.task.created', { task: mk(2) })
+      await flushPromises()
+      expect(wrapper.findAll('[data-task-id]')).toHaveLength(2)
+      fake.emit('.task.updated', { task: mk(2, 'done', { title: 'Moved', updated_at: '2026-10-10T00:00:01.000000Z' }) })
+      await flushPromises()
+      expect(wrapper.get('.plan-view__column--done').text()).toContain('Moved')
+      fake.emit('.task.deleted', { id: 2, project_id: 5 })
+      fake.emit('.task.deleted', { id: 2, project_id: 5 })
+      await flushPromises()
+      expect(wrapper.findAll('[data-task-id]')).toHaveLength(1)
+    })
+
+    it('refreshes on reconnect and leaves on unmount', async () => {
+      const fake = live()
+      const spy = mockApi(() => ({ data: [mk(1)] }))
+      fake.setStatus('connected')
+      const wrapper = await mountView()
+      fake.setStatus('reconnecting')
+      fake.setStatus('connected')
+      await flushPromises()
+      expect(taskCalls(spy)).toHaveLength(2)
+      wrapper.unmount()
+      expect(fake.client.leave).toHaveBeenCalledWith(NAME)
+      expect(fake.statusListeners.size).toBe(0)
+    })
+
+    it('moves the subscription when the project changes', async () => {
+      const fake = live()
+      mockApi(() => ({ data: [] }))
+      const wrapper = await mountView()
+      await wrapper.router.push('/projects/6/plan')
+      await flushPromises()
+      expect(fake.client.leave).toHaveBeenCalledWith(NAME)
+      expect(fake.client.private).toHaveBeenCalledWith('organizations.1.projects.6')
+    })
+
+    it('survives a task deleted in live while it is being dragged', async () => {
+      const fake = live()
+      mockApi(() => ({ data: [mk(1), mk(2)] }))
+      const post = vi.spyOn(api, 'post')
+      const wrapper = await mountView()
+      const fire = (target: Element, type: string, clientY = 0) => {
+        const event = new Event(type, { bubbles: true, cancelable: true })
+        Object.assign(event, { dataTransfer: { effectAllowed: '', dropEffect: '', setData: vi.fn() }, clientY, relatedTarget: null })
+        target.dispatchEvent(event)
+      }
+      const card = wrapper.get('[data-task-id="1"]').element
+      const done = wrapper.get('.plan-view__column--done').element
+      fire(card, 'dragstart')
+      fire(done, 'dragover', 500)
+      fake.emit('.task.deleted', { id: 1, project_id: 5 })
+      await flushPromises()
+      expect(wrapper.find('[data-task-id="1"]').exists()).toBe(false)
+      fire(done, 'drop', 500)
+      fire(card, 'dragend')
+      await flushPromises()
+      expect(post).not.toHaveBeenCalled()
+      expect(wrapper.find('.plan-view__drop-line').exists()).toBe(false)
+      expect(wrapper.findAll('[data-task-id]')).toHaveLength(1)
+    })
+
+    it('reacts in the open panel: live edit, then live delete closes it', async () => {
+      const fake = live()
+      const error = vi.spyOn(toast, 'error')
+      mockApi(() => ({ data: [mk(1), mk(2)] }))
+      const wrapper = await mountView('/projects/5/plan?task=2')
+      fake.emit('.task.updated', { task: mk(2, 'todo', { title: 'Renamed', updated_at: '2026-10-10T00:00:01.000000Z' }) })
+      await flushPromises()
+      expect((wrapper.get('#task-aside-title').element as HTMLInputElement).value).toBe('Renamed')
+      fake.emit('.task.deleted', { id: 2, project_id: 5 })
+      await flushPromises()
+      expect(wrapper.find('#task-aside-title').exists()).toBe(false)
+      expect(wrapper.router.currentRoute.value.query.task).toBeUndefined()
+      expect(error).toHaveBeenCalled()
     })
   })
 })

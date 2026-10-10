@@ -9,6 +9,7 @@ import TaskCard from '../components/TaskCard.vue'
 import TaskCreateDialog from '../components/TaskCreateDialog.vue'
 import { useTaskDrag } from '../composables/useTaskDrag'
 import { TASK_STATUSES, type TaskStatus } from '../api/types'
+import { onReconnect, subscribeToProject } from '../realtime/echo'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import { TASK_FILTERS, useTasksStore, type TaskFilter } from '../stores/tasks'
@@ -75,12 +76,40 @@ function setFilter(value: TaskFilter): void {
   void router.replace({ query })
 }
 
+let unsubscribe: (() => void) | null = null
+let unsubscribeReconnect: (() => void) | null = null
+
+function leaveRealtime(): void {
+  unsubscribe?.()
+  unsubscribeReconnect?.()
+  unsubscribe = unsubscribeReconnect = null
+}
+
+function joinRealtime(): void {
+  leaveRealtime()
+  if (!validId.value || organization.activeId === null) return
+  unsubscribe = subscribeToProject(organization.activeId, projectId.value, {
+    onTaskCreated: (task) => tasks.insert(task),
+    onTaskUpdated: (task) => tasks.replace(task),
+    onTaskDeleted: (event) => tasks.remove(event),
+  })
+  unsubscribeReconnect = onReconnect(() => void tasks.refresh())
+}
+
 watch(activeFilter, (value) => (tasks.filter = value), { immediate: true })
+watch(
+  () => `${organization.activeId}:${projectId.value}`,
+  joinRealtime,
+  { immediate: true },
+)
 watch(projectId, load, { immediate: true })
 watch(() => organization.activeId, (_, previous) => previous !== null && load())
 watch(projectId, () => (createOpen.value = false))
 
-onUnmounted(() => tasks.clear())
+onUnmounted(() => {
+  leaveRealtime()
+  tasks.clear()
+})
 </script>
 
 <template>
