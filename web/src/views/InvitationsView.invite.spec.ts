@@ -9,6 +9,7 @@ import { i18n, setLocale } from '../i18n'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { useProjectsStore } from '../stores/projects'
 import InvitationsView from './InvitationsView.vue'
 
 const user = { id: 1, name: 'Test', email: 't@e.com', locale: 'en' }
@@ -332,5 +333,54 @@ describe('InvitationsView invite dialog', () => {
     const shown = wrapper!.findAll('[data-test=projects]')
     expect(shown).toHaveLength(1)
     expect(shown[0].text()).toBe('Alpha, Beta')
+  })
+
+  it('warns when the projects failed to load and still lets a member be invited without projects', async () => {
+    await mountView(['owner'])
+    useProjectsStore().$patch({ projects: [], failed: true })
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: invitation(5, 'member', 'new@e.com') })
+    await openDialog()
+    expect(field('[data-test=projects-failed]').textContent).toContain('Could not load the projects.')
+    expect(field('[data-test=projects]')).toBeNull()
+    await fill('new@e.com')
+    await submit()
+    expect(post).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries the projects load from the warning without reopening the dialog', async () => {
+    await mountView(['owner'])
+    useProjectsStore().$patch({ projects: [], failed: true })
+    await openDialog()
+    field<HTMLButtonElement>('[data-test=projects-retry]').click()
+    await flushPromises()
+    expect(field('[data-test=projects-failed]')).toBeNull()
+    expect(projectBoxes()).toHaveLength(2)
+  })
+
+  it('keeps the listed projects when a retry fails again', async () => {
+    await mountView(['owner'])
+    const store = useProjectsStore()
+    await store.refresh()
+    store.$patch({ failed: true })
+    const base = vi.mocked(api.get).getMockImplementation()!
+    vi.mocked(api.get).mockImplementation(async (path: string, options?: Parameters<typeof api.get>[1]) => {
+      if (path === '/api/projects') throw new ApiError(500, 'boom', {})
+      return base(path, options)
+    })
+    await openDialog()
+    expect(projectBoxes()).toHaveLength(2)
+    field<HTMLButtonElement>('[data-test=projects-retry]').click()
+    await flushPromises()
+    expect(store.failed).toBe(true)
+    expect(projectBoxes()).toHaveLength(2)
+  })
+
+  it('does not show the projects warning for a non-member role', async () => {
+    await mountView(['owner'])
+    useProjectsStore().$patch({ failed: true })
+    await openDialog()
+    expect(field('[data-test=projects-failed]')).not.toBeNull()
+    await fill('x@e.com', 'admin')
+    expect(field('[data-test=projects-failed]')).toBeNull()
   })
 })

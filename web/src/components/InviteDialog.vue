@@ -170,6 +170,18 @@ async function submit(): Promise<void> {
         </p>
       </div>
 
+      <p
+        v-if="role === 'member' && projectsStore.failed"
+        class="invite-dialog__error"
+        role="alert"
+        data-test="projects-failed"
+      >
+        {{ t('projects.loadFailed') }}
+        <button type="button" class="invite-dialog__retry" data-test="projects-retry" :disabled="projectsStore.loading" @click="projectsStore.refresh()">
+          {{ t('common.retry') }}
+        </button>
+      </p>
+
       <fieldset
         v-if="role === 'member' && projectsStore.projects.length > 0"
         class="invite-dialog__projects"
@@ -246,6 +258,7 @@ async function submit(): Promise<void> {
 
 .invite-dialog__field input:focus-visible,
 .invite-dialog__field select:focus-visible,
+.invite-dialog__retry:focus-visible,
 .invite-dialog__cancel:focus-visible,
 .invite-dialog__submit:focus-visible {
   outline: 2px solid var(--accent);
@@ -303,6 +316,17 @@ async function submit(): Promise<void> {
   font-size: 13px;
 }
 
+.invite-dialog__retry {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
 .invite-dialog__actions {
   display: flex;
   justify-content: flex-end;
@@ -329,6 +353,7 @@ async function submit(): Promise<void> {
   color: var(--surface);
 }
 
+.invite-dialog__retry:disabled,
 .invite-dialog__cancel:disabled,
 .invite-dialog__submit:disabled {
   opacity: 0.6;
