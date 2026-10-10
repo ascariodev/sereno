@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -45,7 +45,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   `i18n/es.json`. **[límite]**
 - **Terminado cuando:** spec de la vista cubre lista, vacío, error y sin permiso.
 
-### [ ] Fase 3 — Pestaña Integraciones en el proyecto
+### [x] Fase 3 — Pestaña Integraciones en el proyecto
 - **Alcance:** enlace en `ProjectHeader` visible solo con `canManageLogSources`. `IntegrationsView` monta
   `ProjectHeader` como `LogView` y `PlanView` (proyecto del store, sin `<h1>` duplicado) y avisa si el proyecto no
   existe o no está en el store (hoy `notFound` solo cubre un id inválido).
@@ -128,6 +128,9 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   el aviso de proyecto inexistente, para poder volver a canal, plan y log desde Integraciones.
 
 ## Notas para la próxima sesión
+- Fase 3: pestaña con icono `Plug`. `IntegrationsView` pide fuentes solo con el proyecto en el store; su spec usa
+  un `stubGet` por ruta (`/api/projects`, `/api/channels`, log-sources) y filtra con `sourceCalls`: las fases 4 a 6
+  lo reutilizan. Estructura: `<section>` con `ProjectHeader` y `div.integrations__body` (padding y `<h2>`).
 - Fase 2: `canManageLogSources` delega en `canManageInvitations`; sin permiso, aviso `data-test="no-permission"` sin
   llamar a la API. Filas `data-test="source"` con `name`, `prefix`, `last-used` ("Never" si null), `created`, `revoked`.
   La vista descarta respuestas viejas (generación y AbortController).
@@ -139,3 +142,6 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   no acoplar el permiso de integraciones al de invitaciones. Complejidad: baja (sonnet).
 - [ ] M-2 — Revisar que el sidebar marque el proyecto activo también en la ruta `project-integrations` si lo decide
   por nombre de ruta. Complejidad: baja (sonnet).
+- [ ] M-3 — `projectMissing` en `IntegrationsView` exige `!projects.loading && !projects.failed`: si la vista monta
+  antes de que el store empiece a cargar puede verse un instante "no encontrado"; distinguir "nunca cargó".
+  Complejidad: baja (sonnet).

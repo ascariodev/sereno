@@ -381,7 +381,8 @@
     "label": "Project views",
     "channel": "Channel",
     "plan": "Plan",
-    "log": "Log"
+    "log": "Log",
+    "integrations": "Integrations"
   },
   "projectMembers": {
     "title": "Project members",

@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import { describe, expect, it } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { i18n } from '../i18n'
+import { useOrganizationStore } from '../stores/organization'
 import ProjectHeader from './ProjectHeader.vue'
 
 describe('ProjectHeader', () => {
@@ -61,5 +62,36 @@ describe('ProjectHeader', () => {
     expect(withoutChannel.find('[aria-disabled=true]').text()).toBe('Channel')
     const withoutId = mount(ProjectHeader, { props: { name: 'a', projectKey: 'A' }, global: { plugins: [createPinia(), i18n], stubs: { RouterLink: true } } })
     expect(withoutId.find('nav').exists()).toBe(false)
+  })
+
+  it.each([
+    ['owner', true],
+    ['admin', true],
+    ['member', false],
+  ])('shows the Integrations tab for %s: %s', async (role, visible) => {
+    const stub = { template: '<div />' }
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/projects/:projectId/plan', name: 'project-plan', component: stub },
+        { path: '/projects/:projectId/log', name: 'project-log', component: stub },
+        { path: '/projects/:projectId/integrations', name: 'project-integrations', component: stub },
+      ],
+    })
+    await router.push('/projects/5/log')
+    const pinia = createPinia()
+    const wrapper = mount(ProjectHeader, {
+      props: { name: 'a', projectKey: 'A', projectId: 5, channelId: null },
+      global: { plugins: [pinia, router, i18n] },
+    })
+    useOrganizationStore().$patch({
+      organizations: [{ id: 1, name: 'Acme', slug: 'acme', settings: null, roles: [role] }],
+      activeId: 1,
+      loaded: true,
+    })
+    await wrapper.vm.$nextTick()
+    const link = wrapper.find('nav a[href="/projects/5/integrations"]')
+    expect(link.exists()).toBe(visible)
+    if (visible) expect(link.text()).toBe('Integrations')
   })
 })
