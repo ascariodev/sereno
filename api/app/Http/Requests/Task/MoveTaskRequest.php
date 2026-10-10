@@ -18,7 +18,7 @@ class MoveTaskRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return Gate::allows('update', $this->route('task'));
+        return Gate::authorize('update', $this->route('task'))->allowed();
     }
 
     public function rules(): array

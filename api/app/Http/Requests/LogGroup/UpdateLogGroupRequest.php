@@ -11,7 +11,7 @@ class UpdateLogGroupRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return Gate::allows('update', $this->route('group'));
+        return Gate::authorize('update', $this->route('group'))->allowed();
     }
 
     public function rules(): array

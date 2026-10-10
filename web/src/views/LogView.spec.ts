@@ -10,6 +10,7 @@ import { setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { resetGroupStatuses, setGroupTask } from '../composables/useLogGroupStatuses'
 import { useAuthStore } from '../stores/auth'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
@@ -432,8 +433,18 @@ describe('LogView', () => {
       const { client, listeners, setStatus } = createFakeRealtimeClient()
       setRealtimeClientFactory(() => client)
       const emit = (message: unknown) => listeners.get('organizations.1.channels.7|.message.created')?.({ message } as never)
-      return { client, emit, setStatus }
+      const emitEvent = (event: string, data: object) => listeners.get(`organizations.1.channels.7|${event}`)?.(data)
+      return { client, emit, emitEvent, setStatus }
     }
+
+    it('invalidates the member directory of the project when its members change', async () => {
+      const realtime = fakeRealtime()
+      mockApi(() => page([group(1)]))
+      await mountView()
+      const invalidate = vi.spyOn(useMemberDirectoryStore(), 'invalidate')
+      realtime.emitEvent('.project.members_changed', { project_id: 5 })
+      expect(invalidate).toHaveBeenCalledExactlyOnceWith(5)
+    })
 
     it('reloads the list once, debounced, when another person changes a group status', async () => {
       const realtime = fakeRealtime()

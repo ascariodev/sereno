@@ -43,6 +43,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Organization::class)->withTimestamps();
     }
 
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class)->withPivot('organization_id')->withTimestamps();
+    }
+
     /**
      * Roles in every organization, without the active-team filter that roles() applies.
      */

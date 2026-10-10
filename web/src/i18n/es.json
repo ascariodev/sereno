@@ -103,7 +103,9 @@
     "create": "Crear organización",
     "loadFailed": "No se pudieron cargar tus organizaciones.",
     "revoked": "Ya no perteneces a {organization}.",
-    "revokedUnknown": "Ya no perteneces a esa organización."
+    "revokedUnknown": "Ya no perteneces a esa organización.",
+    "projectAccessLost": "Ya no tienes acceso a {project}.",
+    "projectAccessLostUnknown": "Ya no tienes acceso a ese proyecto."
   },
   "sidebar": {
     "menu": "Menú",
@@ -137,6 +139,7 @@
     "invitedBy": "Invitó",
     "unknownInviter": "Desconocido",
     "expires": "Vence",
+    "projects": "Proyectos",
     "revoke": "Revocar",
     "revokeTitle": "Revocar invitación",
     "revokeConfirm": "¿Revocar la invitación de {email}? El enlace dejará de funcionar.",
@@ -182,6 +185,8 @@
     "title": "Invitar a alguien",
     "email": "Correo",
     "role": "Rol",
+    "projects": "Proyectos",
+    "projectsHint": "Déjalo vacío para invitar sin proyectos; el acceso se puede dar después.",
     "submit": "Enviar invitación",
     "sending": "Enviando...",
     "cancel": "Cancelar",
@@ -364,6 +369,23 @@
     "channel": "Canal",
     "plan": "Plan",
     "log": "Log"
+  },
+  "projectMembers": {
+    "title": "Miembros del proyecto",
+    "close": "Cerrar",
+    "open": "Miembros",
+    "loadFailed": "No se pudieron cargar los miembros del proyecto.",
+    "add": "Dar acceso a un miembro",
+    "choose": "Elige un miembro",
+    "assign": "Agregar",
+    "noCandidates": "Todos los miembros de la organización ya tienen acceso.",
+    "remove": "Quitar",
+    "removeFor": "Quitar a {name} del proyecto",
+    "alwaysSees": "Ve todos los proyectos",
+    "added": "{name} ahora tiene acceso al proyecto.",
+    "removed": "{name} ya no tiene acceso al proyecto.",
+    "addFailed": "No se pudo agregar al miembro. Inténtalo de nuevo.",
+    "removeFailed": "No se pudo quitar al miembro. Inténtalo de nuevo."
   },
   "plan": {
     "title": "Plan",

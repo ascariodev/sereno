@@ -5,7 +5,7 @@ namespace App\Policies;
 use App\Enums\Role;
 use App\Models\LogSource;
 use App\Models\User;
-use App\Support\CurrentOrganization;
+use App\Policies\Concerns\ChecksActiveOrganization;
 
 /**
  * Roles are read from the active permission team, which ResolveOrganization sets.
@@ -13,6 +13,8 @@ use App\Support\CurrentOrganization;
  */
 class LogSourcePolicy
 {
+    use ChecksActiveOrganization;
+
     public function viewAny(User $user): bool
     {
         return $this->hasActiveOrganization() && $user->hasAnyRole(array_column(Role::cases(), 'value'));
@@ -36,23 +38,5 @@ class LogSourcePolicy
     public function rotateKey(User $user, LogSource $source): bool
     {
         return $this->belongsToActiveOrganization($source) && $this->canManage($user);
-    }
-
-    private function canManage(User $user): bool
-    {
-        return $this->hasActiveOrganization()
-            && $user->hasAnyRole([Role::Owner->value, Role::Admin->value]);
-    }
-
-    private function hasActiveOrganization(): bool
-    {
-        return app(CurrentOrganization::class)->id() !== null;
-    }
-
-    private function belongsToActiveOrganization(LogSource $source): bool
-    {
-        $activeId = app(CurrentOrganization::class)->id();
-
-        return $activeId !== null && $source->organization_id === $activeId;
     }
 }

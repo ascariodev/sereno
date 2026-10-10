@@ -13,6 +13,8 @@ beforeEach(function () {
     $this->member = User::factory()->create();
     $this->organization->addMember($this->member, [Role::Member]);
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
+
+    assignMembersToAllProjects();
 });
 
 function listDeletedMessage(Channel $channel, ?int $userId = null, ?int $parentId = null, bool $deleted = false): int

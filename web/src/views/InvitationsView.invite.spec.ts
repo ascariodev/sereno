@@ -3,11 +3,13 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
+import type { Invitation } from '../api/types'
 import { toast, toasts } from '../components/ui/toast'
 import { i18n, setLocale } from '../i18n'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { useProjectsStore } from '../stores/projects'
 import InvitationsView from './InvitationsView.vue'
 
 const user = { id: 1, name: 'Test', email: 't@e.com', locale: 'en' }
@@ -19,6 +21,7 @@ function invitation(id: number, role: 'owner' | 'admin' | 'member', email = `p${
     role,
     locale: 'en',
     invited_by: { id: 1, name: 'Ada' },
+    projects: [] as Invitation['projects'],
     expires_at: '2026-10-15T12:00:00Z',
     created_at: '2026-10-08T12:00:00Z',
   }
@@ -26,10 +29,19 @@ function invitation(id: number, role: 'owner' | 'admin' | 'member', email = `p${
 
 let wrapper: VueWrapper | undefined
 
+const activeProjects = [
+  { id: 7, name: 'Alpha', key: 'ALP', archived_at: null },
+  { id: 8, name: 'Beta', key: 'BET', archived_at: null },
+  { id: 9, name: 'Old', key: 'OLD', archived_at: '2026-01-01T00:00:00Z' },
+]
+
 async function mountView(roles: string[], existing: unknown[] = []) {
   localStorage.setItem(TOKEN_STORAGE_KEY, 'tok')
   vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
     if (path === '/api/invitations') return { data: existing }
+    if (path === '/api/projects') {
+      return { data: activeProjects, links: {}, meta: { current_page: 1, last_page: 1, per_page: 100, total: 3 } }
+    }
     return { data: [] }
   })
   const pinia = createPinia()
@@ -94,6 +106,17 @@ afterEach(() => {
   wrapper = undefined
   document.body.innerHTML = ''
 })
+
+function projectBoxes(): HTMLInputElement[] {
+  return [...document.querySelectorAll<HTMLInputElement>('[role=dialog] input[name=project_ids]')]
+}
+
+async function check(index: number) {
+  const box = projectBoxes()[index]
+  box.checked = true
+  box.dispatchEvent(new Event('change'))
+  await flushPromises()
+}
 
 describe('InvitationsView invite dialog', () => {
   it('opens closed, then opens with the email focused and member selected', async () => {
@@ -232,5 +255,132 @@ describe('InvitationsView invite dialog', () => {
     expect(dialog()).toBeNull()
     expect(toasts.value).toHaveLength(0)
     expect(wrapper!.findAll('[data-test=email]').map((el) => el.text())).not.toContain('x@e.com')
+  })
+  it('lists active projects and sends the chosen project_ids only for a member', async () => {
+    await mountView(['owner'])
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: invitation(2, 'member', 'new@e.com') })
+    await openDialog()
+    expect(projectBoxes().map((box) => box.value)).toEqual(['7', '8'])
+    await check(1)
+    await fill('new@e.com')
+    await submit()
+    expect(post).toHaveBeenCalledWith('/api/invitations', { email: 'new@e.com', role: 'member', project_ids: [8] })
+  })
+
+  it('hides the selector and omits project_ids when the role is not member', async () => {
+    await mountView(['owner'])
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: invitation(2, 'admin', 'new@e.com') })
+    await openDialog()
+    await check(0)
+    await fill('new@e.com', 'admin')
+    expect(field('[data-test=projects]')).toBeNull()
+    await submit()
+    expect(post).toHaveBeenCalledWith('/api/invitations', { email: 'new@e.com', role: 'admin' })
+  })
+
+  it('shows project 422 errors linked to the fieldset and not the general error', async () => {
+    await mountView(['owner'])
+    vi.spyOn(api, 'post').mockRejectedValue(
+      new ApiError(422, 'invalid', { 'project_ids.0': ['The selected project_ids.0 is invalid.'] }),
+    )
+    await openDialog()
+    await check(0)
+    await fill('new@e.com')
+    await submit()
+    expect(field('[data-test=error-projects]').textContent).toContain('invalid')
+    expect(field('[data-test=projects]').getAttribute('aria-describedby')).toBe(field('[data-test=error-projects]').id)
+    expect(field('[data-test=projects]').getAttribute('aria-invalid')).toBe('true')
+    expect(field('[data-test=error-form]')).toBeNull()
+  })
+
+  it('keeps the chosen projects when switching to admin and back to member', async () => {
+    await mountView(['owner'])
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: invitation(2, 'member', 'new@e.com') })
+    await openDialog()
+    await check(1)
+    await fill('new@e.com', 'admin')
+    await fill('new@e.com', 'member')
+    expect(projectBoxes().map((box) => box.checked)).toEqual([false, true])
+    await submit()
+    expect(post).toHaveBeenCalledWith('/api/invitations', { email: 'new@e.com', role: 'member', project_ids: [8] })
+  })
+
+  it('shows the general error when a 422 has no visible keys, keeping the fieldset', async () => {
+    await mountView(['owner'])
+    vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'Unknown problem', { other: ['Hidden'] }))
+    await openDialog()
+    await check(0)
+    await fill('new@e.com')
+    await submit()
+    expect(field('[data-test=error-form]').textContent).toContain('Unknown problem')
+    expect(field('[data-test=projects]')).not.toBeNull()
+    expect(field('[data-test=projects]').getAttribute('aria-invalid')).toBeNull()
+  })
+
+  it('marks every project checkbox invalid on a project 422', async () => {
+    await mountView(['owner'])
+    vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'invalid', { project_ids: ['Bad projects'] }))
+    await openDialog()
+    await check(0)
+    await fill('new@e.com')
+    await submit()
+    expect(projectBoxes().map((box) => box.getAttribute('aria-invalid'))).toEqual(['true', 'true'])
+  })
+
+  it('shows the projects of a pending member invitation', async () => {
+    const withProjects = { ...invitation(1, 'member'), projects: [{ id: 7, name: 'Alpha', key: 'ALP' }, { id: 8, name: 'Beta', key: 'BET' }] }
+    await mountView(['owner'], [withProjects, invitation(2, 'admin')])
+    const shown = wrapper!.findAll('[data-test=projects]')
+    expect(shown).toHaveLength(1)
+    expect(shown[0].text()).toBe('Alpha, Beta')
+  })
+
+  it('warns when the projects failed to load and still lets a member be invited without projects', async () => {
+    await mountView(['owner'])
+    useProjectsStore().$patch({ projects: [], failed: true })
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: invitation(5, 'member', 'new@e.com') })
+    await openDialog()
+    expect(field('[data-test=projects-failed]').textContent).toContain('Could not load the projects.')
+    expect(field('[data-test=projects]')).toBeNull()
+    await fill('new@e.com')
+    await submit()
+    expect(post).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries the projects load from the warning without reopening the dialog', async () => {
+    await mountView(['owner'])
+    useProjectsStore().$patch({ projects: [], failed: true })
+    await openDialog()
+    field<HTMLButtonElement>('[data-test=projects-retry]').click()
+    await flushPromises()
+    expect(field('[data-test=projects-failed]')).toBeNull()
+    expect(projectBoxes()).toHaveLength(2)
+  })
+
+  it('keeps the listed projects when a retry fails again', async () => {
+    await mountView(['owner'])
+    const store = useProjectsStore()
+    await store.refresh()
+    store.$patch({ failed: true })
+    const base = vi.mocked(api.get).getMockImplementation()!
+    vi.mocked(api.get).mockImplementation(async (path: string, options?: Parameters<typeof api.get>[1]) => {
+      if (path === '/api/projects') throw new ApiError(500, 'boom', {})
+      return base(path, options)
+    })
+    await openDialog()
+    expect(projectBoxes()).toHaveLength(2)
+    field<HTMLButtonElement>('[data-test=projects-retry]').click()
+    await flushPromises()
+    expect(store.failed).toBe(true)
+    expect(projectBoxes()).toHaveLength(2)
+  })
+
+  it('does not show the projects warning for a non-member role', async () => {
+    await mountView(['owner'])
+    useProjectsStore().$patch({ failed: true })
+    await openDialog()
+    expect(field('[data-test=projects-failed]')).not.toBeNull()
+    await fill('x@e.com', 'admin')
+    expect(field('[data-test=projects-failed]')).toBeNull()
   })
 })

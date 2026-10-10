@@ -19,6 +19,8 @@ beforeEach(function () {
     $this->user = User::factory()->create(['name' => 'Ana']);
     $this->organization->addMember($this->user, [Role::Member]);
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
+
+    assignMembersToAllProjects();
 });
 
 it('broadcasts a posted message on the private channel with the message resource', function () {

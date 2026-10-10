@@ -18,6 +18,7 @@ beforeEach(function () {
     $this->outsider = User::factory()->create();
     $this->other->addMember($this->outsider, [Role::Owner]);
     $this->project = Project::factory()->for($this->organization)->create(['key' => 'POSVE']);
+    assignMembersToAllProjects();
 });
 
 function storeTaskAs(User $user, Organization $organization, Project $project, array $payload)
@@ -74,6 +75,7 @@ it('defaults to todo without assignee nor log group', function () {
 
 it('numbers tasks consecutively per project', function () {
     $sibling = Project::factory()->for($this->organization)->create();
+    $sibling->addMember($this->member);
 
     foreach (range(1, 3) as $expected) {
         storeTaskAs($this->member, $this->organization, $this->project, ['title' => "Task {$expected}"])
@@ -153,6 +155,7 @@ it('answers 422 when another request links the same log group first', function (
 
 it('rejects a log group of another project or organization', function () {
     $sibling = Project::factory()->for($this->organization)->create();
+    $sibling->addMember($this->member);
     $siblingGroup = LogGroup::factory()->for($sibling)->create();
     $foreignProject = Project::factory()->for($this->other)->create();
     $foreignGroup = LogGroup::factory()->for($foreignProject)->create();

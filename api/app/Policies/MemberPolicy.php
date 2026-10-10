@@ -16,6 +16,11 @@ class MemberPolicy
         return $user->hasAnyRole(array_column(Role::cases(), 'value'));
     }
 
+    public function viewEmail(User $actor, User $target): bool
+    {
+        return $actor->is($target) || $actor->hasAnyRole([Role::Owner->value, Role::Admin->value]);
+    }
+
     public function updateRole(User $actor, User $target, ?Role $role): bool
     {
         if ($actor->hasRole(Role::Owner->value)) {

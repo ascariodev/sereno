@@ -29,6 +29,10 @@
 - L-19: Un chequeo que evita un `chown -R` busca cualquier entrada ajena (`find ! -user X -print -quit`), no solo el dueño de la raíz: el contenido puede ser de root con la raíz ya corregida. — aplicada en: pendiente
 - L-20: Un test de cierre (Escape, clic afuera) afirma primero que el elemento está abierto: si no abrió, "cerrado" pasa en falso. — aplicada en: test (AppMenu.spec, AppTooltip.spec)
 - L-21: Una tarjeta que es un enlace entero fija su nombre accesible con `aria-labelledby` al título (y `aria-describedby` al resto): si no, el lector lee todo el contenido como nombre. — aplicada en: test (ProjectsView.spec)
+
+- L-49: Un cambio que restringe un acceso por defecto (policy, scope) se verifica con la suite completa del API, no con los archivos que el implementador cree afectados: un archivo de tests olvidado (`MessagePostApiTest`) dio 17 fallos. — aplicada en: pendiente
+
+- L-50: Una mutación cuenta como detectada solo si falla una aserción: un rechazo sin manejar que Vitest reporta como error con todos los specs en verde no prueba el guard. Para un guard que evita un `await`, espiar el `then` del thenable y afirmar que no se llama. — aplicada en: test (useMembershipWatch.spec)
 - L-22: Un contenedor `flex-wrap` con altura mínima estira sus líneas (`align-content: normal`): fijar `align-content` o pasar a columna, y revisar el layout en el navegador, porque jsdom no lo detecta. — aplicada en: log-resumen M-19
 - L-23: Un modal que se abre desde otro (cajón, hoja) cierra el primero o se prueba apilado: elegir una acción que no navega deja el de abajo abierto. — aplicada en: test (AppLayout.spec)
 - L-24: Un cambio de scroll o layout trae tests que simulan `scrollTop` y `scrollHeight` (crecen con el DOM, no antes del render): sin ellos la lógica de anclaje queda sin cubrir. — aplicada en: test (MessageList.spec)

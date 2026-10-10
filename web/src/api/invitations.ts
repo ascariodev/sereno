@@ -18,8 +18,13 @@ export async function listInvitations(signal?: AbortSignal): Promise<Invitation[
   return response.data
 }
 
-export async function createInvitation(email: string, role: InvitationRole): Promise<Invitation> {
-  const response = await api.post<DataEnvelope<Invitation>>('/api/invitations', { email, role })
+export async function createInvitation(
+  email: string,
+  role: InvitationRole,
+  projectIds?: number[],
+): Promise<Invitation> {
+  const body = projectIds?.length && role === 'member' ? { email, role, project_ids: projectIds } : { email, role }
+  const response = await api.post<DataEnvelope<Invitation>>('/api/invitations', body)
   return response.data
 }
 

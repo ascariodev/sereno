@@ -21,6 +21,7 @@ beforeEach(function () {
     $this->outsider = User::factory()->create();
     $this->other->addMember($this->outsider, [Role::Owner]);
     $this->project = Project::factory()->for($this->organization)->create();
+    assignMembersToAllProjects();
 });
 
 function asSourceUser(User $user, Organization $organization)

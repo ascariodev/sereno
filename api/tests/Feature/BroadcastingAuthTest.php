@@ -27,6 +27,7 @@ beforeEach(function () {
     $this->other->addMember($this->outsider, [Role::Owner]);
 
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
+    assignMembersToAllProjects();
 });
 
 function authorizeChannel(string $channelName)
@@ -59,6 +60,7 @@ it('rejects a user who is not a member of the organization', function () {
 it('rejects a channel that belongs to another organization', function () {
     $foreign = Channel::factory()->for(Project::factory()->for($this->other))->create();
     $this->other->addMember($this->member, [Role::Member]);
+    assignMembersToAllProjects();
     Sanctum::actingAs($this->member);
 
     authorizeChannel(channelName($this->organization, $foreign))->assertForbidden();
@@ -220,6 +222,7 @@ it('rejects a non member on the project channel', function () {
 it('rejects a project of another organization on the project channel', function () {
     $foreign = Project::factory()->for($this->other)->create();
     $this->other->addMember($this->member, [Role::Member]);
+    assignMembersToAllProjects();
     Sanctum::actingAs($this->member);
 
     authorizeChannel(projectChannelName($this->organization, $foreign))->assertForbidden();
@@ -254,3 +257,54 @@ it('requires a token on the project channel', function () {
         ->assertUnauthorized()
         ->assertJsonPath('message', 'Unauthenticated.');
 });
+
+it('rejects a member without access to the project on its channel and project channel', function () {
+    $unassigned = User::factory()->create();
+    $this->organization->addMember($unassigned, [Role::Member]);
+    Sanctum::actingAs($unassigned);
+
+    authorizeChannel(channelName($this->organization, $this->channel))->assertForbidden();
+    authorizeChannel(projectChannelName($this->organization, Project::withoutGlobalScopes()->findOrFail($this->channel->project_id)))->assertForbidden();
+});
+
+it('authorizes a member once assigned to the project', function () {
+    $newcomer = User::factory()->create();
+    $this->organization->addMember($newcomer, [Role::Member]);
+    $project = Project::withoutGlobalScopes()->findOrFail($this->channel->project_id);
+    $project->addMember($newcomer);
+    Sanctum::actingAs($newcomer);
+
+    authorizeChannel(channelName($this->organization, $this->channel))->assertOk();
+    authorizeChannel(projectChannelName($this->organization, $project))->assertOk();
+});
+
+it('authorizes owner and admin without project assignment', function (Role $role) {
+    $user = User::factory()->create();
+    $this->organization->addMember($user, [$role]);
+    Sanctum::actingAs($user);
+
+    authorizeChannel(channelName($this->organization, $this->channel))->assertOk();
+    authorizeChannel(projectChannelName($this->organization, Project::withoutGlobalScopes()->findOrFail($this->channel->project_id)))->assertOk();
+})->with([Role::Owner, Role::Admin]);
+
+it('authorizes any member of the organization on a channel without project', function () {
+    $unassigned = User::factory()->create();
+    $this->organization->addMember($unassigned, [Role::Member]);
+    $general = Channel::factory()->create(['organization_id' => $this->organization->id, 'project_id' => null]);
+    Sanctum::actingAs($unassigned);
+
+    authorizeChannel(channelName($this->organization, $general))->assertOk();
+});
+
+it('rejects owner and admin of one organization on a channel and project of another', function (Role $role) {
+    $user = User::factory()->create();
+    $this->organization->addMember($user, [$role]);
+    $foreignProject = Project::factory()->for($this->other)->create();
+    $foreignChannel = Channel::factory()->for($foreignProject)->create();
+    Sanctum::actingAs($user);
+
+    authorizeChannel(channelName($this->organization, $foreignChannel))->assertForbidden();
+    authorizeChannel(channelName($this->other, $foreignChannel))->assertForbidden();
+    authorizeChannel(projectChannelName($this->organization, $foreignProject))->assertForbidden();
+    authorizeChannel(projectChannelName($this->other, $foreignProject))->assertForbidden();
+})->with([Role::Owner, Role::Admin]);

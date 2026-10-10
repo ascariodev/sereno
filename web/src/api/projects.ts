@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { DataEnvelope, Project } from './types'
+import type { DataEnvelope, Member, Project } from './types'
 
 export interface CreateProjectInput {
   name: string
@@ -10,4 +10,18 @@ export interface CreateProjectInput {
 export async function createProject(input: CreateProjectInput): Promise<Project> {
   const response = await api.post<DataEnvelope<Project>>('/api/projects', input)
   return response.data
+}
+
+export async function listProjectMembers(projectId: number, signal?: AbortSignal): Promise<Member[]> {
+  const response = await api.get<DataEnvelope<Member[]>>(`/api/projects/${projectId}/members`, { signal })
+  return response.data
+}
+
+export async function assignProjectMember(projectId: number, userId: number): Promise<Member> {
+  const response = await api.post<DataEnvelope<Member>>(`/api/projects/${projectId}/members`, { user_id: userId })
+  return response.data
+}
+
+export async function unassignProjectMember(projectId: number, userId: number): Promise<void> {
+  await api.delete<void>(`/api/projects/${projectId}/members/${userId}`)
 }

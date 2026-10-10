@@ -1,11 +1,13 @@
 import { onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { toast } from '../components/ui/toast'
 import { useAuthStore } from '../stores/auth'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
-import { joinSession, leaveOrganization, onChannelDenied, onReconnect, subscribeToUser } from './echo'
+import { useProjectsStore } from '../stores/projects'
+import { joinSession, leaveOrganization, leaveProject, onChannelDenied, onReconnect, subscribeToUser } from './echo'
 
 const ownLeaves = new Map<number, number>()
 const pendingRevocations = new Map<number, Promise<void>>()
@@ -30,7 +32,10 @@ function ignoreApiError(error: unknown): void {
 export function useMembershipWatch(): void {
   const auth = useAuthStore()
   const organization = useOrganizationStore()
+  const projectsStore = useProjectsStore()
+  const directory = useMemberDirectoryStore()
   const router = useRouter()
+  const route = useRoute()
   const { t } = useI18n()
   let unsubscribeUser: (() => void) | null = null
   let unsubscribeReconnect: (() => void) | null = null
@@ -78,12 +83,51 @@ export function useMembershipWatch(): void {
     void onForbidden(activeId)
   }
 
+  function openProjectId(): number | null {
+    if (route.name === 'project-log' || route.name === 'project-plan') return Number(route.params.projectId)
+    if (route.name !== 'channel') return null
+    const channelId = Number(route.params.id)
+    const entry = Object.entries(projectsStore.channelByProject).find(([, id]) => id === channelId)
+    return entry ? Number(entry[0]) : null
+  }
+
+  async function onProjectAccessChanged(organizationId: number, projectId: number, granted: boolean): Promise<void> {
+    if (organization.activeId !== organizationId) return
+    directory.invalidate(projectId)
+    if (granted) {
+      await projectsStore.refresh()
+      return
+    }
+    const name = projectsStore.projects.find((project) => project.id === projectId)?.name
+    const wasOpen = openProjectId() === projectId
+    leaveProject(organizationId, projectId, projectsStore.removeProject(projectId))
+    const userId = auth.user?.id
+    const refreshing = projectsStore.refresh()
+    if (wasOpen) {
+      refreshing.catch(() => undefined)
+      toast.info(name ? t('organization.projectAccessLost', { project: name }) : t('organization.projectAccessLostUnknown'))
+      await router.replace({ name: 'projects' })
+      if (auth.user?.id !== userId || organization.activeId !== organizationId) return
+    }
+    await refreshing
+  }
+
   async function onMembershipRoleChanged(organizationId: number, role: string): Promise<void> {
+    const openProject = organization.activeId === organizationId ? openProjectId() : null
+    const openProjectName = projectsStore.projects.find((project) => project.id === openProject)?.name
     try {
       await organization.handleMembershipRoleChanged(organizationId, role)
+      if (organization.activeId !== organizationId) return
+      directory.invalidate()
+      await projectsStore.refresh()
     } catch (error) {
       ignoreApiError(error)
+      return
     }
+    if (openProject === null || projectsStore.failed) return
+    if (projectsStore.projects.some((project) => project.id === openProject) || openProject in projectsStore.channelByProject) return
+    toast.info(openProjectName ? t('organization.projectAccessLost', { project: openProjectName }) : t('organization.projectAccessLostUnknown'))
+    await router.replace({ name: 'projects' })
   }
 
   function stopWatching(): void {
@@ -108,6 +152,8 @@ export function useMembershipWatch(): void {
       unsubscribeUser = subscribeToUser(userId, {
         onMembershipRevoked: (organizationId) => void onMembershipRevoked(organizationId),
         onRoleChanged: (organizationId, role) => void onMembershipRoleChanged(organizationId, role),
+        onProjectAccessChanged: (organizationId, projectId, granted) =>
+          void onProjectAccessChanged(organizationId, projectId, granted).catch(ignoreApiError),
       })
       leaveSession = joinSession(userId)
       unsubscribeReconnect = onReconnect(onReconnected)

@@ -49,7 +49,7 @@ const dirty = computed(
   () => title.value !== snapshot.title || description.value !== snapshot.description || assigneeId.value !== snapshot.assigneeId,
 )
 const memberOptions = computed(() => {
-  const members = directory.members.map((member) => ({ id: member.id, name: member.name }))
+  const members = directory.membersOf(props.projectId).map((member) => ({ id: member.id, name: member.name }))
   const current = task.value?.assignee
   if (current && !members.some((member) => member.id === current.id)) members.push({ id: current.id, name: current.name })
   return members
@@ -90,7 +90,7 @@ function resetForm(): void {
 }
 
 fill()
-void directory.ensureLoaded()
+watch(() => props.projectId, (id) => void directory.ensureLoaded(id), { immediate: true })
 
 watch(
   () => props.taskId,

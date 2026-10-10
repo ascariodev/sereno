@@ -232,7 +232,7 @@ onUnmounted(() => {
             <span data-test="name">{{ member.name }}</span>
             <span v-if="member.id === auth.user?.id" class="members__you" data-test="you">{{ t('members.you') }}</span>
           </strong>
-          <span class="members__email" data-test="email">{{ member.email }}</span>
+          <span v-if="member.email" class="members__email" data-test="email">{{ member.email }}</span>
         </div>
         <dl class="members__details">
           <div>

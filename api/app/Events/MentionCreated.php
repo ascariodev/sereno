@@ -3,8 +3,10 @@
 namespace App\Events;
 
 use App\Http\Resources\MessageResource;
+use App\Models\Channel;
 use App\Models\Message;
 use App\Models\User;
+use App\Support\ProjectAccess;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -38,18 +40,30 @@ class MentionCreated implements ShouldBroadcast, ShouldDispatchAfterCommit
 
     /**
      * Checked here and not in `broadcastWhen`, which runs at dispatch: the queued job calls this in the worker,
-     * and no channels means nothing is sent if the membership was revoked meanwhile.
+     * and no channels means nothing is sent if the membership or the project access was revoked meanwhile.
      *
      * @return PrivateChannel|array{}
      */
     public function broadcastOn(): PrivateChannel|array
     {
-        $isMember = User::query()
+        $user = User::query()
             ->whereKey($this->userId)
             ->whereHas('organizations', fn ($query) => $query->whereKey($this->organizationId))
-            ->exists();
+            ->first();
 
-        return $isMember ? new PrivateChannel('users.'.$this->userId) : [];
+        if ($user === null) {
+            return [];
+        }
+
+        $channel = Channel::withoutGlobalScopes()
+            ->where('organization_id', $this->organizationId)
+            ->find($this->channelId, ['id', 'project_id']);
+
+        $canSee = $channel !== null
+            && ($channel->project_id === null
+                || ProjectAccess::canViewId($user, $this->organizationId, $channel->project_id));
+
+        return $canSee ? new PrivateChannel('users.'.$this->userId) : [];
     }
 
     public function broadcastAs(): string

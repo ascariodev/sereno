@@ -16,6 +16,7 @@ import {
   MESSAGE_UPDATED_EVENT,
   onChannelDenied,
   onReconnect,
+  PROJECT_MEMBERS_CHANGED_EVENT,
   setRealtimeClientFactory,
   setRealtimeTokenProvider,
   subscribeToChannel,
@@ -110,6 +111,35 @@ describe('realtime', () => {
     expect(client.leave).not.toHaveBeenCalled()
     leaveSecond()
     expect(client.leave).toHaveBeenCalledWith(name)
+  })
+
+  it('forwards project.members_changed on the project and channel channels only with a numeric project id', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const fromProject: number[] = []
+    const fromChannel: number[] = []
+    const created: number[] = []
+    const deleted: TaskDeletedEvent[] = []
+    subscribeToProject(3, 5, {
+      onMembersChanged: (projectId) => fromProject.push(projectId),
+      onTaskCreated: (task) => created.push(task.id),
+      onTaskDeleted: (event) => deleted.push(event),
+    })
+    subscribeToChannel(3, 7, { onMembersChanged: (projectId) => fromChannel.push(projectId) })
+    const emitProject = (data: object) => listeners.get(`organizations.3.projects.5|${PROJECT_MEMBERS_CHANGED_EVENT}`)?.(data)
+    const emitChannel = (data: object) => listeners.get(`organizations.3.channels.7|${PROJECT_MEMBERS_CHANGED_EVENT}`)?.(data)
+
+    emitProject({ project_id: 5 })
+    emitProject({ project_id: '5' })
+    emitProject({})
+    emitChannel({ project_id: 5 })
+    emitChannel({ project_id: '5' })
+    emitChannel({})
+
+    expect(fromProject).toEqual([5])
+    expect(fromChannel).toEqual([5])
+    expect(created).toEqual([])
+    expect(deleted).toEqual([])
   })
 
   it('leaveOrganization drops the project channels of that organization', () => {

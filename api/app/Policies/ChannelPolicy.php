@@ -5,7 +5,9 @@ namespace App\Policies;
 use App\Enums\Role;
 use App\Models\Channel;
 use App\Models\User;
-use App\Support\CurrentOrganization;
+use App\Policies\Concerns\ChecksActiveOrganization;
+use App\Support\ProjectAccess;
+use Illuminate\Auth\Access\Response;
 
 /**
  * Roles are read from the active permission team, which ResolveOrganization sets.
@@ -13,15 +15,26 @@ use App\Support\CurrentOrganization;
  */
 class ChannelPolicy
 {
+    use ChecksActiveOrganization;
+
     public function viewAny(User $user): bool
     {
-        return $this->activeOrganizationId() !== null
+        return $this->hasActiveOrganization()
             && $user->hasAnyRole(array_column(Role::cases(), 'value'));
     }
 
-    public function view(User $user, Channel $channel): bool
+    public function view(User $user, Channel $channel): Response|bool
     {
-        return $this->belongsToActiveOrganization($channel) && $this->viewAny($user);
+        if (! $this->belongsToActiveOrganization($channel) || ! $this->viewAny($user)) {
+            return false;
+        }
+
+        if ($channel->project_id === null
+            || ProjectAccess::canViewId($user, $channel->organization_id, $channel->project_id)) {
+            return Response::allow();
+        }
+
+        return Response::denyAsNotFound();
     }
 
     public function create(User $user): bool
@@ -37,23 +50,5 @@ class ChannelPolicy
     public function archive(User $user, Channel $channel): bool
     {
         return $this->update($user, $channel);
-    }
-
-    private function canManage(User $user): bool
-    {
-        return $this->activeOrganizationId() !== null
-            && $user->hasAnyRole([Role::Owner->value, Role::Admin->value]);
-    }
-
-    private function belongsToActiveOrganization(Channel $channel): bool
-    {
-        $activeId = $this->activeOrganizationId();
-
-        return $activeId !== null && $channel->organization_id === $activeId;
-    }
-
-    private function activeOrganizationId(): ?int
-    {
-        return app(CurrentOrganization::class)->id();
     }
 }

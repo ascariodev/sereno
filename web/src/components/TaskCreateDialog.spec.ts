@@ -18,7 +18,7 @@ function mountHost(props: Record<string, unknown> = {}) {
   const pinia = createPinia()
   setActivePinia(pinia)
   useOrganizationStore().$patch({ activeId: 1 })
-  useMemberDirectoryStore().$patch({ members: [{ id: 3, name: 'Bea', email: 'b@b.c', role: 'member', joined_at: null }] })
+  useMemberDirectoryStore().$patch({ entries: { 5: { members: [{ id: 3, name: 'Bea', email: 'b@b.c', role: 'member', joined_at: null }], loaded: true, loadedAt: Date.now(), generation: 0, inFlight: null } } })
   vi.spyOn(useMemberDirectoryStore(), 'ensureLoaded').mockResolvedValue()
   const open = ref(false)
   const created = vi.fn()
@@ -74,6 +74,17 @@ describe('TaskCreateDialog', () => {
     })
     expect(created).toHaveBeenCalledWith(task)
     expect(open.value).toBe(false)
+  })
+
+  it('offers only the members of its project as assignees', async () => {
+    const { wrapper } = mountHost()
+    useMemberDirectoryStore().$patch({
+      entries: { 6: { members: [{ id: 4, name: 'Zed', email: 'z@z.c', role: 'member', joined_at: null }], loaded: true, loadedAt: Date.now(), generation: 0, inFlight: null } },
+    })
+    await openIt(wrapper)
+    const names = [...document.body.querySelectorAll('#task-create-assignee option')].map((o) => o.textContent?.trim())
+    expect(names).toContain('Bea')
+    expect(names).not.toContain('Zed')
   })
 
   it('returns focus to the button that opened it', async () => {

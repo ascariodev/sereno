@@ -25,6 +25,8 @@ beforeEach(function () {
         'user_id' => $this->author->id,
         'body' => 'original',
     ]);
+
+    assignMembersToAllProjects();
 });
 
 function patchBroadcastEdit(object $test, string $body): void

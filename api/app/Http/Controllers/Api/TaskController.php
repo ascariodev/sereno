@@ -14,6 +14,8 @@ use App\Http\Requests\Task\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
+use App\Support\ProjectAccess;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -32,7 +34,7 @@ class TaskController extends Controller
 
     public function index(Project $project): AnonymousResourceCollection
     {
-        Gate::authorize('viewAny', Task::class);
+        Gate::authorize('view', $project);
 
         $order = 'CASE status';
         foreach (TaskStatus::cases() as $index => $status) {
@@ -59,6 +61,8 @@ class TaskController extends Controller
 
         try {
             $task = DB::transaction(function () use ($request, $project, $status) {
+                $this->lockAssigneeAccess($project, $request->validated('assignee_id'));
+
                 // Locks the project row until commit, so numbers and positions of the project are serialized.
                 $number = DB::selectOne(
                     'UPDATE projects SET last_task_number = last_task_number + 1 WHERE id = ? RETURNING last_task_number',
@@ -103,12 +107,25 @@ class TaskController extends Controller
         abort_unless($task->project_id === $project->id, 404);
 
         $data = $request->validated();
+        $newAssigneeId = array_key_exists('assignee_id', $data) && $data['assignee_id'] !== null
+            && (int) $data['assignee_id'] !== $task->assignee_id ? (int) $data['assignee_id'] : null;
 
-        $task->fill(array_intersect_key($data, array_flip(['title', 'description'])));
-        if (array_key_exists('assignee_id', $data)) {
-            $task->assignee_id = $data['assignee_id'];
+        $apply = function () use ($task, $data) {
+            $task->fill(array_intersect_key($data, array_flip(['title', 'description'])));
+            if (array_key_exists('assignee_id', $data)) {
+                $task->assignee_id = $data['assignee_id'];
+            }
+            $task->save();
+        };
+
+        if ($newAssigneeId === null) {
+            $apply();
+        } else {
+            DB::transaction(function () use ($project, $newAssigneeId, $apply) {
+                $this->lockAssigneeAccess($project, $newAssigneeId);
+                $apply();
+            });
         }
-        $task->save();
 
         $task->load(self::RELATIONS)->setRelation('project', $project);
         TaskUpdated::dispatch($task);
@@ -181,6 +198,30 @@ class TaskController extends Controller
         TaskUpdated::dispatch($task);
 
         return new TaskResource($task);
+    }
+
+    /**
+     * Re-checks the assignee's access after the request validated it. FOR SHARE on the organization row waits for the
+     * FOR UPDATE that access and membership changes hold until commit, and blocks them until this commit, so nobody is
+     * assigned while losing access. It is taken first, before projects and tasks, like those changes do (organization,
+     * then project_user and tasks), so no lock cycle; assignments do not block each other or inserts that reference
+     * the organization.
+     */
+    private function lockAssigneeAccess(Project $project, ?int $assigneeId): void
+    {
+        if ($assigneeId === null) {
+            return;
+        }
+
+        DB::table('organizations')->where('id', $project->organization_id)->sharedLock()->first();
+
+        $assignee = User::query()->find($assigneeId);
+
+        if ($assignee === null || ! ProjectAccess::canView($assignee, $project)) {
+            throw ValidationException::withMessages([
+                'assignee_id' => StoreTaskRequest::assigneeWithoutAccessMessage(),
+            ]);
+        }
     }
 
     /**

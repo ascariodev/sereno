@@ -13,6 +13,8 @@ beforeEach(function () {
     $this->member = User::factory()->create();
     $this->organization->addMember($this->member, [Role::Member]);
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
+
+    assignMembersToAllProjects();
 });
 
 function participantsMessage(Channel $channel, ?int $userId = null, ?int $parentId = null): int

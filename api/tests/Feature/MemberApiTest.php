@@ -32,12 +32,35 @@ it('lets any member list the members ordered by name with their role', function 
     expect($response->json('data.*.name'))->toBe(['Ana', 'Bruno', 'Carla'])
         ->and($response->json('data.*.role'))->toBe(['admin', 'owner', $role->value]);
 
-    $response->assertJsonStructure(['data' => [['id', 'name', 'email', 'role', 'joined_at']]])
+    $response->assertJsonStructure(['data' => [['id', 'name', 'role', 'joined_at']]])
         ->assertJsonMissingPath('data.0.password');
     expect($response->json('data.1.id'))->toBe($this->owner->id)
-        ->and($response->json('data.1.email'))->toBe($this->owner->email)
         ->and($response->json('data.1.joined_at'))->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/');
 })->with([Role::Owner, Role::Admin, Role::Member]);
+
+it('shows every email to owners and admins', function (Role $role) {
+    $member = User::factory()->create(['name' => 'Ana']);
+    $this->organization->addMember($member, [Role::Member]);
+    $viewer = User::factory()->create(['name' => 'Carla']);
+    $this->organization->addMember($viewer, [$role]);
+
+    $response = listMembers($viewer, $this->organization)->assertOk();
+
+    expect($response->json('data.*.email'))->toBe([$member->email, $this->owner->email, $viewer->email]);
+})->with([Role::Owner, Role::Admin]);
+
+it('shows a member only their own email', function () {
+    $admin = User::factory()->create(['name' => 'Ana']);
+    $this->organization->addMember($admin, [Role::Admin]);
+    $viewer = User::factory()->create(['name' => 'Carla']);
+    $this->organization->addMember($viewer, [Role::Member]);
+
+    $response = listMembers($viewer, $this->organization)->assertOk();
+
+    expect($response->json('data.*.name'))->toBe(['Ana', 'Bruno', 'Carla'])
+        ->and($response->json('data.2.email'))->toBe($viewer->email);
+    $response->assertJsonMissingPath('data.0.email')->assertJsonMissingPath('data.1.email');
+});
 
 it('lists only the members of the active organization with the role they have there', function () {
     $other = Organization::factory()->create();

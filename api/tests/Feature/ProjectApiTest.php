@@ -42,9 +42,10 @@ it('creates a project with the key uppercased', function () {
     expect(Project::withoutGlobalScopes()->where('organization_id', $this->organization->id)->count())->toBe(1);
 });
 
-it('lets any member list and view but only owner and admin write', function (Role $role, bool $canWrite) {
+it('lets any role list and view but only owner and admin write', function (Role $role, bool $canWrite) {
     $project = Project::factory()->for($this->organization)->create();
     $user = $this->users[$role->value];
+    $project->addMember($user);
 
     asUser($user, $this->organization)->getJson('/api/projects')->assertOk()->assertJsonCount(1, 'data');
     asUser($user, $this->organization)->getJson("/api/projects/{$project->id}")->assertOk();
@@ -178,7 +179,7 @@ it('paginates the project list with data, links and meta', function () {
         'name' => sprintf('Project %02d', $sequence->index),
         'key' => sprintf('P%02d', $sequence->index),
     ])->create();
-    $member = $this->users['member'];
+    $member = $this->users['admin'];
 
     asUser($member, $this->organization)->getJson('/api/projects')
         ->assertOk()
@@ -200,7 +201,7 @@ it('paginates the project list with data, links and meta', function () {
 });
 
 it('rejects an invalid per_page with 422', function (string $query) {
-    asUser($this->users['member'], $this->organization)->getJson("/api/projects?{$query}")
+    asUser($this->users['admin'], $this->organization)->getJson("/api/projects?{$query}")
         ->assertUnprocessable()->assertJsonValidationErrors('per_page');
 })->with([
     'over the maximum' => 'per_page=101',
@@ -215,7 +216,7 @@ it('keeps include_archived in the pagination links and counts archived projects'
         ['key' => 'BBB', 'archived_at' => now()],
         ['key' => 'CCC'],
     )->create();
-    $member = $this->users['member'];
+    $member = $this->users['admin'];
 
     asUser($member, $this->organization)->getJson('/api/projects?per_page=1')
         ->assertJsonPath('meta.total', 1);
@@ -327,7 +328,7 @@ it('counts only open groups and reports their highest level per project', functi
     LogGroup::factory()->for($busy)->ignored()->create(['level' => LogLevel::Alert]);
     LogGroup::factory()->for($calm)->resolved()->create(['level' => LogLevel::Error]);
 
-    $data = asUser($this->users['member'], $this->organization)->getJson('/api/projects')->assertOk()->json('data');
+    $data = asUser($this->users['admin'], $this->organization)->getJson('/api/projects')->assertOk()->json('data');
 
     expect($data[0])->toMatchArray(['open_groups_count' => 2, 'open_max_level' => 'critical'])
         ->and($data[1])->toMatchArray(['open_groups_count' => 0, 'open_max_level' => null]);
@@ -338,7 +339,7 @@ it('does not count groups of other organizations or projects', function () {
     $theirs = Project::factory()->for($this->other)->create();
     LogGroup::factory()->for($theirs)->create(['level' => LogLevel::Emergency]);
 
-    $data = asUser($this->users['member'], $this->organization)->getJson('/api/projects')->assertOk()->json('data');
+    $data = asUser($this->users['admin'], $this->organization)->getJson('/api/projects')->assertOk()->json('data');
 
     expect($data)->toHaveCount(1)
         ->and($data[0])->toMatchArray(['id' => $mine->id, 'open_groups_count' => 0, 'open_max_level' => null]);
@@ -347,7 +348,7 @@ it('does not count groups of other organizations or projects', function () {
 it('keeps the open summary out of single project responses', function () {
     $project = Project::factory()->for($this->organization)->create();
 
-    asUser($this->users['member'], $this->organization)->getJson("/api/projects/{$project->id}")
+    asUser($this->users['admin'], $this->organization)->getJson("/api/projects/{$project->id}")
         ->assertOk()
         ->assertJsonMissingPath('data.open_groups_count')
         ->assertJsonMissingPath('data.open_max_level');
@@ -357,7 +358,7 @@ it('runs a fixed number of queries however many projects have groups', function 
     $queries = function () {
         DB::flushQueryLog();
         DB::enableQueryLog();
-        asUser($this->users['member'], $this->organization)->getJson('/api/projects')->assertOk();
+        asUser($this->users['admin'], $this->organization)->getJson('/api/projects')->assertOk();
         $count = count(DB::getQueryLog());
         DB::flushQueryLog();
 

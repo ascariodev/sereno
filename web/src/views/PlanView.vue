@@ -10,6 +10,7 @@ import TaskCreateDialog from '../components/TaskCreateDialog.vue'
 import { useTaskDrag } from '../composables/useTaskDrag'
 import { TASK_STATUSES, type TaskStatus } from '../api/types'
 import { onReconnect, subscribeToProject } from '../realtime/echo'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import { TASK_FILTERS, useTasksStore, type TaskFilter } from '../stores/tasks'
@@ -20,6 +21,7 @@ const router = useRouter()
 const organization = useOrganizationStore()
 const projects = useProjectsStore()
 const tasks = useTasksStore()
+const directory = useMemberDirectoryStore()
 
 const projectId = computed(() => Number(route.params.projectId))
 const validId = computed(() => Number.isInteger(projectId.value) && projectId.value > 0)
@@ -92,6 +94,7 @@ function joinRealtime(): void {
     onTaskCreated: (task) => tasks.insert(task),
     onTaskUpdated: (task) => tasks.replace(task),
     onTaskDeleted: (event) => tasks.remove(event),
+    onMembersChanged: (id) => directory.invalidate(id),
   })
   unsubscribeReconnect = onReconnect(() => void tasks.refresh())
 }

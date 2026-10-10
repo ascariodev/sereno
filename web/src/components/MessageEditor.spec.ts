@@ -6,6 +6,7 @@ import type { Member, Message } from '../api/types'
 import { i18n } from '../i18n'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
+import { useProjectsStore } from '../stores/projects'
 import { useMessagesStore } from '../stores/messages'
 import MessageEditor from './MessageEditor.vue'
 
@@ -38,6 +39,8 @@ const member = (id: number, name: string): Member => ({
   joined_at: null,
 })
 
+const seed = (projectId: number, members: Member[]) => ({ [projectId]: { members, loaded: true, loadedAt: Date.now(), generation: 0, inFlight: null } })
+
 function mountEditor(message: Partial<Message> = {}) {
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -45,7 +48,8 @@ function mountEditor(message: Partial<Message> = {}) {
   const messages = useMessagesStore()
   messages.$patch({ channelId: 7, messages: [target] as never })
   useAuthStore().$patch({ user: { id: 1, name: 'Me' } as never })
-  useMemberDirectoryStore().$patch({ members: [member(2, 'Ana'), member(3, 'Andres'), member(1, 'Me')] })
+  useProjectsStore().$patch({ channelByProject: { 5: 7 } })
+  useMemberDirectoryStore().$patch({ entries: seed(5, [member(2, 'Ana'), member(3, 'Andres'), member(1, 'Me')]) })
   const wrapper = mount(MessageEditor, { props: { message: target }, attachTo: document.body, global: { plugins: [pinia, i18n] } })
   return { wrapper, messages, textarea: () => wrapper.find('textarea') }
 }
@@ -99,6 +103,15 @@ describe('MessageEditor', () => {
     await wrapper.find('button[name="cancel-edit"]').trigger('click')
     expect(wrapper.emitted('done')).toHaveLength(2)
     expect(patch).not.toHaveBeenCalled()
+  })
+
+  it('offers nobody when the channel has no project in channelByProject', async () => {
+    const { wrapper, textarea } = mountEditor()
+    useProjectsStore().channelByProject = {}
+    useMemberDirectoryStore().$patch({ entries: seed(6, [member(9, 'Anita')]) })
+    await textarea().setValue('hola @An')
+    expect(textarea().attributes('aria-expanded')).toBe('false')
+    expect(wrapper.findAll('[role=\'option\']')).toHaveLength(0)
   })
 
   it('Escape closes the suggestions first and does not cancel', async () => {

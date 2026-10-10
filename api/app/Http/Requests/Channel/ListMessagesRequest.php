@@ -15,7 +15,7 @@ class ListMessagesRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return Gate::allows('view', $this->route('channel'));
+        return Gate::authorize('view', $this->route('channel'))->allowed();
     }
 
     public function rules(): array

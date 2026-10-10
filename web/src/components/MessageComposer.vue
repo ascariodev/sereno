@@ -12,6 +12,7 @@ import { formatFileSize } from '../formatFileSize'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useMessagesStore } from '../stores/messages'
+import { useProjectsStore } from '../stores/projects'
 
 const MAX_LENGTH = 4000
 
@@ -31,6 +32,7 @@ const hintId = useId()
 const listId = useId()
 const messages = useMessagesStore()
 const directory = useMemberDirectoryStore()
+const projects = useProjectsStore()
 const auth = useAuthStore()
 const actions = inject(messageActionsKey, null)
 const field = ref<HTMLTextAreaElement | null>(null)
@@ -38,9 +40,10 @@ const sending = ref(false)
 const errorText = ref<string | null>(null)
 const picker = ref<HTMLInputElement | null>(null)
 const uploads = useAttachmentUploads(() => props.channelId ?? messages.channelId ?? 0)
+const projectId = computed(() => projects.projectIdOfChannel(props.channelId ?? messages.channelId))
 
 const mention = useMentionInput({
-  members: () => directory.members,
+  members: () => directory.membersOf(projectId.value),
   excludeUserId: () => auth.user?.id,
 })
 
@@ -53,7 +56,7 @@ const { activeIndex, open, optionId, setCaret, syncCaret, choose, handleKeydown 
   mention,
   field,
   listId,
-  ensureLoaded: () => directory.ensureLoaded(),
+  ensureLoaded: () => directory.ensureLoaded(projectId.value),
 })
 
 const tooLong = computed(() => mention.length.value > MAX_LENGTH)
@@ -73,7 +76,7 @@ function onInput(event: Event): void {
 function insertTrigger(): void {
   syncCaret()
   void setCaret(mention.insertTrigger())
-  void directory.ensureLoaded()
+  void directory.ensureLoaded(projectId.value)
 }
 
 const uploadStatus = computed(() => {

@@ -55,6 +55,14 @@ afterEach(() => {
 })
 
 describe('MembersView', () => {
+  it('omits the email line for a member the API returns without email', async () => {
+    await mountView([member(1, 'member'), member(2, 'admin', { email: undefined })])
+    const rows = wrapper!.findAll('[data-test=member]')
+    expect(rows).toHaveLength(2)
+    expect(rows[0].find('[data-test=email]').text()).toBe('u1@e.com')
+    expect(rows[1].find('[data-test=email]').exists()).toBe(false)
+  })
+
   it('lists name, email, role and join date, and marks the current user', async () => {
     const { get } = await mountView([member(1, 'owner'), member(2, 'member'), member(3, null, { joined_at: null })])
     expect(get).toHaveBeenCalledWith('/api/members', { signal: expect.any(AbortSignal) })

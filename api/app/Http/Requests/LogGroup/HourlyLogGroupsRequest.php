@@ -12,7 +12,8 @@ class HourlyLogGroupsRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return Gate::allows('viewAny', LogGroup::class);
+        return Gate::allows('viewAny', LogGroup::class)
+            && Gate::authorize('view', $this->route('project'))->allowed();
     }
 
     protected function prepareForValidation(): void

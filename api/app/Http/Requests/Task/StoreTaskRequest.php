@@ -6,7 +6,9 @@ use App\Enums\TaskStatus;
 use App\Models\LogGroup;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
 use App\Support\CurrentOrganization;
+use App\Support\ProjectAccess;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -19,7 +21,8 @@ class StoreTaskRequest extends FormRequest
     /** Runs before the rules so a 422 never reveals members or log groups to outsiders. */
     public function authorize(): bool
     {
-        return Gate::allows('create', Task::class);
+        return Gate::allows('create', Task::class)
+            && Gate::authorize('view', $this->route('project'))->allowed();
     }
 
     public function rules(): array
@@ -49,6 +52,8 @@ class StoreTaskRequest extends FormRequest
                     $validator->errors()->add('project', __('This project is archived and cannot have new tasks.'));
                 }
 
+                self::validateAssigneeAccess($validator, $project, $this->input('assignee_id'));
+
                 if ($validator->errors()->has('log_group_id') || $this->input('log_group_id') === null) {
                     return;
                 }
@@ -65,6 +70,24 @@ class StoreTaskRequest extends FormRequest
                 }
             },
         ];
+    }
+
+    public static function validateAssigneeAccess(Validator $validator, Project $project, mixed $assigneeId): void
+    {
+        if ($assigneeId === null || $validator->errors()->has('assignee_id')) {
+            return;
+        }
+
+        $assignee = User::query()->find((int) $assigneeId);
+
+        if ($assignee === null || ! ProjectAccess::canView($assignee, $project)) {
+            $validator->errors()->add('assignee_id', self::assigneeWithoutAccessMessage());
+        }
+    }
+
+    public static function assigneeWithoutAccessMessage(): string
+    {
+        return __('The selected assignee does not have access to this project.');
     }
 
     public function taskStatus(): TaskStatus

@@ -6,6 +6,7 @@ import { api, ApiError } from '../api/client'
 import { i18n } from '../i18n'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import { useTasksStore } from '../stores/tasks'
@@ -612,6 +613,15 @@ describe('PlanView', () => {
       fake.emit('.task.deleted', { id: 2, project_id: 5 })
       await flushPromises()
       expect(wrapper.findAll('[data-task-id]')).toHaveLength(1)
+    })
+
+    it('invalidates the member directory of the project when its members change', async () => {
+      const fake = live()
+      mockApi(() => ({ data: [] }))
+      await mountView()
+      const invalidate = vi.spyOn(useMemberDirectoryStore(), 'invalidate')
+      fake.emit('.project.members_changed', { project_id: 5 })
+      expect(invalidate).toHaveBeenCalledExactlyOnceWith(5)
     })
 
     it('refreshes on reconnect and leaves on unmount', async () => {

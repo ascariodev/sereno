@@ -31,7 +31,7 @@ async function mountAside(task: Task | null = base, props: Record<string, unknow
   setActivePinia(pinia)
   useOrganizationStore().$patch({ activeId: 1, organizations: [{ id: 1, name: 'Org', roles: who.roles ?? ['member'] }] as never })
   useAuthStore().$patch({ user: { id: who.userId ?? 1 } as never })
-  useMemberDirectoryStore().$patch({ members: [{ id: 3, name: 'Bea', email: 'b@b.c', role: 'member', joined_at: null }] })
+  useMemberDirectoryStore().$patch({ entries: { 5: { members: [{ id: 3, name: 'Bea', email: 'b@b.c', role: 'member', joined_at: null }], loaded: true, loadedAt: Date.now(), generation: 0, inFlight: null } } })
   vi.spyOn(useMemberDirectoryStore(), 'ensureLoaded').mockResolvedValue()
   const store = useTasksStore()
   store.$patch({ projectId: 5 })
@@ -111,6 +111,17 @@ describe('TaskAside', () => {
     spy.mockRejectedValueOnce(new ApiError(0, 'net', {}))
     await submit()
     expect(q('[data-test="error-form"]')!.textContent).toContain('Could not reach')
+  })
+
+  it('offers only the project members and keeps a current assignee who is not one', async () => {
+    await mountAside({ ...base, assignee: { id: 4, name: 'Cy' } })
+    useMemberDirectoryStore().$patch({ entries: { 6: { members: [{ id: 8, name: 'Zed', email: 'z@z.c', role: 'member', joined_at: null }], loaded: true, loadedAt: Date.now(), generation: 0, inFlight: null } } })
+    await flushPromises()
+    const options = Array.from(q<HTMLSelectElement>('#task-aside-assignee')!.options)
+    expect(options.map((o) => o.textContent!.trim()).filter((t) => t === 'Bea' || t === 'Cy' || t === 'Zed')).toEqual(['Bea', 'Cy'])
+    expect(options.map((o) => o.value)).toEqual(expect.arrayContaining(['3', '4']))
+    expect(options.map((o) => o.value)).not.toContain('8')
+    expect(q<HTMLSelectElement>('#task-aside-assignee')!.value).toBe('4')
   })
 
   it('is read-only when the project is archived', async () => {

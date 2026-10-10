@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { describe, expect, it } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { i18n } from '../i18n'
@@ -8,7 +9,7 @@ describe('ProjectHeader', () => {
   it('shows key, name, channel and description', () => {
     const wrapper = mount(ProjectHeader, {
       props: { name: 'posveapi', projectKey: 'POSVE', description: 'Sales API', channelName: 'general' },
-      global: { plugins: [i18n], stubs: { RouterLink: true } },
+      global: { plugins: [createPinia(), i18n], stubs: { RouterLink: true } },
     })
     expect(wrapper.find('h1').text()).toContain('posveapi')
     expect(wrapper.find('h1').text()).toContain('general')
@@ -19,7 +20,7 @@ describe('ProjectHeader', () => {
   it('omits the description when null and renders the tabs slot', () => {
     const wrapper = mount(ProjectHeader, {
       props: { name: 'posveapi', projectKey: 'POSVE', description: null },
-      global: { plugins: [i18n], stubs: { RouterLink: true } },
+      global: { plugins: [createPinia(), i18n], stubs: { RouterLink: true } },
       slots: { tabs: '<nav data-test="tabs"></nav>' },
     })
     expect(wrapper.find('.project-header__description').exists()).toBe(false)
@@ -39,7 +40,7 @@ describe('ProjectHeader', () => {
     await router.push('/projects/5/log?status=all')
     const wrapper = mount(ProjectHeader, {
       props: { name: 'posveapi', projectKey: 'POSVE', projectId: 5, channelId: 7 },
-      global: { plugins: [router, i18n] },
+      global: { plugins: [createPinia(), router, i18n] },
     })
     const tabs = wrapper.findAll('nav[aria-label="Project views"] a')
     expect(tabs.map((tab) => tab.attributes('href'))).toEqual(['/channels/7', '/projects/5/plan', '/projects/5/log'])
@@ -54,11 +55,11 @@ describe('ProjectHeader', () => {
     await router.push('/projects/5/log')
     const withoutChannel = mount(ProjectHeader, {
       props: { name: 'a', projectKey: 'A', projectId: 5, channelId: null },
-      global: { plugins: [router, i18n] },
+      global: { plugins: [createPinia(), router, i18n] },
     })
     expect(withoutChannel.findAll('nav a')).toHaveLength(2)
     expect(withoutChannel.find('[aria-disabled=true]').text()).toBe('Channel')
-    const withoutId = mount(ProjectHeader, { props: { name: 'a', projectKey: 'A' }, global: { plugins: [i18n], stubs: { RouterLink: true } } })
+    const withoutId = mount(ProjectHeader, { props: { name: 'a', projectKey: 'A' }, global: { plugins: [createPinia(), i18n], stubs: { RouterLink: true } } })
     expect(withoutId.find('nav').exists()).toBe(false)
   })
 })
