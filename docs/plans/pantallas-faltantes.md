@@ -2,7 +2,7 @@
 
 **Objetivo:** que una persona pueda registrarse, crear su organización y crear proyectos desde la web, sin `curl`, y que
 el registro abierto se pueda cerrar por entorno dejando solo la entrada por invitación.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -64,7 +64,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - **Archivos:** `web/src/api/organizations.ts` (nuevo), `web/src/stores/organization.ts`, spec del store.
 - **Terminado cuando:** el spec cubre éxito (queda activa) y error 422 (no cambia la activa); typecheck y tests pasan.
 
-### [ ] Fase 6 — Crear proyecto en el store
+### [x] Fase 6 — Crear proyecto en el store
 - **Alcance:** `api/projects.ts` con `createProject({name, key, description})`. Acción `create()` en `stores/projects.ts`:
   POST y `reload()` (para tener el canal en `channelByProject`); devuelve el proyecto.
 - **Archivos:** `web/src/api/projects.ts` (nuevo), `web/src/stores/projects.ts`, spec del store.
@@ -140,6 +140,8 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - Fase 4 hecha: `registrationStatus()` y `useRegistrationStatus` listos para las fases 7 y 8.
 - Fase 5 hecha: `organization.create(name)` (POST, `reloadSettled()`, `select`); con `clear()` en medio no repuebla
   pero devuelve la creada.
+- Fase 6 hecha: `projects.create(input)` hace POST y `await reload()` y devuelve el proyecto; si la recarga falla no
+  lanza (queda `projects.failed`). La fase 11 debe contemplar que el canal no esté en `channelByProject`.
 - Editar con Edit o `sed`: escribir con Python en Windows mete CRLF y rompe Pint (`line_ending`).
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
@@ -155,3 +157,5 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   la petición en vuelo (generación) para que no escriba la caché después del reset.
 - [ ] M-6 (baja, sonnet) — `web/src/stores/organization.spec.ts`: probar `clear()` durante la recarga posterior al
   POST de `create()` (rama `reloadSettled() === false`).
+- [ ] M-7 (media, sonnet) — `web/src/stores/projects.ts`: `reload()` vacía `projects` antes de recargar, así que la
+  lista (barra lateral, `ProjectsView`) parpadea al crear un proyecto; conservar la lista hasta tener la nueva.

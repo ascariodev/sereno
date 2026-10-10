@@ -122,6 +122,42 @@ describe('projects store', () => {
     expect(store.projects).toHaveLength(1)
   })
 
+  describe('create', () => {
+    it('posts the project, reloads and exposes the project with its channel', async () => {
+      let created = false
+      vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
+        path === '/api/projects'
+          ? ({ data: created ? [project(5, 'Fresh')] : [], meta: meta() } as never)
+          : ({ data: created ? [channel(9, 5)] : [] } as never),
+      )
+      const post = vi.spyOn(api, 'post').mockImplementation(async () => {
+        created = true
+        return { data: project(5, 'Fresh') } as never
+      })
+      const store = setup()
+      await flushPromises()
+      const result = await store.create({ name: 'Fresh', key: 'K5', description: 'About' })
+      expect(post).toHaveBeenCalledWith('/api/projects', { name: 'Fresh', key: 'K5', description: 'About' })
+      expect(result.id).toBe(5)
+      expect(store.projects.map((p) => p.name)).toEqual(['Fresh'])
+      expect(store.channelByProject).toEqual({ 5: 9 })
+    })
+
+    it('propagates the error and leaves the list untouched', async () => {
+      const get = vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
+        path === '/api/projects' ? ({ data: [project(1, 'A')], meta: meta() } as never) : ({ data: [channel(7, 1)] } as never),
+      )
+      vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'invalid', { key: ['taken'] }))
+      const store = setup()
+      await flushPromises()
+      const before = get.mock.calls.length
+      await expect(store.create({ name: 'B', key: 'K1' })).rejects.toMatchObject({ status: 422 })
+      expect(get.mock.calls.length).toBe(before)
+      expect(store.projects.map((p) => p.name)).toEqual(['A'])
+      expect(store.channelByProject).toEqual({ 1: 7 })
+    })
+  })
+
   describe('refreshCounts', () => {
     afterEach(() => vi.useRealTimers())
 

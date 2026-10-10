@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { api } from '../api/client'
+import { createProject, type CreateProjectInput } from '../api/projects'
 import type { Channel, Paginated, Project } from '../api/types'
 import { useOrganizationStore } from './organization'
 
@@ -67,6 +68,12 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
+  async function create(input: CreateProjectInput): Promise<Project> {
+    const created = await createProject(input)
+    await reload()
+    return created
+  }
+
   async function fetchCounts(): Promise<void> {
     const current = ++countsGeneration
     const listGeneration = generation
@@ -106,5 +113,5 @@ export const useProjectsStore = defineStore('projects', () => {
     { immediate: true },
   )
 
-  return { projects, channelByProject, loading, failed, reload, clear, refreshCounts }
+  return { projects, channelByProject, loading, failed, reload, create, clear, refreshCounts }
 })
