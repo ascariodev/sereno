@@ -192,7 +192,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 ## Mejoras propuestas
 - [x] M-1 — `canManageLogSources` es un alias de `canManageInvitations`: definirlo con su propia regla de roles para
   no acoplar el permiso de integraciones al de invitaciones. Complejidad: baja (sonnet).
-- [ ] M-2 — Revisar que el sidebar marque el proyecto activo también en la ruta `project-integrations` si lo decide
+- [x] M-2 — Revisar que el sidebar marque el proyecto activo también en la ruta `project-integrations` si lo decide
   por nombre de ruta. Complejidad: baja (sonnet).
 - [ ] M-3 — `projectMissing` en `IntegrationsView` exige `!projects.loading && !projects.failed`: si la vista monta
   antes de que el store empiece a cargar puede verse un instante "no encontrado"; distinguir "nunca cargó".
