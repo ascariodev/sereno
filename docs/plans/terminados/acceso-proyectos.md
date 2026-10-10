@@ -199,7 +199,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
   policy.
 - [x] M-4 (baja, sonnet): un member de ejemplo con proyectos asignados en `DatabaseSeeder`.
 - [x] M-5 (baja, sonnet): en `.claude/rules/database.md`, quitar la línea en blanco que separa el bullet de `project_user` del de `projects`.
-- [ ] M-6 (baja, sonnet): `project_user.organization_id` puede diferir del de su proyecto si se inserta sin `Project::addMember`; evaluar una FK compuesta `(project_id, organization_id)` o un test que lo vigile.
+- [x] M-6 (baja, sonnet): `project_user.organization_id` puede diferir del de su proyecto si se inserta sin `Project::addMember`; evaluar una FK compuesta `(project_id, organization_id)` o un test que lo vigile.
 - [x] M-7 (baja, sonnet): test de `ProjectAccess` con un team previo no nulo y con una excepción dentro, para cubrir L-03 completo (hoy solo el caso null).
 - [x] M-8 (baja, sonnet): `UpdateMessageRequest` y `DeleteMessageRequest` con `Gate::authorize(...)->allowed()` para que editar o borrar en un canal sin acceso dé 404 como el resto, con su test.
 - [x] M-9 (baja, sonnet): `assignMembersToAllProjects()` repite el SQL de la migración de la fase 3; extraerlo a un lugar común o dejar un test que compare ambos resultados.

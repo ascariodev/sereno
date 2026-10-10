@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 #[Fillable(['name', 'key', 'description'])]
@@ -29,9 +30,10 @@ class Project extends Model
             $hasGroups = LogGroup::query()->withoutGlobalScopes()->where('project_id', $project->getKey())->exists();
 
             $hasTasks = Task::query()->withoutGlobalScopes()->where('project_id', $project->getKey())->exists();
+            $hasMembers = DB::table('project_user')->where('project_id', $project->getKey())->exists();
 
-            if ($hasSources || $hasGroups || $hasTasks) {
-                throw new InvalidArgumentException('A project with log sources, groups or tasks cannot change organization.');
+            if ($hasSources || $hasGroups || $hasTasks || $hasMembers) {
+                throw new InvalidArgumentException('A project with log sources, groups, tasks or members cannot change organization.');
             }
         });
     }

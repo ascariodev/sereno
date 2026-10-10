@@ -43,6 +43,16 @@ it('rejects a duplicate row at the database', function () {
     expect(fn () => DB::table('project_user')->insert($row))->toThrow(QueryException::class);
 });
 
+it('rejects a row whose organization differs from its project at the database', function () {
+    $other = Organization::factory()->create();
+
+    expect(fn () => DB::table('project_user')->insert([
+        'organization_id' => $other->id,
+        'project_id' => $this->project->id,
+        'user_id' => $this->user->id,
+    ]))->toThrow(QueryException::class, 'project_user_project_organization_fk');
+});
+
 it('deletes assignments when the project or the user is deleted', function () {
     $other = Project::factory()->for($this->organization)->create();
     $this->project->addMember($this->user);
