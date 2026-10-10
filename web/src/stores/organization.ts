@@ -27,7 +27,7 @@ export const useOrganizationStore = defineStore('organization', () => {
 
   const isOwner = computed(() => !!active.value?.roles.includes('owner'))
   const canManageInvitations = computed(() => isOwner.value || !!active.value?.roles.includes('admin'))
-  const canManageLogSources = computed(() => canManageInvitations.value)
+  const canManageLogSources = computed(() => isOwner.value || !!active.value?.roles.includes('admin'))
 
   const isAdmin = computed(() => !!active.value?.roles.includes('admin'))
   const canCreateProject = computed(() => isOwner.value || isAdmin.value)

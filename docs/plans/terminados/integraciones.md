@@ -190,7 +190,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - Ejecución en el worktree `.claude/worktrees/plan-integraciones` (rama `docs/plan-integraciones`, main mergeado el 2026-10-10). Los contenedores montan el checkout principal: verificar web con `docker run --rm -v "$PWD/web:/app" -v workspace_web-node-modules:/app/node_modules -w /app node:24 npm run test -- --run <spec>` (y `npm run typecheck`).
 
 ## Mejoras propuestas
-- [ ] M-1 — `canManageLogSources` es un alias de `canManageInvitations`: definirlo con su propia regla de roles para
+- [x] M-1 — `canManageLogSources` es un alias de `canManageInvitations`: definirlo con su propia regla de roles para
   no acoplar el permiso de integraciones al de invitaciones. Complejidad: baja (sonnet).
 - [ ] M-2 — Revisar que el sidebar marque el proyecto activo también en la ruta `project-integrations` si lo decide
   por nombre de ruta. Complejidad: baja (sonnet).
@@ -205,7 +205,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   una de cada par. Complejidad: baja (sonnet).
 - [ ] M-7 — Los avisos de 409 y 422 de rotar o revocar no dicen qué acción falló; el 422 es genérico (archivado o
   revocada). Complejidad: baja (sonnet).
-- [ ] M-8 — En posveapi, `WorkspaceEventFormatter` hace `(string) $value` con floats no finitos, que lanza en PHP 8.5:
+- [x] M-8 — En posveapi, `WorkspaceEventFormatter` hace `(string) $value` con floats no finitos, que lanza en PHP 8.5:
   aplicar el arreglo de la fase 8 si posveapi no pasa al paquete o corre PHP 8.5. Queda resuelto si la fase 12 se
   hace. Complejidad: baja (sonnet).
 - [ ] M-9 — `SERENO_LOG_LEVEL=` vacío hace `Level::fromName('')` y lanza `ValueError` al resolver el canal
