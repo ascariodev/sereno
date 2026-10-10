@@ -248,7 +248,7 @@ onUnmounted(reset)
           :disabled="busy"
           @click="confirmAction"
         >
-          {{ busy ? t('integrations.working') : pending?.kind === 'rotate' ? t('integrations.rotateAction') : t('integrations.revokeAction') }}
+          {{ busy ? t('integrations.working') : pending?.kind === 'rotate' ? t('integrations.rotate') : t('integrations.revoke') }}
         </button>
       </div>
     </AppDialog>
