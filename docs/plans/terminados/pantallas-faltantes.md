@@ -182,7 +182,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   lista (barra lateral, `ProjectsView`) parpadea al crear un proyecto; conservar la lista hasta tener la nueva.
 - [x] M-8 (media, sonnet) — `web/src/composables/useRegistrationStatus.ts` y `RegisterView`: distinguir "no se pudo
   saber" (error de red) de "cerrado"; hoy un fallo de red al cargar `/register` muestra "registro cerrado".
-- [ ] M-9 (baja, sonnet) — `web/src/components/OrganizationCreateDialog.spec.ts`: probar que un cierre externo
+- [x] M-9 (baja, sonnet) — `web/src/components/OrganizationCreateDialog.spec.ts`: probar que un cierre externo
   (`open=false` desde el padre) con `create` en curso descarta `created` y el toast; y separar en tests propios los
   casos 429, red y 500, que hoy comparten montaje.
 - [ ] M-10 (baja, sonnet) — `web/src/views/ProjectsView.vue`: el botón del estado vacío va dentro de un `<p>`; pasar a

@@ -103,19 +103,34 @@ describe('OrganizationCreateDialog', () => {
     expect(q('[data-test=error-name]')).toBeNull()
   })
 
-  it('shows generic messages for 429, network and other failures', async () => {
+  it.each([
+    [429, 'Too Many Attempts.', 'Too many attempts'],
+    [0, 'network', 'Could not reach'],
+    [500, 'boom', 'Could not create'],
+  ])('shows a generic message for a %i failure', async (status, message, expected) => {
     const { wrapper, create } = mountHost()
-    create.mockRejectedValueOnce(new ApiError(429, 'Too Many Attempts.'))
+    create.mockRejectedValueOnce(new ApiError(status, message))
     await openIt(wrapper)
     await type('Acme')
     await submit()
-    expect(q('[data-test=error-form]')!.textContent).toContain('Too many attempts')
-    create.mockRejectedValueOnce(new ApiError(0, 'network'))
+    expect(q('[data-test=error-form]')!.textContent).toContain(expected)
+  })
+
+  it('discards created and the toast when the parent closes it with the request pending', async () => {
+    const success = vi.spyOn(toast, 'success').mockReturnValue(undefined as never)
+    const { wrapper, open, created, create } = mountHost()
+    let resolve!: (value: never) => void
+    create.mockReturnValue(new Promise((r) => (resolve = r)) as never)
+    await openIt(wrapper)
+    await type('Acme')
     await submit()
-    expect(q('[data-test=error-form]')!.textContent).toContain('Could not reach')
-    create.mockRejectedValueOnce(new ApiError(500, 'boom'))
-    await submit()
-    expect(q('[data-test=error-form]')!.textContent).toContain('Could not create')
+    open.value = false
+    await flushPromises()
+    resolve(org as never)
+    await flushPromises()
+    expect(create).toHaveBeenCalledTimes(1)
+    expect(created).not.toHaveBeenCalled()
+    expect(success).not.toHaveBeenCalled()
   })
 
   it('does not close while submitting and ignores a second submit', async () => {
