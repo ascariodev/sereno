@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** en curso · Fase actual: 12 (esperando decisiones del usuario)
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -110,7 +110,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - **Archivos:** `README.md`.
 - **Terminado cuando:** README completo y tag local creado; push hecho si el usuario lo pide.
 
-### [ ] Fase 12 — posveapi usa el paquete [riesgo]
+### [x] Fase 12 — posveapi usa el paquete [riesgo]
 - **Alcance:** en posveapi (rama desde `feat/workspace-logs`, a confirmar con el usuario): repositorio `vcs` y
   `require` del paquete; `config/logging.php` usa `CreateSerenoLogger` manteniendo `WORKSPACE_LOG_*` (o migra a
   `SERENO_LOG_*`, a decidir); se borran `app/Logging/*` y sus tests unitarios; `WorkspaceLogChannelsTest` se adapta.
@@ -139,6 +139,13 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   el aviso de proyecto inexistente, para poder volver a canal, plan y log desde Integraciones.
 
 ## Notas para la próxima sesión
+- Fase 12: posveapi en la rama `feat/sereno-paquete` (desde `pharmacies`, worktree
+  `posveapi/.claude/worktrees/sereno-paquete`, sin merge ni push). `slack` y `critical_alerts` usan `CreateSerenoLogger`
+  con el mismo fallback a Slack; `scripts/build-notify.js` también pasó a `SERENO_LOG_*`. `package:discover` lista el
+  paquete, tests de logging OK y un evento real de `Log::channel('sereno')` llegó a Sereno local (fuente
+  `posveapi-paquete` en DEMO). Paquete subido a Gitea (`main` y `v0.1.0`) a pedido del usuario. Pendiente del
+  usuario: renombrar `WORKSPACE_LOG_*` a `SERENO_LOG_*` en los `.env` reales (si no, cae a Slack sin aviso) y dar a
+  Composer credenciales `http-basic.gitea.ascario.dev` en CI y producción.
 - Fase 11: README en inglés; tag local `v0.1.0` en el último commit de `feat/paquete` (sin merge a `main` del
   paquete ni push: los pide el usuario). Repo privado con `http-basic.gitea.ascario.dev USUARIO TOKEN` (Composer no
   soporta `gitea-token`; verificado con Composer 2.10.3). Supuestos a confirmar: URL
