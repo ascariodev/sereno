@@ -165,6 +165,24 @@ describe('organization store', () => {
     expect(store.activeId).toBeNull()
   })
 
+  it('create does not activate the new organization when clear runs during the reload', async () => {
+    const store = setup()
+    await store.load()
+    const created = { id: 3, name: 'Three', slug: 'three', settings: null, roles: ['owner'] }
+    vi.spyOn(api, 'post').mockResolvedValue({ data: created })
+    const resolvers: Array<(value: { data: typeof orgs }) => void> = []
+    vi.spyOn(api, 'get').mockImplementation(() => new Promise((r) => resolvers.push(r)))
+    const pending = store.create('Three')
+    await vi.waitFor(() => expect(resolvers).toHaveLength(1))
+    store.clear()
+    const relogin = store.load()
+    resolvers[1]({ data: [...orgs, created] })
+    await relogin
+    resolvers[0]({ data: orgs })
+    await pending
+    expect(store.activeId).toBe(1)
+  })
+
   it('feeds the api client header provider', async () => {
     const store = setup()
     const setProvider = vi.spyOn(api, 'setOrganizationProvider')
