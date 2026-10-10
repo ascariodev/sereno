@@ -30,13 +30,16 @@ fi
 # rsync deja el repo con el dueño del job (root): app no podría crear vendor/. El chown de vendor/ solo corre si
 # hay algo ajeno, para no recorrerlo entero en cada deploy.
 compose exec -T -u root app sh -c '
-  mkdir -p vendor
+  mkdir -p vendor .deploy/composer-cache
+  chown app:app .deploy/composer-cache
   if [ -n "$(find vendor ! -user app -print -quit)" ]; then chown -R app:app vendor; fi
+  if [ -n "$(find .deploy/composer-cache ! -user app -print -quit)" ]; then chown -R app:app .deploy/composer-cache; fi
   chown -R app:app storage bootstrap/cache && chmod -R ug+rwX storage bootstrap/cache
 '
 
 # Los scripts de composer (package:discover) arrancan Laravel: por eso corre en app, con las extensiones del proyecto.
-compose exec -T -u app app composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+# La caché vive en .deploy/ (fuera del rsync y del hash de docker/) y sobrevive a la recreación de app.
+compose exec -T -u app -e COMPOSER_CACHE_DIR=/var/www/api/.deploy/composer-cache app composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 artisan migrate --force
 artisan db:seed --class=RoleSeeder --force

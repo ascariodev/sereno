@@ -211,7 +211,7 @@
   `bootstrap/cache`; agregar `vendor/`.
 - [x] M-7 (baja, sonnet) — `api/docker/deploy/deploy.sh:25`: el mensaje de error de `test -r .env` asume que la causa es
   el `.env`; mencionar también que `app` puede no poder entrar al directorio.
-- [ ] M-8 (media, sonnet) — Caché persistente de composer para el deploy (volumen o carpeta en `/var/www/html/workspace`),
+- [x] M-8 (media, sonnet) — Caché persistente de composer para el deploy (volumen o carpeta en `/var/www/html/workspace`),
   para no descargar todo cuando se recrea `app`.
 - [ ] M-9 (baja, sonnet) — Agregar `concurrency` por ambiente a los workflows de deploy cuando Gitea lo soporte (no
   está en 1.25.5), o confirmar `capacity: 1` en el `config.yaml` del runner.
