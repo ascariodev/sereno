@@ -295,3 +295,16 @@ it('authorizes any member of the organization on a channel without project', fun
 
     authorizeChannel(channelName($this->organization, $general))->assertOk();
 });
+
+it('rejects owner and admin of one organization on a channel and project of another', function (Role $role) {
+    $user = User::factory()->create();
+    $this->organization->addMember($user, [$role]);
+    $foreignProject = Project::factory()->for($this->other)->create();
+    $foreignChannel = Channel::factory()->for($foreignProject)->create();
+    Sanctum::actingAs($user);
+
+    authorizeChannel(channelName($this->organization, $foreignChannel))->assertForbidden();
+    authorizeChannel(channelName($this->other, $foreignChannel))->assertForbidden();
+    authorizeChannel(projectChannelName($this->organization, $foreignProject))->assertForbidden();
+    authorizeChannel(projectChannelName($this->other, $foreignProject))->assertForbidden();
+})->with([Role::Owner, Role::Admin]);

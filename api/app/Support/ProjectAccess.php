@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\DB;
  * Who sees which project. Owners and admins of the organization see all of its projects; a member only the ones
  * assigned in project_user. Every method takes the organization explicitly and reads the role with that team,
  * so it works without an active organization (broadcasting auth, jobs).
+ *
+ * canViewId does not check that the project belongs to $organizationId (it would add a query per call on hot paths
+ * such as mentions): the caller validates it, as ChannelChannel and ProjectChannel do, or takes both ids from the same row.
  */
 class ProjectAccess
 {
