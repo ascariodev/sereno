@@ -1,6 +1,6 @@
 #!/bin/bash
 # Instala dependencias, migra y reinicia un ambiente ya sincronizado (código en SERVER_DIR, .env del servidor).
-# Corre después de rebuild-images.sh. Todo artisan como app (UID 1000), dueño de storage y bootstrap/cache.
+# Corre después de rebuild-images.sh. Todo artisan como app (UID 1000), dueño de vendor/, storage y bootstrap/cache.
 set -euo pipefail
 . "$(cd "$(dirname "$0")" && pwd)/env.sh"
 
@@ -23,20 +23,23 @@ mkdir -p \
 compose up -d postgres app nginx
 
 if ! compose exec -T -u app app test -r .env; then
-  echo "error: el usuario app (UID 1000) no puede leer $SERVER_DIR/.env" >&2
+  echo "error: el usuario app (UID 1000) no puede leer $SERVER_DIR/.env (o no puede entrar al directorio de trabajo)" >&2
   exit 1
 fi
 
 # rsync deja el repo con el dueño del job (root): app no podría crear vendor/. El chown de vendor/ solo corre si
 # hay algo ajeno, para no recorrerlo entero en cada deploy.
 compose exec -T -u root app sh -c '
-  mkdir -p vendor
+  mkdir -p vendor .deploy/composer-cache
+  chown app:app .deploy/composer-cache
   if [ -n "$(find vendor ! -user app -print -quit)" ]; then chown -R app:app vendor; fi
+  if [ -n "$(find .deploy/composer-cache ! -user app -print -quit)" ]; then chown -R app:app .deploy/composer-cache; fi
   chown -R app:app storage bootstrap/cache && chmod -R ug+rwX storage bootstrap/cache
 '
 
 # Los scripts de composer (package:discover) arrancan Laravel: por eso corre en app, con las extensiones del proyecto.
-compose exec -T -u app app composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+# La caché vive en .deploy/ (fuera del rsync y del hash de docker/) y sobrevive a la recreación de app.
+compose exec -T -u app -e COMPOSER_CACHE_DIR=/var/www/api/.deploy/composer-cache app composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 artisan migrate --force
 artisan db:seed --class=RoleSeeder --force

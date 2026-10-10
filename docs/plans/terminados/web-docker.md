@@ -2,7 +2,7 @@
 
 **Objetivo:** que la web se desarrolle en Docker (Vite con recarga, tests y typecheck dentro del contenedor) y que
 `api/` y `web/` tengan un stack de producción en Docker desplegable como bidfletes/fletes-api (Gitea).
-**Estado:** en curso · Fase actual: 9 (espera al usuario en el servidor)
+**Estado:** terminado · 9/9 fases
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -115,7 +115,7 @@
 - **Terminado cuando:** el build corre en local con un `.env.production.local` de prueba, el YAML pasa una validación
   de sintaxis y un cambio solo en `api/` no lo dispara.
 
-### [ ] Fase 9 — Primer deploy de producción (con el usuario)
+### [x] Fase 9 — Primer deploy de producción (con el usuario)
 - **Alcance:** el usuario crea en el servidor `/var/www/html/workspace/prod/{api,web}/.env` con las plantillas que
   se le pasan (sin que Claude vea los valores), habilita Actions en `sereno` y se hace el merge a `main`. Se revisa el
   job y se verifica `https://sereno-api.ascario.dev/up`, la web y la conexión a `sereno-ws.ascario.dev`.
@@ -181,6 +181,9 @@
   recrea); conf y compose archivo a archivo, sin `--delete`. `web/docker/deploy/deploy.sh` recrea nginx con
   `--force-recreate` solo si cambió el hash de compose + conf (`.deploy/nginx.sha256`, guardado tras un 200 en `/`);
   el hash no incluye el `.env` (compose detecta solo un cambio de `WEB_PORT`).
+- 2026-10-10 — Fase 9: primer deploy de producción (merge `742cec7`, push a Gitea): los dos workflows en verde; `/up`,
+  la web (también rutas profundas) y `sereno-ws` (101) responden; login, organización, proyecto y canal en vivo
+  confirmados por el usuario. La web no tiene registro ni alta de organización o proyecto: se hicieron por `curl` al API.
 
 ## Notas para la próxima sesión
 - Fase 6: con `validate_timestamps=0` el deploy reinicia `app`, `queue`, `scheduler` y `reverb`. El UID 1000 debe
@@ -204,15 +207,16 @@
   `find /app/node_modules ! -user node -print -quit` encuentra algo, no `stat` de la raíz) para no recorrer todo `node_modules` en cada `up`; quitar `restart: "no"`.
 - [x] M-5 (baja, sonnet) — `workspace-api/docker-compose.prod.yml:23`: precisar el comentario "confía en X-Forwarded-*"
   (tras M-3 solo `For` y `Proto`).
-- [ ] M-6 (baja, sonnet) — `api/docker/deploy/deploy.sh:3`: el comentario de cabecera nombra el dueño de `storage` y
+- [x] M-6 (baja, sonnet) — `api/docker/deploy/deploy.sh:3`: el comentario de cabecera nombra el dueño de `storage` y
   `bootstrap/cache`; agregar `vendor/`.
-- [ ] M-7 (baja, sonnet) — `api/docker/deploy/deploy.sh:25`: el mensaje de error de `test -r .env` asume que la causa es
+- [x] M-7 (baja, sonnet) — `api/docker/deploy/deploy.sh:25`: el mensaje de error de `test -r .env` asume que la causa es
   el `.env`; mencionar también que `app` puede no poder entrar al directorio.
-- [ ] M-8 (media, sonnet) — Caché persistente de composer para el deploy (volumen o carpeta en `/var/www/html/workspace`),
+- [x] M-8 (media, sonnet) — Caché persistente de composer para el deploy (volumen o carpeta en `/var/www/html/workspace`),
   para no descargar todo cuando se recrea `app`.
 - [ ] M-9 (baja, sonnet) — Agregar `concurrency` por ambiente a los workflows de deploy cuando Gitea lo soporte (no
   está en 1.25.5), o confirmar `capacity: 1` en el `config.yaml` del runner.
-- [ ] M-10 (baja, sonnet) — `.gitea/workflows/deploy-web.yml`: `--chmod=D755,F644` en los rsync de `dist/` y de la conf,
+- [x] M-10 (baja, sonnet) — `.gitea/workflows/deploy-web.yml`: `--chmod=D755,F644` en los rsync de `dist/` y de la conf,
   para no depender del umask del runner.
-- [ ] M-11 (media, sonnet) — Conservar los assets del deploy anterior en `dist/assets/` (p. ej. borrar solo los de más
+- [x] M-11 (media, sonnet) — Conservar los assets del deploy anterior en `dist/assets/` (p. ej. borrar solo los de más
   de N deploys), para que una pestaña abierta con el `index.html` viejo no dé 404 al cargar rutas diferidas.
+- [ ] M-12 (baja, sonnet) — `.gitea/workflows/deploy-web.yml`: el `find` de poda de `dist/assets` falla con `set -e` si el directorio no existe; protegerlo con `[ -d ... ]` o `|| true`.

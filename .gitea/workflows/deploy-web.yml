@@ -78,14 +78,20 @@ jobs:
           test -f web/dist/index.html -a -f web/docker-compose.prod.yml -a -f web/docker/nginx/default.conf
           mkdir -p "$SERVER_DIR/dist" "$SERVER_DIR/docker/nginx"
           # Primero los assets nuevos, para que el index.html nuevo no apunte a archivos que aún no llegaron.
+          # Sin --delete: los assets de deploys anteriores se conservan, así una pestaña abierta con el index.html
+          # viejo sigue cargando sus chunks diferidos. --chmod fija los permisos sin depender del umask del runner.
           if [ -d web/dist/assets ]; then
-            rsync -a web/dist/assets/ "$SERVER_DIR/dist/assets/"
+            rsync -a --chmod=D755,F644 web/dist/assets/ "$SERVER_DIR/dist/assets/"
           fi
           # rsync actualiza dentro de dist/ sin recrear la carpeta: el montaje de nginx sigue apuntando a ella.
-          rsync -a --delete-after web/dist/ "$SERVER_DIR/dist/"
+          # assets/ se excluye: ya se copió y su limpieza es la poda de abajo, no --delete-after.
+          rsync -a --chmod=D755,F644 --delete-after --exclude='/assets/' web/dist/ "$SERVER_DIR/dist/"
           # Archivos sueltos y sin --delete: el .env y .deploy/ del servidor no se tocan.
-          rsync -a web/docker/nginx/default.conf "$SERVER_DIR/docker/nginx/default.conf"
-          rsync -a web/docker-compose.prod.yml "$SERVER_DIR/docker-compose.prod.yml"
+          rsync -a --chmod=D755,F644 web/docker/nginx/default.conf "$SERVER_DIR/docker/nginx/default.conf"
+          rsync -a --chmod=D755,F644 web/docker-compose.prod.yml "$SERVER_DIR/docker-compose.prod.yml"
+          # Poda: cada build trae mtime reciente (rsync -a lo conserva y re-copia lo vigente), así que solo
+          # envejecen los assets que ya no están en ningún deploy reciente.
+          find "$SERVER_DIR/dist/assets" -type f -mtime +14 -delete
 
       - name: Levantar nginx
         run: bash web/docker/deploy/deploy.sh
