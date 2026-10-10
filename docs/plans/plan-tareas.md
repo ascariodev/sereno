@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 13
+**Estado:** en curso · Fase actual: 14
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -96,7 +96,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 ### [x] Fase 12 — Tipos y API de tareas (web)
 - Tipo `Task` según `TaskResource` (L-09), `api/tasks.ts` (listar, crear, editar, mover, borrar), `LogGroup.task`.
 
-### [ ] Fase 13 — Store de tareas (web) [riesgo]
+### [x] Fase 13 — Store de tareas (web) [riesgo]
 - `stores/tasks.ts`: carga por proyecto con generación (L-10), columnas ordenadas, acciones que aplican la respuesta
   del API, `insert`/`replace`/`remove` para eventos en vivo e idempotentes con la respuesta propia, filtros Todas,
   Mías y Desde avisos.
@@ -185,9 +185,17 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `{ id, project_id }`. Sin `toOthers()`: quien actúa recibe su propio evento (la web aplica de forma idempotente).
   Un update sin cambios también emite. La renumeración de columna en `move` (muy rara, hueco <= 1e-9) no emite
   eventos para las demás tareas: la web tolera posiciones desfasadas y se corrige al recargar.
+- 2026-10-10 — Fase 13, `useTasksStore`: gana la versión con `updated_at` mayor (microsegundos) y en empate la que
+  llega; ids borrados recordados (`MAX_TOMBSTONES` = 500) para que nada los resucite; al recargar se descartan las que
+  estaban y no vienen y se conservan las llegadas en vivo; sin actualización optimista. `error` solo si el proyecto
+  nunca cargó bien; luego un `refresh()` fallido conserva la lista. `open()` del proyecto ya abierto solo recarga y
+  no invalida las acciones en vuelo. Las fases 21 y 22 calculan `afterId`/`beforeId` sobre `columns`, nunca sobre
+  `visibleColumns` (el API exige vecinos contiguos en la columna completa).
 
 ## Notas para la próxima sesión
-- API terminado (fases 1 a 11). Web: fase 12 hecha (`api/types.ts` con `Task`, `TASK_STATUSES` en orden de
+- API terminado (fases 1 a 11). Web: fase 13 hecha: `useTasksStore` con `open`, `refresh` (reconexión), `clear`,
+  `columns`, `visibleColumns`, `filter` (`all|mine|from_notices`, no lo reinicia `clear`), `find`, `insert`/`replace`/
+  `remove` (eventos), `create`/`update`/`move`/`destroy` (lanzan `ApiError`, devuelven la tarea). Fase 12 (`api/types.ts` con `Task`, `TASK_STATUSES` en orden de
   columnas, `isTaskStatus` para validar eventos, L-13; `api/tasks.ts` con parámetros en camelCase). Trampa de tests: una tarea creada a mano debe
   subir `projects.last_task_number`, o el store choca con `(project_id, number)` y da un 422 engañoso.
   Fases 1 a 10: Helpers de la 9: `removalTask`, `assigneeOf`; de la 10: `projectChannelName`
@@ -234,3 +242,5 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   emite `TaskDeleted`.
 - [ ] M-18 (baja, sonnet): `TaskLogGroup.level` con el tipo de nivel de log existente; `createTask` arma el cuerpo
   solo con los campos definidos, como `updateTask`.
+- [ ] M-19 (baja, sonnet): `tasks` store: `destroy` quita la tarea si el API responde 404; con "Mías" y sin usuario
+  cargado, decidir qué mostrar; guard en vez de `as number` al olvidar el tombstone más viejo.

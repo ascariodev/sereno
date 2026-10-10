@@ -117,6 +117,12 @@ export interface TaskLogGroup {
   events_count: number
 }
 
+/** Payload of `.task.deleted` on the project channel. */
+export interface TaskDeletedEvent {
+  id: number
+  project_id: number
+}
+
 export interface HourlyCounts {
   /** ISO start of the oldest hour (UTC). */
   from: string

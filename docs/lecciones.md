@@ -55,6 +55,8 @@
 - L-42: Una condición que debe valer al entregar un evento en cola (membresía del destinatario) va en `broadcastOn()`, que corre en el worker; `broadcastWhen` se evalúa al despachar y no ve los cambios mientras el evento espera. — aplicada en: test (MentionBroadcastTest)
 - L-43: La fuente de un `watch` es un valor comparable (string, número), no un array u objeto nuevo en cada evaluación: con `[a, b]` el watcher dispara con cualquier cambio de sus dependencias (p. ej. la query de la ruta) aunque `a` y `b` no cambien. — aplicada en: test (ChannelView.spec)
 
+- L-44: El error de la carga inicial se decide con un flag propio del recurso ("nunca cargó bien"), no con un parámetro por llamada: una recarga que reemplaza a la inicial y falla deja la vista vacía, sin error ni carga. — aplicada en: test (tasks.spec)
+
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
 -->
