@@ -7,6 +7,7 @@ use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use InvalidArgumentException;
@@ -72,5 +73,22 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class)->withPivot('organization_id')->withTimestamps();
+    }
+
+    public function addMember(User $user): void
+    {
+        $this->members()->syncWithoutDetaching([
+            $user->getKey() => ['organization_id' => $this->organization_id],
+        ]);
+    }
+
+    public function removeMember(User $user): void
+    {
+        $this->members()->detach($user->getKey());
     }
 }

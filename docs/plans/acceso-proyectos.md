@@ -2,7 +2,7 @@
 
 **Objetivo:** membresía por proyecto: owner y admin ven toda la organización; un `member` solo ve los proyectos
 asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asignan desde la web y al invitar.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -33,7 +33,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - **Archivos:** `docs/plans/terminados/{nucleo,corte-realtime,invitaciones-web}.md`, `CLAUDE.md`.
 - **Terminado cuando:** las tres mejoras quedan `[x]` con su referencia y CLAUDE.md refleja el estado real.
 
-### [ ] Fase 2 — Tabla `project_user` y relaciones
+### [x] Fase 2 — Tabla `project_user` y relaciones
 - **Alcance:** migración `project_user` (`organization_id`, `project_id`, `user_id` con FK cascade, timestamps,
   `unique(project_id, user_id)`, índice `(user_id, organization_id)`); `Project::members()`, `User::projects()`
   (o modelo pivote con `BelongsToOrganization`, a elegir y anotar en Decisiones); documentar en `database.md`.
@@ -163,10 +163,11 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
   Los contenedores montan el checkout principal: los tests corren con `docker run` sobre la imagen `workspace-php` o
   `node:24`, montando el worktree, los volúmenes `workspace_workspace_vendor` o `workspace_web-node-modules` y
   `api/.env` del checkout principal, en la red `workspace_default` (como en `pantallas-faltantes`).
+- 2026-10-10 — (Fase 2) Sin modelo pivote: `Project::members()` y `User::projects()` son `belongsToMany` con `withPivot('organization_id')` y timestamps. Se asigna y quita solo con `Project::addMember(User)` (idempotente, `syncWithoutDetaching`, llena `organization_id`) y `Project::removeMember(User)`; las fases 10 a 12 los usan, nunca `attach` directo. `User::projects()` hereda el `OrganizationScope` de `Project` (solo la organización activa).
 
 ## Notas para la próxima sesión
-- Fase 1 hecha: mejoras obsoletas marcadas y CLAUDE.md al día (PWA hecha, falta Tauri; deploy por Gitea hecho).
-- Siguiente: fase 2, tabla `project_user`. Trabajar en el worktree (ver Decisiones).
+- Fases 1 y 2 hechas. Siguiente: fase 3 [riesgo], migración de datos de members a `project_user`.
+- Trabajar en el worktree (ver Decisiones). Al editar con Python en Windows, dejar finales LF (Pint falla con `line_ending`).
 
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): limitar `/api/members` a owner y admin, o sin email para members, para no exponer los
@@ -176,3 +177,5 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - [ ] M-3 (baja, sonnet): helper o trait común para `belongsToActiveOrganization`/`canManage`, repetidos en cada
   policy.
 - [ ] M-4 (baja, sonnet): un member de ejemplo con proyectos asignados en `DatabaseSeeder`.
+- [ ] M-5 (baja, sonnet): en `.claude/rules/database.md`, quitar la línea en blanco que separa el bullet de `project_user` del de `projects`.
+- [ ] M-6 (baja, sonnet): `project_user.organization_id` puede diferir del de su proyecto si se inserta sin `Project::addMember`; evaluar una FK compuesta `(project_id, organization_id)` o un test que lo vigile.
