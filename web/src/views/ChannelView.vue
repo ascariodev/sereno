@@ -20,6 +20,7 @@ import AppDialog from '../components/ui/AppDialog.vue'
 import { toast, toasts } from '../components/ui/toast'
 import { onReconnect, subscribeToChannel } from '../realtime/echo'
 import { useAuthStore } from '../stores/auth'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useMessagesStore } from '../stores/messages'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
@@ -33,6 +34,7 @@ const auth = useAuthStore()
 const messages = useMessagesStore()
 const projects = useProjectsStore()
 const thread = useThreadStore()
+const directory = useMemberDirectoryStore()
 const channel = ref<Channel | null>(null)
 const channelLoadFailed = ref(false)
 const panelRefresh = ref(0)
@@ -316,6 +318,7 @@ function reload(): void {
       onCreated: onLiveMessage,
       onUpdated: onLiveUpdated,
       onDeleted: onLiveDeleted,
+      onMembersChanged: (id) => directory.invalidate(id),
     })
     unsubscribeReconnect = onReconnect(() => {
       const visible = toasts.value.some((item) => item.id === reconnectToastId && item.open)

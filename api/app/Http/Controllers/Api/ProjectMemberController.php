@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\Role;
 use App\Events\ProjectAccessChanged;
+use App\Events\ProjectMembersChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProjectMember\StoreProjectMemberRequest;
 use App\Http\Resources\MemberResource;
@@ -79,6 +80,7 @@ class ProjectMemberController extends Controller
 
             if ($project->addMember($user)) {
                 ProjectAccessChanged::dispatch($user->id, $project->organization_id, $project->id, true);
+                ProjectMembersChanged::dispatch($project);
             }
         });
     }
@@ -99,6 +101,7 @@ class ProjectMemberController extends Controller
             Task::unassignUser($project->organization_id, $user->id, $project->id);
 
             ProjectAccessChanged::dispatch($user->id, $project->organization_id, $project->id, false);
+            ProjectMembersChanged::dispatch($project);
             TerminateUserConnections::scheduleAfterCommit($user->id);
         });
     }

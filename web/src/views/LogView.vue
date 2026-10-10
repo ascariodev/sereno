@@ -15,6 +15,7 @@ import Sparkline from '../components/ui/Sparkline.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
 import { taskOfGroup } from '../composables/useLogGroupStatuses'
 import { onReconnect, subscribeToChannel } from '../realtime/echo'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 
@@ -28,6 +29,7 @@ const route = useRoute()
 const router = useRouter()
 const organization = useOrganizationStore()
 const projects = useProjectsStore()
+const directory = useMemberDirectoryStore()
 
 const result = ref<Paginated<LogGroup> | null>(null)
 const loading = ref(false)
@@ -231,7 +233,10 @@ watch(
   ([organizationId, channel]) => {
     leaveRealtime()
     if (organizationId === null || channel === null) return
-    unsubscribe = subscribeToChannel(organizationId, channel, { onCreated: onLiveMessage })
+    unsubscribe = subscribeToChannel(organizationId, channel, {
+      onCreated: onLiveMessage,
+      onMembersChanged: (id) => directory.invalidate(id),
+    })
     unsubscribeReconnect = onReconnect(() => {
       void load()
       projects.refreshCounts()

@@ -2,11 +2,14 @@
 
 use App\Enums\Role;
 use App\Events\ProjectAccessChanged;
+use App\Events\ProjectMembersChanged;
 use App\Jobs\TerminateUserConnections;
+use App\Models\Channel;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
@@ -37,7 +40,7 @@ function accessCall(User $actor, Organization $organization, string $method, str
 }
 
 beforeEach(function () {
-    Event::fake([ProjectAccessChanged::class]);
+    Event::fake([ProjectAccessChanged::class, ProjectMembersChanged::class]);
     Queue::fake();
 
     $this->organization = Organization::factory()->create();
@@ -158,4 +161,45 @@ it('deletes the project assignments of that organization when the member is remo
 
     expect(DB::table('project_user')->where('user_id', $this->member->id)->pluck('project_id')->all())
         ->toBe([$foreign->id]);
+});
+
+/** @return list<string> */
+function membersChangedChannelNames(ProjectMembersChanged $event): array
+{
+    return array_map(fn ($channel) => $channel->name, $event->broadcastOn());
+}
+
+it('tells the project and its channel that the members changed when access is granted', function () {
+    $channel = Channel::factory()->for($this->project)->create();
+
+    accessCall($this->admin, $this->organization, 'POST', "projects/{$this->project->id}/members", ['user_id' => $this->newcomer->id])
+        ->assertOk();
+
+    Event::assertDispatchedTimes(ProjectMembersChanged::class, 1);
+    Event::assertDispatched(ProjectMembersChanged::class, fn (ProjectMembersChanged $event) => $event instanceof ShouldDispatchAfterCommit
+        && membersChangedChannelNames($event) === [
+            "private-organizations.{$this->organization->id}.projects.{$this->project->id}",
+            "private-organizations.{$this->organization->id}.channels.{$channel->id}",
+        ]
+        && $event->broadcastAs() === 'project.members_changed'
+        && $event->broadcastWith() === ['project_id' => $this->project->id]);
+});
+
+it('tells the project that the members changed when access is revoked', function () {
+    accessCall($this->admin, $this->organization, 'DELETE', "projects/{$this->project->id}/members/{$this->member->id}")
+        ->assertNoContent();
+
+    Event::assertDispatchedTimes(ProjectMembersChanged::class, 1);
+    Event::assertDispatched(ProjectMembersChanged::class, fn (ProjectMembersChanged $event) => membersChangedChannelNames($event) === [
+        "private-organizations.{$this->organization->id}.projects.{$this->project->id}",
+    ] && $event->broadcastWith() === ['project_id' => $this->project->id]);
+});
+
+it('does not tell the project anything when the assignment does not change', function () {
+    accessCall($this->admin, $this->organization, 'POST', "projects/{$this->project->id}/members", ['user_id' => $this->member->id])
+        ->assertOk();
+    accessCall($this->admin, $this->organization, 'DELETE', "projects/{$this->project->id}/members/{$this->newcomer->id}")
+        ->assertNoContent();
+
+    Event::assertNotDispatched(ProjectMembersChanged::class);
 });
