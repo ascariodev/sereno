@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import type { Message } from '../api/types'
 import LogGroupAside from '../components/LogGroupAside.vue'
+import { resetGroupStatuses } from '../composables/useLogGroupStatuses'
 import { toast, toasts } from '../components/ui/toast'
 import { i18n } from '../i18n'
 import { setRealtimeClientFactory } from '../realtime/echo'
@@ -1278,6 +1279,97 @@ describe('ChannelView inline editor', () => {
     await wrapper.router.push('/channels/7?thread=1')
     await flushPromises()
     expect(editingId(wrapper)).toBe(1)
+    wrapper.unmount()
+  })
+})
+
+describe('ChannelView create task from a notice', () => {
+  const noticeMessage: Message = {
+    ...message(1, 'system'),
+    payload: { type: 'log.group_opened', log_group_id: 5, level: 'error', title: 'Group 5', events_count: 2 },
+  }
+  const project = (archived: string | null) => ({ id: 1, name: 'Demo', key: 'DMO', description: null, archived_at: archived, created_at: '', updated_at: '' })
+  const task = { id: 9, project_id: 1, key: 'DMO-1', number: 1, title: 'Group 5', description: null, status: 'todo', position: 1, created_by: 1, assignee: null, log_group: { id: 5 }, created_at: '', updated_at: '' }
+  const q = (sel: string) => document.body.querySelector<HTMLElement>(sel)
+
+  function mockGet(archived: string | null = null, group: unknown = { data: { id: 5, task: { id: 8, key: 'DMO-7', status: 'todo' } } }) {
+    return vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels') return channels as never
+      if (path === '/api/projects') return { data: [project(archived)], meta: { last_page: 1 } } as never
+      if (/log-groups\/5$/.test(path)) return group as never
+      return { data: [noticeMessage], meta: { next_cursor: null } } as never
+    })
+  }
+  async function submitDialog(wrapper: Awaited<ReturnType<typeof mountView>>) {
+    await wrapper.find('button[name=create-task]').trigger('click')
+    await flushPromises()
+    const form = q('form.task-create') as HTMLFormElement
+    expect((form.querySelector('#task-create-title') as HTMLInputElement).value).toBe('Group 5')
+    form.dispatchEvent(new Event('submit', { cancelable: true }))
+    await flushPromises()
+  }
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    toast.clear()
+    resetGroupStatuses()
+    setRealtimeClientFactory(() => null)
+  })
+  afterEach(() => {
+    useProjectsStore().clear()
+    resetGroupStatuses()
+  })
+
+  it('creates the task from the notice with the group and swaps the button for the link', async () => {
+    mockGet()
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: task } as never)
+    const wrapper = await mountView('/channels/7', true)
+    await submitDialog(wrapper)
+    expect(post).toHaveBeenCalledWith('/api/projects/1/tasks', expect.objectContaining({ title: 'Group 5', log_group_id: 5 }))
+    const link = wrapper.get('[data-test=notice-task-link]')
+    expect(link.text()).toBe('View DMO-1')
+    expect(link.attributes('href')).toContain('task=9')
+    expect(wrapper.find('button[name=create-task]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('on the 422 of a group that already has a task, shows the existing one as a link and a toast', async () => {
+    mockGet()
+    vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'taken', { log_group_id: ['taken'] }))
+    const wrapper = await mountView('/channels/7', true)
+    await submitDialog(wrapper)
+    expect(wrapper.get('[data-test=notice-task-link]').text()).toBe('View DMO-7')
+    expect(toasts.value.some((item) => item.message.includes('DMO-7'))).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('toasts an error when the existing task cannot be fetched', async () => {
+    mockGet(null, { data: { id: 5, task: null } })
+    vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'taken', { log_group_id: ['taken'] }))
+    const wrapper = await mountView('/channels/7', true)
+    await submitDialog(wrapper)
+    expect(wrapper.find('[data-test=notice-task-link]').exists()).toBe(false)
+    expect(toasts.value.some((item) => item.kind === 'error')).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('hides the button in an archived project', async () => {
+    mockGet('2026-01-01T00:00:00Z')
+    const wrapper = await mountView()
+    expect(wrapper.find('.system-notice').exists()).toBe(true)
+    expect(wrapper.find('button[name=create-task]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('closes the dialog when the channel changes', async () => {
+    mockGet()
+    const wrapper = await mountView('/channels/7', true)
+    await wrapper.find('button[name=create-task]').trigger('click')
+    await flushPromises()
+    expect(q('form.task-create')).not.toBeNull()
+    await wrapper.router.push('/channels/8')
+    await flushPromises()
+    expect(q('form.task-create')).toBeNull()
     wrapper.unmount()
   })
 })

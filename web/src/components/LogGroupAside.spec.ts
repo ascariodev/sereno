@@ -363,6 +363,23 @@ describe('LogGroupAside', () => {
       expect(document.activeElement).toBe(link.element)
     })
 
+    it('on the 422 of a group that already has a task, shows the existing link, focuses it and toasts', async () => {
+      fakeMatchMedia(false)
+      vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'taken', { log_group_id: ['taken'] }))
+      mountAside()
+      await flushPromises()
+      await wrapper!.find('button[name=create-task]').trigger('click')
+      await flushPromises()
+      vi.mocked(api.get).mockResolvedValue({ data: { ...loaded.data, task: { id: 4, key: 'P-3', status: 'todo' } } } as never)
+      document.body.querySelector<HTMLButtonElement>('[data-test=submit]')!.click()
+      await flushPromises()
+      const link = wrapper!.get('[data-test=group-task-link]')
+      expect(link.text()).toBe('View P-3')
+      expect(wrapper!.find('button[name=create-task]').exists()).toBe(false)
+      expect(document.activeElement).toBe(link.element)
+      expect(toasts.value.some((item) => item.message.includes('P-3'))).toBe(true)
+    })
+
     it('prefills at most 200 characters of the title', async () => {
       fakeMatchMedia(false)
       vi.mocked(api.get).mockResolvedValue({ data: { ...loaded.data, title: 'é'.repeat(250) } } as never)

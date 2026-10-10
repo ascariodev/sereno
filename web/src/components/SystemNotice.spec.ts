@@ -1,9 +1,10 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import type { LogGroup, Message, MessagePayload } from '../api/types'
 import { resetHourlyCounts } from '../composables/useHourlyCounts'
-import { resetGroupStatuses, setGroupStatus } from '../composables/useLogGroupStatuses'
+import { resetGroupStatuses, setGroupStatus, setGroupTask } from '../composables/useLogGroupStatuses'
 import { i18n } from '../i18n'
 import SystemNotice from './SystemNotice.vue'
 
@@ -168,6 +169,37 @@ describe('SystemNotice', () => {
       expect(mountActions(changed).find('button').exists()).toBe(false)
       expect(mountActions({ type: 'something.new' }).find('button').exists()).toBe(false)
       expect(mountActions(opened, {}).find('button').exists()).toBe(false)
+    })
+
+    describe('create task', () => {
+      const router = () =>
+        createRouter({ history: createMemoryHistory(), routes: [{ path: '/p/:projectId/plan', name: 'project-plan', component: { template: '<i/>' } }] })
+      const mountTask = (payload: unknown, props: Record<string, unknown>) =>
+        mount(SystemNotice, { props: { message: message(payload), projectId: 3, ...props }, global: { plugins: [i18n, router()] } })
+
+      it('shows the button for opened and reopened notices and emits the group and title', async () => {
+        const wrapper = mountTask(opened, { canCreateTask: true })
+        await wrapper.find('button[name=create-task]').trigger('click')
+        expect(wrapper.emitted('createTask')).toEqual([[5, 'Boom']])
+        expect(mountTask(reopened, { canCreateTask: true }).find('button[name=create-task]').exists()).toBe(true)
+      })
+
+      it('hides the button without permission, without a project or on a status line', () => {
+        expect(mountTask(opened, {}).find('button[name=create-task]').exists()).toBe(false)
+        expect(mountTask(opened, { canCreateTask: true, projectId: undefined }).find('button[name=create-task]').exists()).toBe(false)
+        expect(mountTask(changed, { canCreateTask: true }).find('button[name=create-task]').exists()).toBe(false)
+      })
+
+      it('swaps the button for the task link once the group has a task', async () => {
+        const wrapper = mountTask(opened, { canCreateTask: true })
+        expect(wrapper.find('[data-test=notice-task-link]').exists()).toBe(false)
+        setGroupTask(5, { id: 9, key: 'P-1', status: 'todo' })
+        await flushPromises()
+        expect(wrapper.find('button[name=create-task]').exists()).toBe(false)
+        const link = wrapper.get('[data-test=notice-task-link]')
+        expect(link.text()).toBe('View P-1')
+        expect(link.attributes('href')).toBe('/p/3/plan?task=9')
+      })
     })
 
     it('hides the buttons for an incomplete opened payload', () => {

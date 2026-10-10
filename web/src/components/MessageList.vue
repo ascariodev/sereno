@@ -5,8 +5,8 @@ import type { Message } from '../api/types'
 import MessageItem from './MessageItem.vue'
 import SystemNotice from './SystemNotice.vue'
 
-const props = defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number; ownUserId?: number; emptyLabel?: string; threadable?: boolean }>()
-defineEmits<{ loadOlder: []; select: [groupId: number]; openThread: [messageId: number] }>()
+const props = defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number; ownUserId?: number; emptyLabel?: string; threadable?: boolean; canCreateTask?: boolean }>()
+defineEmits<{ loadOlder: []; select: [groupId: number]; openThread: [messageId: number]; createTask: [groupId: number, title: string] }>()
 
 const { t, locale } = useI18n()
 
@@ -126,6 +126,8 @@ const rows = computed<Row[]>(() => {
             :message="row.message"
             :project-id="projectId"
             :threadable="threadable"
+            :can-create-task="canCreateTask"
+            @create-task="(id: number, title: string) => $emit('createTask', id, title)"
             @select="$emit('select', $event)"
             @open-thread="$emit('openThread', $event)"
           />

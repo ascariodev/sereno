@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, EyeOff, Info, OctagonAlert, RotateCcw, TriangleAlert } from '@lucide/vue'
+import { Check, EyeOff, Info, ListPlus, OctagonAlert, RotateCcw, TriangleAlert } from '@lucide/vue'
 import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
@@ -8,7 +8,7 @@ import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/
 import type { LogGroupStatus, Message } from '../api/types'
 import { levelTone as toneOf } from '../api/logLevels'
 import { hourlyCountsOf, requestHourlyCounts } from '../composables/useHourlyCounts'
-import { setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
+import { setGroupStatus, statusOfGroup, taskOfGroup } from '../composables/useLogGroupStatuses'
 import LevelPill from './ui/LevelPill.vue'
 import Sparkline from './ui/Sparkline.vue'
 import ThreadSummary from './ThreadSummary.vue'
@@ -16,8 +16,12 @@ import ThreadSummary from './ThreadSummary.vue'
 const STRONG_LEVELS = ['critical', 'alert', 'emergency']
 const STATUSES = ['open', 'resolved', 'ignored']
 
-const props = defineProps<{ message: Message; projectId?: number; threadable?: boolean }>()
-const emit = defineEmits<{ select: [groupId: number]; openThread: [messageId: number] }>()
+const props = defineProps<{ message: Message; projectId?: number; threadable?: boolean; canCreateTask?: boolean }>()
+const emit = defineEmits<{
+  select: [groupId: number]
+  openThread: [messageId: number]
+  createTask: [groupId: number, title: string]
+}>()
 
 const { t, te, locale } = useI18n()
 
@@ -31,6 +35,7 @@ const changed = computed(() => (isLogGroupStatusChangedPayload(payload.value) ? 
 const groupId = computed(() => opened.value?.log_group_id ?? null)
 const sharedStatus = computed(() => statusOfGroup(groupId.value))
 const doneStatus = computed(() => (sharedStatus.value && sharedStatus.value !== 'open' ? sharedStatus.value : null))
+const groupTask = computed(() => taskOfGroup(groupId.value))
 const canAct = computed(() => props.projectId !== undefined && groupId.value !== null)
 const hourly = computed(() => (props.projectId === undefined ? null : hourlyCountsOf(groupId.value)))
 
@@ -119,6 +124,25 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
         <button type="button" name="ignore" class="system-notice__secondary" :disabled="pending" @click="act('ignored')">
           <EyeOff :size="15" :stroke-width="1.8" aria-hidden="true" />
           {{ t('notice.actions.ignore') }}
+        </button>
+        <RouterLink
+          v-if="groupTask"
+          class="system-notice__secondary"
+          data-test="notice-task-link"
+          :data-group-task="groupId"
+          :to="{ name: 'project-plan', params: { projectId }, query: { task: String(groupTask.id) } }"
+        >
+          {{ t('logGroup.viewTask', { key: groupTask.key }) }}
+        </RouterLink>
+        <button
+          v-else-if="canCreateTask"
+          type="button"
+          name="create-task"
+          class="system-notice__secondary"
+          @click="emit('createTask', opened.log_group_id, opened.title)"
+        >
+          <ListPlus :size="15" :stroke-width="1.8" aria-hidden="true" />
+          {{ t('logGroup.createTask') }}
         </button>
       </div>
       <p v-if="errorText" role="alert" class="system-notice__error">{{ errorText }}</p>
@@ -234,7 +258,8 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
   flex-wrap: wrap;
   gap: var(--space-2);
 }
-.system-notice__actions button {
+.system-notice__actions button,
+.system-notice__actions a {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -244,6 +269,7 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  text-decoration: none;
 }
 .system-notice__actions button:disabled {
   opacity: 0.6;

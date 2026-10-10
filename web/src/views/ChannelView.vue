@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onUnmounted, provide, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onUnmounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { api, ApiError } from '../api/client'
+import { getLogGroup } from '../api/logGroups'
 import { deleteMessage } from '../api/messages'
 import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
-import type { Channel, Message, MessageDeletedEvent } from '../api/types'
+import type { Channel, Message, MessageDeletedEvent, Task } from '../api/types'
 import { messageActionsKey } from '../components/messageActions'
+import { TASK_TITLE_MAX_LENGTH } from '../components/taskLimits'
+import TaskCreateDialog from '../components/TaskCreateDialog.vue'
+import { setGroupTask } from '../composables/useLogGroupStatuses'
 import LogGroupAside from '../components/LogGroupAside.vue'
 import MessageComposer from '../components/MessageComposer.vue'
 import MessageList from '../components/MessageList.vue'
@@ -57,6 +61,13 @@ provide(messageActionsKey, {
   },
 })
 const panelProjectId = ref<number | null>(null)
+const createOpen = ref(false)
+const createTarget = ref<{ groupId: number; title: string } | null>(null)
+const canCreateTask = computed(() => {
+  const id = channel.value?.project_id
+  const found = projects.projects.find((item) => item.id === id)
+  return found !== undefined && found.archived_at === null
+})
 let seenMessageId = 0
 let generation = 0
 let unsubscribe: (() => void) | null = null
@@ -104,6 +115,38 @@ function selectGroup(id: number | null, replace = false): void {
   }
   if (replace) void router.replace({ query })
   else void router.push({ query })
+}
+
+// The dialog seeds its form when it opens, so it must already have the new props (title, group) by then.
+async function startCreateTask(id: number, title: string): Promise<void> {
+  createTarget.value = { groupId: id, title: [...title].slice(0, TASK_TITLE_MAX_LENGTH).join('') }
+  await nextTick()
+  createOpen.value = true
+}
+
+function onTaskCreated(task: Task): void {
+  const id = createTarget.value?.groupId
+  if (id === undefined) return
+  setGroupTask(id, { id: task.id, key: task.key, status: task.status })
+  if (groupId.value === id) panelRefresh.value++
+  void nextTick(() => document.querySelector<HTMLElement>(`[data-group-task="${id}"]`)?.focus())
+}
+
+async function onGroupTaken(): Promise<void> {
+  const target = createTarget.value
+  const projectId = channel.value?.project_id
+  if (!target || projectId === undefined) return
+  const current = generation
+  try {
+    const group = await getLogGroup(projectId, target.groupId)
+    if (current !== generation) return
+    if (!group.task) throw new Error('no task')
+    setGroupTask(target.groupId, group.task)
+    if (groupId.value === target.groupId) panelRefresh.value++
+    toast.info(t('notice.actions.taskExists', { key: group.task.key }))
+  } catch {
+    if (current === generation) toast.error(t('notice.actions.taskExistsFailed'))
+  }
 }
 
 function openThread(id: number): void {
@@ -259,6 +302,8 @@ function reload(): void {
   leaveRealtime()
   deletingMessage.value = null
   editingMessageId.value = null
+  createOpen.value = false
+  createTarget.value = null
   thread.clear()
   if (!Number.isInteger(channelId.value) || channelId.value < 1) {
     messages.clear()
@@ -338,6 +383,8 @@ defineExpose({ openThread })
             :project-id="channel?.project_id"
             :own-user-id="auth.user?.id"
             threadable
+            :can-create-task="canCreateTask"
+            @create-task="startCreateTask"
             @load-older="messages.loadOlder()"
             @select="selectGroup"
             @open-thread="openThread"
@@ -376,6 +423,15 @@ defineExpose({ openThread })
         />
       </template>
     </div>
+    <TaskCreateDialog
+      v-if="channel && canCreateTask"
+      v-model:open="createOpen"
+      :project-id="channel.project_id"
+      :initial-title="createTarget?.title ?? ''"
+      :log-group-id="createTarget?.groupId ?? null"
+      @created="onTaskCreated"
+      @group-taken="onGroupTaken"
+    />
     <AppDialog v-model:open="deleteOpen" :title="t('message.deleteTitle')" :close-label="t('message.deleteCancel')" @close-auto-focus="focusAfterDelete">
       <p data-test="delete-text">{{ t('message.deleteConfirm') }}</p>
       <div class="channel__dialog-actions">

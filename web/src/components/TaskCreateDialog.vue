@@ -21,7 +21,7 @@ const props = withDefaults(
   }>(),
   { status: 'todo', initialTitle: '', logGroupId: null },
 )
-const emit = defineEmits<{ created: [task: Task] }>()
+const emit = defineEmits<{ created: [task: Task]; groupTaken: [] }>()
 const open = defineModel<boolean>('open', { default: false })
 
 const { t } = useI18n()
@@ -134,7 +134,10 @@ async function submit(): Promise<void> {
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
-    if (error.status === 422) {
+    if (error.status === 422 && props.logGroupId !== null && error.errors?.log_group_id?.length) {
+      emit('groupTaken')
+      open.value = false
+    } else if (error.status === 422) {
       fieldErrors.value = error.errors
       if (!FIELDS.some((field) => error.errors[field]?.length)) formError.value = error.message
     } else if (error.status === 429) {

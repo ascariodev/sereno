@@ -135,6 +135,17 @@ describe('TaskCreateDialog', () => {
     expect(q('[data-test=error-title]')).toBeNull()
   })
 
+  it('emits groupTaken and closes on the 422 of a log group that already has a task', async () => {
+    vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'taken', { log_group_id: ['taken'] }))
+    const taken = vi.fn()
+    const { wrapper, open } = mountHost({ logGroupId: 4, onGroupTaken: taken })
+    await openIt(wrapper)
+    await type('#task-create-title', 'ok')
+    await submit()
+    expect(taken).toHaveBeenCalledTimes(1)
+    expect(open.value).toBe(false)
+  })
+
   it('reopens clean after a cancel', async () => {
     const { wrapper, open } = mountHost({ initialTitle: 'Seed' })
     await openIt(wrapper)

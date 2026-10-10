@@ -316,7 +316,9 @@
       "ignore": "Ignorar",
       "forbidden": "No tienes permiso para cambiar este grupo de logs.",
       "failed": "No se pudo actualizar el grupo de logs.",
-      "marked": "Marcado como {status}"
+      "marked": "Marcado como {status}",
+      "taskExists": "Este grupo de logs ya tiene una tarea: {key}.",
+      "taskExistsFailed": "No se encontró la tarea existente de este grupo de logs."
     },
     "unknownActor": "Alguien",
     "level": {

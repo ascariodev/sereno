@@ -3,8 +3,9 @@ import { Check, EyeOff, ListPlus, X } from '@lucide/vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
-import { statusFrom, updateLogGroupStatus } from '../api/logGroups'
+import { getLogGroup, statusFrom, updateLogGroupStatus } from '../api/logGroups'
 import type { LogGroup, LogGroupStatus, Task } from '../api/types'
+import { setGroupTask, taskOfGroup } from '../composables/useLogGroupStatuses'
 import { TASK_TITLE_MAX_LENGTH } from './taskLimits'
 import TaskCreateDialog from './TaskCreateDialog.vue'
 import { toast } from './ui/toast'
@@ -37,9 +38,25 @@ watch(
 
 const initialTitle = computed(() => [...(props.group?.title ?? '')].slice(0, TASK_TITLE_MAX_LENGTH).join(''))
 
+const shownTask = computed(() => props.group?.task ?? taskOfGroup(props.groupId) ?? null)
+
 function onTaskCreated(task: Task): void {
+  setGroupTask(props.groupId, { id: task.id, key: task.key, status: task.status })
   emit('task', task)
   void nextTick(() => taskLink.value?.$el.focus())
+}
+
+async function onGroupTaken(): Promise<void> {
+  const target = props.groupId
+  try {
+    const loaded = await getLogGroup(props.projectId, target)
+    if (!loaded.task) throw new Error('no task')
+    setGroupTask(target, loaded.task)
+    if (target === props.groupId) void nextTick(() => taskLink.value?.$el.focus())
+    toast.info(t('notice.actions.taskExists', { key: loaded.task.key }))
+  } catch {
+    toast.error(t('notice.actions.taskExistsFailed'))
+  }
 }
 
 async function act(status: LogGroupStatus): Promise<void> {
@@ -140,7 +157,7 @@ const eventText = computed(() => {
           <Check :size="15" :stroke-width="2" aria-hidden="true" />
           {{ t('notice.actions.resolve') }}
         </button>
-        <div v-if="group.status !== 'ignored' || group.task || canCreateTask" class="log-group-panel__row">
+        <div v-if="group.status !== 'ignored' || shownTask || canCreateTask" class="log-group-panel__row">
           <button
             v-if="group.status !== 'ignored'"
             type="button"
@@ -153,13 +170,13 @@ const eventText = computed(() => {
             {{ t('notice.actions.ignore') }}
           </button>
           <RouterLink
-            v-if="group.task"
+            v-if="shownTask"
             ref="taskLink"
             class="log-group-panel__secondary"
             data-test="group-task-link"
-            :to="{ name: 'project-plan', params: { projectId }, query: { task: String(group.task.id) } }"
+            :to="{ name: 'project-plan', params: { projectId }, query: { task: String(shownTask.id) } }"
           >
-            {{ t('logGroup.viewTask', { key: group.task.key }) }}
+            {{ t('logGroup.viewTask', { key: shownTask.key }) }}
           </RouterLink>
           <button
             v-else-if="canCreateTask"
@@ -174,12 +191,13 @@ const eventText = computed(() => {
         </div>
       </div>
       <TaskCreateDialog
-        v-if="canCreateTask && !group.task"
+        v-if="canCreateTask && !shownTask"
         v-model:open="createOpen"
         :project-id="projectId"
         :initial-title="initialTitle"
         :log-group-id="group.id"
         @created="onTaskCreated"
+        @group-taken="onGroupTaken"
       />
     </template>
   </aside>
