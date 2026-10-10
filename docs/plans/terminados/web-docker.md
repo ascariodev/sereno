@@ -207,9 +207,9 @@
   `find /app/node_modules ! -user node -print -quit` encuentra algo, no `stat` de la raíz) para no recorrer todo `node_modules` en cada `up`; quitar `restart: "no"`.
 - [x] M-5 (baja, sonnet) — `workspace-api/docker-compose.prod.yml:23`: precisar el comentario "confía en X-Forwarded-*"
   (tras M-3 solo `For` y `Proto`).
-- [ ] M-6 (baja, sonnet) — `api/docker/deploy/deploy.sh:3`: el comentario de cabecera nombra el dueño de `storage` y
+- [x] M-6 (baja, sonnet) — `api/docker/deploy/deploy.sh:3`: el comentario de cabecera nombra el dueño de `storage` y
   `bootstrap/cache`; agregar `vendor/`.
-- [ ] M-7 (baja, sonnet) — `api/docker/deploy/deploy.sh:25`: el mensaje de error de `test -r .env` asume que la causa es
+- [x] M-7 (baja, sonnet) — `api/docker/deploy/deploy.sh:25`: el mensaje de error de `test -r .env` asume que la causa es
   el `.env`; mencionar también que `app` puede no poder entrar al directorio.
 - [ ] M-8 (media, sonnet) — Caché persistente de composer para el deploy (volumen o carpeta en `/var/www/html/workspace`),
   para no descargar todo cuando se recrea `app`.

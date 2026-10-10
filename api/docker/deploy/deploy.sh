@@ -1,6 +1,6 @@
 #!/bin/bash
 # Instala dependencias, migra y reinicia un ambiente ya sincronizado (código en SERVER_DIR, .env del servidor).
-# Corre después de rebuild-images.sh. Todo artisan como app (UID 1000), dueño de storage y bootstrap/cache.
+# Corre después de rebuild-images.sh. Todo artisan como app (UID 1000), dueño de vendor/, storage y bootstrap/cache.
 set -euo pipefail
 . "$(cd "$(dirname "$0")" && pwd)/env.sh"
 
@@ -23,7 +23,7 @@ mkdir -p \
 compose up -d postgres app nginx
 
 if ! compose exec -T -u app app test -r .env; then
-  echo "error: el usuario app (UID 1000) no puede leer $SERVER_DIR/.env" >&2
+  echo "error: el usuario app (UID 1000) no puede leer $SERVER_DIR/.env (o no puede entrar al directorio de trabajo)" >&2
   exit 1
 fi
 
