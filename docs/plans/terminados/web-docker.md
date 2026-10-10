@@ -2,7 +2,7 @@
 
 **Objetivo:** que la web se desarrolle en Docker (Vite con recarga, tests y typecheck dentro del contenedor) y que
 `api/` y `web/` tengan un stack de producción en Docker desplegable como bidfletes/fletes-api (Gitea).
-**Estado:** en curso · Fase actual: 9 (espera al usuario en el servidor)
+**Estado:** terminado · 9/9 fases
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -115,7 +115,7 @@
 - **Terminado cuando:** el build corre en local con un `.env.production.local` de prueba, el YAML pasa una validación
   de sintaxis y un cambio solo en `api/` no lo dispara.
 
-### [ ] Fase 9 — Primer deploy de producción (con el usuario)
+### [x] Fase 9 — Primer deploy de producción (con el usuario)
 - **Alcance:** el usuario crea en el servidor `/var/www/html/workspace/prod/{api,web}/.env` con las plantillas que
   se le pasan (sin que Claude vea los valores), habilita Actions en `sereno` y se hace el merge a `main`. Se revisa el
   job y se verifica `https://sereno-api.ascario.dev/up`, la web y la conexión a `sereno-ws.ascario.dev`.
@@ -181,6 +181,9 @@
   recrea); conf y compose archivo a archivo, sin `--delete`. `web/docker/deploy/deploy.sh` recrea nginx con
   `--force-recreate` solo si cambió el hash de compose + conf (`.deploy/nginx.sha256`, guardado tras un 200 en `/`);
   el hash no incluye el `.env` (compose detecta solo un cambio de `WEB_PORT`).
+- 2026-10-10 — Fase 9: primer deploy de producción (merge `742cec7`, push a Gitea): los dos workflows en verde; `/up`,
+  la web (también rutas profundas) y `sereno-ws` (101) responden; login, organización, proyecto y canal en vivo
+  confirmados por el usuario. La web no tiene registro ni alta de organización o proyecto: se hicieron por `curl` al API.
 
 ## Notas para la próxima sesión
 - Fase 6: con `validate_timestamps=0` el deploy reinicia `app`, `queue`, `scheduler` y `reverb`. El UID 1000 debe
