@@ -63,6 +63,33 @@ it('resolves access with an explicit organization and no active team', function 
         ->and(getPermissionsTeamId())->toBeNull();
 });
 
+it('restores a previous non-null spatie team after resolving access', function () {
+    $otherTeamId = $this->organization->id + 1000;
+    setPermissionsTeamId($otherTeamId);
+
+    expect(ProjectAccess::canView($this->users['member'], $this->assigned))->toBeTrue()
+        ->and(getPermissionsTeamId())->toBe($otherTeamId);
+});
+
+it('restores the previous spatie team when the role lookup throws', function () {
+    $otherTeamId = $this->organization->id + 1000;
+    setPermissionsTeamId($otherTeamId);
+
+    $failing = new class extends User
+    {
+        protected $table = 'users';
+
+        public function hasAnyRole(...$roles): bool
+        {
+            throw new RuntimeException('role lookup failed');
+        }
+    };
+
+    expect(fn () => ProjectAccess::seesAll($failing, $this->organization->id))
+        ->toThrow(RuntimeException::class, 'role lookup failed')
+        ->and(getPermissionsTeamId())->toBe($otherTeamId);
+});
+
 it('denies users without a role in the organization, even with a stray assignment', function () {
     $outsider = User::factory()->create();
     $this->assigned->addMember($outsider);
