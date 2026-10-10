@@ -2,7 +2,7 @@
 
 **Objetivo:** que una persona pueda registrarse, crear su organización y crear proyectos desde la web, sin `curl`, y que
 el registro abierto se pueda cerrar por entorno dejando solo la entrada por invitación.
-**Estado:** en curso · Fase actual: 12
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -162,6 +162,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - Fase 11 hecha: `ProjectCreateDialog` (claves `projCreate.*`). La fase 12 lo monta en un único dueño, como la 10.
 - Fase 12 hecha: botón "Nuevo proyecto" en `ProjectsView` (cabecera y vacío) y en la barra lateral, solo owner/admin.
   El layout de los botones nuevos no se revisó en el navegador (L-22).
+- Cierre: suite API 865 ok, Pint ok, typecheck ok, suite web 1215 ok (sobre el worktree).
 - Editar con Edit o `sed`: escribir con Python en Windows mete CRLF y rompe Pint (`line_ending`).
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
