@@ -7,13 +7,14 @@ use App\Models\Channel;
 use App\Models\Message;
 use App\Models\MessageMention;
 use App\Models\User;
+use App\Support\ProjectAccess;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class MessageMentions
 {
     /**
-     * Members of the channel's organization named by `<@id>` tokens, minus the author, ordered by id. Only
+     * Members of the channel's organization who can see the channel, named by `<@id>` tokens, minus the author, ordered by id. Only
      * the first `chat.mentions.max_per_message` of them (in order of appearance) count; the body keeps all.
      *
      * @return Collection<int, User>
@@ -33,11 +34,16 @@ class MessageMentions
             ->get(['id', 'name'])
             ->keyBy('id');
 
-        return (new Collection(array_map(fn (int $id) => $members->get($id), $ids)))
+        $mentioned = (new Collection(array_map(fn (int $id) => $members->get($id), $ids)))
             ->filter()
+            ->lazy()
+            ->filter(fn (User $user) => $channel->project_id === null
+                || ProjectAccess::canViewId($user, $channel->organization_id, $channel->project_id))
             ->take(config('chat.mentions.max_per_message'))
-            ->sortBy('id')
-            ->values();
+            ->collect()
+            ->all();
+
+        return (new Collection($mentioned))->sortBy('id')->values();
     }
 
     /**

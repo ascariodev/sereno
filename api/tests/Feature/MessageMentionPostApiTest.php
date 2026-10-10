@@ -153,6 +153,7 @@ it('keeps only the first valid mentions up to the cap, in order of appearance', 
     config(['chat.mentions.max_per_message' => 2]);
     $carl = User::factory()->create(['name' => 'Carl']);
     $this->organization->addMember($carl, [Role::Member]);
+    assignMembersToAllProjects();
     $body = "<@{$this->author->id}> <@{$carl->id}> <@{$this->nobody->id}> <@{$carl->id}> "
         ."<@{$this->foreign->id}> <@{$this->bob->id}> <@{$this->ana->id}>";
 

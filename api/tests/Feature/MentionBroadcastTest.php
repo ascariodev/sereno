@@ -141,3 +141,36 @@ it('is not broadcast when the member leaves between the dispatch and the queued 
     $manager->shouldReceive('connection')->andReturn($broadcaster);
     $kept->handle($manager);
 });
+
+it('does not mention a member without access to the project: no row, no event', function () {
+    Project::withoutGlobalScopes()->find($this->channel->project_id)->removeMember($this->ana);
+
+    postMentioning($this, "hey <@{$this->ana->id}> <@{$this->bob->id}>")->assertCreated();
+
+    Event::assertDispatchedTimes(MentionCreated::class, 1);
+    Event::assertDispatched(MentionCreated::class, fn (MentionCreated $e) => $e->userId === $this->bob->id);
+    expect(DB::table('message_mentions')->where('user_id', $this->ana->id)->count())->toBe(0);
+});
+
+it('mentions owners and admins of a project they are not assigned to', function () {
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+
+    postMentioning($this, "hey <@{$admin->id}>")->assertCreated();
+
+    Event::assertDispatched(MentionCreated::class, fn (MentionCreated $e) => $e->userId === $admin->id);
+});
+
+it('is not broadcast when the member loses the project between the dispatch and the queued handle', function () {
+    postMentioning($this, "hey <@{$this->ana->id}>")->assertCreated();
+    $job = unserialize(serialize(new BroadcastEvent(Event::dispatched(MentionCreated::class)->first()[0])));
+
+    app(CurrentOrganization::class)->set(null);
+    Project::withoutGlobalScopes()->find($this->channel->project_id)->removeMember($this->ana);
+
+    $broadcaster = Mockery::mock(Broadcaster::class);
+    $broadcaster->shouldNotReceive('broadcast');
+    $manager = Mockery::mock(BroadcastingFactory::class);
+    $manager->shouldReceive('connection')->andReturn($broadcaster);
+    $job->handle($manager);
+});
