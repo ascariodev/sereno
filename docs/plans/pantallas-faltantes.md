@@ -2,7 +2,7 @@
 
 **Objetivo:** que una persona pueda registrarse, crear su organización y crear proyectos desde la web, sin `curl`, y que
 el registro abierto se pueda cerrar por entorno dejando solo la entrada por invitación.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -52,7 +52,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - **Archivos:** `web/src/stores/auth.ts`, `web/src/views/InviteView.vue`, specs de ambos.
 - **Terminado cuando:** los specs afirman que el registro desde una invitación envía el token y que el 403 se muestra.
 
-### [ ] Fase 4 — Estado del registro en la web
+### [x] Fase 4 — Estado del registro en la web
 - **Alcance:** función `registrationStatus()` en el módulo de API de auth (o uno nuevo) y composable
   `useRegistrationStatus` que la pide una vez y la cachea; ante error de red, se trata como cerrado.
 - **Archivos:** el módulo de `web/src/api/` correspondiente, `web/src/composables/useRegistrationStatus.ts` (nuevo), spec.
@@ -127,12 +127,17 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - 2026-10-10 — Los contenedores montan el checkout principal: en el worktree, los tests corren con `docker run` sobre la
   imagen `workspace-php`/`node:24`, montando el worktree, los volúmenes `workspace_workspace_vendor` o
   `workspace_web-node-modules` y `api/.env` del checkout principal, en la red `workspace_default`.
+- 2026-10-10 — (Fase 4) `useRegistrationStatus()` devuelve `{ enabled: Ref<boolean|null>, ready: Promise<boolean> }`
+  (`null` mientras carga); cachea solo éxitos a nivel de módulo y comparte la petición en vuelo; un error (red, 4xx,
+  5xx) cuenta como cerrado y no se cachea. Los specs de vistas llaman `resetRegistrationStatus()` en `beforeEach` y
+  usan `vi.spyOn(registration, 'registrationStatus').mockResolvedValue(...)` (módulo `web/src/api/registration.ts`).
 
 ## Notas para la próxima sesión
 - Fase 1 hecha: con el registro cerrado, registrarse exige una invitación usable del mismo email, pero no la acepta.
 - Fase 2 hecha: `GET /api/auth/registration` público devuelve `{"enabled": bool}`.
 - Fase 3 hecha: `auth.register(name, email, password, passwordConfirmation, invitationToken?)` envía
   `invitation_token` solo si viene. Desde aquí `REGISTRATION_ENABLED=false` en producción ya no rompe invitaciones.
+- Fase 4 hecha: `registrationStatus()` y `useRegistrationStatus` listos para las fases 7 y 8.
 - Editar con Edit o `sed`: escribir con Python en Windows mete CRLF y rompe Pint (`line_ending`).
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
@@ -144,3 +149,5 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - [ ] M-3 (baja, sonnet) — `RegisterRequest::authorize()`: acortar el docblock a una línea.
 - [ ] M-4 (baja, sonnet) — `web/src/views/InviteView.vue`: mostrar un texto propio para el 403 al registrarse
   ("el registro está cerrado") en vez de `invite.registerFailed`, y que `InviteView.spec` afirme el texto exacto.
+- [ ] M-5 (baja, sonnet) — `web/src/composables/useRegistrationStatus.ts`: que `resetRegistrationStatus()` invalide
+  la petición en vuelo (generación) para que no escriba la caché después del reset.
