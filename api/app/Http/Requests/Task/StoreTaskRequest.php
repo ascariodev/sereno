@@ -81,8 +81,13 @@ class StoreTaskRequest extends FormRequest
         $assignee = User::query()->find((int) $assigneeId);
 
         if ($assignee === null || ! ProjectAccess::canView($assignee, $project)) {
-            $validator->errors()->add('assignee_id', __('The selected assignee does not have access to this project.'));
+            $validator->errors()->add('assignee_id', self::assigneeWithoutAccessMessage());
         }
+    }
+
+    public static function assigneeWithoutAccessMessage(): string
+    {
+        return __('The selected assignee does not have access to this project.');
     }
 
     public function taskStatus(): TaskStatus

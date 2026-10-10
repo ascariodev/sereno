@@ -110,15 +110,22 @@ class TaskController extends Controller
         $newAssigneeId = array_key_exists('assignee_id', $data) && $data['assignee_id'] !== null
             && (int) $data['assignee_id'] !== $task->assignee_id ? (int) $data['assignee_id'] : null;
 
-        DB::transaction(function () use ($project, $task, $data, $newAssigneeId) {
-            $this->lockAssigneeAccess($project, $newAssigneeId);
-
+        $apply = function () use ($task, $data) {
             $task->fill(array_intersect_key($data, array_flip(['title', 'description'])));
             if (array_key_exists('assignee_id', $data)) {
                 $task->assignee_id = $data['assignee_id'];
             }
             $task->save();
-        });
+        };
+
+        if ($newAssigneeId === null) {
+            $apply();
+        } else {
+            DB::transaction(function () use ($project, $newAssigneeId, $apply) {
+                $this->lockAssigneeAccess($project, $newAssigneeId);
+                $apply();
+            });
+        }
 
         $task->load(self::RELATIONS)->setRelation('project', $project);
         TaskUpdated::dispatch($task);
@@ -212,7 +219,7 @@ class TaskController extends Controller
 
         if ($assignee === null || ! ProjectAccess::canView($assignee, $project)) {
             throw ValidationException::withMessages([
-                'assignee_id' => __('The selected assignee does not have access to this project.'),
+                'assignee_id' => StoreTaskRequest::assigneeWithoutAccessMessage(),
             ]);
         }
     }

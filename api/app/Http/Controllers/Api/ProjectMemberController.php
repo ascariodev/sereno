@@ -69,7 +69,7 @@ class ProjectMemberController extends Controller
     private function assign(Project $project, User $user): void
     {
         $this->mutateAccess($project, $user, function () use ($project, $user) {
-            $this->ensureMemberRole($user, 'user_id', __('Only users with the member role can be assigned to a project.'));
+            $this->ensureMemberRole($user, 'user_id', StoreProjectMemberRequest::memberRoleRequiredMessage());
 
             if ($project->addMember($user)) {
                 ProjectAccessChanged::dispatch($user->id, $project->organization_id, $project->id, true);
