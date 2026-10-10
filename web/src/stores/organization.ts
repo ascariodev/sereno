@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '../api/client'
 import type { InvitationRole, Organization } from '../api/types'
+import { createOrganization } from '../api/organizations'
 import { leaveOrganization } from '../realtime/echo'
 
 export const ORGANIZATION_STORAGE_KEY = 'workspace.organization'
@@ -105,6 +106,15 @@ export const useOrganizationStore = defineStore('organization', () => {
     setActive(id)
   }
 
+  async function create(name: string): Promise<Organization> {
+    const clearsBefore = clearCount
+    const created = await createOrganization(name)
+    if (clearsBefore !== clearCount) return created
+    if (!(await reloadSettled())) return created
+    select(created.id)
+    return created
+  }
+
   function clear(): void {
     generation++
     clearCount++
@@ -113,7 +123,7 @@ export const useOrganizationStore = defineStore('organization', () => {
     setActive(null)
   }
 
-  return { organizations, activeId, active, isOwner, isAdmin, assignableRolesFor, canRemoveMember, canManageInvitations, loaded, version, rolesRevision, load, handleMembershipRevoked, handleForbidden, handleMembershipRoleChanged, select, clear }
+  return { organizations, activeId, active, isOwner, isAdmin, assignableRolesFor, canRemoveMember, canManageInvitations, loaded, version, rolesRevision, load, handleMembershipRevoked, handleForbidden, handleMembershipRoleChanged, select, create, clear }
 })
 
 export function installOrganizationOnApi(): void {

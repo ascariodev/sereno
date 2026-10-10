@@ -2,7 +2,7 @@
 
 **Objetivo:** que una persona pueda registrarse, crear su organización y crear proyectos desde la web, sin `curl`, y que
 el registro abierto se pueda cerrar por entorno dejando solo la entrada por invitación.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -58,7 +58,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - **Archivos:** el módulo de `web/src/api/` correspondiente, `web/src/composables/useRegistrationStatus.ts` (nuevo), spec.
 - **Terminado cuando:** el spec cubre abierto, cerrado, error y que una segunda llamada no repite la petición.
 
-### [ ] Fase 5 — Crear organización en el store
+### [x] Fase 5 — Crear organización en el store
 - **Alcance:** `api/organizations.ts` con `createOrganization(name)`. Acción `create(name)` en `stores/organization.ts`:
   POST, `load()` y `select(id)` de la nueva; devuelve la organización. Errores sin capturar (los maneja la vista).
 - **Archivos:** `web/src/api/organizations.ts` (nuevo), `web/src/stores/organization.ts`, spec del store.
@@ -138,6 +138,8 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - Fase 3 hecha: `auth.register(name, email, password, passwordConfirmation, invitationToken?)` envía
   `invitation_token` solo si viene. Desde aquí `REGISTRATION_ENABLED=false` en producción ya no rompe invitaciones.
 - Fase 4 hecha: `registrationStatus()` y `useRegistrationStatus` listos para las fases 7 y 8.
+- Fase 5 hecha: `organization.create(name)` (POST, `reloadSettled()`, `select`); con `clear()` en medio no repuebla
+  pero devuelve la creada.
 - Editar con Edit o `sed`: escribir con Python en Windows mete CRLF y rompe Pint (`line_ending`).
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
@@ -151,3 +153,5 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   ("el registro está cerrado") en vez de `invite.registerFailed`, y que `InviteView.spec` afirme el texto exacto.
 - [ ] M-5 (baja, sonnet) — `web/src/composables/useRegistrationStatus.ts`: que `resetRegistrationStatus()` invalide
   la petición en vuelo (generación) para que no escriba la caché después del reset.
+- [ ] M-6 (baja, sonnet) — `web/src/stores/organization.spec.ts`: probar `clear()` durante la recarga posterior al
+  POST de `create()` (rama `reloadSettled() === false`).
