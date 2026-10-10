@@ -350,6 +350,12 @@
       "inReview": "En revisión",
       "done": "Hecho"
     },
+    "filters": {
+      "label": "Filtros de tareas",
+      "all": "Todas",
+      "mine": "Mías",
+      "fromNotices": "Desde avisos"
+    },
     "empty": "Sin tareas",
     "unassigned": "Sin asignar",
     "assignedTo": "Asignada a {name}",

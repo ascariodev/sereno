@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { computed, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import ProjectHeader from '../components/ProjectHeader.vue'
 import TaskCard from '../components/TaskCard.vue'
 import { TASK_STATUSES, type TaskStatus } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
-import { useTasksStore } from '../stores/tasks'
+import { TASK_FILTERS, useTasksStore, type TaskFilter } from '../stores/tasks'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const organization = useOrganizationStore()
 const projects = useProjectsStore()
 const tasks = useTasksStore()
@@ -30,6 +31,11 @@ const statusKey: Record<TaskStatus, string> = {
   in_review: 'inReview',
   done: 'done',
 }
+const filterKey: Record<TaskFilter, string> = { all: 'all', mine: 'mine', from_notices: 'fromNotices' }
+const activeFilter = computed<TaskFilter>(() => {
+  const raw = Array.isArray(route.query.filter) ? route.query.filter[0] : route.query.filter
+  return TASK_FILTERS.find((item) => item === raw) ?? 'all'
+})
 const showLoading = computed(() => validId.value && loadError.value === null && tasks.loading)
 
 function load(): void {
@@ -37,6 +43,15 @@ function load(): void {
   else tasks.clear()
 }
 
+function setFilter(value: TaskFilter): void {
+  if (value === activeFilter.value) return
+  const query = { ...route.query }
+  if (value === 'all') delete query.filter
+  else query.filter = value
+  void router.replace({ query })
+}
+
+watch(activeFilter, (value) => (tasks.filter = value), { immediate: true })
 watch(projectId, load, { immediate: true })
 watch(() => organization.activeId, (_, previous) => previous !== null && load())
 
@@ -62,7 +77,21 @@ onUnmounted(() => tasks.clear())
         <button type="button" name="retry" @click="load">{{ t('common.retry') }}</button>
       </p>
       <p v-else-if="showLoading">{{ t('common.loading') }}</p>
-      <div v-else class="plan-view__board" role="group" :aria-label="t('plan.board')">
+      <template v-else>
+      <div class="plan-view__filters" role="group" :aria-label="t('plan.filters.label')">
+        <button
+          v-for="item in TASK_FILTERS"
+          :key="item"
+          type="button"
+          class="plan-view__chip"
+          :name="`filter-${item}`"
+          :aria-pressed="activeFilter === item"
+          @click="setFilter(item)"
+        >
+          {{ t(`plan.filters.${filterKey[item]}`) }}
+        </button>
+      </div>
+      <div class="plan-view__board" role="group" :aria-label="t('plan.board')">
         <section
           v-for="status in TASK_STATUSES"
           :key="status"
@@ -79,6 +108,7 @@ onUnmounted(() => tasks.clear())
           <TaskCard v-for="task in tasks.visibleColumns[status]" :key="task.id" :task="task" />
         </section>
       </div>
+      </template>
     </div>
   </section>
 </template>
@@ -95,6 +125,35 @@ onUnmounted(() => tasks.clear())
 .plan-view__main {
   min-width: 0;
   padding: var(--space-5) 28px 28px;
+}
+.plan-view__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.plan-view__chip {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.plan-view__chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.plan-view__chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 .plan-view__board {
   display: grid;

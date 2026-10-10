@@ -182,4 +182,72 @@ describe('PlanView', () => {
       expect(wrapper.find('.plan-view__board').exists()).toBe(false)
     })
   })
+
+  describe('filters', () => {
+    const task = (id: number, extra: Record<string, unknown> = {}) => ({
+      id, project_id: 5, key: `POSVE-${id}`, number: id, title: `Task ${id}`, description: null, status: 'todo', position: id,
+      created_by: 1, assignee: null, log_group: null, created_at: '2026-10-10T00:00:00.000000Z', updated_at: '2026-10-10T00:00:00.000000Z', ...extra,
+    })
+    const data = () => ({
+      data: [
+        task(1, { assignee: { id: 1, name: 'Ana' } }),
+        task(2, { log_group: { id: 9, level: 'error', title: 'g', status: 'open', events_count: 1 } }),
+        task(3),
+      ],
+    })
+    const chips = (wrapper: ReturnType<typeof mount>) => wrapper.findAll('.plan-view__chip')
+    const titles = (wrapper: ReturnType<typeof mount>) => wrapper.findAll('a.task-card').map((c) => c.find('[id$=-title]').text())
+
+    afterEach(() => {
+      useTasksStore().filter = 'all'
+    })
+
+    it('shows the chips with Todas pressed by default and all tasks', async () => {
+      mockApi(data)
+      const wrapper = await mountView()
+      expect(chips(wrapper).map((c) => c.text())).toEqual(['All', 'Mine', 'From notices'])
+      expect(chips(wrapper).map((c) => c.attributes('aria-pressed'))).toEqual(['true', 'false', 'false'])
+      expect(titles(wrapper)).toEqual(['Task 1', 'Task 2', 'Task 3'])
+    })
+
+    it('applies the filter from the query on mount', async () => {
+      mockApi(data)
+      const wrapper = await mountView('/projects/5/plan?filter=mine')
+      expect(chips(wrapper).map((c) => c.attributes('aria-pressed'))).toEqual(['false', 'true', 'false'])
+      expect(titles(wrapper)).toEqual(['Task 1'])
+    })
+
+    it('falls back to all for an invalid value', async () => {
+      mockApi(data)
+      useTasksStore().filter = 'mine'
+      const wrapper = await mountView('/projects/5/plan?filter=bogus')
+      expect(chips(wrapper)[0].attributes('aria-pressed')).toBe('true')
+      expect(titles(wrapper)).toHaveLength(3)
+    })
+
+    it('writes the filter to the query keeping ?task= and without reloading', async () => {
+      const spy = mockApi(data)
+      const wrapper = await mountView('/projects/5/plan?task=2')
+      await chips(wrapper)[2].trigger('click')
+      await flushPromises()
+      expect(wrapper.router.currentRoute.value.query).toEqual({ task: '2', filter: 'from_notices' })
+      expect(useTasksStore().filter).toBe('from_notices')
+      expect(titles(wrapper)).toEqual(['Task 2'])
+      expect(chips(wrapper)[2].attributes('aria-pressed')).toBe('true')
+      await chips(wrapper)[0].trigger('click')
+      await flushPromises()
+      expect(wrapper.router.currentRoute.value.query).toEqual({ task: '2' })
+      expect(titles(wrapper)).toHaveLength(3)
+      expect(taskCalls(spy)).toHaveLength(1)
+    })
+
+    it('does not touch the filter when only another query param changes', async () => {
+      mockApi(data)
+      const wrapper = await mountView('/projects/5/plan?filter=mine')
+      useTasksStore().filter = 'from_notices'
+      await wrapper.router.push('/projects/5/plan?filter=mine&task=1')
+      await flushPromises()
+      expect(useTasksStore().filter).toBe('from_notices')
+    })
+  })
 })

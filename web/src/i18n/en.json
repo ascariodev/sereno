@@ -350,6 +350,12 @@
       "inReview": "In review",
       "done": "Done"
     },
+    "filters": {
+      "label": "Task filters",
+      "all": "All",
+      "mine": "Mine",
+      "fromNotices": "From notices"
+    },
     "empty": "No tasks",
     "unassigned": "Unassigned",
     "assignedTo": "Assigned to {name}",
