@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 18
+**Estado:** en curso · Fase actual: 19
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -114,7 +114,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 ### [x] Fase 17 — Filtros del tablero (web)
 - Chips Todas, Mías y Desde avisos (`aria-pressed`), recordados en la query.
 
-### [ ] Fase 18 — Crear tarea desde el tablero (web)
+### [x] Fase 18 — Crear tarea desde el tablero (web)
 - Diálogo `TaskCreateDialog` (título, descripción, asignado desde `memberDirectory`) desde "Nueva tarea" y "Agregar
   tarea" de cada columna; errores 422/429; foco al cerrar.
 
@@ -195,7 +195,10 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `plan.*`. Los límites de archivos de las fases cuentan solo código de producción, no specs.
 
 ## Notas para la próxima sesión
-- API terminado (fases 1 a 11). Web: fase 17 hecha: filtro en `?filter=` (fuente de verdad, copia a
+- API terminado (fases 1 a 11). Web: fase 18 hecha: `TaskCreateDialog` (props `projectId`, `status`,
+  `initialTitle`, `logGroupId`, `v-model:open`; emite `created(task)`; devuelve el foco a quien lo abrió). Para 24 y
+  25: si el botón se reemplaza por el enlace "Ver POSVE-12", enfocar el enlace desde `@created`; recortar a 200
+  caracteres el título del grupo al prellenar. Botones de crear ocultos en proyecto archivado. Fase 17: filtro en `?filter=` (fuente de verdad, copia a
   `tasks.filter`; `all` quita el parámetro), chips propios con `aria-pressed` (`AppSegmented` no lo da). Fase 16: tablero en `PlanView` (sin componente de columna) con
   `TaskCard` (RouterLink a `?task=<id>` que conserva la query; probada en `PlanView.spec`); tokens `--column-bg` y
   `--column-{todo,in-progress,in-review,done}`. Layout del tablero sin revisar en navegador (L-22). Fase 15 hecha. Fase 14 (`PlanView` abre el store por `projectId`, `clear()` al
@@ -257,3 +260,5 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   solapados de `PlanView.spec` y revisar el layout en el navegador a 1024 px y en móvil.
 - [ ] M-22 (baja, sonnet): filtros: reindentar el `<template v-else>` de `PlanView.vue`, icono de actividad en
   "Desde avisos" (diseño) y reescribir un `?filter=` inválido.
+- [ ] M-23 (baja, sonnet): `TaskCreateDialog`: alternativa de foco cuando `document.activeElement` es `body` al abrir
+  (Safari no enfoca botones al hacer clic).

@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, onUnmounted, watch } from 'vue'
+import { Plus } from '@lucide/vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ProjectHeader from '../components/ProjectHeader.vue'
 import TaskCard from '../components/TaskCard.vue'
+import TaskCreateDialog from '../components/TaskCreateDialog.vue'
 import { TASK_STATUSES, type TaskStatus } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
@@ -36,11 +38,19 @@ const activeFilter = computed<TaskFilter>(() => {
   const raw = Array.isArray(route.query.filter) ? route.query.filter[0] : route.query.filter
   return TASK_FILTERS.find((item) => item === raw) ?? 'all'
 })
+const canCreate = computed(() => project.value !== null && project.value.archived_at === null)
+const createOpen = ref(false)
+const createStatus = ref<TaskStatus>('todo')
 const showLoading = computed(() => validId.value && loadError.value === null && tasks.loading)
 
 function load(): void {
   if (validId.value) void tasks.open(projectId.value)
   else tasks.clear()
+}
+
+function openCreate(status: TaskStatus): void {
+  createStatus.value = status
+  createOpen.value = true
 }
 
 function setFilter(value: TaskFilter): void {
@@ -54,6 +64,7 @@ function setFilter(value: TaskFilter): void {
 watch(activeFilter, (value) => (tasks.filter = value), { immediate: true })
 watch(projectId, load, { immediate: true })
 watch(() => organization.activeId, (_, previous) => previous !== null && load())
+watch(projectId, () => (createOpen.value = false))
 
 onUnmounted(() => tasks.clear())
 </script>
@@ -67,7 +78,14 @@ onUnmounted(() => tasks.clear())
       :description="project.description"
       :project-id="project.id"
       :channel-id="channelId"
-    />
+    >
+      <template v-if="canCreate" #actions>
+        <button type="button" class="plan-view__new" name="new-task" @click="openCreate('todo')">
+          <Plus :size="15" aria-hidden="true" />
+          {{ t('plan.newTask') }}
+        </button>
+      </template>
+    </ProjectHeader>
     <h1 v-else class="plan-view__title">{{ t('plan.title') }}</h1>
 
     <div class="plan-view__main">
@@ -106,10 +124,27 @@ onUnmounted(() => tasks.clear())
           </header>
           <p v-if="tasks.visibleColumns[status].length === 0" class="plan-view__empty">{{ t('plan.empty') }}</p>
           <TaskCard v-for="task in tasks.visibleColumns[status]" :key="task.id" :task="task" />
+          <button
+            v-if="canCreate"
+            type="button"
+            class="plan-view__add"
+            :name="`add-${status}`"
+            @click="openCreate(status)"
+          >
+            <Plus :size="14" aria-hidden="true" />
+            {{ t('plan.addTask') }}
+            <span class="sr-only">{{ t(`plan.status.${statusKey[status]}`) }}</span>
+          </button>
         </section>
       </div>
       </template>
     </div>
+    <TaskCreateDialog
+      v-if="canCreate"
+      v-model:open="createOpen"
+      :project-id="projectId"
+      :status="createStatus"
+    />
   </section>
 </template>
 
@@ -200,5 +235,39 @@ onUnmounted(() => tasks.clear())
   padding: 8px 4px;
   font-size: 13px;
   color: var(--ink-3);
+}
+.plan-view__new {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--surface);
+  font-weight: 500;
+  cursor: pointer;
+}
+.plan-view__add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+.plan-view__add:hover {
+  background: var(--surface);
+}
+.plan-view__new:focus-visible,
+.plan-view__add:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 </style>

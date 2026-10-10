@@ -356,10 +356,27 @@
       "mine": "Mine",
       "fromNotices": "From notices"
     },
+    "newTask": "New task",
+    "addTask": "Add task",
     "empty": "No tasks",
     "unassigned": "Unassigned",
     "assignedTo": "Assigned to {name}",
     "fromNotice": "From a log notice"
+  },
+  "taskCreate": {
+    "title": "New task",
+    "titleLabel": "Title",
+    "descriptionLabel": "Description",
+    "assigneeLabel": "Assignee",
+    "titleRequired": "Enter a title.",
+    "titleTooLong": "The title cannot exceed {max} characters.",
+    "descriptionTooLong": "The description cannot exceed {max} characters.",
+    "submit": "Create task",
+    "creating": "Creating...",
+    "cancel": "Cancel",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not create the task. Try again."
   },
   "log": {
     "title": "Log",

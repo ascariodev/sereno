@@ -250,4 +250,36 @@ describe('PlanView', () => {
       expect(useTasksStore().filter).toBe('from_notices')
     })
   })
+  describe('create', () => {
+    it('opens the dialog from the header with To do and from a column button with that column', async () => {
+      mockApi()
+      const post = vi.spyOn(api, 'post').mockResolvedValue({ data: { id: 1 } } as never)
+      const wrapper = await mountView()
+      await wrapper.get('button[name=new-task]').trigger('click')
+      await flushPromises()
+      expect(document.body.querySelector('#task-create-title')).not.toBeNull()
+      document.body.querySelector<HTMLButtonElement>('[data-test=cancel]')!.click()
+      await flushPromises()
+      expect(document.body.querySelector('#task-create-title')).toBeNull()
+      await wrapper.get('button[name=add-in_review]').trigger('click')
+      await flushPromises()
+      const input = document.body.querySelector<HTMLInputElement>('#task-create-title')!
+      input.value = 'New one'
+      input.dispatchEvent(new Event('input'))
+      document.body.querySelector<HTMLFormElement>('form')!.dispatchEvent(new Event('submit', { cancelable: true }))
+      await flushPromises()
+      expect(post).toHaveBeenCalledWith('/api/projects/5/tasks', expect.objectContaining({ title: 'New one', status: 'in_review' }))
+    })
+
+    it('has no create buttons in an archived project', async () => {
+      vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/projects') return { data: [{ ...project(5, 'POSVE'), archived_at: '2026-01-01' }], meta: { last_page: 1 } } as never
+        if (path === '/api/channels') return { data: [] } as never
+        return { data: [] } as never
+      })
+      const wrapper = await mountView()
+      expect(wrapper.find('button[name=new-task]').exists()).toBe(false)
+      expect(wrapper.find('button[name=add-todo]').exists()).toBe(false)
+    })
+  })
 })

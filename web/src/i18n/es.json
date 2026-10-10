@@ -356,10 +356,27 @@
       "mine": "Mías",
       "fromNotices": "Desde avisos"
     },
+    "newTask": "Nueva tarea",
+    "addTask": "Agregar tarea",
     "empty": "Sin tareas",
     "unassigned": "Sin asignar",
     "assignedTo": "Asignada a {name}",
     "fromNotice": "Desde un aviso de log"
+  },
+  "taskCreate": {
+    "title": "Nueva tarea",
+    "titleLabel": "Título",
+    "descriptionLabel": "Descripción",
+    "assigneeLabel": "Asignada a",
+    "titleRequired": "Escribe un título.",
+    "titleTooLong": "El título no puede superar {max} caracteres.",
+    "descriptionTooLong": "La descripción no puede superar {max} caracteres.",
+    "submit": "Crear tarea",
+    "creating": "Creando...",
+    "cancel": "Cancelar",
+    "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo crear la tarea. Inténtalo de nuevo."
   },
   "log": {
     "title": "Log",
