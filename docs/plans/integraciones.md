@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -94,7 +94,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   `illuminate/queue` ^13.0, que usa `Event::listen(Looping::class)`).
 - **Terminado cuando:** los tests portados pasan.
 
-### [ ] Fase 10 — Integración con Laravel
+### [x] Fase 10 — Integración con Laravel
 - **Alcance:** `SerenoServiceProvider` (auto-discovery) que fusiona `config/sereno.php` (`url`, `key`, `timeout`,
   `level`, `fallback_channel`, desde `SERENO_LOG_*`), lo publica y registra el canal `sereno` en
   `logging.channels` si la app no lo define; factory `CreateSerenoLogger` para `driver => custom`. Sin URL o key,
@@ -136,6 +136,11 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   el aviso de proyecto inexistente, para poder volver a canal, plan y log desde Integraciones.
 
 ## Notas para la próxima sesión
+- Fase 10: el provider registra el canal `sereno` en `register()` solo si `logging.channels.sereno` no existe (vale
+  con `config:cache`); publica con el tag `sereno-config`. Variables `SERENO_LOG_URL`, `_KEY`, `_TIMEOUT`, `_LEVEL`,
+  `_FALLBACK_CHANNEL`. Testbench no usa el auto-discovery del paquete raíz: `tests/TestCase.php` declara el provider
+  en `getPackageProviders`; el auto-discovery real se prueba en la fase 12. El README debe decir que `sereno` se
+  agrega al `stack` a mano.
 - Fase 9: `SerenoLogHandler` igual al de posveapi salvo nombres, mensajes de fallo "Sereno log ..." y el último
   parámetro del constructor `string $fallbackChannel` (default `DEFAULT_FALLBACK_CHANNEL` = `daily`): la factory de
   la fase 10 usa argumentos con nombre. Tests con `composer update` (el lock local queda viejo al cambiar
@@ -185,3 +190,8 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - [ ] M-8 — En posveapi, `WorkspaceEventFormatter` hace `(string) $value` con floats no finitos, que lanza en PHP 8.5:
   aplicar el arreglo de la fase 8 si posveapi no pasa al paquete o corre PHP 8.5. Queda resuelto si la fase 12 se
   hace. Complejidad: baja (sonnet).
+- [ ] M-9 — `SERENO_LOG_LEVEL=` vacío hace `Level::fromName('')` y lanza `ValueError` al resolver el canal
+  (`CreateSerenoLogger`): tratar el vacío como `debug`, como el `fallback_channel`, con test. Complejidad: baja (sonnet).
+- [ ] M-10 — `test_no_pisa_un_canal_definido_por_la_app` llama a `register()` a mano: definir el canal en
+  `defineEnvironment` para seguir el orden real de arranque; y opcionalmente probar `vendor:publish --tag=sereno-config`.
+  Complejidad: baja (sonnet).
