@@ -23,6 +23,8 @@ beforeEach(function () {
     $this->other->addMember($this->outsider, [Role::Owner]);
     $this->project = Project::factory()->for($this->organization)->create();
     $this->channel = Channel::factory()->for($this->project)->create();
+
+    assignMembersToAllProjects();
 });
 
 function asChannelReader(User $user, Organization $organization)
@@ -61,6 +63,7 @@ it('lists non archived channels with their project, readable by every role', fun
 it('lists archived channels only with include_archived', function () {
     $archived = Channel::factory()->for(Project::factory()->for($this->organization))->archived()->create();
     Channel::factory()->for(Project::factory()->for($this->other))->archived()->create();
+    assignMembersToAllProjects();
     $reader = $this->users['member'];
 
     asChannelReader($reader, $this->organization)->getJson('/api/channels?include_archived=1')
@@ -204,4 +207,39 @@ it('reads messages of an archived channel', function () {
         ->getJson("/api/channels/{$this->channel->id}/messages")
         ->assertOk()
         ->assertJsonCount(1, 'data');
+});
+
+function unassignedChannelFor(Organization $organization): Channel
+{
+    return Channel::factory()->for(Project::factory()->for($organization))->create();
+}
+
+it('lists only the channels of the projects a member is assigned to', function () {
+    $hidden = unassignedChannelFor($this->organization);
+
+    asChannelReader($this->users['member'], $this->organization)->getJson('/api/channels')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $this->channel->id);
+
+    foreach (['owner', 'admin'] as $role) {
+        asChannelReader($this->users[$role], $this->organization)->getJson('/api/channels')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['id' => $hidden->id]);
+    }
+});
+
+it('answers 404 to a member on the messages, replies, posts and uploads of an unassigned channel', function () {
+    $hidden = unassignedChannelFor($this->organization);
+    $message = Message::factory()->for($hidden)->create();
+    $member = $this->users['member'];
+
+    asChannelReader($member, $this->organization)->getJson("/api/channels/{$hidden->id}/messages")->assertNotFound();
+    asChannelReader($member, $this->organization)->getJson("/api/channels/{$hidden->id}/messages/{$message->id}/replies")->assertNotFound();
+    asChannelReader($member, $this->organization)->postJson("/api/channels/{$hidden->id}/messages", ['body' => 'hi'])->assertNotFound();
+    asChannelReader($member, $this->organization)->postJson("/api/channels/{$hidden->id}/attachments")->assertNotFound();
+
+    asChannelReader($this->users['admin'], $this->organization)->getJson("/api/channels/{$hidden->id}/messages")->assertOk();
+    expect(Message::withoutGlobalScopes()->where('channel_id', $hidden->id)->count())->toBe(1);
 });

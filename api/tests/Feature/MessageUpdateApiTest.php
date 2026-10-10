@@ -31,6 +31,8 @@ beforeEach(function () {
         'user_id' => $this->author->id,
         'body' => 'original',
     ]);
+
+    assignMembersToAllProjects();
 });
 
 function patchEdit(object $test, User $as, ?Message $message = null, array $payload = ['body' => 'changed'], ?Organization $org = null)

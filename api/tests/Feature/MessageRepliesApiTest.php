@@ -16,6 +16,8 @@ beforeEach(function () {
     $this->outsider = User::factory()->create();
     $this->other->addMember($this->outsider, [Role::Owner]);
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
+
+    assignMembersToAllProjects();
 });
 
 function threadMessageIn(Channel $channel, ?int $parentId = null, string $body = 'text'): int

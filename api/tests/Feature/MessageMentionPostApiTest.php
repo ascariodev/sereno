@@ -26,6 +26,8 @@ beforeEach(function () {
     $this->other->addMember($this->foreign, [Role::Member]);
     $this->nobody = User::factory()->create();
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
+
+    assignMembersToAllProjects();
 });
 
 function mentionPost(object $test, string $body, ?int $parentId = null)

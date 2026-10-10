@@ -29,6 +29,8 @@ beforeEach(function () {
     $this->other->addMember($this->author, [Role::Member]);
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
     $this->message = destroyUserMessage($this->channel, $this->author, 'hello <@'.$this->ana->id.'>');
+
+    assignMembersToAllProjects();
 });
 
 function destroyUserMessage(Channel $channel, User $author, ?string $body = 'text', ?Message $parent = null): Message

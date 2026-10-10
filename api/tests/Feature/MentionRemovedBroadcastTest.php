@@ -23,6 +23,7 @@ beforeEach(function () {
         $this->organization->addMember($user, [Role::Member]);
     }
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
+    assignMembersToAllProjects();
     Sanctum::actingAs($this->author);
     $this->message = Message::find($this->withHeader('X-Organization-Id', (string) $this->organization->id)
         ->postJson("/api/channels/{$this->channel->id}/messages", ['body' => "hi <@{$this->ana->id}> <@{$this->bob->id}>"])

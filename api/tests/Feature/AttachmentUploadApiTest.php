@@ -31,6 +31,8 @@ beforeEach(function () {
     $this->other->addMember($this->outsider, [Role::Owner]);
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
     $this->url = "/api/channels/{$this->channel->id}/attachments";
+
+    assignMembersToAllProjects();
 });
 
 // A real file on disk, so the MIME is detected from its bytes and not guessed from the client name.
@@ -168,6 +170,7 @@ it('requires a file', function (array $payload) {
 
 it('rejects uploads to an archived channel with a translated error', function () {
     $archived = Channel::factory()->for(Project::factory()->for($this->organization))->archived()->create();
+    assignMembersToAllProjects();
 
     uploadingAs($this->member, $this->organization)
         ->withHeader('Accept-Language', 'es')

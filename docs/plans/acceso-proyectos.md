@@ -2,7 +2,7 @@
 
 **Objetivo:** membresía por proyecto: owner y admin ven toda la organización; un `member` solo ve los proyectos
 asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asignan desde la web y al invitar.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -55,7 +55,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - **Archivos:** `app/Support/ProjectAccess.php` (nuevo), `ProjectPolicy.php`, `ProjectController.php`.
 - **Terminado cuando:** un member lista solo sus proyectos y recibe 404 en uno ajeno; owner y admin ven todos.
 
-### [ ] Fase 5 — Visibilidad de canales y mensajes
+### [x] Fase 5 — Visibilidad de canales y mensajes
 - **Alcance:** `ChannelPolicy::view` usa `ProjectAccess` (canal sin proyecto: ver Decisiones), `ChannelController`
   filtra; mensajes, hilos y adjuntos lo heredan por sus FormRequests.
 - **Archivos:** `ChannelPolicy.php`, `ChannelController.php`.
@@ -167,12 +167,14 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - 2026-10-10 — (Fase 3) La migración `assign_members_to_their_projects` toma el rol de `model_has_roles` (`model_type` = `App\Models\User`, sin morph map; team en `model_has_roles.organization_id`), une `roles` por nombre `member` y `organization_user` para exigir membresía; `DISTINCT` + `ON CONFLICT (project_id, user_id) DO NOTHING` (idempotente). `down()` vacío: revertir borraría asignaciones posteriores.
 - 2026-10-10 — (Fase 4) API de `App\Support\ProjectAccess` (estática; organización siempre explícita, sin team activo ni `CurrentOrganization`; rol leído con `setPermissionsTeamId` en `try/finally` restaurando el previo y `unsetRelation('roles')`): `seesAll(User, int $orgId)`, `canView(User, Project)`, `canViewId(User, int $orgId, int $projectId)`, `visibleProjectIds(User, int $orgId)`, `restrict(Eloquent\Builder, User, int $orgId, string $col = 'projects.id')` (no-op para owner y admin). Un member ve un proyecto solo con rol `member` en esa organización y fila en `project_user`. Hace 1 o 2 consultas por llamada: en listados usar `restrict` o `visibleProjectIds` una vez por petición, no `canView` por fila.
 - 2026-10-10 — (Fase 4) `ProjectPolicy::view` devuelve `Response|bool`: proyecto de otra organización o sin `viewAny`, false (403 como antes); de la organización sin acceso, `denyAsNotFound()` (404).
+- 2026-10-10 — (Fase 5) `ChannelPolicy::view` devuelve `Response|bool` (`ProjectAccess::canViewId`, `denyAsNotFound`); es el único sitio de la regla para mensajes, hilos y adjuntos (`MessagePolicy` la hereda). Los FormRequests que deben dar 404 usan `Gate::authorize(...)->allowed()`: con `Gate::allows` el 404 de la policy se vuelve 403. Editar o borrar un mensaje en un canal sin acceso sigue en 403 (solo llega al autor).
+- 2026-10-10 — (Fase 5) Tests: el helper `assignMembersToAllProjects()` de `tests/Pest.php` (mismo SQL que la migración de la fase 3) asigna los members a todos los proyectos existentes; los tests de acceso crean el proyecto o canal ajeno después de llamarlo. Las fases 6 a 9 ajustan sus tests igual y corren la suite completa del API antes de dar la fase por hecha.
 
 ## Notas para la próxima sesión
-- Fases 1 a 4 hechas (suite API 880 ok en el worktree). Siguiente: fase 5, canales y mensajes con `ProjectAccess`.
+- Fases 1 a 5 hechas (suite API 882 ok en el worktree). Siguiente: fase 6, acceso a tareas.
 - Trabajar en el worktree (ver Decisiones). Al editar con Python en Windows, dejar finales LF (Pint falla con `line_ending`).
 - La migración de datos no se corrió en la base de desarrollo: corre con el próximo `migrate` tras el merge.
-- Los tests que asumían que cualquier member ve todo se ajustan asignando al member o usando admin donde el test no trata del acceso.
+- Hasta la fase 9, `MentionController` sigue mostrando menciones de canales sin acceso (con el mensaje).
 
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): limitar `/api/members` a owner y admin, o sin email para members, para no exponer los
@@ -185,3 +187,5 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - [ ] M-5 (baja, sonnet): en `.claude/rules/database.md`, quitar la línea en blanco que separa el bullet de `project_user` del de `projects`.
 - [ ] M-6 (baja, sonnet): `project_user.organization_id` puede diferir del de su proyecto si se inserta sin `Project::addMember`; evaluar una FK compuesta `(project_id, organization_id)` o un test que lo vigile.
 - [ ] M-7 (baja, sonnet): test de `ProjectAccess` con un team previo no nulo y con una excepción dentro, para cubrir L-03 completo (hoy solo el caso null).
+- [ ] M-8 (baja, sonnet): `UpdateMessageRequest` y `DeleteMessageRequest` con `Gate::authorize(...)->allowed()` para que editar o borrar en un canal sin acceso dé 404 como el resto, con su test.
+- [ ] M-9 (baja, sonnet): `assignMembersToAllProjects()` repite el SQL de la migración de la fase 3; extraerlo a un lugar común o dejar un test que compare ambos resultados.

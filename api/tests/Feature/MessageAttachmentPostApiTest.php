@@ -28,6 +28,8 @@ beforeEach(function () {
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
     $this->sibling = Channel::factory()->for(Project::factory()->for($this->organization))->create();
     $this->foreignChannel = Channel::factory()->for(Project::factory()->for($this->other))->create();
+
+    assignMembersToAllProjects();
 });
 
 function pendingAttachment(Channel $channel, User $uploader, ?int $messageId = null, string $name = 'report.pdf'): int

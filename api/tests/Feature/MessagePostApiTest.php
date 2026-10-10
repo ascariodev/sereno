@@ -28,6 +28,8 @@ beforeEach(function () {
     $this->outsider = User::factory()->create();
     $this->other->addMember($this->outsider, [Role::Owner]);
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
+
+    assignMembersToAllProjects();
 });
 
 function postingAs(User $user, Organization $organization)
@@ -84,6 +86,7 @@ it('accepts a body of exactly 4000 characters', function () {
 
 it('rejects posting to an archived channel', function () {
     $archived = Channel::factory()->for(Project::factory()->for($this->organization))->archived()->create();
+    assignMembersToAllProjects();
 
     postingAs($this->users['member'], $this->organization)
         ->postJson("/api/channels/{$archived->id}/messages", ['body' => 'hi'])
@@ -95,6 +98,7 @@ it('rejects posting to an archived channel', function () {
 
 it('translates the archived channel error', function () {
     $archived = Channel::factory()->for(Project::factory()->for($this->organization))->archived()->create();
+    assignMembersToAllProjects();
 
     postingAs($this->users['member'], $this->organization)
         ->withHeader('Accept-Language', 'es')

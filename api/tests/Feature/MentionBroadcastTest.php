@@ -30,6 +30,8 @@ beforeEach(function () {
     $this->other->addMember($this->foreign, [Role::Member]);
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
     Event::fake([MentionCreated::class]);
+
+    assignMembersToAllProjects();
 });
 
 function postMentioning(object $test, string $body, ?int $parentId = null)

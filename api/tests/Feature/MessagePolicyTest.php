@@ -23,6 +23,8 @@ beforeEach(function () {
     app(CurrentOrganization::class)->set($this->organization);
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
     $this->message = Message::factory()->for($this->channel)->create(['user_id' => $this->users['member']->id]);
+
+    assignMembersToAllProjects();
 });
 
 it('lets the author update and delete their message', function () {

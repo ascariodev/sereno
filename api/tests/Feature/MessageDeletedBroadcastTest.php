@@ -24,6 +24,8 @@ beforeEach(function () {
     $this->reply->parent_id = $this->root->id;
     $this->reply->save();
     DB::table('messages')->where('id', $this->root->id)->update(['replies_count' => 1, 'last_reply_at' => $this->reply->created_at]);
+
+    assignMembersToAllProjects();
 });
 
 function deletedBroadcastCall(object $test, Message $message): void
