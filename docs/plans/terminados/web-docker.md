@@ -215,7 +215,8 @@
   para no descargar todo cuando se recrea `app`.
 - [ ] M-9 (baja, sonnet) — Agregar `concurrency` por ambiente a los workflows de deploy cuando Gitea lo soporte (no
   está en 1.25.5), o confirmar `capacity: 1` en el `config.yaml` del runner.
-- [ ] M-10 (baja, sonnet) — `.gitea/workflows/deploy-web.yml`: `--chmod=D755,F644` en los rsync de `dist/` y de la conf,
+- [x] M-10 (baja, sonnet) — `.gitea/workflows/deploy-web.yml`: `--chmod=D755,F644` en los rsync de `dist/` y de la conf,
   para no depender del umask del runner.
-- [ ] M-11 (media, sonnet) — Conservar los assets del deploy anterior en `dist/assets/` (p. ej. borrar solo los de más
+- [x] M-11 (media, sonnet) — Conservar los assets del deploy anterior en `dist/assets/` (p. ej. borrar solo los de más
   de N deploys), para que una pestaña abierta con el `index.html` viejo no dé 404 al cargar rutas diferidas.
+- [ ] M-12 (baja, sonnet) — `.gitea/workflows/deploy-web.yml`: el `find` de poda de `dist/assets` falla con `set -e` si el directorio no existe; protegerlo con `[ -d ... ]` o `|| true`.
