@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -69,7 +69,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - `PATCH projects/{project}/tasks/{task}` (título, descripción, asignado) con `UpdateTaskRequest`; 404 si la tarea
   no es del proyecto; proyecto archivado 422.
 
-### [ ] Fase 6 — Mover una tarea (api) [riesgo]
+### [x] Fase 6 — Mover una tarea (api) [riesgo]
 - `POST projects/{project}/tasks/{task}/move` con `status` y `before_id`/`after_id` opcionales: calcula `position`
   entre vecinos de la columna destino (bloqueando las filas), renumera la columna si el hueco es demasiado chico.
 
@@ -172,9 +172,15 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   título y descripción rechazan `\x00`; la fase 5 reutiliza ambas reglas. Si dos peticiones vinculan el mismo grupo,
   la `UniqueConstraintViolationException` se convierte en 422 sobre `log_group_id` con el texto de la validación.
   `TaskController::RELATIONS` es lo que carga toda respuesta con una tarea.
+- 2026-10-10 — Fase 6: en `move`, `after_id` es la tarea que queda justo arriba y `before_id` la de justo abajo; con
+  los dos deben ser contiguos en la columna destino (sin contar la movida). Sin vecinos va al final; columna vacía,
+  1. Al inicio queda `next - 1`, así que `position` puede ser cero o negativa. Bloqueos: proyecto `FOR NO KEY UPDATE`
+  y luego tarea y columna destino `FOR UPDATE`; un vecino que no está en la columna da 422. Con hueco <= 1e-9 la
+  columna se renumera 1, 2, 3... con `DB::table` (sin tocar `updated_at` de las demás).
 
 ## Notas para la próxima sesión
-- Fases 1 a 5 hechas. Los archivos creados desde el contenedor quedan de root y pint no puede escribirlos:
+- Fases 1 a 6 hechas. Helpers de test de la 6: `columnTask`, `moveTaskAs`, `movedColumn`. La fase 7 puede
+  bloquear la fila del proyecto como `move` si necesita serializarse. Los archivos creados desde el contenedor quedan de root y pint no puede escribirlos:
   `chown ubuntu:ubuntu` en el host antes de pint. Las fases 6 y 7 copian el patrón de `UpdateTaskRequest`
   (policy en `authorize()`, proyecto archivado en `after()`, 404 en el controlador). Helpers de test ocupados: `makeTask` (TaskTest), `taskPolicyTask` (TaskPolicyTest),
   `seedListedTask` (TaskListApiTest), `storeTaskAs` y `storedTasks` (TaskStoreApiTest). Fechas de `TaskResource` sin verificar con tinker: confirmarlas en la fase 12.
@@ -193,7 +199,9 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - [ ] M-7 (baja, sonnet): orden por columna de `TaskController@index` con `orderByRaw` y bindings o un helper en `TaskStatus`, en vez de interpolar el `CASE`.
 - [ ] M-8 (baja, sonnet): `TaskStoreApiTest`: caso de `assignee_id` inexistente, separar 404 y 403 en dos `it`, query log
   desactivado en `finally` y `Task::flushEventListeners()` explícito; `taskStatus()` con `$this->enum(...)`.
-- [ ] M-9 (baja, sonnet): crear tarea revalida dentro de la transacción que el proyecto no esté archivado (carrera
-  entre validar y archivar).
+- [ ] M-9 (baja, sonnet): crear, editar y mover revalidan dentro de la transacción que el proyecto no esté archivado
+  (carrera entre validar y archivar).
+- [ ] M-11 (baja, sonnet): `TaskMoveApiTest`: fijar el locale en el test que afirma `validation.not_in` y
+  `validation.different`; test de concurrencia real de `move` (L-41) en vez del query log.
 - [ ] M-10 (baja, sonnet): `DESCRIPTION_MAX_LENGTH` a `Task` junto a `TITLE_MAX_LENGTH`; `assignee_id` en Fillable para
   simplificar `TaskController@update`; 404 de tarea de otro proyecto antes de validar.
