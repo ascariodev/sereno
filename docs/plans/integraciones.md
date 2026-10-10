@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -31,7 +31,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 
 ## Fases
 
-### [ ] Fase 1 — Cliente web de fuentes de log
+### [x] Fase 1 — Cliente web de fuentes de log
 - **Alcance:** tipo `LogSource` (y `LogSourceWithKey` con `key`) en `api/types.ts`; módulo `api/logSources.ts`
   con `listLogSources`, `createLogSource`, `rotateLogSourceKey`, `revokeLogSource`, siguiendo `api/members.ts`.
 - **Archivos:** `web/src/api/types.ts`, `web/src/api/logSources.ts` (+ `logSources.spec.ts`).
@@ -123,6 +123,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   la hereda.
 
 ## Notas para la próxima sesión
+- Fase 1: `api/logSources.ts` con list, create, rotate (POST sin cuerpo) y revoke (DELETE, devuelve la fuente); `LogSourceWithKey` solo al crear o rotar.
 - Ejecución en el worktree `.claude/worktrees/plan-integraciones` (rama `docs/plan-integraciones`, main mergeado el 2026-10-10). Los contenedores montan el checkout principal: verificar web con `docker run --rm -v "$PWD/web:/app" -v workspace_web-node-modules:/app/node_modules -w /app node:24 npm run test -- --run <spec>` (y `npm run typecheck`).
 
 ## Mejoras propuestas
