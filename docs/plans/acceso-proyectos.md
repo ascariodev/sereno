@@ -2,7 +2,7 @@
 
 **Objetivo:** membresía por proyecto: owner y admin ven toda la organización; un `member` solo ve los proyectos
 asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asignan desde la web y al invitar.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -91,7 +91,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - **Terminado cuando:** mencionar a un member sin acceso no crea fila ni evento, y la bandeja oculta menciones de
   proyectos que perdió.
 
-### [ ] Fase 10 — API de miembros del proyecto [límite]
+### [x] Fase 10 — API de miembros del proyecto [límite]
 - **Alcance:** `GET/POST/DELETE /api/projects/{project}/members`. El GET devuelve quién ve el proyecto (owner,
   admin y members asignados: directorio para menciones y asignados); POST/DELETE asignan o quitan members, solo
   owner o admin (`ProjectPolicy::manageMembers`); agregar valida que sea `member` de la organización.
@@ -173,10 +173,12 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - 2026-10-10 — (Fase 7) `LogGroupPolicy::view` y `update` por el proyecto del grupo (404 sin acceso); las Requests de logs con `Gate::authorize(...)->allowed()`; `LogSourceController::index` autoriza `view` del proyecto; `LogSourcePolicy` sin cambios (store, rotate y destroy ya son de owner o admin). "Crear tarea desde un aviso" es `POST projects/{p}/tasks` con `log_group_id`: lo cubre la fase 6. La ingesta por API key no pasa por policies.
 - 2026-10-10 — (Fase 8) `ChannelChannel` y `ProjectChannel` usan `ProjectAccess::canViewId` con la organización del nombre del canal, después de comprobar que el canal o proyecto es de esa organización; canal sin `project_id`, visible para todo miembro. Ojo: `canViewId` no comprueba que el proyecto sea de `$orgId` (para owner y admin `seesAll` devuelve true sin mirarlo): quien lo llame valida antes la organización del proyecto.
 - 2026-10-10 — (Fase 9) Menciones: `MessageMentions::target()` filtra con `ProjectAccess::canViewId` antes del tope por mensaje; `MentionCreated::broadcastOn` revalida membresía y acceso con el canal cargado sin scopes (`[]` si no); `MentionController` filtra `index`, `read` y `unread_count` con `seesAll`/`visibleProjectIds` una vez por petición. Las filas de quien perdió el acceso se conservan y vuelven si lo recupera, salvo que el mensaje se edite: `sync` las borra (emite `MentionRemoved`) y no vuelven.
+- 2026-10-10 — (Fase 10) Contrato de miembros del proyecto (con `X-Organization-Id`; cada elemento es `MemberResource` `{id, name, email, role, joined_at}`, como `/api/members`; `joined_at` es la entrada a la organización, no la asignación): `GET /api/projects/{p}/members` 200 `{data: [...]}` sin paginar, por nombre e id, con owners, admins y members asignados (404 a member sin acceso). `POST` `{user_id}` 200 `{data: miembro}` idempotente; 403 a member antes de validar; 422 en `user_id` si no es de la organización o es owner o admin. `DELETE /members/{user}` 204 (también si no estaba asignado); 404 si no es de la organización; 422 en `user` si es owner o admin. El cliente deduce "quitable" de `role === 'member'`. Proyectos archivados también se gestionan.
+- 2026-10-10 — (Fase 10) `ProjectMemberController::assign()` y `unassign()` (privados) son el único sitio que llama a `Project::addMember`/`removeMember`: la fase 11 engancha ahí sus efectos.
 
 ## Notas para la próxima sesión
-- Fases 1 a 9 hechas (suite API 900 ok en el worktree). Siguiente: fase 10 [límite], API de miembros del proyecto; usar `Project::addMember`/`removeMember` (fase 2).
-- Trabajar en el worktree (ver Decisiones). No hay `python3` en el PATH de los subagentes; editar con heredocs o las herramientas de edición y dejar finales LF (Pint falla con `line_ending`).
+- Fases 1 a 10 hechas (suite API 912 ok en el worktree). Siguiente: fase 11 [riesgo], efectos de quitar y dar acceso, enganchados en `ProjectMemberController::assign()`/`unassign()`.
+- Trabajar en el worktree (ver Decisiones). No hay `python3` en el PATH de los subagentes; editar con heredocs o las herramientas de edición y dejar finales LF (Pint falla con `line_ending`). Cuidado con `perl -pi` desde el helper: pierde barras invertidas.
 - La migración de datos no se corrió en la base de desarrollo: corre con el próximo `migrate` tras el merge.
 
 ## Mejoras propuestas
@@ -197,3 +199,5 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - [ ] M-12 (baja, sonnet): tests de logs faltantes: PATCH de un grupo con un proyecto ajeno en la URL, y member sobre `store`, `rotate-key` y `destroy` de fuentes.
 - [ ] M-13 (media, sonnet): `BroadcastingAuthTest`: caso de owner o admin de una organización pidiendo el canal o proyecto de otra (hoy los casos de otra organización usan un member y no aíslan el filtro por organización); y evaluar que `ProjectAccess::canViewId` compruebe él mismo que el proyecto es de `$orgId`.
 - [ ] M-14 (baja, sonnet): `MessageMentions::target()` hace 1 o 2 consultas por id mencionado sin acceso (sin tope); calcular el acceso en lote (`seesAll` por usuario y `project_user` en una consulta) o topar los ids antes de filtrar. Y reajustar su docblock, que quedó en una línea larga.
+- [ ] M-15 (baja, sonnet): en `DELETE /api/projects/{p}/members/{user}` el binding de `{user}` es global y un id inexistente da 404 antes del 403: resolver el usuario dentro del método tras `Gate::authorize`. Y en `en`, los 422 dicen "members of the organization" cuando la regla es el rol `member`: aclarar la redacción.
+- [ ] M-16 (baja, sonnet): `GET /api/projects/{p}/members` filtra en PHP los usuarios de la organización; pasar el filtro a la consulta si las organizaciones crecen.

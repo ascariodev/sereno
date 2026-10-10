@@ -39,6 +39,11 @@ class ProjectPolicy
         return $this->belongsToActiveOrganization($project) && $this->canManage($user);
     }
 
+    public function manageMembers(User $user, Project $project): bool
+    {
+        return $this->update($user, $project);
+    }
+
     public function archive(User $user, Project $project): bool
     {
         return $this->update($user, $project);
