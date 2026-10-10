@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Task\DeleteTaskRequest;
 use App\Http\Requests\Task\MoveTaskRequest;
 use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Requests\Task\UpdateTaskRequest;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -107,6 +109,15 @@ class TaskController extends Controller
         $task->load(self::RELATIONS)->setRelation('project', $project);
 
         return new TaskResource($task);
+    }
+
+    public function destroy(DeleteTaskRequest $request, Project $project, Task $task): Response
+    {
+        abort_unless($task->project_id === $project->id, 404);
+
+        $task->delete();
+
+        return response()->noContent();
     }
 
     public function move(MoveTaskRequest $request, Project $project, Task $task): TaskResource

@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -73,7 +73,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - `POST projects/{project}/tasks/{task}/move` con `status` y `before_id`/`after_id` opcionales: calcula `position`
   entre vecinos de la columna destino (bloqueando las filas), renumera la columna si el hueco es demasiado chico.
 
-### [ ] Fase 7 — Borrar una tarea (api)
+### [x] Fase 7 — Borrar una tarea (api)
 - `DELETE projects/{project}/tasks/{task}` (policy `delete`, proyecto archivado 422), borrado físico.
 
 ### [ ] Fase 8 — Tarea vinculada en el grupo de log (api)
@@ -179,8 +179,9 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   columna se renumera 1, 2, 3... con `DB::table` (sin tocar `updated_at` de las demás).
 
 ## Notas para la próxima sesión
-- Fases 1 a 6 hechas. Helpers de test de la 6: `columnTask`, `moveTaskAs`, `movedColumn`. La fase 7 puede
-  bloquear la fila del proyecto como `move` si necesita serializarse. Los archivos creados desde el contenedor quedan de root y pint no puede escribirlos:
+- Fases 1 a 7 hechas (CRUD y mover del API). Helpers de test: `columnTask`, `moveTaskAs`, `movedColumn` (fase 6),
+  `deleteTaskAs` (fase 7). Tras una petición el tenant queda en su organización: los tests consultan con
+  `Task::withoutGlobalScopes()`. Los archivos creados desde el contenedor quedan de root y pint no puede escribirlos:
   `chown ubuntu:ubuntu` en el host antes de pint. Las fases 6 y 7 copian el patrón de `UpdateTaskRequest`
   (policy en `authorize()`, proyecto archivado en `after()`, 404 en el controlador). Helpers de test ocupados: `makeTask` (TaskTest), `taskPolicyTask` (TaskPolicyTest),
   `seedListedTask` (TaskListApiTest), `storeTaskAs` y `storedTasks` (TaskStoreApiTest). Fechas de `TaskResource` sin verificar con tinker: confirmarlas en la fase 12.

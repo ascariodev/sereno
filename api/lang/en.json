@@ -277,6 +277,7 @@
     "The log group does not exist in this project.": "The log group does not exist in this project.",
     "The log group already has a task.": "The log group already has a task.",
     "This project is archived and its tasks cannot be moved.": "This project is archived and its tasks cannot be moved.",
+    "This project is archived and its tasks cannot be deleted.": "This project is archived and its tasks cannot be deleted.",
     "The neighbor task is not in the target column of this project.": "The neighbor task is not in the target column of this project.",
     "The neighbor tasks are not next to each other.": "The neighbor tasks are not next to each other."
 }

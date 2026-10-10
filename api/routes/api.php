@@ -55,6 +55,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::get('projects/{project}/tasks', [TaskController::class, 'index']);
     Route::post('projects/{project}/tasks', [TaskController::class, 'store']);
     Route::patch('projects/{project}/tasks/{task}', [TaskController::class, 'update']);
+    Route::delete('projects/{project}/tasks/{task}', [TaskController::class, 'destroy']);
     Route::post('projects/{project}/tasks/{task}/move', [TaskController::class, 'move']);
     Route::get('members', [MemberController::class, 'index']);
     Route::patch('members/{user}', [MemberController::class, 'update']);
