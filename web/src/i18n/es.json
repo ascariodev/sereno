@@ -129,6 +129,50 @@
     "theme": "Tema",
     "language": "Idioma"
   },
+  "integrations": {
+    "title": "Integraciones",
+    "description": "Las fuentes de log envían los eventos de este proyecto a su canal.",
+    "loadFailed": "No se pudieron cargar las fuentes de log.",
+    "notFound": "Proyecto no encontrado.",
+    "empty": "Este proyecto aún no tiene fuentes de log.",
+    "create": "Crear fuente",
+    "keyPrefix": "Clave",
+    "lastUsed": "Último uso",
+    "neverUsed": "Nunca",
+    "created": "Creada",
+    "revoked": "Revocada",
+    "noPermission": "Solo los propietarios y administradores pueden gestionar las integraciones.",
+    "rotate": "Rotar clave",
+    "revoke": "Revocar",
+    "cancel": "Cancelar",
+    "working": "Procesando...",
+    "rotateTitle": "Rotar clave",
+    "rotateConfirm": "¿Rotar la clave de \"{name}\"? La clave actual deja de funcionar de inmediato.",
+    "revokeTitle": "Revocar fuente de log",
+    "revokeConfirm": "¿Revocar \"{name}\"? Dejará de aceptar eventos y no se puede deshacer.",
+    "revokedToast": "\"{name}\" fue revocada.",
+    "rotateConflict": "No se rotó la clave: otra persona la cambió o la revocó. Se recargó la lista.",
+    "revokeConflict": "No se revocó la fuente: otra persona la cambió. Se recargó la lista.",
+    "rotateProjectArchived": "No se rotó la clave: el proyecto está archivado. Se recargó la lista.",
+    "rotateSourceRevoked": "No se rotó la clave: la fuente está revocada. Se recargó la lista.",
+    "rotateUnavailable": "No se rotó la clave: la fuente está revocada o su proyecto está archivado. Se recargó la lista.",
+    "revokeUnavailable": "No se revocó la fuente: ya está revocada o su proyecto está archivado. Se recargó la lista.",
+    "actionForbidden": "No tienes permiso para hacer eso.",
+    "actionFailed": "La acción falló. Inténtalo de nuevo."
+  },
+  "createLogSource": {
+    "title": "Crear fuente de log",
+    "name": "Nombre",
+    "nameHint": "Un nombre que identifique el sistema que envía los logs, por ejemplo \"posveapi producción\".",
+    "nameRequired": "El nombre es obligatorio.",
+    "nameTooLong": "El nombre admite como máximo {max} caracteres.",
+    "forbidden": "No tienes permiso para crear fuentes de log.",
+    "network": "No se pudo contactar con el servidor.",
+    "failed": "No se pudo crear la fuente de log. Inténtalo de nuevo.",
+    "cancel": "Cancelar",
+    "submit": "Crear",
+    "creating": "Creando..."
+  },
   "invitations": {
     "invite": "Invitar",
     "title": "Invitaciones pendientes",
@@ -368,7 +412,8 @@
     "label": "Vistas del proyecto",
     "channel": "Canal",
     "plan": "Plan",
-    "log": "Log"
+    "log": "Log",
+    "integrations": "Integraciones"
   },
   "projectMembers": {
     "title": "Miembros del proyecto",
@@ -518,5 +563,24 @@
       "next": "Siguiente",
       "page": "Página {page} de {last}"
     }
+  },
+  "copyButton": {
+    "copied": "Copiado al portapapeles.",
+    "failed": "No se pudo copiar. Selecciona el texto y cópialo a mano."
+  },
+  "keyDialog": {
+    "title": "Clave de la fuente de log",
+    "description": "Usa esta clave para conectar un sistema al proyecto.",
+    "warning": "Copia la clave ahora: no se volverá a mostrar. Si la pierdes, rota la clave.",
+    "key": "Clave de {name}",
+    "endpoint": "Endpoint de ingesta",
+    "env": "Laravel .env (paquete ascario/sereno-laravel)",
+    "curl": "Prueba con curl",
+    "copyKey": "Copiar clave",
+    "copyEndpoint": "Copiar endpoint",
+    "copyEnv": "Copiar bloque .env",
+    "copyCurl": "Copiar comando curl",
+    "close": "Cerrar",
+    "done": "Listo"
   }
 }

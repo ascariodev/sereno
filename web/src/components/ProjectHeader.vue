@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Activity, SquareKanban, MessageSquare, Users } from '@lucide/vue'
+import { Activity, Plug, SquareKanban, MessageSquare, Users } from '@lucide/vue'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useOrganizationStore } from '../stores/organization'
@@ -47,6 +47,14 @@ const membersOpen = ref(false)
         <RouterLink :to="{ name: 'project-log', params: { projectId } }" class="project-header__tab">
           <Activity :size="15" aria-hidden="true" />
           {{ t('projectTabs.log') }}
+        </RouterLink>
+        <RouterLink
+          v-if="organization.canManageLogSources"
+          :to="{ name: 'project-integrations', params: { projectId } }"
+          class="project-header__tab"
+        >
+          <Plug :size="15" aria-hidden="true" />
+          {{ t('projectTabs.integrations') }}
         </RouterLink>
       </nav>
     </slot>

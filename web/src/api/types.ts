@@ -308,3 +308,18 @@ export interface RepliesPage extends CursorPage<Message> {
 }
 
 export type FieldErrors = Record<string, string[]>
+
+export interface LogSource {
+  id: number
+  project_id: number
+  name: string
+  key_prefix: string
+  last_used_at: string | null
+  revoked_at: string | null
+  created_at: string
+}
+
+/** Returned only when a key is issued (create, rotate): the plain `key` is never shown again. */
+export interface LogSourceWithKey extends LogSource {
+  key: string
+}

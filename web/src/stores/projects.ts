@@ -26,6 +26,7 @@ export const useProjectsStore = defineStore('projects', () => {
   const channelByProject = ref<Record<number, number>>({})
   const loading = ref(false)
   const failed = ref(false)
+  const loaded = ref(false)
   let generation = 0
   let countsGeneration = 0
   let countsTimer: ReturnType<typeof setTimeout> | null = null
@@ -42,6 +43,7 @@ export const useProjectsStore = defineStore('projects', () => {
     projects.value = []
     channelByProject.value = {}
     failed.value = false
+    loaded.value = false
     loading.value = false
   }
 
@@ -51,6 +53,7 @@ export const useProjectsStore = defineStore('projects', () => {
     if (!keepCurrent) {
       projects.value = []
       channelByProject.value = {}
+      loaded.value = false
     }
     failed.value = false
     loading.value = true
@@ -62,6 +65,7 @@ export const useProjectsStore = defineStore('projects', () => {
       if (current !== generation) return
       projects.value = loadedProjects.filter((project) => project.archived_at === null)
       channelByProject.value = Object.fromEntries(channels.data.map((channel) => [channel.project_id, channel.id]))
+      loaded.value = true
     } catch {
       if (current !== generation) return
       failed.value = true
@@ -137,5 +141,5 @@ export const useProjectsStore = defineStore('projects', () => {
     { immediate: true },
   )
 
-  return { projects, channelByProject, loading, failed, reload, refresh, projectIdOfChannel, removeProject, create, clear, refreshCounts }
+  return { projects, channelByProject, loading, failed, loaded, reload, refresh, projectIdOfChannel, removeProject, create, clear, refreshCounts }
 })

@@ -281,6 +281,9 @@ describe('organization store', () => {
     expect([store.isOwner, store.canManageInvitations]).toEqual([false, true])
     store.select(3)
     expect([store.isOwner, store.canManageInvitations]).toEqual([false, false])
+    expect(store.canManageLogSources).toBe(false)
+    store.select(2)
+    expect(store.canManageLogSources).toBe(true)
   })
 
   it('canRemoveMember mirrors MemberPolicy::remove by the active role', async () => {

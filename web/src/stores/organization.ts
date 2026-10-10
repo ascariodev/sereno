@@ -27,6 +27,7 @@ export const useOrganizationStore = defineStore('organization', () => {
 
   const isOwner = computed(() => !!active.value?.roles.includes('owner'))
   const canManageInvitations = computed(() => isOwner.value || !!active.value?.roles.includes('admin'))
+  const canManageLogSources = computed(() => isOwner.value || !!active.value?.roles.includes('admin'))
 
   const isAdmin = computed(() => !!active.value?.roles.includes('admin'))
   const canCreateProject = computed(() => isOwner.value || isAdmin.value)
@@ -124,7 +125,7 @@ export const useOrganizationStore = defineStore('organization', () => {
     setActive(null)
   }
 
-  return { organizations, activeId, active, isOwner, isAdmin, canCreateProject, assignableRolesFor, canRemoveMember, canManageInvitations, loaded, version, rolesRevision, load, handleMembershipRevoked, handleForbidden, handleMembershipRoleChanged, select, create, clear }
+  return { organizations, activeId, active, isOwner, isAdmin, canCreateProject, assignableRolesFor, canRemoveMember, canManageInvitations, canManageLogSources, loaded, version, rolesRevision, load, handleMembershipRevoked, handleForbidden, handleMembershipRoleChanged, select, create, clear }
 })
 
 export function installOrganizationOnApi(): void {

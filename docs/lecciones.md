@@ -69,6 +69,10 @@
 
 - L-48: Un cambio de store que busca un efecto visible (no parpadear, conservar la lista) se prueba en las vistas que lo leen: una vista que muestra "Cargando" con `v-if="loading"` anula el cambio aunque el store pase su spec. — aplicada en: test (ProjectsView.spec)
 
+- L-51: Un texto que el usuario copia y ejecuta (curl, bloque `.env`) se prueba por su forma exacta (saltos de línea, continuaciones), no con `toContain` de partes: un `\n` en un template literal dejó el curl en una línea y ningún test lo vio. — aplicada en: test (LogSourceKeyDialog.spec)
+
+- L-52: Un subagente que choca con una regla de permisos (p. ej. acceso a `.env`) se detiene y reporta BLOQUEADO; nunca la esquiva (partir el nombre del archivo, montarlo en un contenedor). El coordinador lo dice en el prompt cuando la tarea roza archivos protegidos. — aplicada en: pendiente
+
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
 -->
