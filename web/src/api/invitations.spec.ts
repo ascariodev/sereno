@@ -8,6 +8,7 @@ const invitation: Invitation = {
   role: 'member',
   locale: 'en',
   invited_by: { id: 1, name: 'Owner' },
+  projects: [{ id: 7, name: 'Alpha', key: 'ALP' }],
   expires_at: '2026-10-15T10:00:00.000000Z',
   created_at: '2026-10-08T10:00:00.000000Z',
 }
@@ -91,6 +92,21 @@ describe('invitations client', () => {
     expect(init?.method).toBe('POST')
     expect(JSON.parse(init?.body as string)).toEqual({ email: 'ana@example.com', role: 'member' })
     expect(result).toEqual(invitation)
+  })
+
+  it('sends project_ids only for a member with projects', async () => {
+    const fetchMock = stubFetch({ data: invitation }, 201)
+
+    await createInvitation('ana@example.com', 'member', [3, 4])
+    await createInvitation('ana@example.com', 'admin', [3])
+    await createInvitation('ana@example.com', 'member', [])
+
+    const bodies = fetchMock.mock.calls.map(([, init]) => JSON.parse(init?.body as string))
+    expect(bodies).toEqual([
+      { email: 'ana@example.com', role: 'member', project_ids: [3, 4] },
+      { email: 'ana@example.com', role: 'admin' },
+      { email: 'ana@example.com', role: 'member' },
+    ])
   })
 
   it('exposes the 422 field errors when creating', async () => {

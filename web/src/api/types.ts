@@ -262,6 +262,7 @@ export interface Invitation {
   locale: string
   /** Null when the inviter was deleted. */
   invited_by: { id: number; name: string } | null
+  projects: { id: number; name: string; key: string }[]
   expires_at: string
   created_at: string
 }
