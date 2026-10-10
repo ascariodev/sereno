@@ -219,9 +219,12 @@ describe('closed registration', function () {
             'role' => Role::Admin->value,
         ]);
 
-        setPermissionsTeamId($invitation->organization_id);
-        $invitation->inviter->syncRoles([Role::Member]);
-        setPermissionsTeamId(null);
+        try {
+            setPermissionsTeamId($invitation->organization_id);
+            $invitation->inviter->syncRoles([Role::Member]);
+        } finally {
+            setPermissionsTeamId(null);
+        }
 
         $this->postJson('/api/auth/register', closedRegistrationPayload(['invitation_token' => 'plain']))
             ->assertForbidden()
