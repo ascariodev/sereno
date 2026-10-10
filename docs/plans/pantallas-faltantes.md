@@ -2,7 +2,7 @@
 
 **Objetivo:** que una persona pueda registrarse, crear su organización y crear proyectos desde la web, sin `curl`, y que
 el registro abierto se pueda cerrar por entorno dejando solo la entrada por invitación.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -41,7 +41,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - **Terminado cuando:** pasan los tests de abierto (como hoy), cerrado sin token, token inválido, vencido, aceptado,
   de otro email (403 sin filtrar si el email existe), token válido (201) y el mensaje en `es`; Pint pasa.
 
-### [ ] Fase 2 — Estado del registro en el API
+### [x] Fase 2 — Estado del registro en el API
 - **Alcance:** `GET /api/auth/registration` público que devuelve `{"enabled": bool}`.
 - **Archivos:** `api/routes/api.php`, `api/app/Http/Controllers/Api/AuthController.php`, test.
 - **Terminado cuando:** el test cubre abierto y cerrado sin autenticación.
@@ -130,6 +130,8 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 
 ## Notas para la próxima sesión
 - Fase 1 hecha: con el registro cerrado, registrarse exige una invitación usable del mismo email, pero no la acepta.
+- Fase 2 hecha: `GET /api/auth/registration` público devuelve `{"enabled": bool}`.
+- Editar con Edit o `sed`: escribir con Python en Windows mete CRLF y rompe Pint (`line_ending`).
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
 ## Mejoras propuestas

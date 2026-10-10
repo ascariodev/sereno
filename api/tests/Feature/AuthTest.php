@@ -229,3 +229,11 @@ describe('closed registration', function () {
             ->assertJsonPath('message', 'El registro está cerrado.');
     });
 });
+
+it('reports whether registration is enabled without authentication', function () {
+    $this->getJson('/api/auth/registration')->assertOk()->assertExactJson(['enabled' => true]);
+
+    config(['auth.registration_enabled' => false]);
+
+    $this->getJson('/api/auth/registration')->assertOk()->assertExactJson(['enabled' => false]);
+});
