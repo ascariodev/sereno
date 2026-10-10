@@ -27,8 +27,10 @@ class Project extends Model
             $hasSources = LogSource::query()->withoutGlobalScopes()->where('project_id', $project->getKey())->exists();
             $hasGroups = LogGroup::query()->withoutGlobalScopes()->where('project_id', $project->getKey())->exists();
 
-            if ($hasSources || $hasGroups) {
-                throw new InvalidArgumentException('A project with log sources or groups cannot change organization.');
+            $hasTasks = Task::query()->withoutGlobalScopes()->where('project_id', $project->getKey())->exists();
+
+            if ($hasSources || $hasGroups || $hasTasks) {
+                throw new InvalidArgumentException('A project with log sources, groups or tasks cannot change organization.');
             }
         });
     }
@@ -65,5 +67,10 @@ class Project extends Model
     public function logGroups(): HasMany
     {
         return $this->hasMany(LogGroup::class);
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
     }
 }

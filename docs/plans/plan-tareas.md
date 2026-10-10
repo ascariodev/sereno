@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -32,7 +32,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 
 ### API
 
-### [ ] Fase 1 — Esquema de tareas (api) [límite: 5 archivos]
+### [x] Fase 1 — Esquema de tareas (api) [límite: 5 archivos]
 - **Alcance:** migración con `projects.last_task_number` (int, default 0) y la tabla `tasks`: organization_id y
   project_id (FK `cascadeOnDelete`), number int, title string(200), description text nullable, status string
   (CHECK `tasks_status_check`: `todo|in_progress|in_review|done`, default `todo`), position double precision,
@@ -148,6 +148,8 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   paso 7 en `CLAUDE.md`.
 
 ## Decisiones
+- 2026-10-10 — Fase 1: `Task` deja en Fillable `title`, `description`, `status` y `position`; ids y `number` fuera.
+  La guarda `updating` de `Project` también bloquea el cambio de organización si hay tareas.
 - 2026-10-10 — Cuatro estados fijos (`todo`, `in_progress`, `in_review`, `done`) como enum con CHECK, sin columnas
   configurables. Motivo: es lo que muestra el diseño y basta para el MVP.
 - 2026-10-10 — Número por proyecto con `projects.last_task_number` y `UPDATE ... RETURNING`; la tarea guarda solo
@@ -164,7 +166,9 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   carga todas las tareas del proyecto sin paginar; los filtros se aplican en el cliente.
 
 ## Notas para la próxima sesión
-- Plan recién creado: empezar por la fase 1.
+- Fase 1 hecha. `Task` no tiene factory: los tests usan el helper global `makeTask` (`TaskTest`); crear
+  `TaskFactory` si las fases siguientes lo necesitan. `Task::key()` carga `project` perezoso: `with('project')` en
+  listados (fase 3).
 
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): mensaje de sistema en el canal al crear una tarea desde un aviso, y chip "Tarea POSVE-12"
