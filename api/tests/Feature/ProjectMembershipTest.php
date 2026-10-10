@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
@@ -52,4 +53,29 @@ it('deletes assignments when the project or the user is deleted', function () {
 
     $this->user->delete();
     expect(DB::table('project_user')->count())->toBe(0);
+});
+
+it('assigns current members to every project of their organization through the data migration', function () {
+    $archived = Project::factory()->for($this->organization)->create(['archived_at' => now()]);
+    $owner = User::factory()->create();
+    $admin = User::factory()->create();
+    $member = User::factory()->create();
+    $this->organization->addMember($owner, [Role::Owner]);
+    $this->organization->addMember($admin, [Role::Admin]);
+    $this->organization->addMember($member, [Role::Member]);
+
+    $otherOrganization = Organization::factory()->create();
+    Project::factory()->for($otherOrganization)->create();
+    $otherOrganization->addMember($owner, [Role::Member]);
+
+    $migration = require database_path('migrations/2026_10_10_110000_assign_members_to_their_projects.php');
+    $migration->up();
+    $migration->up();
+
+    $rows = DB::table('project_user')->orderBy('project_id')->get();
+    expect($rows)->toHaveCount(3)
+        ->and($rows->where('user_id', $member->id)->pluck('project_id')->all())->toBe([$this->project->id, $archived->id])
+        ->and($rows->where('user_id', $member->id)->pluck('organization_id')->unique()->all())->toBe([$this->organization->id])
+        ->and($rows->where('user_id', $owner->id)->pluck('organization_id')->all())->toBe([$otherOrganization->id])
+        ->and($rows->where('user_id', $admin->id))->toBeEmpty();
 });

@@ -2,7 +2,7 @@
 
 **Objetivo:** membresía por proyecto: owner y admin ven toda la organización; un `member` solo ve los proyectos
 asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asignan desde la web y al invitar.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -40,7 +40,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - **Archivos:** migración nueva, `Project.php`, `User.php`, `.claude/rules/database.md`.
 - **Terminado cuando:** test de modelo: asignar y quitar un miembro, unicidad, cascade al borrar proyecto o usuario.
 
-### [ ] Fase 3 — Asignar a los members actuales a sus proyectos [riesgo]
+### [x] Fase 3 — Asignar a los members actuales a sus proyectos [riesgo]
 - **Alcance:** migración de datos con SQL literal: por cada usuario con rol `member` en una organización, una fila
   en `project_user` por cada proyecto de esa organización (incluidos archivados). Owner y admin no necesitan filas.
   Verificar el `model_type` real de `model_has_roles` antes de escribir la consulta.
@@ -164,10 +164,12 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
   `node:24`, montando el worktree, los volúmenes `workspace_workspace_vendor` o `workspace_web-node-modules` y
   `api/.env` del checkout principal, en la red `workspace_default` (como en `pantallas-faltantes`).
 - 2026-10-10 — (Fase 2) Sin modelo pivote: `Project::members()` y `User::projects()` son `belongsToMany` con `withPivot('organization_id')` y timestamps. Se asigna y quita solo con `Project::addMember(User)` (idempotente, `syncWithoutDetaching`, llena `organization_id`) y `Project::removeMember(User)`; las fases 10 a 12 los usan, nunca `attach` directo. `User::projects()` hereda el `OrganizationScope` de `Project` (solo la organización activa).
+- 2026-10-10 — (Fase 3) La migración `assign_members_to_their_projects` toma el rol de `model_has_roles` (`model_type` = `App\Models\User`, sin morph map; team en `model_has_roles.organization_id`), une `roles` por nombre `member` y `organization_user` para exigir membresía; `DISTINCT` + `ON CONFLICT (project_id, user_id) DO NOTHING` (idempotente). `down()` vacío: revertir borraría asignaciones posteriores.
 
 ## Notas para la próxima sesión
-- Fases 1 y 2 hechas. Siguiente: fase 3 [riesgo], migración de datos de members a `project_user`.
+- Fases 1 a 3 hechas. Siguiente: fase 4, `App\Support\ProjectAccess` y visibilidad de proyectos.
 - Trabajar en el worktree (ver Decisiones). Al editar con Python en Windows, dejar finales LF (Pint falla con `line_ending`).
+- La migración de datos no se corrió en la base de desarrollo: corre con el próximo `migrate` tras el merge.
 
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): limitar `/api/members` a owner y admin, o sin email para members, para no exponer los
