@@ -167,7 +167,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
 ## Mejoras propuestas
-- [ ] M-1 (media, sonnet) — `api/app/Http/Requests/Auth/RegisterRequest.php`: con el registro cerrado, exigir también
+- [x] M-1 (alta, opus) — `api/app/Http/Requests/Auth/RegisterRequest.php`: con el registro cerrado, exigir también
   `inviterCanStillGrantRole()` en `authorize()`; hoy una invitación cuyo invitador perdió permisos crea una cuenta que
   `accept` rechaza después (cuenta huérfana, sin fuga). Ampliar `AuthTest`.
 - [ ] M-2 (baja, sonnet) — `api/.env.example` (y stacks de producción): documentar `REGISTRATION_ENABLED=true`.
@@ -189,3 +189,5 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   `<div>`.
 - [ ] M-11 (baja, sonnet) — `web/src/composables/useProjectCreate.ts`: `console.warn` en desarrollo si
   `useOpenProjectCreate()` cae al no-op por falta de provider.
+- [ ] M-12 (baja, sonnet) — `api/tests/Feature/AuthTest.php`, test "inviter can no longer grant the role": poner el
+  cambio de `setPermissionsTeamId` en `try/finally` (L-03).

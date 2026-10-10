@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Role;
 use App\Models\Invitation;
 use App\Models\User;
 use App\Providers\AppServiceProvider;
@@ -210,6 +211,34 @@ describe('closed registration', function () {
             'email' => 'taken@example.com',
             'invitation_token' => 'plain',
         ]))->assertForbidden()->assertJsonPath('message', 'Registration is closed.');
+    });
+
+    it('rejects an invitation whose inviter can no longer grant the role', function () {
+        $invitation = Invitation::factory()->withPlainToken('plain')->create([
+            'email' => 'ana@example.com',
+            'role' => Role::Admin->value,
+        ]);
+
+        setPermissionsTeamId($invitation->organization_id);
+        $invitation->inviter->syncRoles([Role::Member]);
+        setPermissionsTeamId(null);
+
+        $this->postJson('/api/auth/register', closedRegistrationPayload(['invitation_token' => 'plain']))
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Registration is closed.');
+
+        expect(User::where('email', 'ana@example.com')->exists())->toBeFalse();
+    });
+
+    it('rejects an invitation whose inviter left the organization', function () {
+        $invitation = Invitation::factory()->withPlainToken('plain')->create(['email' => 'ana@example.com']);
+        $invitation->organization->users()->detach($invitation->invited_by);
+
+        $this->postJson('/api/auth/register', closedRegistrationPayload(['invitation_token' => 'plain']))
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Registration is closed.');
+
+        expect(User::where('email', 'ana@example.com')->exists())->toBeFalse();
     });
 
     it('registers with a usable invitation for the same email, ignoring case', function () {

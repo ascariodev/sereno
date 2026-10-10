@@ -30,7 +30,8 @@ class RegisterRequest extends FormRequest
 
         return $invitation !== null
             && $invitation->isUsable()
-            && mb_strtolower($invitation->email) === mb_strtolower($email);
+            && mb_strtolower($invitation->email) === mb_strtolower($email)
+            && $invitation->inviterCanStillGrantRole();
     }
 
     protected function failedAuthorization(): void
