@@ -2,7 +2,7 @@
 
 **Objetivo:** que una persona pueda registrarse, crear su organización y crear proyectos desde la web, sin `curl`, y que
 el registro abierto se pueda cerrar por entorno dejando solo la entrada por invitación.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -70,7 +70,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - **Archivos:** `web/src/api/projects.ts` (nuevo), `web/src/stores/projects.ts`, spec del store.
 - **Terminado cuando:** el spec cubre éxito (el proyecto y su canal quedan en el store) y error; typecheck y tests pasan.
 
-### [ ] Fase 7 — Vista de registro
+### [x] Fase 7 — Vista de registro
 - **Alcance:** `RegisterView` en `/register` (`meta.public`). Con el registro cerrado (`useRegistrationStatus`) muestra
   "El registro está cerrado, pide una invitación" y el enlace a login, sin formulario. Abierto: nombre, email,
   contraseña y confirmación; `auth.register()` y navegación a `/` (o a `safeRedirect` de `?redirect`, L-12). Errores
@@ -142,6 +142,8 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   pero devuelve la creada.
 - Fase 6 hecha: `projects.create(input)` hace POST y `await reload()` y devuelve el proyecto; si la recarga falla no
   lanza (queda `projects.failed`). La fase 11 debe contemplar que el canal no esté en `channelByProject`.
+- Fase 7 hecha: `RegisterView` en `/register` (nombre de ruta `register`); el 403 usa `register.closedError`; con el
+  estado `null` no muestra nada. La fase 8 apunta el enlace a `{ name: 'register', query: { redirect } }`.
 - Editar con Edit o `sed`: escribir con Python en Windows mete CRLF y rompe Pint (`line_ending`).
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
@@ -159,3 +161,5 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   POST de `create()` (rama `reloadSettled() === false`).
 - [ ] M-7 (media, sonnet) — `web/src/stores/projects.ts`: `reload()` vacía `projects` antes de recargar, así que la
   lista (barra lateral, `ProjectsView`) parpadea al crear un proyecto; conservar la lista hasta tener la nueva.
+- [ ] M-8 (media, sonnet) — `web/src/composables/useRegistrationStatus.ts` y `RegisterView`: distinguir "no se pudo
+  saber" (error de red) de "cerrado"; hoy un fallo de red al cargar `/register` muestra "registro cerrado".

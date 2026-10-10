@@ -30,6 +30,22 @@
     "network": "No se pudo conectar con el servidor.",
     "failed": "No se pudo iniciar sesión. Inténtalo de nuevo."
   },
+  "register": {
+    "title": "Crear cuenta",
+    "name": "Nombre",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "passwordConfirmation": "Confirmar contraseña",
+    "submit": "Crear cuenta",
+    "submitting": "Creando cuenta...",
+    "haveAccount": "¿Ya tienes cuenta? Inicia sesión",
+    "closed": "El registro está cerrado, pide una invitación.",
+    "toLogin": "Ir a iniciar sesión",
+    "closedError": "El registro está cerrado, pide una invitación.",
+    "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo crear la cuenta. Inténtalo de nuevo."
+  },
   "sessionError": {
     "title": "No se pudo cargar tu sesión.",
     "message": "El servidor no respondió correctamente. Tu sesión se conserva; inténtalo de nuevo.",

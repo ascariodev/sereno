@@ -30,6 +30,22 @@
     "network": "Could not reach the server.",
     "failed": "Could not sign in. Try again."
   },
+  "register": {
+    "title": "Create account",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "passwordConfirmation": "Confirm password",
+    "submit": "Create account",
+    "submitting": "Creating account...",
+    "haveAccount": "Already have an account? Sign in",
+    "closed": "Registration is closed, ask for an invitation.",
+    "toLogin": "Go to sign in",
+    "closedError": "Registration is closed, ask for an invitation.",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not create the account. Try again."
+  },
   "sessionError": {
     "title": "Could not load your session.",
     "message": "The server did not respond correctly. Your session is kept; try again.",

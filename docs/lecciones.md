@@ -61,6 +61,8 @@
 
 - L-46: Un deploy que sincroniza con rsync desde un job que corre como root deja el repo de root: todo lo que un proceso sin privilegios debe crear en la raíz (`vendor/`) se crea y se le da dueño como root antes, y la prueba local simula ese dueño. — aplicada en: pendiente
 
+- L-47: Un formulario decide si un 422 tiene error visible solo con las claves que pinta; si ninguna aparece, muestra el error general (si no, un 422 en `password_confirmation` no muestra nada). Y el guard de generación tras un `await` lleva un spec que desmonta con la petición pendiente. — aplicada en: test (RegisterView.spec)
+
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
 -->
