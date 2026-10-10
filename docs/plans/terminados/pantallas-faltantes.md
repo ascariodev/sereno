@@ -185,7 +185,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - [x] M-9 (baja, sonnet) — `web/src/components/OrganizationCreateDialog.spec.ts`: probar que un cierre externo
   (`open=false` desde el padre) con `create` en curso descarta `created` y el toast; y separar en tests propios los
   casos 429, red y 500, que hoy comparten montaje.
-- [ ] M-10 (baja, sonnet) — `web/src/views/ProjectsView.vue`: el botón del estado vacío va dentro de un `<p>`; pasar a
+- [x] M-10 (baja, sonnet) — `web/src/views/ProjectsView.vue`: el botón del estado vacío va dentro de un `<p>`; pasar a
   `<div>`.
 - [ ] M-11 (baja, sonnet) — `web/src/composables/useProjectCreate.ts`: `console.warn` en desarrollo si
   `useOpenProjectCreate()` cae al no-op por falta de provider.

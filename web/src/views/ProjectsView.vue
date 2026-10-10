@@ -39,7 +39,7 @@ const greeting = computed(() => (user.value ? t('projects.greeting', { name: use
       {{ t('projects.loadFailed') }}
       <button type="button" name="retry" @click="reload">{{ t('common.retry') }}</button>
     </p>
-    <p v-else-if="projects.length === 0" class="projects__empty">
+    <div v-else-if="projects.length === 0" class="projects__empty">
       <strong>{{ t('projects.empty') }}</strong>
       <span>{{ t('projects.emptyHint') }}</span>
       <button
@@ -52,7 +52,7 @@ const greeting = computed(() => (user.value ? t('projects.greeting', { name: use
       >
         {{ t('projects.create') }}
       </button>
-    </p>
+    </div>
     <ul v-else class="projects__list">
       <li v-for="project in projects" :key="project.id">
         <ProjectCard :project="project" :channel-id="channelByProject[project.id]" />
