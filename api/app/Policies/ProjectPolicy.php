@@ -6,6 +6,8 @@ use App\Enums\Role;
 use App\Models\Project;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use App\Support\ProjectAccess;
+use Illuminate\Auth\Access\Response;
 
 /**
  * Roles are read from the active permission team, which ResolveOrganization sets.
@@ -18,9 +20,13 @@ class ProjectPolicy
         return $this->hasActiveOrganization() && $user->hasAnyRole(array_column(Role::cases(), 'value'));
     }
 
-    public function view(User $user, Project $project): bool
+    public function view(User $user, Project $project): Response|bool
     {
-        return $this->belongsToActiveOrganization($project) && $this->viewAny($user);
+        if (! $this->belongsToActiveOrganization($project) || ! $this->viewAny($user)) {
+            return false;
+        }
+
+        return ProjectAccess::canView($user, $project) ? Response::allow() : Response::denyAsNotFound();
     }
 
     public function create(User $user): bool

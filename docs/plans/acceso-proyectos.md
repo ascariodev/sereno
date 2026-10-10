@@ -2,7 +2,7 @@
 
 **Objetivo:** membresía por proyecto: owner y admin ven toda la organización; un `member` solo ve los proyectos
 asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asignan desde la web y al invitar.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -48,7 +48,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - **Terminado cuando:** test que siembra org con owner, admin y member y dos proyectos, corre la migración y deja
   2 filas solo para el member; `migrate:fresh --seed` pasa.
 
-### [ ] Fase 4 — Regla de acceso y visibilidad de proyectos
+### [x] Fase 4 — Regla de acceso y visibilidad de proyectos
 - **Alcance:** soporte `App\Support\ProjectAccess` (`canView(User, Project)`, `visibleProjectIds`/scope; owner y
   admin ven todo; lee el rol de la organización del proyecto con team en `try/finally`); `ProjectPolicy::view`
   deniega con `denyAsNotFound()`; `ProjectController::index` filtra para members.
@@ -165,11 +165,14 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
   `api/.env` del checkout principal, en la red `workspace_default` (como en `pantallas-faltantes`).
 - 2026-10-10 — (Fase 2) Sin modelo pivote: `Project::members()` y `User::projects()` son `belongsToMany` con `withPivot('organization_id')` y timestamps. Se asigna y quita solo con `Project::addMember(User)` (idempotente, `syncWithoutDetaching`, llena `organization_id`) y `Project::removeMember(User)`; las fases 10 a 12 los usan, nunca `attach` directo. `User::projects()` hereda el `OrganizationScope` de `Project` (solo la organización activa).
 - 2026-10-10 — (Fase 3) La migración `assign_members_to_their_projects` toma el rol de `model_has_roles` (`model_type` = `App\Models\User`, sin morph map; team en `model_has_roles.organization_id`), une `roles` por nombre `member` y `organization_user` para exigir membresía; `DISTINCT` + `ON CONFLICT (project_id, user_id) DO NOTHING` (idempotente). `down()` vacío: revertir borraría asignaciones posteriores.
+- 2026-10-10 — (Fase 4) API de `App\Support\ProjectAccess` (estática; organización siempre explícita, sin team activo ni `CurrentOrganization`; rol leído con `setPermissionsTeamId` en `try/finally` restaurando el previo y `unsetRelation('roles')`): `seesAll(User, int $orgId)`, `canView(User, Project)`, `canViewId(User, int $orgId, int $projectId)`, `visibleProjectIds(User, int $orgId)`, `restrict(Eloquent\Builder, User, int $orgId, string $col = 'projects.id')` (no-op para owner y admin). Un member ve un proyecto solo con rol `member` en esa organización y fila en `project_user`. Hace 1 o 2 consultas por llamada: en listados usar `restrict` o `visibleProjectIds` una vez por petición, no `canView` por fila.
+- 2026-10-10 — (Fase 4) `ProjectPolicy::view` devuelve `Response|bool`: proyecto de otra organización o sin `viewAny`, false (403 como antes); de la organización sin acceso, `denyAsNotFound()` (404).
 
 ## Notas para la próxima sesión
-- Fases 1 a 3 hechas. Siguiente: fase 4, `App\Support\ProjectAccess` y visibilidad de proyectos.
+- Fases 1 a 4 hechas (suite API 880 ok en el worktree). Siguiente: fase 5, canales y mensajes con `ProjectAccess`.
 - Trabajar en el worktree (ver Decisiones). Al editar con Python en Windows, dejar finales LF (Pint falla con `line_ending`).
 - La migración de datos no se corrió en la base de desarrollo: corre con el próximo `migrate` tras el merge.
+- Los tests que asumían que cualquier member ve todo se ajustan asignando al member o usando admin donde el test no trata del acceso.
 
 ## Mejoras propuestas
 - [ ] M-1 (media, sonnet): limitar `/api/members` a owner y admin, o sin email para members, para no exponer los
@@ -181,3 +184,4 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - [ ] M-4 (baja, sonnet): un member de ejemplo con proyectos asignados en `DatabaseSeeder`.
 - [ ] M-5 (baja, sonnet): en `.claude/rules/database.md`, quitar la línea en blanco que separa el bullet de `project_user` del de `projects`.
 - [ ] M-6 (baja, sonnet): `project_user.organization_id` puede diferir del de su proyecto si se inserta sin `Project::addMember`; evaluar una FK compuesta `(project_id, organization_id)` o un test que lo vigile.
+- [ ] M-7 (baja, sonnet): test de `ProjectAccess` con un team previo no nulo y con una excepción dentro, para cubrir L-03 completo (hoy solo el caso null).

@@ -35,8 +35,9 @@ it('lets only owners and admins create, update and archive', function (Role $rol
     'member' => [Role::Member, false],
 ]);
 
-it('lets any member view', function (Role $role) {
+it('lets any role view an assigned project', function (Role $role) {
     $user = $this->users[$role->value];
+    $this->project->addMember($user);
 
     expect(Gate::forUser($user)->allows('viewAny', Project::class))->toBeTrue()
         ->and(Gate::forUser($user)->allows('view', $this->project))->toBeTrue();
