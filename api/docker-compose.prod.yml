@@ -2,7 +2,7 @@
 # compose lo usa para interpolar las credenciales de postgres). TLS lo termina el proxy del host.
 
 x-app: &app
-  image: workspace-api-fpm
+  image: ${API_IMAGE:-workspace-api-fpm}
   restart: unless-stopped
   volumes:
     - ./:/var/www/api

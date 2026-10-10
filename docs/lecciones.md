@@ -59,6 +59,8 @@
 
 - L-45: Un `vi.spyOn` sobre una función de la API lleva siempre implementación (`mockResolvedValue`): sin ella llama al API real, la petición queda en vuelo y el test falla según lo que tarde (intermitente solo en corridas combinadas). — aplicada en: test (TaskAside.spec)
 
+- L-46: Un deploy que sincroniza con rsync desde un job que corre como root deja el repo de root: todo lo que un proceso sin privilegios debe crear en la raíz (`vendor/`) se crea y se le da dueño como root antes, y la prueba local simula ese dueño. — aplicada en: pendiente
+
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
 -->

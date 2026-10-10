@@ -1,0 +1,76 @@
+name: Deploy API
+on:
+  push:
+    branches:
+      - main
+      - qa
+      - dev
+    paths:
+      - 'api/**'
+      - '.gitea/workflows/deploy-api.yml'
+
+jobs:
+  deploy-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolver ambiente
+        run: |
+          case "${{ gitea.ref_name }}" in
+            main) DEPLOY_ENV=prod ;;
+            qa) DEPLOY_ENV=qa ;;
+            dev) DEPLOY_ENV=dev ;;
+            *)
+              echo "error: la rama '${{ gitea.ref_name }}' no tiene ambiente" >&2
+              exit 1
+              ;;
+          esac
+          {
+            echo "DEPLOY_ENV=$DEPLOY_ENV"
+            echo "HOST_DIR=/var/www/html/workspace/$DEPLOY_ENV/api"
+            echo "SERVER_DIR=/workspace/$DEPLOY_ENV/api"
+          } >> "$GITHUB_ENV"
+          echo "ambiente: $DEPLOY_ENV"
+
+      - name: Comprobar .env del servidor
+        run: |
+          if [ ! -f "$SERVER_DIR/.env" ]; then
+            echo "error: falta $HOST_DIR/.env en el servidor; se crea a mano antes del primer deploy" >&2
+            exit 1
+          fi
+
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Preparar rsync y cliente docker
+        run: |
+          apt-get update
+          if ! apt-get install -y rsync curl; then
+            # La imagen del runner es Debian 11 (bullseye), fuera de soporte: su repositorio de seguridad
+            # anuncia paquetes que ya no sirve (404). Sin él, rsync se instala desde el repositorio principal.
+            sed -i '/-security/d' /etc/apt/sources.list
+            rm -f /etc/apt/sources.list.d/*security*
+            apt-get update
+            apt-get install -y rsync curl
+          fi
+          # Fuera del checkout: el tar trae una carpeta docker/ que pisaría la del repo.
+          curl -fsSL -o /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86_64/docker-24.0.9.tgz
+          tar -xzf /tmp/docker.tgz -C /tmp docker/docker
+          mv /tmp/docker/docker /usr/local/bin/docker
+          chmod +x /usr/local/bin/docker
+          rm -rf /tmp/docker /tmp/docker.tgz
+
+      - name: Sincronizar api/ al servidor
+        run: |
+          # Con --delete, un checkout incompleto borraría la configuración del servidor.
+          test -f api/docker-compose.prod.yml -a -f api/docker/php-fpm/Dockerfile -a -f api/docker/nginx/default.conf
+          # Sin --delete-excluded, --delete no borra en el servidor lo excluido: .env, storage, vendor, el hash y los cachés de optimize.
+          rsync -a --delete \
+            --exclude='.git' --exclude='node_modules' --exclude='.env' \
+            --exclude='/storage/' --exclude='/vendor/' --exclude='/.deploy/' --exclude='/bootstrap/cache/' \
+            api/ "$SERVER_DIR/"
+
+      - name: Reconstruir imágenes si cambió docker/
+        run: bash api/docker/deploy/rebuild-images.sh
+
+      - name: Instalar, migrar y reiniciar
+        run: bash api/docker/deploy/deploy.sh
