@@ -9,10 +9,7 @@ use Illuminate\Validation\Rules\Password;
 
 class RegisterRequest extends FormRequest
 {
-    /**
-     * Runs before validation so a closed registration never answers with a 422 that would reveal
-     * whether an email is already registered.
-     */
+    /** Runs before validation so a closed registration never reveals via 422 whether an email exists. */
     public function authorize(): bool
     {
         if (config('auth.registration_enabled')) {
