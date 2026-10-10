@@ -210,7 +210,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   hace. Complejidad: baja (sonnet).
 - [x] M-9 — `SERENO_LOG_LEVEL=` vacío hace `Level::fromName('')` y lanza `ValueError` al resolver el canal
   (`CreateSerenoLogger`): tratar el vacío como `debug`, como el `fallback_channel`, con test. Complejidad: baja (sonnet).
-- [ ] M-10 — `test_no_pisa_un_canal_definido_por_la_app` llama a `register()` a mano: definir el canal en
+- [x] M-10 — `test_no_pisa_un_canal_definido_por_la_app` llama a `register()` a mano: definir el canal en
   `defineEnvironment` para seguir el orden real de arranque; y opcionalmente probar `vendor:publish --tag=sereno-config`.
   Complejidad: baja (sonnet).
 - [ ] M-11 — Con organización activa `null`, `clear()` deja `projects.loaded = false` y `IntegrationsView` mostraría
