@@ -271,5 +271,8 @@
     "The attachments do not exist or are already in use.": "Los adjuntos no existen o ya están en uso.",
     "The link is invalid or has expired.": "El enlace no es válido o ha vencido.",
     "Resource not found.": "Recurso no encontrado.",
-    "Nothing deleted: the orphan period must be at least :hours hour.": "No se eliminó nada: el periodo de huérfanos debe ser de al menos :hours hora."
+    "Nothing deleted: the orphan period must be at least :hours hour.": "No se eliminó nada: el periodo de huérfanos debe ser de al menos :hours hora.",
+    "This project is archived and cannot have new tasks.": "Este proyecto está archivado y no admite nuevas tareas.",
+    "The log group does not exist in this project.": "El grupo de log no existe en este proyecto.",
+    "The log group already has a task.": "El grupo de log ya tiene una tarea."
 }

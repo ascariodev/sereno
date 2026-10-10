@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -59,7 +59,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - `GET projects/{project}/tasks` (todas, ordenadas por columna y `position`), `TaskResource` (`key`, `number`,
   campos, `assignee {id,name}`, `log_group {id, level, title, status, events_count}` o null). Aislamiento.
 
-### [ ] Fase 4 — Crear una tarea (api) [riesgo]
+### [x] Fase 4 — Crear una tarea (api) [riesgo]
 - `POST projects/{project}/tasks` con `StoreTaskRequest` (título, descripción, asignado miembro de la organización,
   status, `log_group_id` del proyecto sin tarea previa; proyecto archivado 422). Número con
   `UPDATE projects SET last_task_number = last_task_number + 1 ... RETURNING` en la transacción; `position` al final
@@ -168,10 +168,14 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `position`, `created_by`, `created_at`, `updated_at`, y `assignee`/`log_group` con `whenLoaded`: toda respuesta con
   una tarea (fases 4 a 6 y eventos de la 11) carga `assignee` y `logGroup` como `index` y fija `project` con
   `setRelation` para `key()`.
+- 2026-10-10 — Fase 4: descripción de 10000 caracteres como máximo (`StoreTaskRequest::DESCRIPTION_MAX_LENGTH`) y
+  título y descripción rechazan `\x00`; la fase 5 reutiliza ambas reglas. Si dos peticiones vinculan el mismo grupo,
+  la `UniqueConstraintViolationException` se convierte en 422 sobre `log_group_id` con el texto de la validación.
+  `TaskController::RELATIONS` es lo que carga toda respuesta con una tarea.
 
 ## Notas para la próxima sesión
-- Fases 1 a 3 hechas. Helpers de test ocupados: `makeTask` (TaskTest), `taskPolicyTask` (TaskPolicyTest),
-  `seedListedTask` (TaskListApiTest). Fechas de `TaskResource` sin verificar con tinker: confirmarlas en la fase 12.
+- Fases 1 a 4 hechas. Helpers de test ocupados: `makeTask` (TaskTest), `taskPolicyTask` (TaskPolicyTest),
+  `seedListedTask` (TaskListApiTest), `storeTaskAs` y `storedTasks` (TaskStoreApiTest). Fechas de `TaskResource` sin verificar con tinker: confirmarlas en la fase 12.
   Los FormRequest de las fases 4 a 7 rechazan el proyecto archivado (la policy no lo hace). `Task` no tiene factory: los tests usan el helper global `makeTask` (`TaskTest`); crear
   `TaskFactory` si las fases siguientes lo necesitan. `Task::key()` carga `project` perezoso: `with('project')` en
   listados (fase 3).
@@ -185,3 +189,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - [ ] M-5 (media, sonnet): efectos cruzados opcionales entre tarea y grupo (Hecho resuelve, reabierto avisa).
 - [ ] M-6 (baja, sonnet): test de `TaskPolicy` sin organización activa (falla cerrada en `viewAny` y `create`).
 - [ ] M-7 (baja, sonnet): orden por columna de `TaskController@index` con `orderByRaw` y bindings o un helper en `TaskStatus`, en vez de interpolar el `CASE`.
+- [ ] M-8 (baja, sonnet): `TaskStoreApiTest`: caso de `assignee_id` inexistente, separar 404 y 403 en dos `it`, query log
+  desactivado en `finally` y `Task::flushEventListeners()` explícito; `taskStatus()` con `$this->enum(...)`.
+- [ ] M-9 (baja, sonnet): crear tarea revalida dentro de la transacción que el proyecto no esté archivado (carrera
+  entre validar y archivar).

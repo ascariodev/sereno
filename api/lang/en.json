@@ -271,5 +271,8 @@
     "The attachments do not exist or are already in use.": "The attachments do not exist or are already in use.",
     "The link is invalid or has expired.": "The link is invalid or has expired.",
     "Resource not found.": "Resource not found.",
-    "Nothing deleted: the orphan period must be at least :hours hour.": "Nothing deleted: the orphan period must be at least :hours hour."
+    "Nothing deleted: the orphan period must be at least :hours hour.": "Nothing deleted: the orphan period must be at least :hours hour.",
+    "This project is archived and cannot have new tasks.": "This project is archived and cannot have new tasks.",
+    "The log group does not exist in this project.": "The log group does not exist in this project.",
+    "The log group already has a task.": "The log group already has a task."
 }
