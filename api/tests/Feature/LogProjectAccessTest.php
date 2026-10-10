@@ -2,6 +2,7 @@
 
 use App\Enums\Role;
 use App\Models\LogGroup;
+use App\Models\LogSource;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
@@ -59,4 +60,24 @@ it('lets assigned members, admins and owners read the logs', function () {
     logAccessCall($this->member, $this->organization, 'POST', "/{$this->mine->id}/tasks", [
         'title' => 'From alert', 'log_group_id' => $group->id,
     ])->assertCreated();
+});
+
+it('hides updating a log group through the url of a foreign project', function () {
+    logAccessCall($this->member, $this->organization, 'PATCH', "/{$this->foreign->id}/log-groups/{$this->mineGroup->id}", ['status' => 'resolved'])
+        ->assertNotFound();
+
+    expect($this->mineGroup->fresh()->status)->toBe($this->mineGroup->status);
+});
+
+it('forbids a member from creating, rotating or revoking log sources', function () {
+    $source = LogSource::factory()->for($this->mine)->create();
+    $keyHash = $source->key_hash;
+
+    logAccessCall($this->member, $this->organization, 'POST', "/{$this->mine->id}/log-sources", ['name' => 'New source'])->assertForbidden();
+    logAccessCall($this->member, $this->organization, 'POST', "/{$this->mine->id}/log-sources/{$source->id}/rotate-key")->assertForbidden();
+    logAccessCall($this->member, $this->organization, 'DELETE', "/{$this->mine->id}/log-sources/{$source->id}")->assertForbidden();
+
+    expect(LogSource::where('project_id', $this->mine->id)->count())->toBe(1)
+        ->and($source->fresh()->key_hash)->toBe($keyHash)
+        ->and($source->fresh()->revoked_at)->toBeNull();
 });
