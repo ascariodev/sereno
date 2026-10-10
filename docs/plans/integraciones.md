@@ -3,7 +3,7 @@
 **Objetivo:** owner y admin administran desde la web las fuentes de log de un proyecto (crear, listar, rotar,
 revocar, ver la key una sola vez con instrucciones de conexión), y cualquier sistema Laravel se conecta a la
 ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraído de posveapi.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Pasar a "en curso" al empezar (hoy está activo acceso-proyectos). -->
 
 ## Contexto mínimo
@@ -53,7 +53,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - **Terminado cuando:** test: owner/admin ven la pestaña, member no; la vista muestra el header y el aviso de
   proyecto inexistente.
 
-### [ ] Fase 4 — Diálogo de key recién emitida
+### [x] Fase 4 — Diálogo de key recién emitida
 - **Alcance:** `CopyButton` (Clipboard API, toast al copiar o al fallar) y `LogSourceKeyDialog`: muestra la key
   completa con aviso de que no se vuelve a ver, el endpoint de ingesta, el bloque `.env` del paquete
   (`SERENO_LOG_URL`, `SERENO_LOG_KEY`) y un ejemplo `curl`. Al cerrar, la key se descarta del estado.
@@ -128,6 +128,9 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   el aviso de proyecto inexistente, para poder volver a canal, plan y log desde Integraciones.
 
 ## Notas para la próxima sesión
+- Fase 4: `LogSourceKeyDialog` con `v-model:source` (`LogSourceWithKey | null`): abierto mientras no es null, al
+  cerrar queda null; las fases 5 y 6 solo asignan la fuente devuelta. `SERENO_LOG_URL` = `config.apiUrl` sin ruta
+  (el handler agrega `/api/ingest/events`). `CopyButton` recibe `text` y `label`.
 - Fase 3: pestaña con icono `Plug`. `IntegrationsView` pide fuentes solo con el proyecto en el store; su spec usa
   un `stubGet` por ruta (`/api/projects`, `/api/channels`, log-sources) y filtra con `sourceCalls`: las fases 4 a 6
   lo reutilizan. Estructura: `<section>` con `ProjectHeader` y `div.integrations__body` (padding y `<h2>`).

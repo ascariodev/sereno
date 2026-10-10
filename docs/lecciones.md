@@ -69,6 +69,8 @@
 
 - L-48: Un cambio de store que busca un efecto visible (no parpadear, conservar la lista) se prueba en las vistas que lo leen: una vista que muestra "Cargando" con `v-if="loading"` anula el cambio aunque el store pase su spec. — aplicada en: test (ProjectsView.spec)
 
+- L-51: Un texto que el usuario copia y ejecuta (curl, bloque `.env`) se prueba por su forma exacta (saltos de línea, continuaciones), no con `toContain` de partes: un `\n` en un template literal dejó el curl en una línea y ningún test lo vio. — aplicada en: test (LogSourceKeyDialog.spec)
+
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
 -->

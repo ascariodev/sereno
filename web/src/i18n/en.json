@@ -532,5 +532,24 @@
       "next": "Next",
       "page": "Page {page} of {last}"
     }
+  },
+  "copyButton": {
+    "copied": "Copied to the clipboard.",
+    "failed": "Could not copy. Select the text and copy it manually."
+  },
+  "keyDialog": {
+    "title": "Log source key",
+    "description": "Use this key to connect a system to the project.",
+    "warning": "Copy the key now: it will not be shown again. If you lose it, rotate the key.",
+    "key": "Key for {name}",
+    "endpoint": "Ingest endpoint",
+    "env": "Laravel .env (package ascario/sereno-laravel)",
+    "curl": "Test with curl",
+    "copyKey": "Copy key",
+    "copyEndpoint": "Copy endpoint",
+    "copyEnv": "Copy .env block",
+    "copyCurl": "Copy curl command",
+    "close": "Close",
+    "done": "Done"
   }
 }

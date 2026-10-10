@@ -532,5 +532,24 @@
       "next": "Siguiente",
       "page": "Página {page} de {last}"
     }
+  },
+  "copyButton": {
+    "copied": "Copiado al portapapeles.",
+    "failed": "No se pudo copiar. Selecciona el texto y cópialo a mano."
+  },
+  "keyDialog": {
+    "title": "Clave de la fuente de log",
+    "description": "Usa esta clave para conectar un sistema al proyecto.",
+    "warning": "Copia la clave ahora: no se volverá a mostrar. Si la pierdes, rota la clave.",
+    "key": "Clave de {name}",
+    "endpoint": "Endpoint de ingesta",
+    "env": "Laravel .env (paquete ascario/sereno-laravel)",
+    "curl": "Prueba con curl",
+    "copyKey": "Copiar clave",
+    "copyEndpoint": "Copiar endpoint",
+    "copyEnv": "Copiar bloque .env",
+    "copyCurl": "Copiar comando curl",
+    "close": "Cerrar",
+    "done": "Listo"
   }
 }
