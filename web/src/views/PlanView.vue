@@ -7,6 +7,7 @@ import ProjectHeader from '../components/ProjectHeader.vue'
 import TaskAside from '../components/TaskAside.vue'
 import TaskCard from '../components/TaskCard.vue'
 import TaskCreateDialog from '../components/TaskCreateDialog.vue'
+import { useTaskDrag } from '../composables/useTaskDrag'
 import { TASK_STATUSES, type TaskStatus } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
@@ -40,6 +41,7 @@ const activeFilter = computed<TaskFilter>(() => {
   return TASK_FILTERS.find((item) => item === raw) ?? 'all'
 })
 const canCreate = computed(() => project.value !== null && project.value.archived_at === null)
+const drag = useTaskDrag(() => projectId.value, () => canCreate.value)
 const createOpen = ref(false)
 const createStatus = ref<TaskStatus>('todo')
 const taskId = computed(() => {
@@ -127,8 +129,11 @@ onUnmounted(() => tasks.clear())
           v-for="status in TASK_STATUSES"
           :key="status"
           class="plan-view__column"
-          :class="`plan-view__column--${status}`"
+          :class="[`plan-view__column--${status}`, { 'plan-view__column--drop': drag.target.value?.status === status }]"
           :aria-labelledby="`plan-column-${status}`"
+          @dragover="drag.over(status, $event)"
+          @dragleave="drag.leave(status, $event)"
+          @drop="drag.drop(status, $event)"
         >
           <header class="plan-view__column-head">
             <span class="plan-view__dot" aria-hidden="true"></span>
@@ -136,7 +141,18 @@ onUnmounted(() => tasks.clear())
             <span class="plan-view__count">{{ tasks.visibleColumns[status].length }}</span>
           </header>
           <p v-if="tasks.visibleColumns[status].length === 0" class="plan-view__empty">{{ t('plan.empty') }}</p>
-          <TaskCard v-for="task in tasks.visibleColumns[status]" :key="task.id" :task="task" :read-only="!canCreate" />
+          <template v-for="task in tasks.visibleColumns[status]" :key="task.id">
+            <div v-if="drag.showsLine(status, task.id)" class="plan-view__drop-line" aria-hidden="true"></div>
+            <TaskCard
+              :task="task"
+              :read-only="!canCreate"
+              :data-task-id="task.id"
+              :class="{ 'plan-view__card--dragging': drag.dragging.value === task.id }"
+              @dragstart="drag.start(task, $event)"
+              @dragend="drag.end"
+            />
+          </template>
+          <div v-if="drag.showsLine(status, null)" class="plan-view__drop-line" aria-hidden="true"></div>
           <button
             v-if="canCreate"
             type="button"
@@ -245,6 +261,19 @@ onUnmounted(() => tasks.clear())
 .plan-view__column--in_progress { --column-dot: var(--column-in-progress); }
 .plan-view__column--in_review { --column-dot: var(--column-in-review); }
 .plan-view__column--done { --column-dot: var(--column-done); }
+.plan-view__column--drop {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+}
+.plan-view__drop-line {
+  height: 3px;
+  margin: -6px 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+.plan-view__card--dragging {
+  opacity: 0.5;
+}
 .plan-view__column-head {
   display: flex;
   align-items: center;

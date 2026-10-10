@@ -2,11 +2,11 @@
 import { ArrowDown, ArrowRight, ArrowUp, Ellipsis } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ApiError } from '../api/client'
 import { isTaskStatus, TASK_STATUSES, type Task, type TaskStatus } from '../api/types'
 import { useTasksStore } from '../stores/tasks'
 import AppMenu, { type AppMenuItem } from './ui/AppMenu.vue'
 import { toast } from './ui/toast'
+import { moveErrorMessage, moveNeighbours } from './taskMove'
 
 const props = defineProps<{ task: Task; readOnly?: boolean }>()
 const { t } = useI18n()
@@ -43,13 +43,12 @@ async function select(value: string): Promise<void> {
   const at = index.value
   let input: { status: TaskStatus; afterId?: number | null; beforeId?: number | null }
   if (value === 'up' && at > 0) {
-    input = { status: props.task.status, beforeId: list[at - 1].id, afterId: list[at - 2]?.id ?? null }
+    input = { status: props.task.status, ...moveNeighbours(list, props.task.id, { beforeId: list[at - 1].id }) }
   } else if (value === 'down' && at >= 0 && at < list.length - 1) {
-    input = { status: props.task.status, afterId: list[at + 1].id, beforeId: list[at + 2]?.id ?? null }
+    input = { status: props.task.status, ...moveNeighbours(list, props.task.id, { afterId: list[at + 1].id }) }
   } else if (value.startsWith('to:') && isTaskStatus(value.slice(3))) {
     const status = value.slice(3) as TaskStatus
-    const target = tasks.columns[status]
-    input = { status, afterId: target[target.length - 1]?.id ?? null }
+    input = { status, afterId: moveNeighbours(tasks.columns[status], props.task.id, null).afterId }
   } else {
     return
   }
@@ -57,12 +56,7 @@ async function select(value: string): Promise<void> {
   try {
     await tasks.move(props.task.project_id, props.task.id, input)
   } catch (caught) {
-    const error = caught instanceof ApiError ? caught : new ApiError(0, String(caught))
-    if (error.status === 403) toast.error(t('plan.move.forbidden'))
-    else if (error.status === 404) toast.error(t('plan.move.notFound'))
-    else if (error.status === 422) toast.error(error.message)
-    else if (error.status === 0) toast.error(t('taskCreate.network'))
-    else toast.error(t('plan.move.failed'))
+    toast.error(moveErrorMessage(caught, t))
   } finally {
     moving.value = false
   }

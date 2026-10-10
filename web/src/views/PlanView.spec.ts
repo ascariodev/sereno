@@ -424,4 +424,156 @@ describe('PlanView', () => {
       expect(wrapper.find('button[name=move-task]').exists()).toBe(false)
     })
   })
+
+  describe('drag and drop', () => {
+    const mk = (id: number, status: string, mine = false) => ({
+      id, project_id: 5, key: `POSVE-${id}`, number: id, title: `Task ${id}`, description: null, status, position: id,
+      created_by: 1, assignee: mine ? { id: 1, name: 'Ana' } : null, log_group: null,
+      created_at: '2026-10-10T00:00:00.000000Z', updated_at: '2026-10-10T00:00:00.000000Z',
+    })
+    const data = () => ({ data: [mk(1, 'todo'), mk(2, 'todo'), mk(3, 'todo'), mk(4, 'done')] })
+
+    beforeEach(() => {
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+        const cards = [...(this.parentElement?.querySelectorAll(':scope > [data-task-id]') ?? [])]
+        const top = cards.indexOf(this) * 100
+        return { top, height: 100, bottom: top + 100, left: 0, right: 100, width: 100, x: 0, y: top, toJSON: () => ({}) } as DOMRect
+      })
+    })
+
+    function fire(target: Element, type: string, init: { clientY?: number; relatedTarget?: Element | null } = {}) {
+      const dataTransfer = { effectAllowed: 'uninitialized', dropEffect: 'none', setData: vi.fn() }
+      const event = new Event(type, { bubbles: true, cancelable: true })
+      Object.assign(event, { dataTransfer, clientY: init.clientY ?? 0, relatedTarget: init.relatedTarget ?? null })
+      target.dispatchEvent(event)
+      return { event, dataTransfer }
+    }
+    const card = (wrapper: ReturnType<typeof mount>, id: number) => wrapper.get(`[data-task-id="${id}"]`).element
+    const column = (wrapper: ReturnType<typeof mount>, status: string) => wrapper.get(`.plan-view__column--${status}`).element
+    /** Drags `id` over `status` at `clientY` (cards are 100px tall from 0) and drops it. */
+    async function dragTo(wrapper: ReturnType<typeof mount>, id: number, status: string, clientY: number) {
+      fire(card(wrapper, id), 'dragstart')
+      fire(column(wrapper, status), 'dragover', { clientY })
+      await flushPromises()
+      fire(column(wrapper, status), 'drop', { clientY })
+      fire(card(wrapper, id), 'dragend')
+      await flushPromises()
+    }
+
+    it('drags to the end of another column with a drop indicator and the full column neighbours', async () => {
+      mockApi(data)
+      const post = vi.spyOn(api, 'post').mockResolvedValue({ data: { ...mk(1, 'done'), position: 5, updated_at: '2026-10-10T00:00:01.000000Z' } } as never)
+      const wrapper = await mountView()
+      expect(card(wrapper, 1).getAttribute('draggable')).toBe('true')
+      expect(card(wrapper, 1).querySelector('a')!.getAttribute('draggable')).toBe('false')
+      const started = fire(card(wrapper, 1), 'dragstart')
+      expect(started.dataTransfer.effectAllowed).toBe('move')
+      expect(started.dataTransfer.setData).toHaveBeenCalledWith('text/plain', 'POSVE-1')
+      const over = fire(column(wrapper, 'done'), 'dragover', { clientY: 500 })
+      expect(over.event.defaultPrevented).toBe(true)
+      await flushPromises()
+      expect(column(wrapper, 'done').classList).toContain('plan-view__column--drop')
+      const lines = column(wrapper, 'done').querySelectorAll('.plan-view__drop-line')
+      expect(lines).toHaveLength(1)
+      expect(lines[0].previousElementSibling?.getAttribute('data-task-id')).toBe('4')
+      fire(column(wrapper, 'done'), 'drop', { clientY: 500 })
+      await flushPromises()
+      expect(post).toHaveBeenCalledWith('/api/projects/5/tasks/1/move', { status: 'done', after_id: 4, before_id: null })
+      expect(useTasksStore().columns.done.map((item) => item.id)).toEqual([4, 1])
+      expect(wrapper.find('.plan-view__drop-line').exists()).toBe(false)
+      expect(wrapper.find('.plan-view__column--drop').exists()).toBe(false)
+    })
+
+    it('reorders within a column by the pointer position', async () => {
+      mockApi(data)
+      const post = vi.spyOn(api, 'post').mockResolvedValue({ data: { ...mk(3, 'todo'), position: 0 } } as never)
+      const wrapper = await mountView()
+      fire(card(wrapper, 3), 'dragstart')
+      fire(column(wrapper, 'todo'), 'dragover', { clientY: 20 })
+      await flushPromises()
+      expect(column(wrapper, 'todo').querySelector('.plan-view__drop-line')?.nextElementSibling?.getAttribute('data-task-id')).toBe('1')
+      fire(column(wrapper, 'todo'), 'drop', { clientY: 20 })
+      await flushPromises()
+      expect(post).toHaveBeenCalledWith('/api/projects/5/tasks/3/move', { status: 'todo', after_id: null, before_id: 1 })
+    })
+
+    it('does nothing when dropped in the same place', async () => {
+      mockApi(data)
+      const post = vi.spyOn(api, 'post')
+      const wrapper = await mountView()
+      fire(card(wrapper, 2), 'dragstart')
+      fire(column(wrapper, 'todo'), 'dragover', { clientY: 150 })
+      await flushPromises()
+      expect(wrapper.find('.plan-view__drop-line').exists()).toBe(false)
+      fire(column(wrapper, 'todo'), 'drop', { clientY: 150 })
+      await flushPromises()
+      expect(post).not.toHaveBeenCalled()
+    })
+
+    it('clears the column highlight when the drag leaves it', async () => {
+      mockApi(data)
+      const wrapper = await mountView()
+      fire(card(wrapper, 1), 'dragstart')
+      fire(column(wrapper, 'done'), 'dragover', { clientY: 0 })
+      await flushPromises()
+      fire(column(wrapper, 'done'), 'dragleave', { relatedTarget: card(wrapper, 4) })
+      await flushPromises()
+      expect(column(wrapper, 'done').classList).toContain('plan-view__column--drop')
+      fire(column(wrapper, 'done'), 'dragleave', { relatedTarget: column(wrapper, 'todo') })
+      await flushPromises()
+      expect(column(wrapper, 'done').classList).not.toContain('plan-view__column--drop')
+    })
+
+    it('with a filter on, anchors the drop to the visible neighbours in the full column', async () => {
+      mockApi(() => ({ data: [mk(1, 'todo', true), mk(2, 'todo'), mk(3, 'todo', true), mk(5, 'todo'), mk(4, 'done', true)] }))
+      const post = vi.spyOn(api, 'post').mockResolvedValue({ data: mk(4, 'done', true) } as never)
+      const wrapper = await mountView('/projects/5/plan?filter=mine')
+      expect(column(wrapper, 'todo').querySelectorAll('[data-task-id]')).toHaveLength(2)
+      await dragTo(wrapper, 4, 'todo', 120)
+      expect(post).toHaveBeenLastCalledWith('/api/projects/5/tasks/4/move', { status: 'todo', after_id: 2, before_id: 3 })
+      await dragTo(wrapper, 4, 'todo', 500)
+      expect(post).toHaveBeenLastCalledWith('/api/projects/5/tasks/4/move', { status: 'todo', after_id: 3, before_id: 5 })
+    })
+
+    it('blocks a second drop while a move is in flight', async () => {
+      mockApi(data)
+      let release: (value: unknown) => void = () => {}
+      const post = vi.spyOn(api, 'post').mockImplementation(() => new Promise((resolve) => (release = resolve)) as never)
+      const wrapper = await mountView()
+      await dragTo(wrapper, 1, 'done', 500)
+      const again = fire(card(wrapper, 2), 'dragstart')
+      expect(again.event.defaultPrevented).toBe(true)
+      await dragTo(wrapper, 2, 'done', 500)
+      expect(post).toHaveBeenCalledTimes(1)
+      release({ data: { ...mk(1, 'done'), position: 5 } })
+      await flushPromises()
+    })
+
+    it('shows a toast when the move fails', async () => {
+      mockApi(data)
+      vi.spyOn(api, 'post').mockRejectedValue(new ApiError(403, 'no'))
+      const error = vi.spyOn(toast, 'error')
+      const wrapper = await mountView()
+      await dragTo(wrapper, 1, 'done', 500)
+      expect(error).toHaveBeenCalledWith('You are not allowed to move this task.')
+      expect(useTasksStore().columns.todo.map((item) => item.id)).toEqual([1, 2, 3])
+    })
+
+    it('cannot drag in an archived project', async () => {
+      vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/projects') return { data: [{ ...project(5, 'POSVE'), archived_at: '2026-01-01' }], meta: { last_page: 1 } } as never
+        if (path === '/api/channels') return { data: [] } as never
+        return data() as never
+      })
+      const post = vi.spyOn(api, 'post')
+      const wrapper = await mountView()
+      expect(card(wrapper, 1).hasAttribute('draggable')).toBe(false)
+      expect(fire(card(wrapper, 1), 'dragstart').event.defaultPrevented).toBe(true)
+      expect(fire(column(wrapper, 'done'), 'dragover', { clientY: 500 }).event.defaultPrevented).toBe(false)
+      fire(column(wrapper, 'done'), 'drop', { clientY: 500 })
+      await flushPromises()
+      expect(post).not.toHaveBeenCalled()
+      expect(wrapper.find('.plan-view__column--drop').exists()).toBe(false)
+    })
+  })
 })

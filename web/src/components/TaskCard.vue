@@ -20,8 +20,8 @@ const assignee = computed(() => props.task.assignee ?? null)
 </script>
 
 <template>
-  <div class="task-card-wrap">
-  <RouterLink class="task-card" :to="to" :aria-labelledby="titleId" :aria-describedby="metaId">
+  <div class="task-card-wrap" :draggable="readOnly ? undefined : 'true'">
+  <RouterLink class="task-card" draggable="false" :to="to" :aria-labelledby="titleId" :aria-describedby="metaId">
     <span v-if="group" class="task-card__notice">
       <LevelPill :level="group.level" />
       <span class="task-card__events">{{ group.events_count }} {{ t('notice.eventsWord', group.events_count) }}</span>
@@ -44,6 +44,9 @@ const assignee = computed(() => props.task.assignee ?? null)
 <style scoped>
 .task-card-wrap {
   position: relative;
+}
+.task-card-wrap[draggable='true'] .task-card {
+  cursor: grab;
 }
 .task-card__move {
   position: absolute;
