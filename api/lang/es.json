@@ -280,5 +280,6 @@
     "This project is archived and its tasks cannot be moved.": "Este proyecto está archivado y sus tareas no se pueden mover.",
     "This project is archived and its tasks cannot be deleted.": "Este proyecto está archivado y sus tareas no se pueden eliminar.",
     "The neighbor task is not in the target column of this project.": "La tarea vecina no está en la columna destino de este proyecto.",
-    "The neighbor tasks are not next to each other.": "Las tareas vecinas no están una junto a la otra."
+    "The neighbor tasks are not next to each other.": "Las tareas vecinas no están una junto a la otra.",
+    "The selected assignee does not have access to this project.": "El responsable seleccionado no tiene acceso a este proyecto."
 }

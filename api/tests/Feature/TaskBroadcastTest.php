@@ -18,6 +18,7 @@ beforeEach(function () {
     $this->member = User::factory()->create();
     $this->organization->addMember($this->member, [Role::Member]);
     $this->project = Project::factory()->for($this->organization)->create(['key' => 'POSVE']);
+    assignMembersToAllProjects();
     app(CurrentOrganization::class)->set($this->organization);
     $this->task = new Task(['title' => 'Old', 'status' => 'todo', 'position' => 1.0]);
     $this->task->project_id = $this->project->id;
@@ -109,6 +110,7 @@ it('does not broadcast a delete the policy refuses', function () {
     Event::fake([TaskDeleted::class]);
     $other = User::factory()->create();
     $this->organization->addMember($other, [Role::Member]);
+    $this->project->addMember($other);
     Sanctum::actingAs($other);
 
     $this->withHeader('X-Organization-Id', (string) $this->organization->id)

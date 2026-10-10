@@ -18,6 +18,7 @@ beforeEach(function () {
     $this->outsider = User::factory()->create();
     $this->other->addMember($this->outsider, [Role::Owner]);
     $this->project = Project::factory()->for($this->organization)->create(['key' => 'POSVE']);
+    assignMembersToAllProjects();
     app(CurrentOrganization::class)->set($this->organization);
     $this->task = columnTask($this->project, 'todo', 1.0);
 });

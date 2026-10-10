@@ -2,7 +2,7 @@
 
 **Objetivo:** membresía por proyecto: owner y admin ven toda la organización; un `member` solo ve los proyectos
 asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asignan desde la web y al invitar.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -62,7 +62,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - **Terminado cuando:** un member recibe 404 al listar mensajes, responder o subir adjunto en un canal ajeno, y
   `/api/channels` solo trae los suyos.
 
-### [ ] Fase 6 — Acceso a tareas
+### [x] Fase 6 — Acceso a tareas
 - **Alcance:** `TaskPolicy` (`view`, `update`, `delete` por el proyecto de la tarea), `TaskController::index` y
   `StoreTaskRequest` autorizan `view` del proyecto; `assignee_id` de store y update exige acceso al proyecto (L-04).
 - **Archivos:** `TaskPolicy.php`, `TaskController.php`, `StoreTaskRequest.php`, `UpdateTaskRequest.php`.
@@ -169,9 +169,10 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - 2026-10-10 — (Fase 4) `ProjectPolicy::view` devuelve `Response|bool`: proyecto de otra organización o sin `viewAny`, false (403 como antes); de la organización sin acceso, `denyAsNotFound()` (404).
 - 2026-10-10 — (Fase 5) `ChannelPolicy::view` devuelve `Response|bool` (`ProjectAccess::canViewId`, `denyAsNotFound`); es el único sitio de la regla para mensajes, hilos y adjuntos (`MessagePolicy` la hereda). Los FormRequests que deben dar 404 usan `Gate::authorize(...)->allowed()`: con `Gate::allows` el 404 de la policy se vuelve 403. Editar o borrar un mensaje en un canal sin acceso sigue en 403 (solo llega al autor).
 - 2026-10-10 — (Fase 5) Tests: el helper `assignMembersToAllProjects()` de `tests/Pest.php` (mismo SQL que la migración de la fase 3) asigna los members a todos los proyectos existentes; los tests de acceso crean el proyecto o canal ajeno después de llamarlo. Las fases 6 a 9 ajustan sus tests igual y corren la suite completa del API antes de dar la fase por hecha.
+- 2026-10-10 — (Fase 6) `TaskPolicy::view`, `update` y `delete` usan `ProjectAccess::canViewId` con el proyecto de la tarea (404 sin acceso; `delete` propaga ese 404 y después exige creador, owner o admin: 403). `StoreTaskRequest::validateAssigneeAccess()` (estática, reutilizada por `UpdateTaskRequest`) valida en `after()` que el asignado vea el proyecto: 422 en `assignee_id` con `__('The selected assignee does not have access to this project.')`, y se salta si ya falló la regla de organización.
 
 ## Notas para la próxima sesión
-- Fases 1 a 5 hechas (suite API 882 ok en el worktree). Siguiente: fase 6, acceso a tareas.
+- Fases 1 a 6 hechas (suite API 887 ok en el worktree). Siguiente: fase 7, acceso a logs; incluye "crear tarea desde un aviso" en `LogGroupController`, que aún no revisa el acceso al proyecto.
 - Trabajar en el worktree (ver Decisiones). Al editar con Python en Windows, dejar finales LF (Pint falla con `line_ending`).
 - La migración de datos no se corrió en la base de desarrollo: corre con el próximo `migrate` tras el merge.
 - Hasta la fase 9, `MentionController` sigue mostrando menciones de canales sin acceso (con el mensaje).
@@ -189,3 +190,4 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - [ ] M-7 (baja, sonnet): test de `ProjectAccess` con un team previo no nulo y con una excepción dentro, para cubrir L-03 completo (hoy solo el caso null).
 - [ ] M-8 (baja, sonnet): `UpdateMessageRequest` y `DeleteMessageRequest` con `Gate::authorize(...)->allowed()` para que editar o borrar en un canal sin acceso dé 404 como el resto, con su test.
 - [ ] M-9 (baja, sonnet): `assignMembersToAllProjects()` repite el SQL de la migración de la fase 3; extraerlo a un lugar común o dejar un test que compare ambos resultados.
+- [ ] M-10 (media, sonnet): `UpdateTaskRequest` valida el acceso del asignado aunque no cambie; si el asignado actual perdió el acceso (p. ej. admin degradado a member sin proyectos), cualquier edición que reenvíe `assignee_id` da 422. Validar solo cuando cambia respecto de `$task->assignee_id`.

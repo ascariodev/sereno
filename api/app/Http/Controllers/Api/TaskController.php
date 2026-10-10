@@ -32,7 +32,7 @@ class TaskController extends Controller
 
     public function index(Project $project): AnonymousResourceCollection
     {
-        Gate::authorize('viewAny', Task::class);
+        Gate::authorize('view', $project);
 
         $order = 'CASE status';
         foreach (TaskStatus::cases() as $index => $status) {
