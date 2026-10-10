@@ -2,7 +2,7 @@
 
 **Objetivo:** que una persona pueda registrarse, crear su organización y crear proyectos desde la web, sin `curl`, y que
 el registro abierto se pueda cerrar por entorno dejando solo la entrada por invitación.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -30,7 +30,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 
 ## Fases
 
-### [ ] Fase 1 — Interruptor de registro en el API [riesgo]
+### [x] Fase 1 — Interruptor de registro en el API [riesgo]
 - **Alcance:** `REGISTRATION_ENABLED` (por omisión `true`) en `config/auth.php`. Con el registro cerrado,
   `RegisterRequest::authorize()` exige `invitation_token` de una invitación usable cuyo email coincida con el
   enviado (sin distinguir mayúsculas); si no, 403 con mensaje traducido ("El registro está cerrado"), igual para
@@ -121,8 +121,20 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   recién cuando la fase 3 esté desplegada; antes rompería las invitaciones a personas sin cuenta.
 - 2026-10-10 — Crear organización y proyecto van en diálogos (como `TaskCreateDialog`), no en rutas: `AppLayout` sin
   organizaciones no renderiza rutas hijas.
+- 2026-10-10 — (Fase 1) La clave es `config('auth.registration_enabled')` (env `REGISTRATION_ENABLED`); la fase 2 lee esa
+  misma clave. El 403 sale de `RegisterRequest::failedAuthorization()` con `__('Registration is closed.')`; un
+  `invitation_token` o `email` que no sea string también da 403.
+- 2026-10-10 — Los contenedores montan el checkout principal: en el worktree, los tests corren con `docker run` sobre la
+  imagen `workspace-php`/`node:24`, montando el worktree, los volúmenes `workspace_workspace_vendor` o
+  `workspace_web-node-modules` y `api/.env` del checkout principal, en la red `workspace_default`.
 
 ## Notas para la próxima sesión
+- Fase 1 hecha: con el registro cerrado, registrarse exige una invitación usable del mismo email, pero no la acepta.
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
 ## Mejoras propuestas
+- [ ] M-1 (media, sonnet) — `api/app/Http/Requests/Auth/RegisterRequest.php`: con el registro cerrado, exigir también
+  `inviterCanStillGrantRole()` en `authorize()`; hoy una invitación cuyo invitador perdió permisos crea una cuenta que
+  `accept` rechaza después (cuenta huérfana, sin fuga). Ampliar `AuthTest`.
+- [ ] M-2 (baja, sonnet) — `api/.env.example` (y stacks de producción): documentar `REGISTRATION_ENABLED=true`.
+- [ ] M-3 (baja, sonnet) — `RegisterRequest::authorize()`: acortar el docblock a una línea.
