@@ -113,6 +113,12 @@ describe('IntegrationsView', () => {
     expect(wrapper!.find('[data-test=loading]').exists()).toBe(true)
   })
 
+  it('disables the create button while the list is loading', async () => {
+    stubGet(() => new Promise(() => undefined))
+    await mountView(['owner'])
+    expect(wrapper!.find('[data-test=create]').attributes('disabled')).toBeDefined()
+  })
+
   it('shows an error with retry when the list fails', async () => {
     let fail = true
     stubGet(async () => {

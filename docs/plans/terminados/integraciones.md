@@ -197,7 +197,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - [x] M-3 — `projectMissing` en `IntegrationsView` exige `!projects.loading && !projects.failed`: si la vista monta
   antes de que el store empiece a cargar puede verse un instante "no encontrado"; distinguir "nunca cargó".
   Complejidad: baja (sonnet).
-- [ ] M-4 — Una carga de la lista en vuelo al crear puede pisar la fuente recién agregada (`IntegrationsView` `load()`
+- [x] M-4 — Una carga de la lista en vuelo al crear puede pisar la fuente recién agregada (`IntegrationsView` `load()`
   asigna `sources` sin mirar lo creado): ocultar o deshabilitar el botón de crear mientras `loading`, con spec.
   Complejidad: baja (sonnet).
 - [ ] M-5 — Quitar la variable sin uso `_key` en `IntegrationsView.vue` (`onCreated`). Complejidad: baja (sonnet).
@@ -215,3 +215,6 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   Complejidad: baja (sonnet).
 - [ ] M-11 — Con organización activa `null`, `clear()` deja `projects.loaded = false` y `IntegrationsView` mostraría
   "cargando" sin fin; hoy las rutas exigen organización. Complejidad: baja (sonnet).
+- [ ] M-12 — Si una recarga (cambio de proyecto u organización) cierra el diálogo de crear con la creación en vuelo,
+  la fuente queda creada en el servidor y la key, que solo se ve una vez, se pierde: avisar o rotar. Caso raro.
+  Complejidad: baja (sonnet).

@@ -160,7 +160,7 @@ onUnmounted(reset)
       <template v-else>
         <p class="integrations__description">{{ t('integrations.description') }}</p>
         <div v-if="project && !project.archived_at" class="integrations__toolbar">
-          <button type="button" class="integrations__create" data-test="create" @click="createOpen = true">
+          <button type="button" class="integrations__create" data-test="create" :disabled="loading" @click="createOpen = true">
             {{ t('integrations.create') }}
           </button>
         </div>
@@ -266,6 +266,11 @@ onUnmounted(reset)
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+}
+
+.integrations__create:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .integrations__create:focus-visible {
