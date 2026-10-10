@@ -356,6 +356,15 @@
       "mine": "Mine",
       "fromNotices": "From notices"
     },
+    "move": {
+      "label": "Move {key}",
+      "up": "Move up",
+      "down": "Move down",
+      "to": "Move to {column}",
+      "forbidden": "You are not allowed to move this task.",
+      "notFound": "This task no longer exists.",
+      "failed": "Could not move the task. Try again."
+    },
     "newTask": "New task",
     "addTask": "Add task",
     "empty": "No tasks",

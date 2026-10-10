@@ -11,6 +11,7 @@ import { TASK_DESCRIPTION_MAX_LENGTH, TASK_TITLE_MAX_LENGTH } from './taskLimits
 import AppDialog from './ui/AppDialog.vue'
 import LevelPill from './ui/LevelPill.vue'
 import ProjectKey from './ui/ProjectKey.vue'
+import TaskMoveMenu from './TaskMoveMenu.vue'
 import { toast } from './ui/toast'
 
 defineOptions({ inheritAttrs: false })
@@ -245,6 +246,7 @@ async function confirmDelete(): Promise<void> {
     >
       <div class="task-aside__top">
         <ProjectKey :value="task.key" />
+        <TaskMoveMenu class="task-aside__move" :task="task" :read-only="readOnly" />
         <button type="button" class="task-aside__close" name="close-task" :aria-label="t('taskAside.close')" @click="emit('close')">
           <X :size="16" aria-hidden="true" />
         </button>
@@ -378,6 +380,10 @@ async function confirmDelete(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.task-aside__move {
+  margin-left: auto;
+  margin-right: 4px;
 }
 .task-aside__close {
   display: grid;

@@ -6,8 +6,9 @@ import type { Task } from '../api/types'
 import AppAvatar from './ui/AppAvatar.vue'
 import LevelPill from './ui/LevelPill.vue'
 import ProjectKey from './ui/ProjectKey.vue'
+import TaskMoveMenu from './TaskMoveMenu.vue'
 
-const props = defineProps<{ task: Task }>()
+const props = defineProps<{ task: Task; readOnly?: boolean }>()
 const { t } = useI18n()
 const route = useRoute()
 
@@ -19,6 +20,7 @@ const assignee = computed(() => props.task.assignee ?? null)
 </script>
 
 <template>
+  <div class="task-card-wrap">
   <RouterLink class="task-card" :to="to" :aria-labelledby="titleId" :aria-describedby="metaId">
     <span v-if="group" class="task-card__notice">
       <LevelPill :level="group.level" />
@@ -35,9 +37,19 @@ const assignee = computed(() => props.task.assignee ?? null)
       </span>
     </span>
   </RouterLink>
+  <TaskMoveMenu class="task-card__move" :task="task" :read-only="readOnly" />
+  </div>
 </template>
 
 <style scoped>
+.task-card-wrap {
+  position: relative;
+}
+.task-card__move {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
 .task-card {
   display: flex;
   flex-direction: column;

@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 21
+**Estado:** en curso · Fase actual: 22
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -124,7 +124,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 ### [x] Fase 20 — Borrar una tarea (web)
 - Acción en el panel con confirmación, según la policy; cierra el panel.
 
-### [ ] Fase 21 — Mover con menú (web)
+### [x] Fase 21 — Mover con menú (web)
 - "Mover a" en la tarjeta y en el panel (accesible por teclado), con la columna y la posición resultantes.
 
 ### [ ] Fase 22 — Arrastrar y soltar (web) [riesgo]
@@ -195,7 +195,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `plan.*`. Los límites de archivos de las fases cuentan solo código de producción, no specs.
 
 ## Notas para la próxima sesión
-- API terminado (fases 1 a 11). Web: fase 20 hecha: borrar desde `TaskAside` (visible para creador, admin u owner y no en solo lectura; confirmación con `AppDialog`, generación L-32, `resetForm` cierra el diálogo al cambiar de tarea); al borrar emite `close(true)` sin el toast de "no encontrada". Specs con varios montajes: desmontar con `wrapper.unmount()`, no vaciar `document.body`. Fase 19 hecha: `TaskAside` (columna de 340px, hoja en móvil) se monta
+- API terminado (fases 1 a 11). Web: fase 21 hecha: `TaskMoveMenu` (AppMenu "…": Subir, Bajar, Mover a otra columna, que queda al final); calcula `beforeId`/`afterId` sobre `tasks.columns` completo (la fase 22 puede extraer ese cálculo a un helper); `TaskCard` es un `div.task-card-wrap` con el enlace y el botón hermanos; sin menú en solo lectura. Fase 20 hecha: borrar desde `TaskAside` (visible para creador, admin u owner y no en solo lectura; confirmación con `AppDialog`, generación L-32, `resetForm` cierra el diálogo al cambiar de tarea); al borrar emite `close(true)` sin el toast de "no encontrada". Specs con varios montajes: desmontar con `wrapper.unmount()`, no vaciar `document.body`. Fase 19 hecha: `TaskAside` (columna de 340px, hoja en móvil) se monta
   solo tras la carga; tarea ausente, borrada en vivo o 404 cierran con toast y `router.replace` sin `task` (conserva
   la query). Edición en vivo no pisa un formulario tocado. Límites compartidos en `components/taskLimits.ts`.
   Layout del panel sin revisar en navegador. Fase 18: `TaskCreateDialog` (props `projectId`, `status`,
@@ -267,3 +267,4 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   (Safari no enfoca botones al hacer clic).
 - [ ] M-24 (baja, sonnet): `TaskAside.spec`: sembrar usuario autenticado y restaurar `window.matchMedia`;
   `PlanView.spec`: borrado en vivo con el panel abierto quita `?task=` y conserva `?filter=`.
+- [ ] M-25 (baja, sonnet): `TaskCard`: `padding-right` en el título para que el botón del menú no lo tape, indentar el hijo del wrap y spec propio del `aria-label` y de `readOnly`.

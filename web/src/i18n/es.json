@@ -356,6 +356,15 @@
       "mine": "Mías",
       "fromNotices": "Desde avisos"
     },
+    "move": {
+      "label": "Mover {key}",
+      "up": "Subir",
+      "down": "Bajar",
+      "to": "Mover a {column}",
+      "forbidden": "No tienes permiso para mover esta tarea.",
+      "notFound": "Esta tarea ya no existe.",
+      "failed": "No se pudo mover la tarea. Inténtalo de nuevo."
+    },
     "newTask": "Nueva tarea",
     "addTask": "Agregar tarea",
     "empty": "Sin tareas",

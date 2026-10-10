@@ -136,7 +136,7 @@ onUnmounted(() => tasks.clear())
             <span class="plan-view__count">{{ tasks.visibleColumns[status].length }}</span>
           </header>
           <p v-if="tasks.visibleColumns[status].length === 0" class="plan-view__empty">{{ t('plan.empty') }}</p>
-          <TaskCard v-for="task in tasks.visibleColumns[status]" :key="task.id" :task="task" />
+          <TaskCard v-for="task in tasks.visibleColumns[status]" :key="task.id" :task="task" :read-only="!canCreate" />
           <button
             v-if="canCreate"
             type="button"

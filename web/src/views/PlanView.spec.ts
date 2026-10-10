@@ -349,4 +349,79 @@ describe('PlanView', () => {
       expect(wrapper.find('[data-test=submit]').exists()).toBe(false)
     })
   })
+  describe('move menu', () => {
+    const mk = (id: number, status: string, position = id) => ({
+      id, project_id: 5, key: `POSVE-${id}`, number: id, title: `Task ${id}`, description: null, status, position,
+      created_by: 1, assignee: null, log_group: null, created_at: '2026-10-10T00:00:00.000000Z', updated_at: '2026-10-10T00:00:00.000000Z',
+    })
+    const data = () => ({ data: [mk(1, 'todo'), mk(2, 'todo'), mk(3, 'todo'), mk(4, 'done')] })
+    const settle = async () => {
+      await flushPromises()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+    async function openMenu(wrapper: ReturnType<typeof mount>, id: number) {
+      const trigger = wrapper.get(`#task-${id}-title`).element.closest('.task-card-wrap')!.querySelector('button[name=move-task]')!
+      trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }))
+      await settle()
+      const menu = document.querySelector('[role=menu]')
+      expect(menu).not.toBeNull()
+      return [...menu!.querySelectorAll<HTMLElement>('[role=menuitem]')]
+    }
+    const pick = async (items: HTMLElement[], label: string) => {
+      const item = items.find((el) => el.textContent?.trim() === label)!
+      item.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+      item.click()
+      await settle()
+    }
+
+    it('opens from the keyboard with up, down and the other columns, disabling the edges', async () => {
+      mockApi(data)
+      const wrapper = await mountView()
+      const first = await openMenu(wrapper, 1)
+      expect(first.map((el) => el.textContent?.trim())).toEqual(['Move up', 'Move down', 'Move to In progress', 'Move to In review', 'Move to Done'])
+      expect(first[0].hasAttribute('data-disabled')).toBe(true)
+      expect(first[1].hasAttribute('data-disabled')).toBe(false)
+      expect(wrapper.get('button[name=move-task]').attributes('aria-label')).toBe('Move POSVE-1')
+    })
+
+    it('moves to the end of another column using the full column neighbours', async () => {
+      mockApi(data)
+      const post = vi.spyOn(api, 'post').mockResolvedValue({ data: { ...mk(1, 'done', 5), updated_at: '2026-10-10T00:00:01.000000Z' } } as never)
+      const wrapper = await mountView()
+      await pick(await openMenu(wrapper, 1), 'Move to Done')
+      expect(post).toHaveBeenCalledWith('/api/projects/5/tasks/1/move', { status: 'done', after_id: 4, before_id: undefined })
+      expect(useTasksStore().columns.done.map((item) => item.id)).toEqual([4, 1])
+    })
+
+    it('moves down and up within the column', async () => {
+      mockApi(data)
+      const post = vi.spyOn(api, 'post').mockResolvedValue({ data: mk(1, 'todo', 2.5) } as never)
+      const wrapper = await mountView()
+      await pick(await openMenu(wrapper, 1), 'Move down')
+      expect(post).toHaveBeenLastCalledWith('/api/projects/5/tasks/1/move', { status: 'todo', after_id: 2, before_id: 3 })
+      await pick(await openMenu(wrapper, 3), 'Move up')
+      expect(post).toHaveBeenLastCalledWith('/api/projects/5/tasks/3/move', { status: 'todo', after_id: 2, before_id: 1 })
+    })
+
+    it('shows a toast when the move fails', async () => {
+      mockApi(data)
+      vi.spyOn(api, 'post').mockRejectedValue(new ApiError(500, 'boom'))
+      const error = vi.spyOn(toast, 'error')
+      const wrapper = await mountView()
+      await pick(await openMenu(wrapper, 1), 'Move to Done')
+      expect(error).toHaveBeenCalledWith('Could not move the task. Try again.')
+      expect(useTasksStore().columns.todo.map((item) => item.id)).toEqual([1, 2, 3])
+    })
+
+    it('has no menu in an archived project', async () => {
+      vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/projects') return { data: [{ ...project(5, 'POSVE'), archived_at: '2026-01-01' }], meta: { last_page: 1 } } as never
+        if (path === '/api/channels') return { data: [] } as never
+        return data() as never
+      })
+      const wrapper = await mountView()
+      expect(wrapper.findAll('a.task-card')).toHaveLength(4)
+      expect(wrapper.find('button[name=move-task]').exists()).toBe(false)
+    })
+  })
 })

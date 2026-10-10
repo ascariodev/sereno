@@ -2,7 +2,7 @@ import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
-import { ApiError } from '../api/client'
+import { api, ApiError } from '../api/client'
 import * as tasksApi from '../api/tasks'
 import type { Task, TaskLogGroup } from '../api/types'
 import { i18n } from '../i18n'
@@ -283,5 +283,21 @@ describe('TaskAside', () => {
       await flushPromises()
       expect(wrapper.emitted('close')).toEqual([[true]])
     })
+  })
+  it('moves from the panel menu and hides it when read-only', async () => {
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: { ...base, status: 'in_review', updated_at: '2026-01-02T00:00:00.000000Z' } } as never)
+    const { wrapper } = await mountAside()
+    const trigger = q('button[name=move-task]')!
+    trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }))
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const item = [...document.body.querySelectorAll<HTMLElement>('[role=menuitem]')].find((el) => el.textContent?.trim() === 'Move to In review')!
+    item.click()
+    await flushPromises()
+    expect(post).toHaveBeenCalledWith('/api/projects/5/tasks/9/move', { status: 'in_review', after_id: null, before_id: undefined })
+    wrapper.unmount()
+    document.body.innerHTML = ''
+    await mountAside(base, { readOnly: true })
+    expect(q('button[name=move-task]')).toBeNull()
   })
 })
