@@ -2,7 +2,7 @@
 
 **Objetivo:** que una persona pueda registrarse, crear su organización y crear proyectos desde la web, sin `curl`, y que
 el registro abierto se pueda cerrar por entorno dejando solo la entrada por invitación.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -46,7 +46,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - **Archivos:** `api/routes/api.php`, `api/app/Http/Controllers/Api/AuthController.php`, test.
 - **Terminado cuando:** el test cubre abierto y cerrado sin autenticación.
 
-### [ ] Fase 3 — La invitación manda su token al registrarse
+### [x] Fase 3 — La invitación manda su token al registrarse
 - **Alcance:** `auth.register()` acepta un `invitationToken` opcional y lo envía como `invitation_token`; `InviteView`
   pasa el token de la ruta. Un 403 al registrarse se muestra como error general.
 - **Archivos:** `web/src/stores/auth.ts`, `web/src/views/InviteView.vue`, specs de ambos.
@@ -131,6 +131,8 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 ## Notas para la próxima sesión
 - Fase 1 hecha: con el registro cerrado, registrarse exige una invitación usable del mismo email, pero no la acepta.
 - Fase 2 hecha: `GET /api/auth/registration` público devuelve `{"enabled": bool}`.
+- Fase 3 hecha: `auth.register(name, email, password, passwordConfirmation, invitationToken?)` envía
+  `invitation_token` solo si viene. Desde aquí `REGISTRATION_ENABLED=false` en producción ya no rompe invitaciones.
 - Editar con Edit o `sed`: escribir con Python en Windows mete CRLF y rompe Pint (`line_ending`).
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
@@ -140,3 +142,5 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   `accept` rechaza después (cuenta huérfana, sin fuga). Ampliar `AuthTest`.
 - [ ] M-2 (baja, sonnet) — `api/.env.example` (y stacks de producción): documentar `REGISTRATION_ENABLED=true`.
 - [ ] M-3 (baja, sonnet) — `RegisterRequest::authorize()`: acortar el docblock a una línea.
+- [ ] M-4 (baja, sonnet) — `web/src/views/InviteView.vue`: mostrar un texto propio para el 403 al registrarse
+  ("el registro está cerrado") en vez de `invite.registerFailed`, y que `InviteView.spec` afirme el texto exacto.

@@ -139,7 +139,7 @@ async function register(): Promise<void> {
   fieldErrors.value = {}
   formError.value = null
   try {
-    await auth.register(name.value, invitedEmail, password.value, passwordConfirmation.value)
+    await auth.register(name.value, invitedEmail, password.value, passwordConfirmation.value, token.value)
     if (current !== generation) return
     registered.value = true
   } catch (error) {

@@ -40,6 +40,18 @@ describe('auth store', () => {
     expect(getLocale()).toBe('es')
   })
 
+  it('register sends the invitation token when given', async () => {
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ token: 'new', user })
+    await useAuthStore().register('Test', 'test@example.com', 'secret-pass-1', 'secret-pass-1', 'tok')
+    expect(post).toHaveBeenCalledWith('/api/auth/register', {
+      name: 'Test',
+      email: 'test@example.com',
+      password: 'secret-pass-1',
+      password_confirmation: 'secret-pass-1',
+      invitation_token: 'tok',
+    })
+  })
+
   it('a failed register leaves no session', async () => {
     vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'bad', { email: ['x'] }))
     const auth = useAuthStore()

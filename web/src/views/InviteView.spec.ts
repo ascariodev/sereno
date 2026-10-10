@@ -275,7 +275,13 @@ describe('InviteView', () => {
       expect(post.mock.calls).toEqual([
         [
           '/api/auth/register',
-          { name: 'New Person', email: 't@e.com', password: 'secret-pass-1', password_confirmation: 'secret-pass-1' },
+          {
+            name: 'New Person',
+            email: 't@e.com',
+            password: 'secret-pass-1',
+            password_confirmation: 'secret-pass-1',
+            invitation_token: 'tok',
+          },
         ],
         ['/api/invitations/accept', { token: 'tok' }],
       ])
@@ -324,6 +330,19 @@ describe('InviteView', () => {
       expect(wrapper.find('#invite-email-hint').exists()).toBe(true)
       expect(wrapper.find('[data-test=email-taken-hint]').text()).toContain('already has an account')
       expect(wrapper.findAll('[data-test=sign-in-instead]')).toHaveLength(1)
+    })
+
+    it('shows a general error on 403 and does not accept', async () => {
+      mockGet()
+      const post = vi.spyOn(api, 'post').mockRejectedValue(new ApiError(403, 'Registration is closed.'))
+      const { wrapper } = await mountInvite()
+
+      await fill(wrapper)
+
+      expect(post).toHaveBeenCalledTimes(1)
+      expect(wrapper.find('[data-test=error-form]').attributes('role')).toBe('alert')
+      expect(wrapper.find('[data-test=error-form]').text()).not.toBe('')
+      expect(useAuthStore().isAuthenticated).toBe(false)
     })
 
     it('does not show the sign in hint for other field errors', async () => {
