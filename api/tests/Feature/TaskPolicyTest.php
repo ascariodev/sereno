@@ -32,6 +32,7 @@ beforeEach(function () {
 
     app(CurrentOrganization::class)->set($this->organization);
     $this->project = Project::factory()->for($this->organization)->create();
+    assignMembersToAllProjects();
     $this->task = taskPolicyTask($this->project, $this->users['member']);
 });
 
@@ -51,6 +52,7 @@ it('lets the creator, admins and owners delete', function (string $role) {
 it('denies delete to a member who is not the creator', function () {
     $other = User::factory()->create();
     $this->organization->addMember($other, [Role::Member]);
+    $this->project->addMember($other);
 
     expect(Gate::forUser($other)->allows('delete', $this->task))->toBeFalse()
         ->and(Gate::forUser($other)->allows('update', $this->task))->toBeTrue();

@@ -8,6 +8,7 @@ import type { Message } from '../api/types'
 import { i18n } from '../i18n'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
+import { useProjectsStore } from '../stores/projects'
 import { useMessagesStore } from '../stores/messages'
 import { useOrganizationStore } from '../stores/organization'
 import type { Member } from '../api/types'
@@ -136,6 +137,7 @@ describe('MessageComposer', () => {
   })
 
   describe('mentions', () => {
+    const seed = (projectId: number, members: Member[]) => ({ [projectId]: { members, loaded: true, loadedAt: Date.now(), generation: 0, inFlight: null } })
     const member = (id: number, name: string): Member => ({
       id,
       name,
@@ -151,10 +153,33 @@ describe('MessageComposer', () => {
       useOrganizationStore().$patch({ activeId: 1 })
       useAuthStore().$patch({ user: { id: 1, name: 'Me' } as never })
       const directory = useMemberDirectoryStore()
-      directory.$patch({ members: [member(2, 'Ana'), member(3, 'Andres'), member(1, 'Me')] })
+      useProjectsStore().$patch({ channelByProject: { 5: 7 } })
+      directory.$patch({ entries: seed(5, [member(2, 'Ana'), member(3, 'Andres'), member(1, 'Me')]) })
       const wrapper = mount(MessageComposer, { props, global: { plugins: [pinia, i18n] } })
       return { wrapper, textarea: () => wrapper.find('textarea') }
     }
+
+    it('offers only the members of the channel project and loads them on demand', async () => {
+      const { wrapper, textarea } = mountWithMembers()
+      const directory = useMemberDirectoryStore()
+      directory.$patch({ entries: { ...seed(6, [member(9, 'Anita')]) } })
+      const ensure = vi.spyOn(directory, 'ensureLoaded').mockResolvedValue()
+      await textarea().setValue('hi @An')
+      expect(wrapper.findAll('[role="option"]').map((o) => o.find('.composer-option-name').text())).toEqual(['Ana', 'Andres'])
+      expect(ensure).toHaveBeenCalledWith(5)
+    })
+
+    it('offers nobody when the channel has no project in channelByProject', async () => {
+      const { wrapper, textarea } = mountWithMembers()
+      useProjectsStore().channelByProject = {}
+      const directory = useMemberDirectoryStore()
+      directory.$patch({ entries: seed(6, [member(9, 'Anita')]) })
+      const ensure = vi.spyOn(directory, 'ensureLoaded').mockResolvedValue()
+      await textarea().setValue('hi @An')
+      expect(textarea().attributes('aria-expanded')).toBe('false')
+      expect(wrapper.findAll('[role=\'option\']')).toHaveLength(0)
+      expect(ensure).not.toHaveBeenCalledWith(5)
+    })
 
     it('opens the list with combobox attributes and excludes the current user', async () => {
       const { wrapper, textarea } = mountWithMembers()
@@ -245,7 +270,7 @@ describe('MessageComposer', () => {
     it('blocks sending when the expanded token pushes the body past 4000', async () => {
       const send = vi.fn().mockResolvedValue(undefined)
       const { wrapper, textarea } = mountWithMembers({ send })
-      useMemberDirectoryStore().$patch({ members: [member(5, 'Bo')] })
+      useMemberDirectoryStore().$patch({ entries: seed(5, [member(5, 'Bo')]) })
       await textarea().setValue(`${'a'.repeat(3995)} @Bo`)
       await textarea().trigger('keydown', { key: 'Enter' })
       const visible = (textarea().element as HTMLTextAreaElement).value

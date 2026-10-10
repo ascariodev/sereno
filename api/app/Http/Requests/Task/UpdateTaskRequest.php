@@ -15,7 +15,7 @@ class UpdateTaskRequest extends FormRequest
     /** Runs before the rules so a 422 never reveals members to outsiders. */
     public function authorize(): bool
     {
-        return Gate::allows('update', $this->route('task'));
+        return Gate::authorize('update', $this->route('task'))->allowed();
     }
 
     public function rules(): array
@@ -42,6 +42,14 @@ class UpdateTaskRequest extends FormRequest
 
                 if ($project->isArchived()) {
                     $validator->errors()->add('project', __('This project is archived and its tasks cannot be edited.'));
+                }
+
+                /** @var Task $task */
+                $task = $this->route('task');
+                $assigneeId = $this->input('assignee_id');
+
+                if ($assigneeId === null || (int) $assigneeId !== $task->assignee_id) {
+                    StoreTaskRequest::validateAssigneeAccess($validator, $project, $assigneeId);
                 }
             },
         ];

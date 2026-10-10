@@ -19,7 +19,7 @@ class UpdateMessageRequest extends FormRequest
 
         abort_unless($message->channel_id === $channel->id, 404);
 
-        return Gate::allows('update', $message);
+        return Gate::authorize('update', $message)->allowed();
     }
 
     public function rules(): array

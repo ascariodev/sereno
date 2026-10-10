@@ -23,6 +23,7 @@ beforeEach(function () {
     $this->outsider = User::factory()->create();
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create(['name' => 'ops']);
     $this->otherChannel = Channel::factory()->for(Project::factory()->for($this->other))->create();
+    assignMembersToAllProjects();
 });
 
 function inboxMention(Channel $channel, User $user, ?int $parentId = null, bool $read = false): int
@@ -199,4 +200,34 @@ it('throttles the inbox per user', function () {
 
     inboxCall($this->ana, $this->organization, 'GET', '/api/mentions')->assertTooManyRequests();
     inboxCall($this->bob, $this->organization, 'GET', '/api/mentions')->assertOk();
+});
+
+it('hides mentions of projects the user lost access to and brings them back on regaining it', function () {
+    $visible = inboxMention($this->channel, $this->ana);
+    $hiddenChannel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
+    $hidden = inboxMention($hiddenChannel, $this->ana);
+
+    inboxCall($this->ana, $this->organization, 'GET', '/api/mentions')
+        ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $visible)->assertJsonPath('meta.unread_count', 1);
+
+    inboxCall($this->ana, $this->organization, 'POST', '/api/mentions/read', ['all' => true])
+        ->assertOk()->assertJsonPath('unread_count', 0);
+    expect(DB::table('message_mentions')->where('id', $hidden)->value('read_at'))->toBeNull();
+
+    inboxCall($this->ana, $this->organization, 'POST', '/api/mentions/read', ['ids' => [$hidden]])
+        ->assertOk();
+    expect(DB::table('message_mentions')->where('id', $hidden)->value('read_at'))->toBeNull();
+
+    $hiddenChannel->project->addMember($this->ana);
+    inboxCall($this->ana, $this->organization, 'GET', '/api/mentions')
+        ->assertOk()->assertJsonCount(2, 'data')->assertJsonPath('meta.unread_count', 1);
+});
+
+it('shows owners and admins the mentions of every project', function () {
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+    inboxMention(Channel::factory()->for(Project::factory()->for($this->organization))->create(), $admin);
+
+    inboxCall($admin, $this->organization, 'GET', '/api/mentions')
+        ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('meta.unread_count', 1);
 });

@@ -86,11 +86,11 @@ siempre desde la raíz, dentro de `web/` compose usa otro nombre de proyecto):
 5. Conectar posveapi y dejar Slack. **Hecho**, salvo retirar Slack (aplazado: queda de respaldo).
 6. Chat completo: hilos, menciones, adjuntos. **Hecho.**
 7. Plan: tareas, tablero, crear tarea desde un aviso. **Hecho.**
-8. Escritorio: PWA instalable, luego Tauri.
+8. Escritorio: PWA instalable hecha; falta Tauri.
 9. Móvil, push y facturación SaaS.
 
-Transversal: Docker de desarrollo y stacks de producción del API y la web (plan `web-docker`) hechos; falta el
-deploy por Gitea.
+Transversal: Docker de desarrollo y stacks de producción del API y la web (plan `web-docker`) y deploy por Gitea
+(`.gitea/workflows/deploy-api.yml` y `deploy-web.yml`) hechos.
 
 (No confundir con las fases de un plan de `docs/plans/`.)
 

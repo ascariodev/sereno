@@ -74,6 +74,24 @@ export const useProjectsStore = defineStore('projects', () => {
     return load(false)
   }
 
+  function refresh(): Promise<void> {
+    return load(true)
+  }
+
+  function projectIdOfChannel(channelId: number | null | undefined): number | null {
+    if (channelId == null) return null
+    const entry = Object.entries(channelByProject.value).find(([, id]) => id === channelId)
+    return entry ? Number(entry[0]) : null
+  }
+
+  function removeProject(projectId: number): number | undefined {
+    const channelId = channelByProject.value[projectId]
+    projects.value = projects.value.filter((project) => project.id !== projectId)
+    const { [projectId]: _removed, ...rest } = channelByProject.value
+    channelByProject.value = rest
+    return channelId
+  }
+
   async function create(input: CreateProjectInput): Promise<Project> {
     const created = await createProject(input)
     await load(true)
@@ -119,5 +137,5 @@ export const useProjectsStore = defineStore('projects', () => {
     { immediate: true },
   )
 
-  return { projects, channelByProject, loading, failed, reload, create, clear, refreshCounts }
+  return { projects, channelByProject, loading, failed, reload, refresh, projectIdOfChannel, removeProject, create, clear, refreshCounts }
 })

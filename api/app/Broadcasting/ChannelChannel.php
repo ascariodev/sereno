@@ -5,9 +5,11 @@ namespace App\Broadcasting;
 use App\Models\Channel;
 use App\Models\Scopes\OrganizationScope;
 use App\Models\User;
+use App\Support\ProjectAccess;
 
 /**
- * Authorized without X-Organization-Id: membership and channel ownership are checked here.
+ * Authorized without X-Organization-Id: membership, channel ownership and project access are checked here.
+ * A channel without a project is visible to the whole organization.
  */
 class ChannelChannel
 {
@@ -20,11 +22,21 @@ class ChannelChannel
             return false;
         }
 
-        return $user->organizations()->whereKey($organizationId)->exists()
-            && Channel::withoutGlobalScope(OrganizationScope::class)
-                ->whereKey($channelId)
-                ->where('organization_id', $organizationId)
-                ->exists();
+        if (! $user->organizations()->whereKey($organizationId)->exists()) {
+            return false;
+        }
+
+        $found = Channel::withoutGlobalScope(OrganizationScope::class)
+            ->whereKey($channelId)
+            ->where('organization_id', $organizationId)
+            ->first(['id', 'project_id']);
+
+        if ($found === null) {
+            return false;
+        }
+
+        return $found->project_id === null
+            || ProjectAccess::canViewId($user, $organizationId, $found->project_id);
     }
 
     private static function positiveId(string $value): ?int

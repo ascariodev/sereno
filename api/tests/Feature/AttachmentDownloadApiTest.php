@@ -33,6 +33,8 @@ beforeEach(function () {
     $this->organization->addMember($this->ana, [Role::Member]);
     $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
     $this->message = Message::withoutEvents(fn () => Message::factory()->for($this->channel)->for($this->author)->create());
+
+    assignMembersToAllProjects();
 });
 
 function downloadableAttachment(object $test, array $attributes = [], ?string $content = 'hello world', bool $linked = true): MessageAttachment

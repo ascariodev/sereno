@@ -10,6 +10,7 @@ import { parseMentionDraft } from '../mentionToken'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useMessagesStore } from '../stores/messages'
+import { useProjectsStore } from '../stores/projects'
 import { useThreadStore } from '../stores/thread'
 
 const MAX_LENGTH = 4000
@@ -22,6 +23,7 @@ const hintId = useId()
 const listId = useId()
 const errorDomId = `${listId}-error`
 const directory = useMemberDirectoryStore()
+const projects = useProjectsStore()
 const auth = useAuthStore()
 const messages = useMessagesStore()
 const thread = useThreadStore()
@@ -29,9 +31,10 @@ const field = ref<HTMLTextAreaElement | null>(null)
 const saving = ref(false)
 const errorText = ref<string | null>(null)
 let alive = true
+const projectId = computed(() => projects.projectIdOfChannel(props.message.channel_id))
 
 const mention = useMentionInput({
-  members: () => directory.members,
+  members: () => directory.membersOf(projectId.value),
   excludeUserId: () => auth.user?.id,
 })
 mention.restore(parseMentionDraft(props.message.body ?? '', props.message.mentions))
@@ -40,7 +43,7 @@ const { activeIndex, open, optionId, syncCaret, choose, handleKeydown } = useMen
   mention,
   field,
   listId,
-  ensureLoaded: () => directory.ensureLoaded(),
+  ensureLoaded: () => directory.ensureLoaded(projectId.value),
 })
 const tooLong = computed(() => mention.length.value > MAX_LENGTH)
 const hasAttachments = computed(() => props.message.attachments.length > 0)

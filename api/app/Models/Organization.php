@@ -17,7 +17,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Throwable;
 
 #[Fillable(['name', 'slug', 'settings'])]
 class Organization extends Model
@@ -111,14 +110,22 @@ class Organization extends Model
                 throw new LastOwnerException;
             }
 
+            $losesProjectAccess = $role === Role::Member
+                && $user->hasAnyRole([Role::Owner->value, Role::Admin->value]);
+
             $user->syncRoles([$role]);
 
             MembershipRoleChanged::dispatch($user->id, $this->id, $role->value);
+
+            // Reverb does not re-authorize open subscriptions: channels of unassigned projects would stay open.
+            if ($losesProjectAccess) {
+                TerminateUserConnections::scheduleAfterCommit($user->id);
+            }
         });
     }
 
     /**
-     * Detaches the member, deletes their roles and unassigns their tasks in this organization only.
+     * Detaches the member, deletes their roles, project assignments and task assignments in this organization only.
      *
      * @throws LastOwnerException when the user is the last owner
      * @throws ModelNotFoundException when the user is not a member
@@ -133,28 +140,15 @@ class Organization extends Model
             $user->syncRoles([]);
             $this->users()->detach($user->id);
 
-            DB::table('tasks')
+            DB::table('project_user')
                 ->where('organization_id', $this->id)
-                ->where('assignee_id', $user->id)
-                ->update(['assignee_id' => null, 'updated_at' => now()]);
+                ->where('user_id', $user->id)
+                ->delete();
+
+            Task::unassignUser($this->id, $user->id);
 
             MembershipRevoked::dispatch($user->id, $this->id);
-            $this->scheduleConnectionCut($user->id);
-        });
-    }
-
-    /**
-     * Delayed so `membership.revoked` reaches the client before its sockets close; a queue failure is reported
-     * but must not fail a removal that is already committed.
-     */
-    private function scheduleConnectionCut(int $userId): void
-    {
-        DB::afterCommit(function () use ($userId) {
-            try {
-                TerminateUserConnections::dispatch($userId)->delay(5);
-            } catch (Throwable $e) {
-                report($e);
-            }
+            TerminateUserConnections::scheduleAfterCommit($user->id);
         });
     }
 

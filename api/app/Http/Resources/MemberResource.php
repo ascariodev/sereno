@@ -9,12 +9,21 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin User */
 class MemberResource extends JsonResource
 {
+    public bool $withEmail = false;
+
+    public function showEmail(bool $show = true): static
+    {
+        $this->withEmail = $show;
+
+        return $this;
+    }
+
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'email' => $this->email,
+            'email' => $this->when($this->withEmail, $this->email),
             'role' => $this->roles->first()?->name,
             'joined_at' => $this->pivot->created_at?->toIso8601String(),
         ];

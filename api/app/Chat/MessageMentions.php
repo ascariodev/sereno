@@ -7,14 +7,16 @@ use App\Models\Channel;
 use App\Models\Message;
 use App\Models\MessageMention;
 use App\Models\User;
+use App\Support\ProjectAccess;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class MessageMentions
 {
     /**
-     * Members of the channel's organization named by `<@id>` tokens, minus the author, ordered by id. Only
-     * the first `chat.mentions.max_per_message` of them (in order of appearance) count; the body keeps all.
+     * Members of the channel's organization who can see the channel, named by `<@id>` tokens, minus the author,
+     * ordered by id. Only the first `chat.mentions.max_per_message` of them (in order of appearance) count;
+     * the body keeps all. Access is resolved in a batch, not per mentioned id.
      *
      * @return Collection<int, User>
      */
@@ -33,11 +35,18 @@ class MessageMentions
             ->get(['id', 'name'])
             ->keyBy('id');
 
-        return (new Collection(array_map(fn (int $id) => $members->get($id), $ids)))
-            ->filter()
-            ->take(config('chat.mentions.max_per_message'))
-            ->sortBy('id')
-            ->values();
+        $memberIds = array_values(array_filter($ids, fn (int $id) => $members->has($id)));
+
+        if ($channel->project_id !== null) {
+            $memberIds = ProjectAccess::viewableUserIds($memberIds, $channel->organization_id, $channel->project_id);
+        }
+
+        $mentioned = array_map(
+            fn (int $id) => $members->get($id),
+            array_slice($memberIds, 0, config('chat.mentions.max_per_message')),
+        );
+
+        return (new Collection($mentioned))->sortBy('id')->values();
     }
 
     /**

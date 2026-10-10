@@ -4,6 +4,7 @@ use App\Models\LogGroup;
 use App\Models\LogSource;
 use App\Models\Organization;
 use App\Models\Project;
+use App\Models\User;
 use App\Support\CurrentOrganization;
 
 beforeEach(function () {
@@ -26,6 +27,13 @@ it('blocks moving a project with log groups to another organization', function (
     $this->project->organization_id = $this->other->id;
     $this->project->save();
 })->throws(InvalidArgumentException::class);
+
+it('blocks moving a project with members to another organization', function () {
+    $this->project->addMember(User::factory()->create());
+
+    $this->project->organization_id = $this->other->id;
+    $this->project->save();
+})->throws(InvalidArgumentException::class, 'A project with log sources, groups, tasks or members cannot change organization.');
 
 it('allows moving a project without sources or groups', function () {
     $this->project->organization_id = $this->other->id;

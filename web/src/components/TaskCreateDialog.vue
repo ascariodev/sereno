@@ -73,7 +73,7 @@ watch(
     if (value) {
       opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
       reset()
-      void directory.ensureLoaded()
+      void directory.ensureLoaded(props.projectId)
       void nextTick(() => titleInput.value?.focus())
     } else {
       generation++
@@ -216,7 +216,7 @@ async function submit(): Promise<void> {
           :aria-describedby="describedBy('assignee_id')"
         >
           <option :value="null">{{ t('plan.unassigned') }}</option>
-          <option v-for="member in directory.members" :key="member.id" :value="member.id">{{ member.name }}</option>
+          <option v-for="member in directory.membersOf(projectId)" :key="member.id" :value="member.id">{{ member.name }}</option>
         </select>
         <p
           v-for="(message, index) in fieldErrors.assignee_id"

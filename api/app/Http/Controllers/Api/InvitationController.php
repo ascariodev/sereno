@@ -25,7 +25,7 @@ class InvitationController extends Controller
         Gate::authorize('viewAny', Invitation::class);
 
         return InvitationResource::collection(
-            Invitation::query()->pending()->with('inviter')->orderByDesc('created_at')->orderByDesc('id')->get(),
+            Invitation::query()->pending()->with(['inviter', 'projects'])->orderByDesc('created_at')->orderByDesc('id')->get(),
         );
     }
 
@@ -37,8 +37,9 @@ class InvitationController extends Controller
         $email = $request->validated('email');
         $locale = Locale::tryFrom($organization->settings['default_locale'] ?? '') ?? Locale::default();
         $plainToken = Invitation::newPlainToken();
+        $projectIds = $request->validated('project_ids', []);
 
-        $invitation = DB::transaction(function () use ($request, $email, $role, $locale, $plainToken) {
+        $invitation = DB::transaction(function () use ($request, $email, $role, $locale, $plainToken, $projectIds) {
             // A new invitation invalidates earlier pending ones for the same email,
             // unless one carries a role the inviter could not grant (an admin replacing an owner invite).
             $pending = Invitation::query()->pending()->where('email', $email)->lockForUpdate()->get();
@@ -53,7 +54,7 @@ class InvitationController extends Controller
 
             Invitation::query()->whereKey($pending->modelKeys())->delete();
 
-            return Invitation::create([
+            $invitation = Invitation::create([
                 'email' => $email,
                 'role' => $role->value,
                 'token' => Invitation::hashToken($plainToken),
@@ -61,13 +62,17 @@ class InvitationController extends Controller
                 'invited_by' => $request->user()->id,
                 'expires_at' => now()->addDays(Invitation::VALID_DAYS),
             ]);
+
+            $invitation->projects()->sync($projectIds);
+
+            return $invitation;
         });
 
         Notification::route('mail', $email)->notify(
             (new InvitationNotification($organization->name, $role->value, $plainToken))->locale($locale->value),
         );
 
-        return (new InvitationResource($invitation->load('inviter')))->response()->setStatusCode(201);
+        return (new InvitationResource($invitation->load(['inviter', 'projects'])))->response()->setStatusCode(201);
     }
 
     public function destroy(Invitation $invitation): Response
@@ -120,6 +125,7 @@ class InvitationController extends Controller
             }
 
             $invitation->organization->addMember($user, [Role::from($invitation->role)]);
+            $invitation->assignProjectsTo($user);
             $invitation->forceFill(['accepted_at' => now()])->save();
 
             return $invitation->organization_id;

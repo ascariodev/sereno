@@ -40,6 +40,40 @@ describe('projects store', () => {
     expect(store.failed).toBe(false)
   })
 
+  it('removeProject drops the project and its channel and returns the channel id', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
+      path === '/api/projects'
+        ? ({ data: [project(1, 'Alpha'), project(2, 'Beta')], meta: meta() } as never)
+        : ({ data: [channel(7, 1), channel(8, 2)] } as never),
+    )
+    const store = setup()
+    await flushPromises()
+    expect(store.removeProject(1)).toBe(7)
+    expect(store.projects.map((p) => p.id)).toEqual([2])
+    expect(store.channelByProject).toEqual({ 2: 8 })
+    expect(store.removeProject(1)).toBeUndefined()
+  })
+
+  it('refresh reloads without emptying the lists meanwhile', async () => {
+    const get = vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
+      path === '/api/projects'
+        ? ({ data: [project(1, 'Alpha')], meta: meta() } as never)
+        : ({ data: [channel(7, 1)] } as never),
+    )
+    const store = setup()
+    await flushPromises()
+    get.mockImplementation(async (path: string) =>
+      path === '/api/projects'
+        ? ({ data: [project(1, 'Alpha'), project(2, 'Beta')], meta: meta() } as never)
+        : ({ data: [channel(7, 1), channel(8, 2)] } as never),
+    )
+    const refreshing = store.refresh()
+    expect(store.projects.map((p) => p.id)).toEqual([1])
+    await refreshing
+    expect(store.projects.map((p) => p.id)).toEqual([1, 2])
+    expect(store.channelByProject).toEqual({ 1: 7, 2: 8 })
+  })
+
   it('requests every page', async () => {
     const get = vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: { query?: Record<string, unknown> }) => {
       if (path !== '/api/projects') return { data: [] } as never

@@ -7,11 +7,14 @@ import { api, ApiError } from '../api/client'
 import { toast, toasts } from '../components/ui/toast'
 import { i18n, setLocale } from '../i18n'
 import { useAuthStore } from '../stores/auth'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
+import { useProjectsStore } from '../stores/projects'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import {
   MEMBERSHIP_REVOKED_EVENT,
   MEMBERSHIP_ROLE_CHANGED_EVENT,
+  PROJECT_ACCESS_CHANGED_EVENT,
   setRealtimeClientFactory,
   subscribeToChannel,
 } from './echo'
@@ -58,6 +61,34 @@ function revoke(organizationId: number) {
 
 function changeRole(organizationId: number, role: string) {
   fake.listeners.get(`users.1|${MEMBERSHIP_ROLE_CHANGED_EVENT}`)?.({ organization_id: organizationId, role })
+}
+
+function changeProjectAccess(organizationId: number, projectId: number, granted: boolean) {
+  fake.listeners.get(`users.1|${PROJECT_ACCESS_CHANGED_EVENT}`)?.({
+    organization_id: organizationId,
+    project_id: projectId,
+    granted,
+  })
+}
+
+const projectRow = (id: number, name: string) => ({
+  id,
+  name,
+  key: `K${id}`,
+  description: null,
+  archived_at: null,
+  created_at: '',
+  updated_at: '',
+})
+
+function serveProjects(get: ReturnType<typeof vi.spyOn>, ids: number[]) {
+  get.mockImplementation(async (path: string) =>
+    path === '/api/projects'
+      ? { data: ids.map((id) => projectRow(id, `P${id}`)), meta: { current_page: 1, last_page: 1, per_page: 100, total: ids.length } }
+      : path === '/api/channels'
+        ? { data: ids.map((id) => ({ id: id + 6, project_id: id, name: `K${id}`, archived_at: null })) }
+        : { data: [one, two] },
+  )
 }
 
 function reconnect() {
@@ -108,6 +139,146 @@ describe('useMembershipWatch', () => {
     expect(organization.rolesRevision).toBe(1)
     expect(router.currentRoute.value.name).toBe('channel')
     expect(toasts.value).toHaveLength(0)
+  })
+
+  it('on losing a project drops it from the store, leaves its channels and leaves its open view', async () => {
+    const { get, router } = await mountWatch()
+    serveProjects(get, [1, 2])
+    const projects = useProjectsStore()
+    await projects.reload()
+    subscribeToChannel(1, 7, {})
+    await router.push('/channels/7')
+    serveProjects(get, [2])
+    changeProjectAccess(1, 1, false)
+    await flushPromises()
+    expect(fake.client.leave).toHaveBeenCalledWith('organizations.1.channels.7')
+    expect(projects.projects.map((p) => p.id)).toEqual([2])
+    expect(projects.channelByProject).toEqual({ 2: 8 })
+    expect(router.currentRoute.value.name).toBe('projects')
+    expect(toasts.value.map((t) => t.message)).toEqual(['You no longer have access to P1.'])
+  })
+
+  it('on losing a project keeps the view when another project is open', async () => {
+    const { get, router } = await mountWatch()
+    serveProjects(get, [1, 2])
+    await useProjectsStore().reload()
+    await router.push('/channels/8')
+    serveProjects(get, [2])
+    changeProjectAccess(1, 1, false)
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('channel')
+    expect(toasts.value).toHaveLength(0)
+  })
+
+  it('on gaining a project reloads projects and channels', async () => {
+    const { get } = await mountWatch()
+    serveProjects(get, [2])
+    const projects = useProjectsStore()
+    await projects.reload()
+    serveProjects(get, [1, 2])
+    changeProjectAccess(1, 1, true)
+    await flushPromises()
+    expect(projects.projects.map((p) => p.id)).toEqual([1, 2])
+    expect(projects.channelByProject).toEqual({ 1: 7, 2: 8 })
+  })
+
+  it('invalidates the project directory when its access changes, and all of them on a role change', async () => {
+    const { get } = await mountWatch([{ ...one, roles: ['admin'] }, two])
+    serveProjects(get, [1, 2])
+    await useProjectsStore().reload()
+    const invalidate = vi.spyOn(useMemberDirectoryStore(), 'invalidate')
+    changeProjectAccess(1, 1, true)
+    await flushPromises()
+    expect(invalidate).toHaveBeenCalledWith(1)
+    invalidate.mockClear()
+    changeProjectAccess(2, 1, true)
+    await flushPromises()
+    expect(invalidate).not.toHaveBeenCalled()
+    changeRole(1, 'admin')
+    await flushPromises()
+    expect(invalidate).toHaveBeenCalledWith()
+  })
+
+  it('ignores project access changes of another organization', async () => {
+    const { get } = await mountWatch()
+    serveProjects(get, [1])
+    const projects = useProjectsStore()
+    await projects.reload()
+    const calls = get.mock.calls.length
+    changeProjectAccess(2, 1, false)
+    await flushPromises()
+    expect(get.mock.calls.length).toBe(calls)
+    expect(projects.projects.map((p) => p.id)).toEqual([1])
+  })
+
+  it('on a role change reloads projects and leaves a view that is no longer visible', async () => {
+    const { get, router } = await mountWatch([{ ...one, roles: ['member'] }, two])
+    serveProjects(get, [1, 2])
+    const projects = useProjectsStore()
+    await projects.reload()
+    get.mockImplementation(async (path: string) =>
+      path === '/api/projects'
+        ? { data: [projectRow(2, 'P2')], meta: { current_page: 1, last_page: 1, per_page: 100, total: 1 } }
+        : path === '/api/channels'
+          ? { data: [{ id: 8, project_id: 2, name: 'K2', archived_at: null }] }
+          : { data: [{ ...one, roles: ['admin'] }, two] },
+    )
+    changeRole(1, 'admin')
+    await flushPromises()
+    expect(projects.projects.map((p) => p.id)).toEqual([2])
+    expect(router.currentRoute.value.name).toBe('projects')
+    expect(toasts.value.map((t) => t.message)).toEqual(['You no longer have access to P1.'])
+  })
+
+  it('on losing the open project launches the refresh before the navigation settles', async () => {
+    const { get, router } = await mountWatch()
+    serveProjects(get, [1, 2])
+    await useProjectsStore().reload()
+    let release: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    router.beforeEach(() => gate.then(() => true))
+    const calls = get.mock.calls.filter(([path]) => path === '/api/projects').length
+    changeProjectAccess(1, 1, false)
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('channel')
+    expect(get.mock.calls.filter(([path]) => path === '/api/projects').length).toBe(calls + 1)
+    release()
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('projects')
+  })
+
+  async function loseOpenProjectDuringNavigation(change: (context: Awaited<ReturnType<typeof mountWatch>>) => void) {
+    const context = await mountWatch()
+    serveProjects(context.get, [1, 2])
+    await useProjectsStore().reload()
+    const awaited = vi.fn()
+    const pending = { then: awaited, catch: () => pending } as unknown as Promise<void>
+    vi.spyOn(useProjectsStore(), 'refresh').mockReturnValue(pending)
+    let release: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    context.router.beforeEach(() => gate.then(() => true))
+    changeProjectAccess(1, 1, false)
+    await flushPromises()
+    change(context)
+    release()
+    await flushPromises()
+    expect(context.router.currentRoute.value.name).toBe('projects')
+    return awaited
+  }
+
+  it('on losing the open project waits for the refresh when the session is unchanged', async () => {
+    const awaited = await loseOpenProjectDuringNavigation(() => undefined)
+    expect(awaited).toHaveBeenCalledTimes(1)
+  })
+
+  it('on losing the open project does not wait for the refresh after the organization changed meanwhile', async () => {
+    const awaited = await loseOpenProjectDuringNavigation(({ organization }) => organization.$patch({ activeId: 2 }))
+    expect(awaited).not.toHaveBeenCalled()
+  })
+
+  it('on losing the open project does not wait for the refresh after the session ended meanwhile', async () => {
+    const awaited = await loseOpenProjectDuringNavigation(() => useAuthStore().clearSession())
+    expect(awaited).not.toHaveBeenCalled()
   })
 
   it('ignores a role change the store already reflects', async () => {

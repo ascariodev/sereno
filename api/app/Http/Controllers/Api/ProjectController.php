@@ -9,6 +9,8 @@ use App\Http\Requests\Project\ListProjectsRequest;
 use App\Http\Requests\Project\ProjectRequest;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
+use App\Support\CurrentOrganization;
+use App\Support\ProjectAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -21,8 +23,10 @@ class ProjectController extends Controller
     {
         $open = fn (Builder $query) => $query->where('status', LogGroupStatus::Open->value);
 
+        $organizationId = app(CurrentOrganization::class)->id();
+
         return ProjectResource::collection(
-            Project::query()
+            ProjectAccess::restrict(Project::query(), $request->user(), $organizationId)
                 ->when(! $request->includeArchived(), fn ($query) => $query->whereNull('archived_at'))
                 ->withCount(['logGroups as open_groups_count' => $open])
                 ->withAggregate(['logGroups as open_max_severity' => $open], DB::raw(LogLevel::severitySql('level')), 'max')

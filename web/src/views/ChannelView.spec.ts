@@ -11,6 +11,7 @@ import { i18n } from '../i18n'
 import { setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { useMessagesStore } from '../stores/messages'
 import { useProjectsStore } from '../stores/projects'
@@ -220,6 +221,15 @@ describe('ChannelView', () => {
       expect.stringContaining('body 2'),
       expect.stringContaining('body 3'),
     ])
+  })
+
+  it('invalidates the member directory of the project when its members change', async () => {
+    const realtime = fakeRealtime()
+    mockApi(() => ({ data: [], meta: { next_cursor: null } }))
+    await mountView()
+    const invalidate = vi.spyOn(useMemberDirectoryStore(), 'invalidate')
+    realtime.emitEvent('.project.members_changed', { project_id: 5 })
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith(5)
   })
 
   it('keeps a live message that arrives while the history is loading', async () => {

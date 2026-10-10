@@ -6,6 +6,7 @@ import { config } from '../config'
 export const MESSAGE_CREATED_EVENT = '.message.created'
 export const MEMBERSHIP_REVOKED_EVENT = '.membership.revoked'
 export const MEMBERSHIP_ROLE_CHANGED_EVENT = '.membership.role_changed'
+export const PROJECT_ACCESS_CHANGED_EVENT = '.project.access_changed'
 export const MESSAGE_UPDATED_EVENT = '.message.updated'
 export const MESSAGE_DELETED_EVENT = '.message.deleted'
 export const MENTION_CREATED_EVENT = '.mention.created'
@@ -13,6 +14,7 @@ export const MENTION_REMOVED_EVENT = '.mention.removed'
 export const TASK_CREATED_EVENT = '.task.created'
 export const TASK_UPDATED_EVENT = '.task.updated'
 export const TASK_DELETED_EVENT = '.task.deleted'
+export const PROJECT_MEMBERS_CHANGED_EVENT = '.project.members_changed'
 
 export interface RealtimePayload {
   message?: Message
@@ -26,6 +28,7 @@ export interface RealtimePayload {
   root?: MessageDeletedEvent['root']
   task?: Partial<Task>
   project_id?: number
+  granted?: boolean
 }
 
 export interface MentionCreatedPayload {
@@ -182,6 +185,11 @@ export interface ChannelSubscriptionHandlers {
   onCreated?: (message: Message) => void
   onUpdated?: (message: Message) => void
   onDeleted?: (event: MessageDeletedEvent) => void
+  onMembersChanged?: (projectId: number) => void
+}
+
+function dispatchMembersChanged(data: RealtimePayload, onMembersChanged: (projectId: number) => void): void {
+  if (typeof data.project_id === 'number') onMembersChanged(data.project_id)
 }
 
 export function subscribeToChannel(
@@ -189,9 +197,13 @@ export function subscribeToChannel(
   channelId: number,
   handlers: ChannelSubscriptionHandlers,
 ): () => void {
-  const { onCreated = () => {}, onUpdated = () => {}, onDeleted = () => {} } = handlers
-  const events = [MESSAGE_CREATED_EVENT, MESSAGE_UPDATED_EVENT, MESSAGE_DELETED_EVENT]
+  const { onCreated = () => {}, onUpdated = () => {}, onDeleted = () => {}, onMembersChanged = () => {} } = handlers
+  const events = [MESSAGE_CREATED_EVENT, MESSAGE_UPDATED_EVENT, MESSAGE_DELETED_EVENT, PROJECT_MEMBERS_CHANGED_EVENT]
   return subscribe(channelName(organizationId, channelId), events, (event, data) => {
+    if (event === PROJECT_MEMBERS_CHANGED_EVENT) {
+      dispatchMembersChanged(data, onMembersChanged)
+      return
+    }
     if (event === MESSAGE_DELETED_EVENT) {
       const { id, channel_id: channelId, parent_id: parentId, deleted_at: deletedAt, root } = data
       if (typeof id !== 'number' || typeof channelId !== 'number' || typeof deletedAt !== 'string') return
@@ -215,6 +227,7 @@ export interface ProjectSubscriptionHandlers {
   onTaskCreated?: (task: Task) => void
   onTaskUpdated?: (task: Task) => void
   onTaskDeleted?: (event: TaskDeletedEvent) => void
+  onMembersChanged?: (projectId: number) => void
 }
 
 function validTask(task: Partial<Task> | undefined): task is Task {
@@ -232,9 +245,13 @@ export function subscribeToProject(
   projectId: number,
   handlers: ProjectSubscriptionHandlers,
 ): () => void {
-  const { onTaskCreated = () => {}, onTaskUpdated = () => {}, onTaskDeleted = () => {} } = handlers
-  const events = [TASK_CREATED_EVENT, TASK_UPDATED_EVENT, TASK_DELETED_EVENT]
+  const { onTaskCreated = () => {}, onTaskUpdated = () => {}, onTaskDeleted = () => {}, onMembersChanged = () => {} } = handlers
+  const events = [TASK_CREATED_EVENT, TASK_UPDATED_EVENT, TASK_DELETED_EVENT, PROJECT_MEMBERS_CHANGED_EVENT]
   return subscribe(projectChannelName(organizationId, projectId), events, (event, data) => {
+    if (event === PROJECT_MEMBERS_CHANGED_EVENT) {
+      dispatchMembersChanged(data, onMembersChanged)
+      return
+    }
     if (event === TASK_DELETED_EVENT) {
       if (typeof data.id === 'number' && typeof data.project_id === 'number') {
         onTaskDeleted({ id: data.id, project_id: data.project_id })
@@ -250,18 +267,35 @@ export function subscribeToProject(
 export interface UserSubscriptionHandlers {
   onMembershipRevoked?: (organizationId: number) => void
   onRoleChanged?: (organizationId: number, role: string) => void
+  onProjectAccessChanged?: (organizationId: number, projectId: number, granted: boolean) => void
   onMention?: (mention: MentionCreatedPayload) => void
   onMentionRemoved?: (mention: MentionRemovedPayload) => void
 }
 
 export function subscribeToUser(userId: number, handlers: UserSubscriptionHandlers = {}): () => void {
-  const { onMembershipRevoked = () => {}, onRoleChanged = () => {}, onMention = () => {}, onMentionRemoved = () => {} } = handlers
-  const events = [MEMBERSHIP_REVOKED_EVENT, MEMBERSHIP_ROLE_CHANGED_EVENT, MENTION_CREATED_EVENT, MENTION_REMOVED_EVENT]
+  const {
+    onMembershipRevoked = () => {},
+    onRoleChanged = () => {},
+    onProjectAccessChanged = () => {},
+    onMention = () => {},
+    onMentionRemoved = () => {},
+  } = handlers
+  const events = [
+    MEMBERSHIP_REVOKED_EVENT,
+    MEMBERSHIP_ROLE_CHANGED_EVENT,
+    PROJECT_ACCESS_CHANGED_EVENT,
+    MENTION_CREATED_EVENT,
+    MENTION_REMOVED_EVENT,
+  ]
   return subscribe(userChannelName(userId), events, (event, data) => {
     if (typeof data.organization_id !== 'number') return
     if (event === MEMBERSHIP_REVOKED_EVENT) onMembershipRevoked(data.organization_id)
     else if (event === MEMBERSHIP_ROLE_CHANGED_EVENT) {
       if (typeof data.role === 'string') onRoleChanged(data.organization_id, data.role)
+    } else if (event === PROJECT_ACCESS_CHANGED_EVENT) {
+      if (typeof data.project_id === 'number' && typeof data.granted === 'boolean') {
+        onProjectAccessChanged(data.organization_id, data.project_id, data.granted)
+      }
     } else if (event === MENTION_CREATED_EVENT) {
       const { message, channel_id: channelId, parent_id: parentId } = data
       if (typeof message?.id !== 'number' || typeof channelId !== 'number') return
@@ -287,6 +321,18 @@ export function leaveOrganization(organizationId: number): void {
   const prefix = organizationChannelPrefix(organizationId)
   for (const [name, entry] of [...subscriptions]) {
     if (!name.startsWith(prefix)) continue
+    subscriptions.delete(name)
+    entry.callbacks.clear()
+    entry.client.leave(name)
+  }
+}
+
+export function leaveProject(organizationId: number, projectId: number, channelId: number | undefined): void {
+  const names = [projectChannelName(organizationId, projectId)]
+  if (channelId !== undefined) names.push(channelName(organizationId, channelId))
+  for (const name of names) {
+    const entry = subscriptions.get(name)
+    if (!entry) continue
     subscriptions.delete(name)
     entry.callbacks.clear()
     entry.client.leave(name)

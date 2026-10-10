@@ -151,7 +151,7 @@
       Complejidad: media · Archivos: 2 · Riesgo: contrato público → opus
 - [x] M-20: quitar `archived_at` del `#[Fillable]` de `Project` (archivar ya usa `forceFill`).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-21: configurar `trustProxies` en `bootstrap/app.php` cuando el API corra detrás de un proxy, para que el límite por IP de login no agrupe a todos bajo la IP del proxy.
+- [x] M-21: configurar `trustProxies` en `bootstrap/app.php` cuando el API corra detrás de un proxy, para que el límite por IP de login no agrupe a todos bajo la IP del proxy. Resuelta: `trustProxies` ya está en `api/bootstrap/app.php`.
       Complejidad: media · Archivos: 1 · Riesgo: seguridad → opus (aplicar al definir el despliegue)
 - [x] M-22: quitar `SetLocale` del grupo `api` si basta con la lista de prioridad (hoy está en ambos). Descartada: el grupo lo ejecuta y la prioridad solo lo ordena antes de auth; no es redundante.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

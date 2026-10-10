@@ -22,6 +22,8 @@ beforeEach(function () {
 
     app(CurrentOrganization::class)->set($this->organization);
     $this->project = Project::factory()->for($this->organization)->create();
+
+    assignMembersToAllProjects();
 });
 
 it('fills the organization and casts archived_at', function () {

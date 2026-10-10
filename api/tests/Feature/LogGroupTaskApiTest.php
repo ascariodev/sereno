@@ -15,6 +15,7 @@ beforeEach(function () {
     $this->member = User::factory()->create();
     $this->organization->addMember($this->member, [Role::Member]);
     $this->project = Project::factory()->for($this->organization)->create(['key' => 'POSVE']);
+    assignMembersToAllProjects();
     $this->withTask = LogGroup::factory()->for($this->project)->create(['last_seen_at' => now()]);
     $this->withoutTask = LogGroup::factory()->for($this->project)->create(['last_seen_at' => now()->subHour()]);
 

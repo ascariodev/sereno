@@ -17,6 +17,7 @@ beforeEach(function () {
     $this->outsider = User::factory()->create();
     $this->other->addMember($this->outsider, [Role::Owner]);
     $this->project = Project::factory()->for($this->organization)->create(['key' => 'POSVE']);
+    assignMembersToAllProjects();
     app(CurrentOrganization::class)->set($this->organization);
     $this->task = new Task(['title' => 'Old', 'description' => 'Old text', 'status' => 'in_review', 'position' => 1.0]);
     $this->task->project_id = $this->project->id;
@@ -39,6 +40,7 @@ it('edits title, description and assignee and returns the full resource', functi
     $this->task->save();
     $colleague = User::factory()->create();
     $this->organization->addMember($colleague, [Role::Member]);
+    $this->project->addMember($colleague);
 
     patchTaskAs($this->member, $this->organization, $this->project, $this->task, [
         'title' => 'New', 'description' => 'New text', 'assignee_id' => $colleague->id,

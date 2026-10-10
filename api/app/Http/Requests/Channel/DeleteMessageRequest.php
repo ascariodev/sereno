@@ -19,7 +19,7 @@ class DeleteMessageRequest extends FormRequest
 
         abort_unless($message->channel_id === $channel->id, 404);
 
-        return Gate::allows('delete', $message);
+        return Gate::authorize('delete', $message)->allowed();
     }
 
     public function rules(): array

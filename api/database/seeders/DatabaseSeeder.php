@@ -58,6 +58,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Demo project',
                 'description' => 'Sample project for local development.',
             ]);
+        $project->addMember($this->seedMember($organization));
         $channel = $project->channel()->first()
             ?? $this->create(new Channel, $organization, ['project_id' => $project->id, 'name' => $project->key]);
 
@@ -115,6 +116,20 @@ class DatabaseSeeder extends Seeder
                 'user_id' => $actor?->id,
             ]);
         }
+    }
+
+    private function seedMember(Organization $organization): User
+    {
+        $member = User::firstOrCreate(
+            ['email' => 'member@example.com'],
+            User::factory()->make(['email' => 'member@example.com', 'name' => 'Member User'])->getAttributes(),
+        );
+        if ($member->email_verified_at === null) {
+            $member->forceFill(['email_verified_at' => now()])->save();
+        }
+        $organization->addMember($member, [Role::Member]);
+
+        return $member;
     }
 
     /**

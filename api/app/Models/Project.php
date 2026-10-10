@@ -7,8 +7,10 @@ use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 #[Fillable(['name', 'key', 'description'])]
@@ -28,9 +30,10 @@ class Project extends Model
             $hasGroups = LogGroup::query()->withoutGlobalScopes()->where('project_id', $project->getKey())->exists();
 
             $hasTasks = Task::query()->withoutGlobalScopes()->where('project_id', $project->getKey())->exists();
+            $hasMembers = DB::table('project_user')->where('project_id', $project->getKey())->exists();
 
-            if ($hasSources || $hasGroups || $hasTasks) {
-                throw new InvalidArgumentException('A project with log sources, groups or tasks cannot change organization.');
+            if ($hasSources || $hasGroups || $hasTasks || $hasMembers) {
+                throw new InvalidArgumentException('A project with log sources, groups, tasks or members cannot change organization.');
             }
         });
     }
@@ -72,5 +75,26 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class)->withPivot('organization_id')->withTimestamps();
+    }
+
+    /** True when the user was not assigned yet. */
+    public function addMember(User $user): bool
+    {
+        $changes = $this->members()->syncWithoutDetaching([
+            $user->getKey() => ['organization_id' => $this->organization_id],
+        ]);
+
+        return $changes['attached'] !== [];
+    }
+
+    /** True when the user was assigned. */
+    public function removeMember(User $user): bool
+    {
+        return $this->members()->detach($user->getKey()) > 0;
     }
 }

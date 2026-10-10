@@ -5,9 +5,10 @@ namespace App\Broadcasting;
 use App\Models\Project;
 use App\Models\Scopes\OrganizationScope;
 use App\Models\User;
+use App\Support\ProjectAccess;
 
 /**
- * Authorized without X-Organization-Id: membership and project ownership are checked here.
+ * Authorized without X-Organization-Id: membership, project ownership and project access are checked here.
  */
 class ProjectChannel
 {
@@ -24,7 +25,8 @@ class ProjectChannel
             && Project::withoutGlobalScope(OrganizationScope::class)
                 ->whereKey($projectId)
                 ->where('organization_id', $organizationId)
-                ->exists();
+                ->exists()
+            && ProjectAccess::canViewId($user, $organizationId, $projectId);
     }
 
     private static function positiveId(string $value): ?int

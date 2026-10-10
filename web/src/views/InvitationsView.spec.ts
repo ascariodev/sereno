@@ -19,6 +19,7 @@ function invitation(id: number, role: 'owner' | 'admin' | 'member', overrides: R
     role,
     locale: 'en',
     invited_by: { id: 1, name: 'Ada' },
+    projects: [],
     expires_at: '2026-10-15T12:00:00Z',
     created_at: '2026-10-08T12:00:00Z',
     ...overrides,
@@ -107,10 +108,13 @@ describe('InvitationsView', () => {
   })
 
   it('shows an error with retry when the list fails', async () => {
-    const get = vi.spyOn(api, 'get').mockRejectedValueOnce(new ApiError(500, 'boom', {}))
+    const get = vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/invitations') throw new ApiError(500, 'boom', {})
+      return { data: [] }
+    })
     await mountDirect(['owner'])
     expect(wrapper!.find('[data-test=load-failed]').exists()).toBe(true)
-    get.mockResolvedValue({ data: [invitation(1, 'member')] })
+    get.mockImplementation(async (path: string) => ({ data: path === '/api/invitations' ? [invitation(1, 'member')] : [] }))
     await wrapper!.find('button[name=retry]').trigger('click')
     await flushPromises()
     expect(wrapper!.findAll('[data-test=invitation]')).toHaveLength(1)

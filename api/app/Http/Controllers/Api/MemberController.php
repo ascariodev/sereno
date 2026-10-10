@@ -18,9 +18,15 @@ class MemberController extends Controller
     {
         Gate::authorize('viewAny', User::class);
 
-        return MemberResource::collection(
+        $members = MemberResource::collection(
             app(CurrentOrganization::class)->get()->users()->with('roles')->orderBy('name')->orderBy('users.id')->get(),
         );
+
+        foreach ($members->collection as $member) {
+            $member->showEmail(Gate::allows('viewEmail', $member->resource));
+        }
+
+        return $members;
     }
 
     public function update(UpdateMemberRoleRequest $request, User $user): MemberResource
@@ -29,7 +35,7 @@ class MemberController extends Controller
 
         $organization->changeMemberRole($user, Role::from($request->validated('role')));
 
-        return new MemberResource($organization->users()->with('roles')->whereKey($user->id)->firstOrFail());
+        return (new MemberResource($organization->users()->with('roles')->whereKey($user->id)->firstOrFail()))->showEmail();
     }
 
     public function destroy(User $user): Response

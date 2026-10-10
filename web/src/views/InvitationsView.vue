@@ -141,6 +141,10 @@ async function confirmRevoke(): Promise<void> {
             <dt>{{ t('invitations.invitedBy') }}</dt>
             <dd data-test="inviter">{{ invitation.invited_by?.name ?? t('invitations.unknownInviter') }}</dd>
           </div>
+          <div v-if="invitation.role === 'member' && invitation.projects.length > 0">
+            <dt>{{ t('invitations.projects') }}</dt>
+            <dd data-test="projects">{{ invitation.projects.map((project) => project.name).join(', ') }}</dd>
+          </div>
           <div>
             <dt>{{ t('invitations.expires') }}</dt>
             <dd data-test="expires">{{ formatDate(invitation.expires_at) }}</dd>
