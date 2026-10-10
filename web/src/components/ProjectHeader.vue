@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { Activity, SquareKanban, MessageSquare } from '@lucide/vue'
+import { Activity, SquareKanban, MessageSquare, Users } from '@lucide/vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useOrganizationStore } from '../stores/organization'
+import ProjectMembersDialog from './ProjectMembersDialog.vue'
 import ProjectKey from './ui/ProjectKey.vue'
 
 defineProps<{
@@ -13,6 +16,8 @@ defineProps<{
 }>()
 
 const { t } = useI18n()
+const organization = useOrganizationStore()
+const membersOpen = ref(false)
 </script>
 
 <template>
@@ -46,6 +51,13 @@ const { t } = useI18n()
       </nav>
     </slot>
     <slot name="actions" />
+    <template v-if="projectId !== undefined && organization.canCreateProject">
+      <button type="button" class="project-header__members" name="project-members" @click="membersOpen = true">
+        <Users :size="15" aria-hidden="true" />
+        {{ t('projectMembers.open') }}
+      </button>
+      <ProjectMembersDialog v-model:open="membersOpen" :project-id="projectId" />
+    </template>
   </header>
 </template>
 
@@ -114,6 +126,26 @@ const { t } = useI18n()
   color: var(--ink-2);
   font-weight: 500;
   text-decoration: none;
+}
+
+.project-header__members {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.project-header__members:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .project-header__tab--disabled {

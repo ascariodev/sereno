@@ -367,6 +367,23 @@
     "plan": "Plan",
     "log": "Log"
   },
+  "projectMembers": {
+    "title": "Miembros del proyecto",
+    "close": "Cerrar",
+    "open": "Miembros",
+    "loadFailed": "No se pudieron cargar los miembros del proyecto.",
+    "add": "Dar acceso a un miembro",
+    "choose": "Elige un miembro",
+    "assign": "Agregar",
+    "noCandidates": "Todos los miembros de la organización ya tienen acceso.",
+    "remove": "Quitar",
+    "removeFor": "Quitar a {name} del proyecto",
+    "alwaysSees": "Ve todos los proyectos",
+    "added": "{name} ahora tiene acceso al proyecto.",
+    "removed": "{name} ya no tiene acceso al proyecto.",
+    "addFailed": "No se pudo agregar al miembro. Inténtalo de nuevo.",
+    "removeFailed": "No se pudo quitar al miembro. Inténtalo de nuevo."
+  },
   "plan": {
     "title": "Plan",
     "notFound": "Este proyecto no existe o no tienes acceso.",
