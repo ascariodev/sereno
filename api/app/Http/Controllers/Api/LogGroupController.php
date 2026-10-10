@@ -16,6 +16,7 @@ use App\Models\Message;
 use App\Models\Project;
 use App\Support\LogGroupHourlyCounts;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -27,16 +28,19 @@ class LogGroupController extends Controller
     {
         $minimumLevel = $request->minimumLevel();
 
-        return LogGroupResource::collection(
-            LogGroup::query()
-                ->where('project_id', $project->id)
-                ->when($request->status(), fn ($query, $status) => $query->where('status', $status))
-                ->when($minimumLevel, fn ($query) => $query->whereIn('level', $this->levelsAtLeast($minimumLevel)))
-                ->orderByDesc('last_seen_at')
-                ->orderByDesc('id')
-                ->paginate($request->perPage())
-                ->withQueryString(),
-        );
+        $groups = LogGroup::query()
+            ->where('project_id', $project->id)
+            ->when($request->status(), fn ($query, $status) => $query->where('status', $status))
+            ->when($minimumLevel, fn ($query) => $query->whereIn('level', $this->levelsAtLeast($minimumLevel)))
+            ->orderByDesc('last_seen_at')
+            ->orderByDesc('id')
+            ->with('task')
+            ->paginate($request->perPage())
+            ->withQueryString();
+
+        $this->bindTaskProject($groups->getCollection(), $project);
+
+        return LogGroupResource::collection($groups);
     }
 
     public function hourly(HourlyLogGroupsRequest $request, Project $project): LogGroupHourlyResource
@@ -57,6 +61,8 @@ class LogGroupController extends Controller
             ->limit(self::DETAIL_EVENTS_LIMIT)
             ->get());
 
+        $this->bindTaskProject(collect([$group->load('task')]), $project);
+
         return new LogGroupResource($group);
     }
 
@@ -74,7 +80,17 @@ class LogGroupController extends Controller
             });
         }
 
+        $this->bindTaskProject(collect([$group->load('task')]), $project);
+
         return new LogGroupResource($group);
+    }
+
+    /** @param  Collection<int, LogGroup>  $groups */
+    private function bindTaskProject(Collection $groups, Project $project): void
+    {
+        foreach ($groups as $group) {
+            $group->task?->setRelation('project', $project);
+        }
     }
 
     private function postStatusNotice(Project $project, LogGroup $group, string $previousStatus, int $userId): void

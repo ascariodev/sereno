@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['fingerprint', 'level', 'title', 'status', 'first_seen_at', 'last_seen_at', 'events_count'])]
 class LogGroup extends Model
@@ -29,6 +30,11 @@ class LogGroup extends Model
             'last_seen_at' => 'datetime',
             'events_count' => 'integer',
         ];
+    }
+
+    public function task(): HasOne
+    {
+        return $this->hasOne(Task::class);
     }
 
     public function project(): BelongsTo

@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -76,7 +76,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 ### [x] Fase 7 — Borrar una tarea (api)
 - `DELETE projects/{project}/tasks/{task}` (policy `delete`, proyecto archivado 422), borrado físico.
 
-### [ ] Fase 8 — Tarea vinculada en el grupo de log (api)
+### [x] Fase 8 — Tarea vinculada en el grupo de log (api)
 - `LogGroupResource` agrega `task {id, key, status}` o null, con carga eficiente en la lista y el detalle de grupos.
 
 ### [ ] Fase 9 — Quitar un miembro desasigna sus tareas (api)
@@ -179,7 +179,9 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   columna se renumera 1, 2, 3... con `DB::table` (sin tocar `updated_at` de las demás).
 
 ## Notas para la próxima sesión
-- Fases 1 a 7 hechas (CRUD y mover del API). Helpers de test: `columnTask`, `moveTaskAs`, `movedColumn` (fase 6),
+- Fases 1 a 8 hechas. `LogGroupResource` trae `task` con `whenLoaded`: todo lugar que lo devuelva (hoy solo
+  `LogGroupController`; si la fase 11 lo usa en un evento) carga `task` y llama `bindTaskProject`. graphify no está
+  instalado en la nube: usar grep. Helpers de la 8: `groupTaskUrl`, `groupTaskGet`. Helpers de test: `columnTask`, `moveTaskAs`, `movedColumn` (fase 6),
   `deleteTaskAs` (fase 7). Tras una petición el tenant queda en su organización: los tests consultan con
   `Task::withoutGlobalScopes()`. Los archivos creados desde el contenedor quedan de root y pint no puede escribirlos:
   `chown ubuntu:ubuntu` en el host antes de pint. Las fases 6 y 7 copian el patrón de `UpdateTaskRequest`
@@ -206,3 +208,5 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `validation.different`; test de concurrencia real de `move` (L-41) en vez del query log.
 - [ ] M-10 (baja, sonnet): `DESCRIPTION_MAX_LENGTH` a `Task` junto a `TITLE_MAX_LENGTH`; `assignee_id` en Fillable para
   simplificar `TaskController@update`; 404 de tarea de otro proyecto antes de validar.
+- [ ] M-12 (baja, sonnet): `LogGroupTaskApiTest`: quitar el umbral arbitrario `toBeLessThan(12)`; basta el conteo
+  constante.
