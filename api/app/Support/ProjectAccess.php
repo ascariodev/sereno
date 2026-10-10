@@ -44,6 +44,44 @@ class ProjectAccess
     }
 
     /**
+     * canViewId for many users at once (two queries): the ids among $userIds that see the project, keeping their order.
+     * Reads the role assignments of the organization straight from model_has_roles, so no spatie team is touched.
+     *
+     * @param  list<int>  $userIds
+     * @return list<int>
+     */
+    public static function viewableUserIds(array $userIds, int $organizationId, int $projectId): array
+    {
+        if ($userIds === []) {
+            return [];
+        }
+
+        $rolesByUser = DB::table('model_has_roles')
+            ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->where('model_has_roles.organization_id', $organizationId)
+            ->where('model_has_roles.model_type', (new User)->getMorphClass())
+            ->whereIn('model_has_roles.model_id', $userIds)
+            ->whereIn('roles.name', [Role::Owner->value, Role::Admin->value, Role::Member->value])
+            ->get(['model_has_roles.model_id', 'roles.name'])
+            ->groupBy('model_id')
+            ->map(fn ($rows) => $rows->pluck('name')->all());
+
+        $assigned = DB::table('project_user')
+            ->where('organization_id', $organizationId)
+            ->where('project_id', $projectId)
+            ->whereIn('user_id', $userIds)
+            ->pluck('user_id')
+            ->flip();
+
+        return array_values(array_filter($userIds, function (int $id) use ($rolesByUser, $assigned) {
+            $roles = $rolesByUser->get($id, []);
+
+            return array_intersect($roles, [Role::Owner->value, Role::Admin->value]) !== []
+                || (in_array(Role::Member->value, $roles, true) && $assigned->has($id));
+        }));
+    }
+
+    /**
      * @return Collection<int, int>
      */
     public static function visibleProjectIds(User $user, int $organizationId): Collection

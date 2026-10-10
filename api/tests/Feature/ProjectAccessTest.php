@@ -98,3 +98,17 @@ it('denies users without a role in the organization, even with a stray assignmen
         ->and(ProjectAccess::canView($this->users['owner'], $this->foreign))->toBeFalse()
         ->and(ProjectAccess::visibleProjectIds($outsider, $this->organization->id))->toBeEmpty();
 });
+
+it('resolves access for many users at once, keeping order', function () {
+    $stray = User::factory()->create();
+    $this->assigned->addMember($stray);
+    $unassignedMember = User::factory()->create();
+    $this->organization->addMember($unassignedMember, [Role::Member]);
+    $ids = [$stray->id, $this->users['member']->id, $unassignedMember->id, $this->users['admin']->id, $this->users['owner']->id];
+
+    expect(ProjectAccess::viewableUserIds($ids, $this->organization->id, $this->assigned->id))
+        ->toBe([$this->users['member']->id, $this->users['admin']->id, $this->users['owner']->id])
+        ->and(ProjectAccess::viewableUserIds($ids, $this->organization->id, $this->unassigned->id))
+        ->toBe([$this->users['admin']->id, $this->users['owner']->id])
+        ->and(ProjectAccess::viewableUserIds([], $this->organization->id, $this->assigned->id))->toBe([]);
+});
