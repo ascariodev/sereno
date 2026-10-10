@@ -6,6 +6,7 @@ import type { Member, Message } from '../api/types'
 import { i18n } from '../i18n'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
+import { useProjectsStore } from '../stores/projects'
 import { useMessagesStore } from '../stores/messages'
 import MessageEditor from './MessageEditor.vue'
 
@@ -38,6 +39,8 @@ const member = (id: number, name: string): Member => ({
   joined_at: null,
 })
 
+const seed = (projectId: number, members: Member[]) => ({ [projectId]: { members, loaded: true, loadedAt: Date.now(), generation: 0, inFlight: null } })
+
 function mountEditor(message: Partial<Message> = {}) {
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -45,7 +48,8 @@ function mountEditor(message: Partial<Message> = {}) {
   const messages = useMessagesStore()
   messages.$patch({ channelId: 7, messages: [target] as never })
   useAuthStore().$patch({ user: { id: 1, name: 'Me' } as never })
-  useMemberDirectoryStore().$patch({ members: [member(2, 'Ana'), member(3, 'Andres'), member(1, 'Me')] })
+  useProjectsStore().$patch({ channelByProject: { 5: 7 } })
+  useMemberDirectoryStore().$patch({ entries: seed(5, [member(2, 'Ana'), member(3, 'Andres'), member(1, 'Me')]) })
   const wrapper = mount(MessageEditor, { props: { message: target }, attachTo: document.body, global: { plugins: [pinia, i18n] } })
   return { wrapper, messages, textarea: () => wrapper.find('textarea') }
 }

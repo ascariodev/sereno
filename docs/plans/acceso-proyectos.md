@@ -2,7 +2,7 @@
 
 **Objetivo:** membresía por proyecto: owner y admin ven toda la organización; un `member` solo ve los proyectos
 asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asignan desde la web y al invitar.
-**Estado:** en curso · Fase actual: 15
+**Estado:** en curso · Fase actual: 16
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -133,7 +133,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
   i18n.
 - **Terminado cuando:** spec del diálogo: lista, asigna, quita; el botón no aparece para members.
 
-### [ ] Fase 15 — Web: menciones y asignados por proyecto [límite]
+### [x] Fase 15 — Web: menciones y asignados por proyecto [límite]
 - **Alcance:** `memberDirectory` por proyecto (usa el GET de la fase 10) en el composer, el editor y las tareas.
 - **Archivos:** `stores/memberDirectory.ts`, `MessageComposer.vue`, `MessageEditor.vue`, `TaskAside.vue`,
   `TaskCreateDialog.vue`.
@@ -181,10 +181,11 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - 2026-10-10 — (Fase 12) `invitation_project`: PK `(invitation_id, project_id)`, FK cascade, índice por `project_id`, sin `organization_id` (sale de la invitación; excepción documentada en `database.md`). Reemplazar una invitación borra la anterior y su pivote por cascade.
 - 2026-10-10 — (Fase 13) Web: `subscribeToUser` escucha `.project.access_changed` (guard de forma, L-13) y se ignoran los de otra organización. Perder acceso: `projects.removeProject(id)` (devuelve el id del canal), `leaveProject` de `echo.ts` suelta `projects.{id}` y `channels.{id}` (borra la entrada, vacía callbacks y deja de cachear; el `unsubscribe` posterior de la vista no hace nada), toast y salida a `projects` si la ruta abierta era de ese proyecto, y `projects.refresh()` (`load(true)` sin vaciar las listas). Ganar acceso y cambio de rol: `refresh()`; tras el cambio de rol sale si el proyecto abierto ya no está en `projects` ni en `channelByProject`.
 - 2026-10-10 — (Fase 14) Web: `ProjectMembersDialog` vive en `ProjectHeader` (botón "Miembros" con `projectId` y `organization.canCreateProject`, es decir owner o admin), así que lo usan canal, plan y log sin tocarlas; `ProjectHeader` ahora necesita Pinia al montarse. `api/projects.ts` expone `listProjectMembers`, `assignProjectMember` y `unassignProjectMember` tipados con `Member`.
+- 2026-10-10 — (Fase 15) Web: `memberDirectory` es por proyecto (`listProjectMembers`): `membersOf(projectId)`, `ensureLoaded(projectId)`, `invalidate(projectId?)` (sin id, todos) y `clear()`; generación por proyecto y época por organización o logout; TTL de 5 min por proyecto; `null` no carga ni ofrece nada. `projects.projectIdOfChannel(channelId)` da el proyecto del canal a Composer y Editor. Se invalida al asignar o quitar en `ProjectMembersDialog`, con `project.access_changed` (ese proyecto), con `membership.role_changed` y en MembersView (todos). `/api/members` queda solo para MembersView y el diálogo de miembros.
 
 ## Notas para la próxima sesión
-- Fases 1 a 14 hechas (suite API 925 y web 1244 ok en el worktree). Siguiente: fase 15 [límite], `memberDirectory` por proyecto con `listProjectMembers` (fase 14).
-- El diálogo no se probó en el navegador: el servidor de desarrollo sirve el checkout principal. Revisarlo tras el merge.
+- Fases 1 a 15 hechas (suite API 925 y web 1249 ok en el worktree). Siguiente: fase 16, elegir proyectos al invitar (contrato de la fase 12 en Decisiones).
+- La UI nueva (diálogo de miembros, directorio por proyecto) no se probó en el navegador: el servidor de desarrollo sirve el checkout principal. Revisarla tras el merge.
 - Web en el worktree: `sh .../wt.sh web npm run test -- --run <archivo>` y `... wt.sh web npm run typecheck`.
 - Trabajar en el worktree (ver Decisiones). No hay `python3` en el PATH de los subagentes; editar con heredocs o las herramientas de edición y dejar finales LF.
 - La migración de datos no se corrió en la base de desarrollo: corre con el próximo `migrate` tras el merge.
@@ -215,3 +216,5 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - [ ] M-20 (baja, sonnet): tests de invitaciones: reenviar con otros `project_ids` reemplaza los proyectos y sin ellos los limpia; un invitado admin u owner no recibe filas aunque el pivote tenga proyectos.
 - [ ] M-21 (media, sonnet): `useMembershipWatch` al perder acceso con el proyecto abierto: lanzar `refresh()` antes del `await router.replace` (un load en vuelo puede reponer el proyecto quitado) y, tras el `await`, revisar que siga la sesión y la misma organización activa antes de seguir (L-32), con spec. Y en `onMembershipRoleChanged`, capturar el nombre del proyecto antes del refresh para no usar `projectAccessLostUnknown`.
 - [ ] M-22 (baja, sonnet): `ProjectMembersDialog`: ante un 404 al asignar o quitar (otra sesión ya lo cambió), recargar la lista con `load()`; `@click="load()"` en Reintentar; y un caso de spec del 403 con el mensaje del servidor.
+- [ ] M-23 (baja, sonnet): specs que faltan del directorio por proyecto: TaskAside solo ofrece a los miembros de su proyecto y conserva al asignado actual ajeno; Composer y Editor sin el canal en `channelByProject` no ofrecen a nadie.
+- [ ] M-24 (baja, sonnet): el directorio de un proyecto no se entera de que otro admin asignó o quitó a alguien (solo por TTL o invalidación propia); evaluar un evento a `projects.{id}` con solo ids que invalide el directorio.

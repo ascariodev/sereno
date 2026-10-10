@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { toast } from '../components/ui/toast'
 import { useAuthStore } from '../stores/auth'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import { joinSession, leaveOrganization, leaveProject, onChannelDenied, onReconnect, subscribeToUser } from './echo'
@@ -32,6 +33,7 @@ export function useMembershipWatch(): void {
   const auth = useAuthStore()
   const organization = useOrganizationStore()
   const projectsStore = useProjectsStore()
+  const directory = useMemberDirectoryStore()
   const router = useRouter()
   const route = useRoute()
   const { t } = useI18n()
@@ -91,6 +93,7 @@ export function useMembershipWatch(): void {
 
   async function onProjectAccessChanged(organizationId: number, projectId: number, granted: boolean): Promise<void> {
     if (organization.activeId !== organizationId) return
+    directory.invalidate(projectId)
     if (granted) {
       await projectsStore.refresh()
       return
@@ -110,6 +113,7 @@ export function useMembershipWatch(): void {
     try {
       await organization.handleMembershipRoleChanged(organizationId, role)
       if (organization.activeId !== organizationId) return
+      directory.invalidate()
       await projectsStore.refresh()
     } catch (error) {
       ignoreApiError(error)

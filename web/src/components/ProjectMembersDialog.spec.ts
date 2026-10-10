@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import { i18n } from '../i18n'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import ProjectHeader from './ProjectHeader.vue'
 import { toast } from './ui/toast'
@@ -77,6 +78,7 @@ describe('ProjectMembersDialog', () => {
   it('assigns the chosen member and removes it from the options', async () => {
     const { wrapper, post } = mountHeader()
     const success = vi.spyOn(toast, 'success')
+    const invalidate = vi.spyOn(useMemberDirectoryStore(), 'invalidate')
     await openDialog(wrapper)
     const select = q<HTMLSelectElement>('#project-members-select')!
     select.value = '3'
@@ -85,6 +87,7 @@ describe('ProjectMembersDialog', () => {
     q<HTMLButtonElement>('[data-test=assign]')!.click()
     await flushPromises()
     expect(post).toHaveBeenCalledWith('/api/projects/5/members', { user_id: 3 })
+    expect(invalidate).toHaveBeenCalledWith(5)
     expect(qa('[data-test=member] [data-test=name]').map((n) => n.textContent)).toEqual(['User 1', 'User 2', 'User 3'])
     expect(q('[data-test=no-candidates]')).not.toBeNull()
     expect(success).toHaveBeenCalled()
@@ -106,10 +109,12 @@ describe('ProjectMembersDialog', () => {
 
   it('removes a member', async () => {
     const { wrapper, del } = mountHeader()
+    const invalidate = vi.spyOn(useMemberDirectoryStore(), 'invalidate')
     await openDialog(wrapper)
     q<HTMLButtonElement>('[data-test=remove]')!.click()
     await flushPromises()
     expect(del).toHaveBeenCalledWith('/api/projects/5/members/2')
+    expect(invalidate).toHaveBeenCalledWith(5)
     expect(qa('[data-test=member]')).toHaveLength(1)
     expect(qa('#project-members-select option:not([disabled])')).toHaveLength(2)
   })

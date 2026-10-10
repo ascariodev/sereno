@@ -31,7 +31,7 @@ async function mountAside(task: Task | null = base, props: Record<string, unknow
   setActivePinia(pinia)
   useOrganizationStore().$patch({ activeId: 1, organizations: [{ id: 1, name: 'Org', roles: who.roles ?? ['member'] }] as never })
   useAuthStore().$patch({ user: { id: who.userId ?? 1 } as never })
-  useMemberDirectoryStore().$patch({ members: [{ id: 3, name: 'Bea', email: 'b@b.c', role: 'member', joined_at: null }] })
+  useMemberDirectoryStore().$patch({ entries: { 5: { members: [{ id: 3, name: 'Bea', email: 'b@b.c', role: 'member', joined_at: null }], loaded: true, loadedAt: Date.now(), generation: 0, inFlight: null } } })
   vi.spyOn(useMemberDirectoryStore(), 'ensureLoaded').mockResolvedValue()
   const store = useTasksStore()
   store.$patch({ projectId: 5 })

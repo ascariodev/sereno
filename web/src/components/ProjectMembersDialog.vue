@@ -5,12 +5,14 @@ import { ApiError } from '../api/client'
 import { listMembers } from '../api/members'
 import { assignProjectMember, listProjectMembers, unassignProjectMember } from '../api/projects'
 import type { Member } from '../api/types'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import AppAvatar from './ui/AppAvatar.vue'
 import AppDialog from './ui/AppDialog.vue'
 import { toast } from './ui/toast'
 
 const props = defineProps<{ projectId: number }>()
+const directory = useMemberDirectoryStore()
 const open = defineModel<boolean>('open', { default: false })
 
 const { t } = useI18n()
@@ -77,6 +79,7 @@ async function assign(): Promise<void> {
   actionError.value = null
   try {
     const added = await assignProjectMember(props.projectId, target.id)
+    directory.invalidate(props.projectId)
     if (current !== generation) return
     projectMembers.value = [...projectMembers.value.filter((m) => m.id !== added.id), added]
     selectedId.value = ''
@@ -97,6 +100,7 @@ async function unassign(member: Member): Promise<void> {
   actionError.value = null
   try {
     await unassignProjectMember(props.projectId, member.id)
+    directory.invalidate(props.projectId)
     if (current !== generation) return
     projectMembers.value = projectMembers.value.filter((m) => m.id !== member.id)
     toast.success(t('projectMembers.removed', { name: member.name }))

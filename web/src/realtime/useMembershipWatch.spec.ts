@@ -7,6 +7,7 @@ import { api, ApiError } from '../api/client'
 import { toast, toasts } from '../components/ui/toast'
 import { i18n, setLocale } from '../i18n'
 import { useAuthStore } from '../stores/auth'
+import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
@@ -179,6 +180,23 @@ describe('useMembershipWatch', () => {
     await flushPromises()
     expect(projects.projects.map((p) => p.id)).toEqual([1, 2])
     expect(projects.channelByProject).toEqual({ 1: 7, 2: 8 })
+  })
+
+  it('invalidates the project directory when its access changes, and all of them on a role change', async () => {
+    const { get } = await mountWatch([{ ...one, roles: ['admin'] }, two])
+    serveProjects(get, [1, 2])
+    await useProjectsStore().reload()
+    const invalidate = vi.spyOn(useMemberDirectoryStore(), 'invalidate')
+    changeProjectAccess(1, 1, true)
+    await flushPromises()
+    expect(invalidate).toHaveBeenCalledWith(1)
+    invalidate.mockClear()
+    changeProjectAccess(2, 1, true)
+    await flushPromises()
+    expect(invalidate).not.toHaveBeenCalled()
+    changeRole(1, 'admin')
+    await flushPromises()
+    expect(invalidate).toHaveBeenCalledWith()
   })
 
   it('ignores project access changes of another organization', async () => {
