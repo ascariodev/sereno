@@ -119,3 +119,23 @@ it('translates the role message', function () {
     projectMembersCall($this->admin, $this->organization, 'POST', "{$this->project->id}/members", ['user_id' => $this->owner->id])
         ->assertJsonPath('errors.user_id.0', 'Solo los usuarios con rol member se pueden asignar a un proyecto.');
 });
+
+it('rechecks the member role under the organization lock when assigning', function () {
+    beforeOrganizationLock('for update', fn () => $this->organization->changeMemberRole($this->other, Role::Admin));
+
+    projectMembersCall($this->owner, $this->organization, 'POST', "{$this->project->id}/members", ['user_id' => $this->other->id])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.user_id.0', 'Only users with the member role can be assigned to a project.');
+
+    expect($this->project->members()->pluck('users.id')->all())->toBe([$this->assigned->id]);
+});
+
+it('rechecks the member role under the organization lock when removing', function () {
+    beforeOrganizationLock('for update', fn () => $this->organization->changeMemberRole($this->assigned, Role::Admin));
+
+    projectMembersCall($this->owner, $this->organization, 'DELETE', "{$this->project->id}/members/{$this->assigned->id}")
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.user.0', 'Only users with the member role can be removed from a project.');
+
+    expect($this->project->members()->pluck('users.id')->all())->toBe([$this->assigned->id]);
+});

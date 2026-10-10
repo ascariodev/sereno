@@ -21,3 +21,21 @@ function assignMembersToAllProjects(): void
         ON CONFLICT (project_id, user_id) DO NOTHING
         SQL);
 }
+
+/**
+ * Runs $change once, right before the first query that locks the organizations row with $lock ('for update',
+ * 'for share'): simulates a concurrent change committed between the request's validation and its lock.
+ */
+function beforeOrganizationLock(string $lock, Closure $change): void
+{
+    $done = false;
+
+    DB::beforeExecuting(function (string $query) use ($lock, $change, &$done) {
+        if ($done || ! str_contains($query, 'from "organizations"') || ! str_ends_with($query, $lock)) {
+            return;
+        }
+
+        $done = true;
+        $change();
+    });
+}

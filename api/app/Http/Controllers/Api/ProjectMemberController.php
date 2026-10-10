@@ -59,12 +59,6 @@ class ProjectMemberController extends Controller
 
         $user = $organization->users()->whereKey($user)->firstOrFail();
 
-        if (! $user->hasRole(Role::Member->value)) {
-            throw ValidationException::withMessages([
-                'user' => __('Only users with the member role can be removed from a project.'),
-            ]);
-        }
-
         $this->unassign($project, $user);
 
         return response()->noContent();
@@ -74,6 +68,8 @@ class ProjectMemberController extends Controller
     private function assign(Project $project, User $user): void
     {
         $this->mutateAccess($project, $user, function () use ($project, $user) {
+            $this->ensureMemberRole($user, 'user_id', __('Only users with the member role can be assigned to a project.'));
+
             if ($project->addMember($user)) {
                 ProjectAccessChanged::dispatch($user->id, $project->organization_id, $project->id, true);
             }
@@ -87,6 +83,8 @@ class ProjectMemberController extends Controller
     private function unassign(Project $project, User $user): void
     {
         $this->mutateAccess($project, $user, function () use ($project, $user) {
+            $this->ensureMemberRole($user, 'user', __('Only users with the member role can be removed from a project.'));
+
             if (! $project->removeMember($user)) {
                 return;
             }
@@ -103,7 +101,8 @@ class ProjectMemberController extends Controller
 
     /**
      * Takes the same organization row lock as membership changes: only the request that changed access emits its
-     * effects, and a user removed from the organization meanwhile is not assigned again.
+     * effects, and a user removed from the organization or whose role changed meanwhile is not assigned again: the
+     * mutation reads the role under the lock, after any concurrent role change has committed.
      */
     private function mutateAccess(Project $project, User $user, callable $mutation): void
     {
@@ -116,6 +115,14 @@ class ProjectMemberController extends Controller
 
             $mutation();
         });
+    }
+
+    /** Reads the role fresh: a role loaded before the lock may be stale. */
+    private function ensureMemberRole(User $user, string $field, string $message): void
+    {
+        if (! $user->unsetRelation('roles')->hasRole(Role::Member->value)) {
+            throw ValidationException::withMessages([$field => $message]);
+        }
     }
 
     private function resource(User $user): MemberResource

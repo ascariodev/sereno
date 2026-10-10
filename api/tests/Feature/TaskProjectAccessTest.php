@@ -104,3 +104,28 @@ it('keeps editing a task whose current assignee lost access, rejecting only a ch
         ->assertUnprocessable()->assertJsonValidationErrors(['assignee_id']);
     expect($task->fresh()->assignee_id)->toBe($lost->id);
 });
+
+it('rechecks the assignee access under the organization lock when creating a task', function () {
+    beforeOrganizationLock('for share', fn () => $this->mine->removeMember($this->member));
+
+    taskAccessCall($this->admin, $this->organization, 'POST', "/{$this->mine->id}/tasks", ['title' => 'T', 'assignee_id' => $this->member->id])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.assignee_id.0', 'The selected assignee does not have access to this project.');
+
+    expect(Task::query()->where('project_id', $this->mine->id)->count())->toBe(0);
+});
+
+it('rechecks a new assignee access under the organization lock when updating a task', function () {
+    $task = new Task(['title' => 'Mine', 'status' => 'todo', 'position' => 1.0]);
+    $task->project_id = $this->mine->id;
+    $task->number = 1;
+    $task->save();
+
+    beforeOrganizationLock('for share', fn () => $this->mine->removeMember($this->member));
+
+    taskAccessCall($this->admin, $this->organization, 'PATCH', "/{$this->mine->id}/tasks/{$task->id}", ['title' => 'New', 'assignee_id' => $this->member->id])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.assignee_id.0', 'The selected assignee does not have access to this project.');
+
+    expect($task->fresh())->assignee_id->toBeNull()->title->toBe('Mine');
+});
