@@ -193,8 +193,8 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 ## Mejoras propuestas
 - [x] M-1 (media, sonnet): limitar `/api/members` a owner y admin, o sin email para members, para no exponer los
   correos de toda la organización. Aplicada: `/api/members` da el email a owner y admin y a un member solo el suyo (`MemberPolicy::viewEmail`, `MemberResource::showEmail()`, cerrado por defecto); `/api/projects/{p}/members` lo mantiene a propósito (menciones).
-- [ ] M-2 (media, sonnet): acortar el TTL de las URLs firmadas de adjuntos (hoy 60 min, siguen valiendo tras perder
-  el acceso).
+- [ ] M-2 (alta, plan nuevo): acortar el TTL de las URLs firmadas de adjuntos (hoy 60 min, siguen valiendo tras perder
+  el acceso). Decisión del usuario: endpoint `GET /api/attachments/{id}/url` que valida el acceso y firma una URL nueva al hacer clic, con reintento de la imagen; luego TTL corto y `URL_EXPIRY_STEP_SECONDS` menor. La web hoy guarda las URLs mientras el canal sigue abierto. Va a un plan propio (`/planificar adjuntos-url`).
 - [x] M-3 (baja, sonnet): helper o trait común para `belongsToActiveOrganization`/`canManage`, repetidos en cada
   policy.
 - [x] M-4 (baja, sonnet): un member de ejemplo con proyectos asignados en `DatabaseSeeder`.
