@@ -372,6 +372,14 @@
     "readOnly": "This project is archived; the task is read-only.",
     "fromNotice": "Origin notice",
     "openNotice": "View the notice",
+    "delete": "Delete task",
+    "deleteTitle": "Delete task",
+    "deleteConfirm": "Delete {key}? This cannot be undone.",
+    "deleteAction": "Delete",
+    "deleting": "Deleting...",
+    "cancel": "Cancel",
+    "deleteForbidden": "You are not allowed to delete this task.",
+    "deleteFailed": "Could not delete the task. Try again.",
     "failed": "Could not save the task. Try again."
   },
   "taskCreate": {

@@ -7,6 +7,7 @@ import * as tasksApi from '../api/tasks'
 import type { Task, TaskLogGroup } from '../api/types'
 import { i18n } from '../i18n'
 import { createAppRouter } from '../router'
+import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { useTasksStore } from '../stores/tasks'
@@ -25,10 +26,11 @@ function fakeMatchMedia(matches: boolean) {
   window.matchMedia = vi.fn().mockReturnValue({ matches, addEventListener: vi.fn(), removeEventListener: vi.fn() })
 }
 
-async function mountAside(task: Task | null = base, props: Record<string, unknown> = {}) {
+async function mountAside(task: Task | null = base, props: Record<string, unknown> = {}, who: { userId?: number; roles?: string[] } = {}) {
   const pinia = createPinia()
   setActivePinia(pinia)
-  useOrganizationStore().$patch({ activeId: 1 })
+  useOrganizationStore().$patch({ activeId: 1, organizations: [{ id: 1, name: 'Org', roles: who.roles ?? ['member'] }] as never })
+  useAuthStore().$patch({ user: { id: who.userId ?? 1 } as never })
   useMemberDirectoryStore().$patch({ members: [{ id: 3, name: 'Bea', email: 'b@b.c', role: 'member', joined_at: null }] })
   vi.spyOn(useMemberDirectoryStore(), 'ensureLoaded').mockResolvedValue()
   const store = useTasksStore()
@@ -175,5 +177,111 @@ describe('TaskAside', () => {
     expect(sheet!.className).toContain('app-dialog--sheet-bottom')
     expect(sheet!.querySelector('.task-aside')!.classList.contains('wide')).toBe(false)
     expect(wrapper.emitted('close')).toBeUndefined()
+  })
+
+  describe('delete', () => {
+    const confirmBtn = () => q<HTMLButtonElement>('[data-test="delete-confirm"]')!
+
+    async function openConfirm(task: Task | null = base, props = {}, who = {}) {
+      const ctx = await mountAside(task, props, who)
+      q<HTMLButtonElement>('[data-test="delete"]')!.click()
+      await flushPromises()
+      expect(q('[data-test="delete-text"]')!.textContent).toContain('P-1')
+      return ctx
+    }
+
+    it('shows the action to the creator, admins and owners only, and never read-only', async () => {
+      const cases: [{ userId: number; roles?: string[] }, boolean, Record<string, unknown>?][] = [
+        [{ userId: 1 }, true],
+        [{ userId: 2, roles: ['member'] }, false],
+        [{ userId: 2, roles: ['admin'] }, true],
+        [{ userId: 2, roles: ['owner'] }, true],
+        [{ userId: 1 }, false, { readOnly: true }],
+      ]
+      for (const [who, visible, props] of cases) {
+        const { wrapper } = await mountAside(base, props, who)
+        expect(q('[data-test="delete"]') !== null).toBe(visible)
+        wrapper.unmount()
+      }
+    })
+
+    it('cancel closes the confirmation without deleting', async () => {
+      const spy = vi.spyOn(tasksApi, 'deleteTask').mockResolvedValue()
+      const { wrapper } = await openConfirm()
+      q<HTMLButtonElement>('[data-test="delete-cancel"]')!.click()
+      await flushPromises()
+      expect(q('[data-test="delete-confirm"]')).toBeNull()
+      expect(spy).not.toHaveBeenCalled()
+      expect(wrapper.emitted('close')).toBeUndefined()
+    })
+
+    it('deletes, removes from the store and closes with replace, without a not-found toast', async () => {
+      const spy = vi.spyOn(tasksApi, 'deleteTask').mockResolvedValue()
+      const error = vi.spyOn(toast, 'error')
+      const { wrapper, store } = await openConfirm()
+      confirmBtn().click()
+      await flushPromises()
+      expect(spy).toHaveBeenCalledWith(5, 9)
+      expect(store.find(9)).toBeUndefined()
+      expect(wrapper.emitted('close')).toEqual([[true]])
+      expect(error).not.toHaveBeenCalled()
+    })
+
+    it('disables the buttons while deleting', async () => {
+      let resolve!: () => void
+      const spy = vi.spyOn(tasksApi, 'deleteTask').mockReturnValue(new Promise<void>((r) => (resolve = r)))
+      await openConfirm()
+      confirmBtn().click()
+      await flushPromises()
+      expect(confirmBtn().disabled).toBe(true)
+      expect(q<HTMLButtonElement>('[data-test="delete-cancel"]')!.disabled).toBe(true)
+      confirmBtn().click()
+      expect(spy).toHaveBeenCalledTimes(1)
+      resolve()
+      await flushPromises()
+    })
+
+    it('a 403 keeps the panel open and shows a toast', async () => {
+      vi.spyOn(tasksApi, 'deleteTask').mockRejectedValue(new ApiError(403, 'no', {}))
+      const error = vi.spyOn(toast, 'error')
+      const { wrapper, store } = await openConfirm()
+      confirmBtn().click()
+      await flushPromises()
+      expect(error).toHaveBeenCalledWith('You are not allowed to delete this task.')
+      expect(wrapper.emitted('close')).toBeUndefined()
+      expect(store.find(9)).toBeDefined()
+      expect(q('[data-test="delete-confirm"]')).toBeNull()
+    })
+
+    it('a 404 closes with replace and the not-found toast', async () => {
+      vi.spyOn(tasksApi, 'deleteTask').mockRejectedValue(new ApiError(404, 'gone', {}))
+      const error = vi.spyOn(toast, 'error')
+      const { wrapper } = await openConfirm()
+      confirmBtn().click()
+      await flushPromises()
+      expect(error).toHaveBeenCalledTimes(1)
+      expect(wrapper.emitted('close')).toEqual([[true]])
+    })
+
+    it('a network error keeps the panel open and shows the network toast', async () => {
+      vi.spyOn(tasksApi, 'deleteTask').mockRejectedValue(new ApiError(0, 'net', {}))
+      const error = vi.spyOn(toast, 'error')
+      const { wrapper } = await openConfirm()
+      confirmBtn().click()
+      await flushPromises()
+      expect(error).toHaveBeenCalledTimes(1)
+      expect(wrapper.emitted('close')).toBeUndefined()
+      expect(q('[data-test="delete"]')).not.toBeNull()
+    })
+
+    it('stacks the confirmation over the sheet on narrow viewports', async () => {
+      fakeMatchMedia(true)
+      vi.spyOn(tasksApi, 'deleteTask').mockResolvedValue()
+      const { wrapper } = await openConfirm()
+      expect(document.querySelectorAll('[role="dialog"]').length).toBe(2)
+      confirmBtn().click()
+      await flushPromises()
+      expect(wrapper.emitted('close')).toEqual([[true]])
+    })
   })
 })

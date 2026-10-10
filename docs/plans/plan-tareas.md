@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 20
+**Estado:** en curso · Fase actual: 21
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -121,7 +121,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 ### [x] Fase 19 — Panel de detalle de la tarea (web)
 - `?task=<id>` abre `TaskAside` (hoja en móvil): editar título, descripción y asignado; enlace al aviso de origen.
 
-### [ ] Fase 20 — Borrar una tarea (web)
+### [x] Fase 20 — Borrar una tarea (web)
 - Acción en el panel con confirmación, según la policy; cierra el panel.
 
 ### [ ] Fase 21 — Mover con menú (web)
@@ -195,7 +195,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `plan.*`. Los límites de archivos de las fases cuentan solo código de producción, no specs.
 
 ## Notas para la próxima sesión
-- API terminado (fases 1 a 11). Web: fase 19 hecha: `TaskAside` (columna de 340px, hoja en móvil) se monta
+- API terminado (fases 1 a 11). Web: fase 20 hecha: borrar desde `TaskAside` (visible para creador, admin u owner y no en solo lectura; confirmación con `AppDialog`, generación L-32, `resetForm` cierra el diálogo al cambiar de tarea); al borrar emite `close(true)` sin el toast de "no encontrada". Specs con varios montajes: desmontar con `wrapper.unmount()`, no vaciar `document.body`. Fase 19 hecha: `TaskAside` (columna de 340px, hoja en móvil) se monta
   solo tras la carga; tarea ausente, borrada en vivo o 404 cierran con toast y `router.replace` sin `task` (conserva
   la query). Edición en vivo no pisa un formulario tocado. Límites compartidos en `components/taskLimits.ts`.
   Layout del panel sin revisar en navegador. Fase 18: `TaskCreateDialog` (props `projectId`, `status`,
