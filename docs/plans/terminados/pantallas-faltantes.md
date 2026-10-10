@@ -170,7 +170,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - [x] M-1 (alta, opus) — `api/app/Http/Requests/Auth/RegisterRequest.php`: con el registro cerrado, exigir también
   `inviterCanStillGrantRole()` en `authorize()`; hoy una invitación cuyo invitador perdió permisos crea una cuenta que
   `accept` rechaza después (cuenta huérfana, sin fuga). Ampliar `AuthTest`.
-- [ ] M-2 (baja, sonnet) — `api/.env.example` (y stacks de producción): documentar `REGISTRATION_ENABLED=true`.
+- [x] M-2 (baja, sonnet) — `api/.env.example` (y stacks de producción): documentar `REGISTRATION_ENABLED=true`.
 - [x] M-3 (baja, sonnet) — `RegisterRequest::authorize()`: acortar el docblock a una línea.
 - [x] M-4 (baja, sonnet) — `web/src/views/InviteView.vue`: mostrar un texto propio para el 403 al registrarse
   ("el registro está cerrado") en vez de `invite.registerFailed`, y que `InviteView.spec` afirme el texto exacto.
