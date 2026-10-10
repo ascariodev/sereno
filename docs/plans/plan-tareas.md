@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 12
+**Estado:** en curso · Fase actual: 13
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -93,7 +93,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 
 ### Web
 
-### [ ] Fase 12 — Tipos y API de tareas (web)
+### [x] Fase 12 — Tipos y API de tareas (web)
 - Tipo `Task` según `TaskResource` (L-09), `api/tasks.ts` (listar, crear, editar, mover, borrar), `LogGroup.task`.
 
 ### [ ] Fase 13 — Store de tareas (web) [riesgo]
@@ -187,7 +187,8 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   eventos para las demás tareas: la web tolera posiciones desfasadas y se corrige al recargar.
 
 ## Notas para la próxima sesión
-- API terminado (fases 1 a 11); sigue la web desde la fase 12. Trampa de tests: una tarea creada a mano debe
+- API terminado (fases 1 a 11). Web: fase 12 hecha (`api/types.ts` con `Task`, `TASK_STATUSES` en orden de
+  columnas, `isTaskStatus` para validar eventos, L-13; `api/tasks.ts` con parámetros en camelCase). Trampa de tests: una tarea creada a mano debe
   subir `projects.last_task_number`, o el store choca con `(project_id, number)` y da un 422 engañoso.
   Fases 1 a 10: Helpers de la 9: `removalTask`, `assigneeOf`; de la 10: `projectChannelName`
   (BroadcastingAuthTest). Canal: `ProjectChannel` en `organizations.{organization}.projects.{project}`. `LogGroupResource` trae `task` con `whenLoaded`: todo lugar que lo devuelva (hoy solo
@@ -231,3 +232,5 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   la violación de `tasks_log_group_id_unique` y relanza las demás.
 - [ ] M-17 (baja, sonnet): base común para `TaskCreated` y `TaskUpdated`; test de que un delete con 404 o 403 no
   emite `TaskDeleted`.
+- [ ] M-18 (baja, sonnet): `TaskLogGroup.level` con el tipo de nivel de log existente; `createTask` arma el cuerpo
+  solo con los campos definidos, como `updateTask`.

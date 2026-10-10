@@ -64,6 +64,57 @@ export interface LogGroup {
   first_seen_at: string
   last_seen_at: string
   events?: LogEvent[]
+  /** Linked task. Present when the API loads it (list and detail); null when the group has none. */
+  task?: LogGroupTask | null
+}
+
+export interface LogGroupTask {
+  id: number
+  /** Composed with the project key, e.g. `POSVE-14`. */
+  key: string
+  status: TaskStatus
+}
+
+export const TASK_STATUSES = ['todo', 'in_progress', 'in_review', 'done'] as const
+
+/** Board column order. */
+export type TaskStatus = (typeof TASK_STATUSES)[number]
+
+export function isTaskStatus(value: unknown): value is TaskStatus {
+  return typeof value === 'string' && (TASK_STATUSES as readonly string[]).includes(value)
+}
+
+/** Task as returned by `TaskResource`. Dates are ISO UTC with microseconds (`2026-10-10T00:41:21.927755Z`). */
+export interface Task {
+  id: number
+  project_id: number
+  key: string
+  number: number
+  title: string
+  description: string | null
+  status: TaskStatus
+  /** Order inside the column. A float: can be zero or negative (moved to the top) and fractional. */
+  position: number
+  created_by: number | null
+  /** Null when unassigned; absent only if the API does not load the relation. */
+  assignee?: TaskAssignee | null
+  /** Origin notice; null when the task has none or the group was deleted. */
+  log_group?: TaskLogGroup | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TaskAssignee {
+  id: number
+  name: string
+}
+
+export interface TaskLogGroup {
+  id: number
+  level: string
+  title: string
+  status: LogGroupStatus
+  events_count: number
 }
 
 export interface HourlyCounts {
