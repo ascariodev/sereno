@@ -28,13 +28,16 @@ class ProjectMemberController extends Controller
         $organization = app(CurrentOrganization::class)->get();
         $assignedIds = $project->members()->pluck('users.id')->all();
 
-        $viewers = $organization->users()->with('roles')->orderBy('name')->orderBy('users.id')->get()
-            ->filter(fn (User $user) => match ($user->roles->first()?->name) {
-                Role::Owner->value, Role::Admin->value => true,
-                Role::Member->value => in_array($user->id, $assignedIds, true),
-                default => false,
-            })
-            ->values();
+        $viewers = $organization->users()
+            ->where(fn ($query) => $query
+                ->whereHas('roles', fn ($roles) => $roles->whereIn('roles.name', [Role::Owner->value, Role::Admin->value]))
+                ->orWhere(fn ($assigned) => $assigned
+                    ->whereIn('users.id', $assignedIds)
+                    ->whereHas('roles', fn ($roles) => $roles->where('roles.name', Role::Member->value))))
+            ->with('roles')
+            ->orderBy('name')
+            ->orderBy('users.id')
+            ->get();
 
         return MemberResource::collection($viewers);
     }
