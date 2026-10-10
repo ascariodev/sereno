@@ -101,15 +101,20 @@ export function useMembershipWatch(): void {
     const name = projectsStore.projects.find((project) => project.id === projectId)?.name
     const wasOpen = openProjectId() === projectId
     leaveProject(organizationId, projectId, projectsStore.removeProject(projectId))
+    const userId = auth.user?.id
+    const refreshing = projectsStore.refresh()
     if (wasOpen) {
+      refreshing.catch(() => undefined)
       toast.info(name ? t('organization.projectAccessLost', { project: name }) : t('organization.projectAccessLostUnknown'))
       await router.replace({ name: 'projects' })
+      if (auth.user?.id !== userId || organization.activeId !== organizationId) return
     }
-    await projectsStore.refresh()
+    await refreshing
   }
 
   async function onMembershipRoleChanged(organizationId: number, role: string): Promise<void> {
     const openProject = organization.activeId === organizationId ? openProjectId() : null
+    const openProjectName = projectsStore.projects.find((project) => project.id === openProject)?.name
     try {
       await organization.handleMembershipRoleChanged(organizationId, role)
       if (organization.activeId !== organizationId) return
@@ -121,7 +126,7 @@ export function useMembershipWatch(): void {
     }
     if (openProject === null || projectsStore.failed) return
     if (projectsStore.projects.some((project) => project.id === openProject) || openProject in projectsStore.channelByProject) return
-    toast.info(t('organization.projectAccessLostUnknown'))
+    toast.info(openProjectName ? t('organization.projectAccessLost', { project: openProjectName }) : t('organization.projectAccessLostUnknown'))
     await router.replace({ name: 'projects' })
   }
 

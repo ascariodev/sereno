@@ -227,6 +227,58 @@ describe('useMembershipWatch', () => {
     await flushPromises()
     expect(projects.projects.map((p) => p.id)).toEqual([2])
     expect(router.currentRoute.value.name).toBe('projects')
+    expect(toasts.value.map((t) => t.message)).toEqual(['You no longer have access to P1.'])
+  })
+
+  it('on losing the open project launches the refresh before the navigation settles', async () => {
+    const { get, router } = await mountWatch()
+    serveProjects(get, [1, 2])
+    await useProjectsStore().reload()
+    let release: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    router.beforeEach(() => gate.then(() => true))
+    const calls = get.mock.calls.filter(([path]) => path === '/api/projects').length
+    changeProjectAccess(1, 1, false)
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('channel')
+    expect(get.mock.calls.filter(([path]) => path === '/api/projects').length).toBe(calls + 1)
+    release()
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('projects')
+  })
+
+  async function loseOpenProjectDuringNavigation(change: (context: Awaited<ReturnType<typeof mountWatch>>) => void) {
+    const context = await mountWatch()
+    serveProjects(context.get, [1, 2])
+    await useProjectsStore().reload()
+    const awaited = vi.fn()
+    const pending = { then: awaited, catch: () => pending } as unknown as Promise<void>
+    vi.spyOn(useProjectsStore(), 'refresh').mockReturnValue(pending)
+    let release: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    context.router.beforeEach(() => gate.then(() => true))
+    changeProjectAccess(1, 1, false)
+    await flushPromises()
+    change(context)
+    release()
+    await flushPromises()
+    expect(context.router.currentRoute.value.name).toBe('projects')
+    return awaited
+  }
+
+  it('on losing the open project waits for the refresh when the session is unchanged', async () => {
+    const awaited = await loseOpenProjectDuringNavigation(() => undefined)
+    expect(awaited).toHaveBeenCalledTimes(1)
+  })
+
+  it('on losing the open project does not wait for the refresh after the organization changed meanwhile', async () => {
+    const awaited = await loseOpenProjectDuringNavigation(({ organization }) => organization.$patch({ activeId: 2 }))
+    expect(awaited).not.toHaveBeenCalled()
+  })
+
+  it('on losing the open project does not wait for the refresh after the session ended meanwhile', async () => {
+    const awaited = await loseOpenProjectDuringNavigation(() => useAuthStore().clearSession())
+    expect(awaited).not.toHaveBeenCalled()
   })
 
   it('ignores a role change the store already reflects', async () => {
