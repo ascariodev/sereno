@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\MentionController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\TaskController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -51,6 +52,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::get('projects/{project}/log-groups/hourly', [LogGroupController::class, 'hourly']);
     Route::get('projects/{project}/log-groups/{group}', [LogGroupController::class, 'show']);
     Route::patch('projects/{project}/log-groups/{group}', [LogGroupController::class, 'update']);
+    Route::get('projects/{project}/tasks', [TaskController::class, 'index']);
     Route::get('members', [MemberController::class, 'index']);
     Route::patch('members/{user}', [MemberController::class, 'update']);
     Route::delete('members/{user}', [MemberController::class, 'destroy']);

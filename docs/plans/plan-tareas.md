@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -55,7 +55,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - **Terminado cuando:** test con `Gate::forUser(...)` por rol y caso: miembro crea y edita; miembro no creador no
   borra; admin y owner sí; alguien de otra organización no ve ni edita.
 
-### [ ] Fase 3 — Listar las tareas de un proyecto (api)
+### [x] Fase 3 — Listar las tareas de un proyecto (api)
 - `GET projects/{project}/tasks` (todas, ordenadas por columna y `position`), `TaskResource` (`key`, `number`,
   campos, `assignee {id,name}`, `log_group {id, level, title, status, events_count}` o null). Aislamiento.
 
@@ -164,9 +164,14 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   admin u owner; un proyecto archivado es de solo lectura. Borrado físico.
 - 2026-10-10 — Tiempo real con un canal privado por proyecto (`organizations.{org}.projects.{project}`). El tablero
   carga todas las tareas del proyecto sin paginar; los filtros se aplican en el cliente.
+- 2026-10-10 — Fase 3: `TaskResource` expone `id`, `project_id`, `key`, `number`, `title`, `description`, `status`,
+  `position`, `created_by`, `created_at`, `updated_at`, y `assignee`/`log_group` con `whenLoaded`: toda respuesta con
+  una tarea (fases 4 a 6 y eventos de la 11) carga `assignee` y `logGroup` como `index` y fija `project` con
+  `setRelation` para `key()`.
 
 ## Notas para la próxima sesión
-- Fases 1 y 2 hechas. Helpers de test ocupados: `makeTask` (TaskTest), `taskPolicyTask` (TaskPolicyTest).
+- Fases 1 a 3 hechas. Helpers de test ocupados: `makeTask` (TaskTest), `taskPolicyTask` (TaskPolicyTest),
+  `seedListedTask` (TaskListApiTest). Fechas de `TaskResource` sin verificar con tinker: confirmarlas en la fase 12.
   Los FormRequest de las fases 4 a 7 rechazan el proyecto archivado (la policy no lo hace). `Task` no tiene factory: los tests usan el helper global `makeTask` (`TaskTest`); crear
   `TaskFactory` si las fases siguientes lo necesitan. `Task::key()` carga `project` perezoso: `with('project')` en
   listados (fase 3).
@@ -179,3 +184,4 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - [ ] M-4 (media, sonnet): paginar o limitar la columna Hecho si crece.
 - [ ] M-5 (media, sonnet): efectos cruzados opcionales entre tarea y grupo (Hecho resuelve, reabierto avisa).
 - [ ] M-6 (baja, sonnet): test de `TaskPolicy` sin organización activa (falla cerrada en `viewAny` y `create`).
+- [ ] M-7 (baja, sonnet): orden por columna de `TaskController@index` con `orderByRaw` y bindings o un helper en `TaskStatus`, en vez de interpolar el `CASE`.
