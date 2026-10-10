@@ -13,6 +13,7 @@ import LevelPill from '../components/ui/LevelPill.vue'
 import { LOG_LEVELS } from '../api/logLevels'
 import Sparkline from '../components/ui/Sparkline.vue'
 import StatusPill from '../components/ui/StatusPill.vue'
+import { taskOfGroup } from '../composables/useLogGroupStatuses'
 import { onReconnect, subscribeToChannel } from '../realtime/echo'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
@@ -246,6 +247,10 @@ onUnmounted(() => {
   resetHourly()
 })
 
+function taskOf(group: LogGroup) {
+  return group.task ?? taskOfGroup(group.id) ?? null
+}
+
 function formatDate(value: string): string {
   return new Date(value).toLocaleString(locale.value, { dateStyle: 'medium', timeStyle: 'short' })
 }
@@ -317,6 +322,16 @@ function formatDate(value: string): string {
                       :aria-current="group.id === groupId ? 'true' : undefined"
                       @click.prevent="selectGroup(group.id)"
                     >{{ group.title }}</a>
+                    <RouterLink
+                      v-if="taskOf(group)"
+                      class="log-view__task"
+                      data-test="group-task-chip"
+                      :to="{ name: 'project-plan', params: { projectId }, query: { task: String(taskOf(group)!.id) } }"
+                      :aria-label="t('logGroup.viewTask', { key: taskOf(group)!.key })"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 7v7M12 7v4M16 7v9" /></svg>
+                      {{ taskOf(group)!.key }}
+                    </RouterLink>
                   </td>
                   <td class="log-view__number">{{ group.events_count }}</td>
                   <td class="log-view__activity">
@@ -438,6 +453,22 @@ function formatDate(value: string): string {
   font-weight: 500;
   overflow-wrap: anywhere;
   text-decoration: none;
+}
+.log-view__task {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.log-view__task:hover {
+  color: var(--accent-ink);
 }
 .log-view__group:hover,
 .log-view__group[aria-current='true'] {

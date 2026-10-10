@@ -8,6 +8,7 @@ import type { LogGroup } from '../api/types'
 import { i18n } from '../i18n'
 import { setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
+import { resetGroupStatuses, setGroupTask } from '../composables/useLogGroupStatuses'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
@@ -81,6 +82,7 @@ async function mountView(path = '/projects/5/log') {
 describe('LogView', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    resetGroupStatuses()
     setRealtimeClientFactory(() => null)
   })
   afterEach(() => {
@@ -103,6 +105,22 @@ describe('LogView', () => {
     expect(rows[1].find('[data-status=resolved]').exists()).toBe(true)
     expect(wrapper.find('h1').text()).toContain('posveapi')
     expect(wrapper.find('[aria-label="Status"] [aria-pressed=true]').text()).toContain('Open')
+  })
+
+  it('shows a chip with the task key linking to the board, and reflects a task set from the aside', async () => {
+    mockApi(() => page([group(1, { task: { id: 9, key: 'POSVE-3', status: 'todo' } }), group(2)]))
+    const wrapper = await mountView()
+    const chips = wrapper.findAll('[data-test=group-task-chip]')
+    expect(chips).toHaveLength(1)
+    expect(chips[0].text()).toBe('POSVE-3')
+    expect(chips[0].attributes('href')).toBe('/projects/5/plan?task=9')
+    expect(wrapper.findAll('tbody tr')[0].find('a.log-view__group').element.contains(chips[0].element)).toBe(false)
+
+    setGroupTask(2, { id: 11, key: 'POSVE-4', status: 'todo' })
+    await nextTick()
+    const second = wrapper.findAll('tbody tr')[1].find('[data-test=group-task-chip]')
+    expect(second.text()).toBe('POSVE-4')
+    expect(second.attributes('href')).toBe('/projects/5/plan?task=11')
   })
 
   it('filters by status and level through the URL and goes back with history', async () => {
