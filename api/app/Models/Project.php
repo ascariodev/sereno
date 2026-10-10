@@ -80,15 +80,19 @@ class Project extends Model
         return $this->belongsToMany(User::class)->withPivot('organization_id')->withTimestamps();
     }
 
-    public function addMember(User $user): void
+    /** True when the user was not assigned yet. */
+    public function addMember(User $user): bool
     {
-        $this->members()->syncWithoutDetaching([
+        $changes = $this->members()->syncWithoutDetaching([
             $user->getKey() => ['organization_id' => $this->organization_id],
         ]);
+
+        return $changes['attached'] !== [];
     }
 
-    public function removeMember(User $user): void
+    /** True when the user was assigned. */
+    public function removeMember(User $user): bool
     {
-        $this->members()->detach($user->getKey());
+        return $this->members()->detach($user->getKey()) > 0;
     }
 }

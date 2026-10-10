@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\Role;
+use App\Events\ProjectAccessChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProjectMember\StoreProjectMemberRequest;
 use App\Http\Resources\MemberResource;
+use App\Jobs\TerminateUserConnections;
+use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
@@ -65,13 +70,49 @@ class ProjectMemberController extends Controller
     /** Single place for granting access; the side effects of gaining access hook in here. */
     private function assign(Project $project, User $user): void
     {
-        $project->addMember($user);
+        $this->mutateAccess($project, $user, function () use ($project, $user) {
+            if ($project->addMember($user)) {
+                ProjectAccessChanged::dispatch($user->id, $project->organization_id, $project->id, true);
+            }
+        });
     }
 
-    /** Single place for revoking access; the side effects of losing access hook in here. */
+    /**
+     * Single place for revoking access; the side effects of losing access hook in here. Sockets are cut because
+     * Reverb does not re-authorize the subscriptions already open to the project and its channel.
+     */
     private function unassign(Project $project, User $user): void
     {
-        $project->removeMember($user);
+        $this->mutateAccess($project, $user, function () use ($project, $user) {
+            if (! $project->removeMember($user)) {
+                return;
+            }
+
+            DB::table('tasks')
+                ->where('project_id', $project->id)
+                ->where('assignee_id', $user->id)
+                ->update(['assignee_id' => null, 'updated_at' => now()]);
+
+            ProjectAccessChanged::dispatch($user->id, $project->organization_id, $project->id, false);
+            TerminateUserConnections::scheduleAfterCommit($user->id);
+        });
+    }
+
+    /**
+     * Takes the same organization row lock as membership changes: only the request that changed access emits its
+     * effects, and a user removed from the organization meanwhile is not assigned again.
+     */
+    private function mutateAccess(Project $project, User $user, callable $mutation): void
+    {
+        DB::transaction(function () use ($project, $user, $mutation) {
+            $organization = Organization::query()->whereKey($project->organization_id)->lockForUpdate()->firstOrFail();
+
+            if (! $organization->users()->whereKey($user->id)->exists()) {
+                throw (new ModelNotFoundException)->setModel(User::class, [$user->id]);
+            }
+
+            $mutation();
+        });
     }
 
     private function resource(User $user): MemberResource

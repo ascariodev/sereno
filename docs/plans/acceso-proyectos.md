@@ -2,7 +2,7 @@
 
 **Objetivo:** membresía por proyecto: owner y admin ven toda la organización; un `member` solo ve los proyectos
 asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asignan desde la web y al invitar.
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -99,7 +99,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
   `ProjectPolicy.php`, `lang/{en,es}.json`.
 - **Terminado cuando:** test de API: listar, asignar, quitar, 403 a member, 422 si no es de la organización.
 
-### [ ] Fase 11 — Quitar acceso corta lo que queda abierto [riesgo]
+### [x] Fase 11 — Quitar acceso corta lo que queda abierto [riesgo]
 - **Alcance:** al quitar a alguien de un proyecto: desasignar sus tareas de ese proyecto, emitir
   `ProjectAccessChanged` a `users.{id}` (solo ids, L-38) y cortar sus sockets (`TerminateUserConnections`). Al
   asignar, el mismo evento con `granted`. Al degradar admin u owner a member, cortar sockets. `removeMember` borra
@@ -175,9 +175,11 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - 2026-10-10 — (Fase 9) Menciones: `MessageMentions::target()` filtra con `ProjectAccess::canViewId` antes del tope por mensaje; `MentionCreated::broadcastOn` revalida membresía y acceso con el canal cargado sin scopes (`[]` si no); `MentionController` filtra `index`, `read` y `unread_count` con `seesAll`/`visibleProjectIds` una vez por petición. Las filas de quien perdió el acceso se conservan y vuelven si lo recupera, salvo que el mensaje se edite: `sync` las borra (emite `MentionRemoved`) y no vuelven.
 - 2026-10-10 — (Fase 10) Contrato de miembros del proyecto (con `X-Organization-Id`; cada elemento es `MemberResource` `{id, name, email, role, joined_at}`, como `/api/members`; `joined_at` es la entrada a la organización, no la asignación): `GET /api/projects/{p}/members` 200 `{data: [...]}` sin paginar, por nombre e id, con owners, admins y members asignados (404 a member sin acceso). `POST` `{user_id}` 200 `{data: miembro}` idempotente; 403 a member antes de validar; 422 en `user_id` si no es de la organización o es owner o admin. `DELETE /members/{user}` 204 (también si no estaba asignado); 404 si no es de la organización; 422 en `user` si es owner o admin. El cliente deduce "quitable" de `role === 'member'`. Proyectos archivados también se gestionan.
 - 2026-10-10 — (Fase 10) `ProjectMemberController::assign()` y `unassign()` (privados) son el único sitio que llama a `Project::addMember`/`removeMember`: la fase 11 engancha ahí sus efectos.
+- 2026-10-10 — (Fase 11) Contrato realtime para la web: `ProjectAccessChanged` (`ShouldBroadcast`, `ShouldDispatchAfterCommit`) a `private-users.{id}`, `broadcastAs` `project.access_changed`, payload `{organization_id: int, project_id: int, granted: bool}`. Al degradar a member no se emite: la web reacciona a `membership.role_changed` recargando proyectos y canales.
+- 2026-10-10 — (Fase 11) `Project::addMember`/`removeMember` devuelven `bool` (si hubo cambio); sin cambio no hay evento ni corte. `assign()`/`unassign()` corren en transacción con el lock de fila de `organizations` (como los cambios de membresía) y revalidan que el usuario siga en la organización (404 si no). Al quitar, las tareas del proyecto se desasignan con UPDATE directo por `project_id` y `assignee_id`, sin `TaskUpdated` (como `Organization::removeMember`), y se corta con `TerminateUserConnections::scheduleAfterCommit($userId)` (5 s; `Organization` lo reutiliza). `changeMemberRole` corta sockets solo al pasar de admin u owner a member. `Organization::removeMember` borra las filas de `project_user` de esa organización.
 
 ## Notas para la próxima sesión
-- Fases 1 a 10 hechas (suite API 912 ok en el worktree). Siguiente: fase 11 [riesgo], efectos de quitar y dar acceso, enganchados en `ProjectMemberController::assign()`/`unassign()`.
+- Fases 1 a 11 hechas (suite API 921 ok en el worktree). Siguiente: fase 12 [límite], invitaciones con proyectos (API).
 - Trabajar en el worktree (ver Decisiones). No hay `python3` en el PATH de los subagentes; editar con heredocs o las herramientas de edición y dejar finales LF (Pint falla con `line_ending`). Cuidado con `perl -pi` desde el helper: pierde barras invertidas.
 - La migración de datos no se corrió en la base de desarrollo: corre con el próximo `migrate` tras el merge.
 
@@ -201,3 +203,6 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - [ ] M-14 (baja, sonnet): `MessageMentions::target()` hace 1 o 2 consultas por id mencionado sin acceso (sin tope); calcular el acceso en lote (`seesAll` por usuario y `project_user` en una consulta) o topar los ids antes de filtrar. Y reajustar su docblock, que quedó en una línea larga.
 - [ ] M-15 (baja, sonnet): en `DELETE /api/projects/{p}/members/{user}` el binding de `{user}` es global y un id inexistente da 404 antes del 403: resolver el usuario dentro del método tras `Gate::authorize`. Y en `en`, los 422 dicen "members of the organization" cuando la regla es el rol `member`: aclarar la redacción.
 - [ ] M-16 (baja, sonnet): `GET /api/projects/{p}/members` filtra en PHP los usuarios de la organización; pasar el filtro a la consulta si las organizaciones crecen.
+- [ ] M-17 (media, opus): carreras con el lock: la regla de rol `member` de asignar y quitar (`StoreProjectMemberRequest::after`, `ProjectMemberController::destroy`) corre fuera del lock de la organización, y un PATCH de tarea que asigna a alguien mientras pierde el acceso puede dejarlo asignado sin acceso (la validación del asignado no toma el lock). Revalidar dentro de la transacción.
+- [ ] M-18 (baja, sonnet): emitir `TaskUpdated` (o un evento de lote) al desasignar tareas por pérdida de acceso o salida de la organización, para que los tableros abiertos lo vean en vivo.
+- [ ] M-19 (baja, sonnet): test de que no sale `ProjectAccessChanged` ni el corte tras un rollback (forzar el 404 dentro de la transacción de `assign`/`unassign`).
