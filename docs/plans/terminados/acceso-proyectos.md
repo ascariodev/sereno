@@ -200,7 +200,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - [ ] M-6 (baja, sonnet): `project_user.organization_id` puede diferir del de su proyecto si se inserta sin `Project::addMember`; evaluar una FK compuesta `(project_id, organization_id)` o un test que lo vigile.
 - [x] M-7 (baja, sonnet): test de `ProjectAccess` con un team previo no nulo y con una excepción dentro, para cubrir L-03 completo (hoy solo el caso null).
 - [x] M-8 (baja, sonnet): `UpdateMessageRequest` y `DeleteMessageRequest` con `Gate::authorize(...)->allowed()` para que editar o borrar en un canal sin acceso dé 404 como el resto, con su test.
-- [ ] M-9 (baja, sonnet): `assignMembersToAllProjects()` repite el SQL de la migración de la fase 3; extraerlo a un lugar común o dejar un test que compare ambos resultados.
+- [x] M-9 (baja, sonnet): `assignMembersToAllProjects()` repite el SQL de la migración de la fase 3; extraerlo a un lugar común o dejar un test que compare ambos resultados.
 - [ ] M-10 (media, sonnet): `UpdateTaskRequest` valida el acceso del asignado aunque no cambie; si el asignado actual perdió el acceso (p. ej. admin degradado a member sin proyectos), cualquier edición que reenvíe `assignee_id` da 422. Validar solo cuando cambia respecto de `$task->assignee_id`.
 - [ ] M-11 (baja, sonnet): en las Requests que hacen `Gate::authorize(...)->allowed()`, el `->allowed()` es redundante (authorize lanza); dejar una forma única y clara en todas.
 - [ ] M-12 (baja, sonnet): tests de logs faltantes: PATCH de un grupo con un proyecto ajeno en la URL, y member sobre `store`, `rotate-key` y `destroy` de fuentes.

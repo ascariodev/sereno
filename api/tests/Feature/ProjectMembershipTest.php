@@ -79,3 +79,25 @@ it('assigns current members to every project of their organization through the d
         ->and($rows->where('user_id', $owner->id)->pluck('organization_id')->all())->toBe([$otherOrganization->id])
         ->and($rows->where('user_id', $admin->id))->toBeEmpty();
 });
+
+it('keeps the assignMembersToAllProjects helper equal to the data migration', function () {
+    Project::factory()->for($this->organization)->create(['archived_at' => now()]);
+    $this->organization->addMember(User::factory()->create(), [Role::Owner]);
+    $this->organization->addMember(User::factory()->create(), [Role::Admin]);
+    $this->organization->addMember(User::factory()->create(), [Role::Member]);
+    $otherOrganization = Organization::factory()->create();
+    Project::factory()->for($otherOrganization)->create();
+    $otherOrganization->addMember(User::factory()->create(), [Role::Member]);
+
+    $pairs = fn () => DB::table('project_user')
+        ->orderBy('project_id')->orderBy('user_id')
+        ->get(['organization_id', 'project_id', 'user_id'])->toArray();
+
+    assignMembersToAllProjects();
+    $fromHelper = $pairs();
+    DB::table('project_user')->delete();
+
+    (require database_path('migrations/2026_10_10_110000_assign_members_to_their_projects.php'))->up();
+
+    expect($fromHelper)->not->toBeEmpty()->and($pairs())->toEqual($fromHelper);
+});
