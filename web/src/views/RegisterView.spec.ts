@@ -61,6 +61,30 @@ describe('RegisterView', () => {
     expect(wrapper.find('form').exists()).toBe(true)
   })
 
+  it('shows a loading state while retrying, then focuses the name field', async () => {
+    const { wrapper } = await mountRegister('/register', document.body, new Error('network'))
+    let resolve: (value: boolean) => void = () => {}
+    vi.spyOn(registration, 'registrationStatus').mockReturnValue(new Promise<boolean>((r) => (resolve = r)))
+    await wrapper.find('[data-test=retry]').trigger('click')
+    expect(wrapper.find('[data-test=loading]').text()).toBe(i18n.global.t('common.loading'))
+    expect(wrapper.find('[data-test=status-error]').exists()).toBe(false)
+    resolve(true)
+    await flushPromises()
+    expect(wrapper.find('[data-test=loading]').exists()).toBe(false)
+    expect(document.activeElement).toBe(document.getElementById('register-name'))
+    wrapper.unmount()
+  })
+
+  it('shows the error again when the retry fails too', async () => {
+    const { wrapper } = await mountRegister('/register', undefined, new Error('network'))
+    vi.spyOn(registration, 'registrationStatus').mockRejectedValue(new Error('network'))
+    await wrapper.find('[data-test=retry]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-test=loading]').exists()).toBe(false)
+    expect(wrapper.find('[data-test=status-error]').text()).toContain(i18n.global.t('register.statusError'))
+    expect(wrapper.find('form').exists()).toBe(false)
+  })
+
   it('focuses the name field when open', async () => {
     const { wrapper } = await mountRegister('/register', document.body)
     expect(document.activeElement).toBe(document.getElementById('register-name'))

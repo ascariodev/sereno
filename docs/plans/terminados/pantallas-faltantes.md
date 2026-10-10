@@ -170,7 +170,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - [x] M-1 (alta, opus) — `api/app/Http/Requests/Auth/RegisterRequest.php`: con el registro cerrado, exigir también
   `inviterCanStillGrantRole()` en `authorize()`; hoy una invitación cuyo invitador perdió permisos crea una cuenta que
   `accept` rechaza después (cuenta huérfana, sin fuga). Ampliar `AuthTest`.
-- [ ] M-2 (baja, sonnet) — `api/.env.example` (y stacks de producción): documentar `REGISTRATION_ENABLED=true`.
+- [x] M-2 (baja, sonnet) — `api/.env.example` (y stacks de producción): documentar `REGISTRATION_ENABLED=true`.
 - [x] M-3 (baja, sonnet) — `RegisterRequest::authorize()`: acortar el docblock a una línea.
 - [x] M-4 (baja, sonnet) — `web/src/views/InviteView.vue`: mostrar un texto propio para el 403 al registrarse
   ("el registro está cerrado") en vez de `invite.registerFailed`, y que `InviteView.spec` afirme el texto exacto.
@@ -189,8 +189,8 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   `<div>`.
 - [x] M-11 (baja, sonnet) — `web/src/composables/useProjectCreate.ts`: `console.warn` en desarrollo si
   `useOpenProjectCreate()` cae al no-op por falta de provider.
-- [ ] M-12 (baja, sonnet) — `api/tests/Feature/AuthTest.php`, test "inviter can no longer grant the role": poner el
+- [x] M-12 (baja, sonnet) — `api/tests/Feature/AuthTest.php`, test "inviter can no longer grant the role": poner el
   cambio de `setPermissionsTeamId` en `try/finally` (L-03).
-- [ ] M-13 (baja, sonnet) — `web/src/views/RegisterView.vue`: durante `retry()` del estado de registro mostrar un
+- [x] M-13 (baja, sonnet) — `web/src/views/RegisterView.vue`: durante `retry()` del estado de registro mostrar un
   estado de carga (hoy la pantalla queda en blanco), pasar el foco al nombre cuando aparece el formulario tras un
   reintento exitoso, y probar que un segundo fallo vuelve a mostrar el error.
