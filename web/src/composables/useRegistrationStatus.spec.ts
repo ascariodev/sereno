@@ -33,6 +33,22 @@ describe('useRegistrationStatus', () => {
     expect(spy).toHaveBeenCalledTimes(2)
   })
 
+  it('ignores an in-flight request resolved after a reset', async () => {
+    let resolveStale!: (value: boolean) => void
+    const spy = vi
+      .spyOn(registration, 'registrationStatus')
+      .mockReturnValueOnce(new Promise<boolean>((resolve) => (resolveStale = resolve)))
+      .mockResolvedValue(false)
+    const stale = useRegistrationStatus()
+    resetRegistrationStatus()
+    resolveStale(true)
+    await stale.ready
+    const fresh = useRegistrationStatus()
+    expect(fresh.enabled.value).toBeNull()
+    expect(await fresh.ready).toBe(false)
+    expect(spy).toHaveBeenCalledTimes(2)
+  })
+
   it('does not repeat the request once resolved or while in flight', async () => {
     const spy = vi.spyOn(registration, 'registrationStatus').mockResolvedValue(true)
     const a = useRegistrationStatus()

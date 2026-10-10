@@ -4,21 +4,27 @@ import { registrationStatus } from '../api/registration'
 let cached: boolean | null = null
 let pending: Promise<boolean> | null = null
 
+let generation = 0
+
 function fetchStatus(): Promise<boolean> {
   if (cached !== null) return Promise.resolve(cached)
-  pending ??= registrationStatus()
+  if (pending) return pending
+  const started = generation
+  const request: Promise<boolean> = registrationStatus()
     .then((enabled) => {
-      cached = enabled
+      if (started === generation) cached = enabled
       return enabled
     })
     .catch(() => false)
     .finally(() => {
-      pending = null
+      if (pending === request) pending = null
     })
-  return pending
+  pending = request
+  return request
 }
 
 export function resetRegistrationStatus(): void {
+  generation++
   cached = null
   pending = null
 }
