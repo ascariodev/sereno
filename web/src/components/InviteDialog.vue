@@ -180,7 +180,13 @@ async function submit(): Promise<void> {
         <legend>{{ t('inviteDialog.projects') }}</legend>
         <p class="invite-dialog__hint">{{ t('inviteDialog.projectsHint') }}</p>
         <label v-for="project in projectsStore.projects" :key="project.id" class="invite-dialog__project">
-          <input v-model="projectIds" type="checkbox" name="project_ids" :value="project.id" />
+          <input
+            v-model="projectIds"
+            type="checkbox"
+            name="project_ids"
+            :value="project.id"
+            :aria-invalid="projectErrors.length ? 'true' : undefined"
+          />
           <span>{{ project.name }}</span>
           <span class="invite-dialog__key">{{ project.key }}</span>
         </label>

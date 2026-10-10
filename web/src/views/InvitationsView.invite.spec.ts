@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
+import type { Invitation } from '../api/types'
 import { toast, toasts } from '../components/ui/toast'
 import { i18n, setLocale } from '../i18n'
 import { createAppRouter } from '../router'
@@ -19,7 +20,7 @@ function invitation(id: number, role: 'owner' | 'admin' | 'member', email = `p${
     role,
     locale: 'en',
     invited_by: { id: 1, name: 'Ada' },
-    projects: [] as { id: number; name: string; key: string }[],
+    projects: [] as Invitation['projects'],
     expires_at: '2026-10-15T12:00:00Z',
     created_at: '2026-10-08T12:00:00Z',
   }
@@ -289,6 +290,40 @@ describe('InvitationsView invite dialog', () => {
     expect(field('[data-test=projects]').getAttribute('aria-describedby')).toBe(field('[data-test=error-projects]').id)
     expect(field('[data-test=projects]').getAttribute('aria-invalid')).toBe('true')
     expect(field('[data-test=error-form]')).toBeNull()
+  })
+
+  it('keeps the chosen projects when switching to admin and back to member', async () => {
+    await mountView(['owner'])
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: invitation(2, 'member', 'new@e.com') })
+    await openDialog()
+    await check(1)
+    await fill('new@e.com', 'admin')
+    await fill('new@e.com', 'member')
+    expect(projectBoxes().map((box) => box.checked)).toEqual([false, true])
+    await submit()
+    expect(post).toHaveBeenCalledWith('/api/invitations', { email: 'new@e.com', role: 'member', project_ids: [8] })
+  })
+
+  it('shows the general error when a 422 has no visible keys, keeping the fieldset', async () => {
+    await mountView(['owner'])
+    vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'Unknown problem', { other: ['Hidden'] }))
+    await openDialog()
+    await check(0)
+    await fill('new@e.com')
+    await submit()
+    expect(field('[data-test=error-form]').textContent).toContain('Unknown problem')
+    expect(field('[data-test=projects]')).not.toBeNull()
+    expect(field('[data-test=projects]').getAttribute('aria-invalid')).toBeNull()
+  })
+
+  it('marks every project checkbox invalid on a project 422', async () => {
+    await mountView(['owner'])
+    vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'invalid', { project_ids: ['Bad projects'] }))
+    await openDialog()
+    await check(0)
+    await fill('new@e.com')
+    await submit()
+    expect(projectBoxes().map((box) => box.getAttribute('aria-invalid'))).toEqual(['true', 'true'])
   })
 
   it('shows the projects of a pending member invitation', async () => {
