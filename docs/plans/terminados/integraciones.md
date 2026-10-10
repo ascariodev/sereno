@@ -208,7 +208,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - [x] M-8 — En posveapi, `WorkspaceEventFormatter` hace `(string) $value` con floats no finitos, que lanza en PHP 8.5:
   aplicar el arreglo de la fase 8 si posveapi no pasa al paquete o corre PHP 8.5. Queda resuelto si la fase 12 se
   hace. Complejidad: baja (sonnet).
-- [ ] M-9 — `SERENO_LOG_LEVEL=` vacío hace `Level::fromName('')` y lanza `ValueError` al resolver el canal
+- [x] M-9 — `SERENO_LOG_LEVEL=` vacío hace `Level::fromName('')` y lanza `ValueError` al resolver el canal
   (`CreateSerenoLogger`): tratar el vacío como `debug`, como el `fallback_channel`, con test. Complejidad: baja (sonnet).
 - [ ] M-10 — `test_no_pisa_un_canal_definido_por_la_app` llama a `register()` a mano: definir el canal en
   `defineEnvironment` para seguir el orden real de arranque; y opcionalmente probar `vendor:publish --tag=sereno-config`.
@@ -221,3 +221,5 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - [ ] M-13 — Revocar es idempotente en el API (nunca 409 ni 422): `revokeConflict`, `revokeUnavailable`, la rama
   `revoke` de `unavailableKey` y el spec de revocar con 422 cubren un caso inalcanzable; quitarlos o dejarlos como
   defensa, a decidir. Complejidad: baja (sonnet).
+- [ ] M-14 — Paquete: test de precedencia del nivel (canal vacío con `sereno.level=error` da `Level::Error`) y test
+  que fije que un nivel inválido no vacío lanza. Complejidad: baja (sonnet).
