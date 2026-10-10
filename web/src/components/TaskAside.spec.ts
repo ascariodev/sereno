@@ -113,6 +113,17 @@ describe('TaskAside', () => {
     expect(q('[data-test="error-form"]')!.textContent).toContain('Could not reach')
   })
 
+  it('offers only the project members and keeps a current assignee who is not one', async () => {
+    await mountAside({ ...base, assignee: { id: 4, name: 'Cy' } })
+    useMemberDirectoryStore().$patch({ entries: { 6: { members: [{ id: 8, name: 'Zed', email: 'z@z.c', role: 'member', joined_at: null }], loaded: true, loadedAt: Date.now(), generation: 0, inFlight: null } } })
+    await flushPromises()
+    const options = Array.from(q<HTMLSelectElement>('#task-aside-assignee')!.options)
+    expect(options.map((o) => o.textContent!.trim()).filter((t) => t === 'Bea' || t === 'Cy' || t === 'Zed')).toEqual(['Bea', 'Cy'])
+    expect(options.map((o) => o.value)).toEqual(expect.arrayContaining(['3', '4']))
+    expect(options.map((o) => o.value)).not.toContain('8')
+    expect(q<HTMLSelectElement>('#task-aside-assignee')!.value).toBe('4')
+  })
+
   it('is read-only when the project is archived', async () => {
     const spy = vi.spyOn(tasksApi, 'updateTask').mockResolvedValue(base)
     await mountAside(base, { readOnly: true })

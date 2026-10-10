@@ -105,6 +105,15 @@ describe('MessageEditor', () => {
     expect(patch).not.toHaveBeenCalled()
   })
 
+  it('offers nobody when the channel has no project in channelByProject', async () => {
+    const { wrapper, textarea } = mountEditor()
+    useProjectsStore().channelByProject = {}
+    useMemberDirectoryStore().$patch({ entries: seed(6, [member(9, 'Anita')]) })
+    await textarea().setValue('hola @An')
+    expect(textarea().attributes('aria-expanded')).toBe('false')
+    expect(wrapper.findAll('[role=\'option\']')).toHaveLength(0)
+  })
+
   it('Escape closes the suggestions first and does not cancel', async () => {
     const { wrapper, textarea } = mountEditor()
     await textarea().setValue('hola @An')

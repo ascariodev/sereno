@@ -169,6 +169,18 @@ describe('MessageComposer', () => {
       expect(ensure).toHaveBeenCalledWith(5)
     })
 
+    it('offers nobody when the channel has no project in channelByProject', async () => {
+      const { wrapper, textarea } = mountWithMembers()
+      useProjectsStore().channelByProject = {}
+      const directory = useMemberDirectoryStore()
+      directory.$patch({ entries: seed(6, [member(9, 'Anita')]) })
+      const ensure = vi.spyOn(directory, 'ensureLoaded').mockResolvedValue()
+      await textarea().setValue('hi @An')
+      expect(textarea().attributes('aria-expanded')).toBe('false')
+      expect(wrapper.findAll('[role=\'option\']')).toHaveLength(0)
+      expect(ensure).not.toHaveBeenCalledWith(5)
+    })
+
     it('opens the list with combobox attributes and excludes the current user', async () => {
       const { wrapper, textarea } = mountWithMembers()
       expect(textarea().attributes('aria-expanded')).toBe('false')
