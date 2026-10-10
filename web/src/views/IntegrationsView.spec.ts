@@ -233,6 +233,7 @@ describe('IntegrationsView', () => {
     expect(wrapper!.findAll('[data-test=name]').map((el) => el.text())).toEqual(['Source 1', 'New one'])
     expect(document.body.querySelector('[data-test=key]')!.textContent).toBe('wsk_secret_full')
     expect(wrapper!.text()).not.toContain('wsk_secret_full')
+    expect((wrapper!.vm as unknown as { sources: object[] }).sources.every((row) => !('key' in row))).toBe(true)
     document.body.querySelector<HTMLButtonElement>('[data-test=done]')!.click()
     await flushPromises()
     expect(document.body.querySelector('[data-test=key]')).toBeNull()
@@ -282,6 +283,7 @@ describe('IntegrationsView', () => {
     expect(document.body.querySelector('[data-test=key]')!.textContent).toBe('wsk_rotated_full')
     expect(wrapper!.find('[data-test=prefix]').text()).toBe('wsk_new1…')
     expect(wrapper!.text()).not.toContain('wsk_rotated_full')
+    expect((wrapper!.vm as unknown as { sources: object[] }).sources.every((row) => !('key' in row))).toBe(true)
   })
 
   it('does nothing when the confirmation is cancelled', async () => {

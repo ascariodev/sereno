@@ -74,8 +74,14 @@ async function load(): Promise<void> {
   }
 }
 
+function withoutKey(issued: LogSourceWithKey): LogSource {
+  const listed: Partial<LogSourceWithKey> = { ...issued }
+  delete listed.key
+  return listed as LogSource
+}
+
 function onCreated(created: LogSourceWithKey): void {
-  const { key: _key, ...listed } = created
+  const listed = withoutKey(created)
   sources.value = [...sources.value.filter((item) => item.id !== listed.id), listed]
   issuedSource.value = created
 }
@@ -93,8 +99,7 @@ async function confirmAction(): Promise<void> {
     if (action.kind === 'rotate') {
       const rotated = await rotateLogSourceKey(projectId.value, action.source.id)
       if (current !== generation) return
-      const { key: _key, ...listed } = rotated
-      replaceSource(listed)
+      replaceSource(withoutKey(rotated))
       issuedSource.value = rotated
     } else {
       const revoked = await revokeLogSource(projectId.value, action.source.id)

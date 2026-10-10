@@ -200,7 +200,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - [x] M-4 — Una carga de la lista en vuelo al crear puede pisar la fuente recién agregada (`IntegrationsView` `load()`
   asigna `sources` sin mirar lo creado): ocultar o deshabilitar el botón de crear mientras `loading`, con spec.
   Complejidad: baja (sonnet).
-- [ ] M-5 — Quitar la variable sin uso `_key` en `IntegrationsView.vue` (`onCreated`). Complejidad: baja (sonnet).
+- [x] M-5 — Quitar la variable sin uso `_key` en `IntegrationsView.vue` (`onCreated`). Complejidad: baja (sonnet).
 - [ ] M-6 — Claves i18n duplicadas en `integrations` (`rotate`/`rotateAction`, `revoke`/`revokeAction`): reutilizar
   una de cada par. Complejidad: baja (sonnet).
 - [ ] M-7 — Los avisos de 409 y 422 de rotar o revocar no dicen qué acción falló; el 422 es genérico (archivado o
