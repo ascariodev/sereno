@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Task\StoreTaskRequest;
+use App\Http\Requests\Task\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
 use App\Models\Project;
 use App\Models\Task;
@@ -84,5 +85,22 @@ class TaskController extends Controller
         $task->load(self::RELATIONS)->setRelation('project', $project);
 
         return (new TaskResource($task))->response()->setStatusCode(201);
+    }
+
+    public function update(UpdateTaskRequest $request, Project $project, Task $task): TaskResource
+    {
+        abort_unless($task->project_id === $project->id, 404);
+
+        $data = $request->validated();
+
+        $task->fill(array_intersect_key($data, array_flip(['title', 'description'])));
+        if (array_key_exists('assignee_id', $data)) {
+            $task->assignee_id = $data['assignee_id'];
+        }
+        $task->save();
+
+        $task->load(self::RELATIONS)->setRelation('project', $project);
+
+        return new TaskResource($task);
     }
 }

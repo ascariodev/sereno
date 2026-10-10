@@ -273,6 +273,7 @@
     "Resource not found.": "Recurso no encontrado.",
     "Nothing deleted: the orphan period must be at least :hours hour.": "No se eliminó nada: el periodo de huérfanos debe ser de al menos :hours hora.",
     "This project is archived and cannot have new tasks.": "Este proyecto está archivado y no admite nuevas tareas.",
+    "This project is archived and its tasks cannot be edited.": "Este proyecto está archivado y sus tareas no se pueden editar.",
     "The log group does not exist in this project.": "El grupo de log no existe en este proyecto.",
     "The log group already has a task.": "El grupo de log ya tiene una tarea."
 }

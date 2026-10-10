@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -65,7 +65,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `UPDATE projects SET last_task_number = last_task_number + 1 ... RETURNING` en la transacción; `position` al final
   de la columna. Textos en `lang`. Test de números consecutivos y de grupo con tarea.
 
-### [ ] Fase 5 — Editar una tarea (api)
+### [x] Fase 5 — Editar una tarea (api)
 - `PATCH projects/{project}/tasks/{task}` (título, descripción, asignado) con `UpdateTaskRequest`; 404 si la tarea
   no es del proyecto; proyecto archivado 422.
 
@@ -174,7 +174,9 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `TaskController::RELATIONS` es lo que carga toda respuesta con una tarea.
 
 ## Notas para la próxima sesión
-- Fases 1 a 4 hechas. Helpers de test ocupados: `makeTask` (TaskTest), `taskPolicyTask` (TaskPolicyTest),
+- Fases 1 a 5 hechas. Los archivos creados desde el contenedor quedan de root y pint no puede escribirlos:
+  `chown ubuntu:ubuntu` en el host antes de pint. Las fases 6 y 7 copian el patrón de `UpdateTaskRequest`
+  (policy en `authorize()`, proyecto archivado en `after()`, 404 en el controlador). Helpers de test ocupados: `makeTask` (TaskTest), `taskPolicyTask` (TaskPolicyTest),
   `seedListedTask` (TaskListApiTest), `storeTaskAs` y `storedTasks` (TaskStoreApiTest). Fechas de `TaskResource` sin verificar con tinker: confirmarlas en la fase 12.
   Los FormRequest de las fases 4 a 7 rechazan el proyecto archivado (la policy no lo hace). `Task` no tiene factory: los tests usan el helper global `makeTask` (`TaskTest`); crear
   `TaskFactory` si las fases siguientes lo necesitan. `Task::key()` carga `project` perezoso: `with('project')` en
@@ -193,3 +195,5 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   desactivado en `finally` y `Task::flushEventListeners()` explícito; `taskStatus()` con `$this->enum(...)`.
 - [ ] M-9 (baja, sonnet): crear tarea revalida dentro de la transacción que el proyecto no esté archivado (carrera
   entre validar y archivar).
+- [ ] M-10 (baja, sonnet): `DESCRIPTION_MAX_LENGTH` a `Task` junto a `TITLE_MAX_LENGTH`; `assignee_id` en Fillable para
+  simplificar `TaskController@update`; 404 de tarea de otro proyecto antes de validar.

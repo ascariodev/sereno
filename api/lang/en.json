@@ -273,6 +273,7 @@
     "Resource not found.": "Resource not found.",
     "Nothing deleted: the orphan period must be at least :hours hour.": "Nothing deleted: the orphan period must be at least :hours hour.",
     "This project is archived and cannot have new tasks.": "This project is archived and cannot have new tasks.",
+    "This project is archived and its tasks cannot be edited.": "This project is archived and its tasks cannot be edited.",
     "The log group does not exist in this project.": "The log group does not exist in this project.",
     "The log group already has a task.": "The log group already has a task."
 }
