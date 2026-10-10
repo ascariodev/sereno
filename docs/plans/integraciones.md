@@ -132,6 +132,9 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   `illuminate/{contracts,http,log,support}` ^13.0, `monolog/monolog` ^3.10 (como posveapi), dev `orchestra/testbench`
   ^11.0 y `phpunit/phpunit` ^12.5.12. `composer.lock` no se versiona (librería). La imagen trae PHP 8.5: el mínimo
   ^8.3 no se prueba.
+- 2026-10-10 — Fase 12 (usuario): la rama de posveapi sale de `pharmacies` (ya contiene `feat/workspace-logs`); las
+  variables pasan a `SERENO_LOG_*`; URL del paquete `https://gitea.ascario.dev/ascario/sereno-laravel.git` (repo
+  creado y vacío).
 - 2026-10-10 — La fase 3 suma montar `ProjectHeader` en `IntegrationsView` (como las demás pestañas del proyecto) y
   el aviso de proyecto inexistente, para poder volver a canal, plan y log desde Integraciones.
 
