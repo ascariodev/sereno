@@ -2,7 +2,7 @@
 
 **Objetivo:** que la web se desarrolle en Docker (Vite con recarga, tests y typecheck dentro del contenedor) y que
 `api/` y `web/` tengan un stack de producción en Docker desplegable como bidfletes/fletes-api (Gitea).
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -79,7 +79,7 @@
   `-p` y otros puertos (sin tocar el stack de desarrollo ni leer `.env`), `/up` da 200 a través de nginx, un job de la
   cola se procesa y reverb acepta conexión.
 
-### [ ] Fase 6 — Imagen por ambiente y scripts de deploy del API (`api/`) [riesgo]
+### [x] Fase 6 — Imagen por ambiente y scripts de deploy del API (`api/`) [riesgo]
 - **Alcance:** en `api/docker-compose.prod.yml`, `image: ${API_IMAGE:-workspace-api-fpm}` para que cada ambiente
   tenga su imagen. Scripts en `api/docker/deploy/`, adaptados de fletes-api y parametrizados por ambiente
   (`prod`/`qa`/`dev`): `compose.sh` (docker:cli con la ruta del host montada en la misma ruta, `-p sereno-<env>-api`),
@@ -161,6 +161,15 @@
 - 2026-10-09 — Hostnames (un nivel, por el certificado universal de Cloudflare): `sereno`, `sereno-api`, `sereno-ws`
   `.ascario.dev` para prod; `sereno-qa*` y `sereno-dev*` para los otros. Ya dados de alta en el túnel.
 - 2026-10-09 — Fases 6 y 7 originales reemplazadas por las 6 a 9 (ambientes, scripts, workflows y primer deploy).
+- 2026-10-09 — Fase 6: los scripts de `api/docker/deploy/` reciben `DEPLOY_ENV` (prod|qa|dev), `HOST_DIR` (ruta del
+  host, para el daemon) y `SERVER_DIR` (ruta en el job; por omisión `HOST_DIR`); `env.sh` valida y fija
+  `-p sereno-<env>-api`, `compose` y `artisan` (por `compose exec`, sin nombres de contenedor fijos). No tienen modo
+  ejecutable: se invocan con `bash`. `rebuild-images.sh` deja el hash en `.deploy/docker.sha256.new` (excluye
+  `docker/deploy/`) y recrea con `--force-recreate`; `deploy.sh` lo guarda solo si `/up` da 200, así que la fase 7 no
+  guarda el hash. `deploy.sh`: corta si `app` no puede leer `.env`; crea `vendor/` y le da dueño `app` como root (el
+  rsync del job deja el repo de root); composer dentro de `app` con sus scripts; `migrate`, `RoleSeeder`
+  (idempotente) y luego `optimize`; reinicia `nginx` después de `app` (guarda la IP de `app` al arrancar: 502). Sin
+  `storage:link`: los adjuntos usan el disco `local` por stream.
 
 ## Notas para la próxima sesión
 - Fase 6: con `validate_timestamps=0` el deploy reinicia `app`, `queue`, `scheduler` y `reverb`. El UID 1000 debe
@@ -184,3 +193,9 @@
   `find /app/node_modules ! -user node -print -quit` encuentra algo, no `stat` de la raíz) para no recorrer todo `node_modules` en cada `up`; quitar `restart: "no"`.
 - [x] M-5 (baja, sonnet) — `workspace-api/docker-compose.prod.yml:23`: precisar el comentario "confía en X-Forwarded-*"
   (tras M-3 solo `For` y `Proto`).
+- [ ] M-6 (baja, sonnet) — `api/docker/deploy/deploy.sh:3`: el comentario de cabecera nombra el dueño de `storage` y
+  `bootstrap/cache`; agregar `vendor/`.
+- [ ] M-7 (baja, sonnet) — `api/docker/deploy/deploy.sh:25`: el mensaje de error de `test -r .env` asume que la causa es
+  el `.env`; mencionar también que `app` puede no poder entrar al directorio.
+- [ ] M-8 (media, sonnet) — Caché persistente de composer para el deploy (volumen o carpeta en `/var/www/html/workspace`),
+  para no descargar todo cuando se recrea `app`.
