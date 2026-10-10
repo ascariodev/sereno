@@ -897,6 +897,7 @@ describe('ChannelView delete confirmation', () => {
   })
 
   afterEach(() => {
+    delete (window as { matchMedia?: unknown }).matchMedia
     document.body.innerHTML = ''
     useProjectsStore().clear()
   })
@@ -977,16 +978,10 @@ describe('ChannelView delete confirmation', () => {
     expect(field).not.toBeNull()
     expect(document.activeElement).toBe(field)
     wrapper.unmount()
-    delete (window as { matchMedia?: unknown }).matchMedia
   })
 
   it('returns focus to the thread composer when the delete came from the thread panel', async () => {
-    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') return channels as never
-      if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
-      if (/replies$/.test(path)) return { data: [reply], meta: { next_cursor: null } } as never
-      return { data: [{ ...root, replies_count: 1 }], meta: { next_cursor: null } } as never
-    })
+    threadMock()
     const wrapper = await mountView('/channels/7?thread=1', true)
     const actions = wrapper.findAll('.message-item__actions-trigger')
     await openDelete(wrapper, actions.length - 1)
