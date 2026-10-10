@@ -187,7 +187,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   casos 429, red y 500, que hoy comparten montaje.
 - [x] M-10 (baja, sonnet) — `web/src/views/ProjectsView.vue`: el botón del estado vacío va dentro de un `<p>`; pasar a
   `<div>`.
-- [ ] M-11 (baja, sonnet) — `web/src/composables/useProjectCreate.ts`: `console.warn` en desarrollo si
+- [x] M-11 (baja, sonnet) — `web/src/composables/useProjectCreate.ts`: `console.warn` en desarrollo si
   `useOpenProjectCreate()` cae al no-op por falta de provider.
 - [ ] M-12 (baja, sonnet) — `api/tests/Feature/AuthTest.php`, test "inviter can no longer grant the role": poner el
   cambio de `setPermissionsTeamId` en `try/finally` (L-03).
