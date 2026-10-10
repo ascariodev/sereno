@@ -19,6 +19,11 @@ class InvitationResource extends JsonResource
             'invited_by' => $this->whenLoaded('inviter', fn () => $this->inviter === null
                 ? null
                 : ['id' => $this->inviter->id, 'name' => $this->inviter->name]),
+            'projects' => $this->whenLoaded('projects', fn () => $this->projects->map(fn ($project) => [
+                'id' => $project->id,
+                'name' => $project->name,
+                'key' => $project->key,
+            ])->values()),
             'expires_at' => $this->expires_at,
             'created_at' => $this->created_at,
         ];

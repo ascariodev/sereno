@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
@@ -92,5 +93,28 @@ class Invitation extends Model
     public function inviter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'invited_by');
+    }
+
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'invitation_project');
+    }
+
+    /**
+     * Assigns the projects that still exist in the invitation's organization (deleted ones are
+     * skipped). Accepting has no active organization, so the organization scope is bypassed.
+     */
+    public function assignProjectsTo(User $user): void
+    {
+        if ($this->role !== Role::Member->value) {
+            return;
+        }
+
+        Project::query()
+            ->withoutGlobalScopes()
+            ->where('organization_id', $this->organization_id)
+            ->whereIn('id', $this->projects()->withoutGlobalScopes()->select('projects.id'))
+            ->get()
+            ->each(fn (Project $project) => $project->addMember($user));
     }
 }

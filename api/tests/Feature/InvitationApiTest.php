@@ -3,6 +3,7 @@
 use App\Enums\Role;
 use App\Models\Invitation;
 use App\Models\Organization;
+use App\Models\Project;
 use App\Models\User;
 use App\Notifications\InvitationNotification;
 use App\Providers\AppServiceProvider;
@@ -533,4 +534,69 @@ it('rejects revoking with an organization the user does not belong to and requir
 
     app('auth')->forgetGuards();
     $this->deleteJson("/api/invitations/{$invitation->id}")->assertUnauthorized();
+});
+
+it('stores the invited projects and assigns them on accept, ignoring deleted ones', function () {
+    $kept = Project::factory()->create(['organization_id' => $this->organization->id]);
+    $deleted = Project::factory()->create(['organization_id' => $this->organization->id]);
+    Project::factory()->create(['organization_id' => $this->organization->id]);
+
+    invite($this->owner, $this->organization, [
+        'email' => 'invitee@example.com',
+        'role' => 'member',
+        'project_ids' => [$kept->id, $deleted->id],
+    ])
+        ->assertCreated()
+        ->assertJsonCount(2, 'data.projects')
+        ->assertJsonPath('data.projects.0', ['id' => $kept->id, 'name' => $kept->name, 'key' => $kept->key]);
+
+    listInvitations($this->owner, $this->organization)->assertJsonCount(2, 'data.0.projects');
+
+    $deleted->delete();
+    $invitee = User::factory()->create(['email' => 'invitee@example.com']);
+    $invitation = Invitation::query()->withoutGlobalScopes()->firstOrFail();
+    $invitation->forceFill(['token' => Invitation::hashToken('plain')])->save();
+    Sanctum::actingAs($invitee);
+
+    $this->postJson('/api/invitations/accept', ['token' => 'plain'])->assertOk();
+
+    expect(DB::table('project_user')->where('user_id', $invitee->id)->pluck('project_id')->all())->toBe([$kept->id]);
+});
+
+it('rejects project ids with a role other than member, unknown ids and other organizations', function () {
+    $project = Project::factory()->create(['organization_id' => $this->organization->id]);
+    $foreign = Project::factory()->create();
+
+    invite($this->owner, $this->organization, ['email' => 'a@example.com', 'role' => 'admin', 'project_ids' => [$project->id]])
+        ->assertUnprocessable()->assertJsonValidationErrors('project_ids');
+    invite($this->owner, $this->organization, ['email' => 'a@example.com', 'role' => 'member', 'project_ids' => [$foreign->id]])
+        ->assertUnprocessable()->assertJsonValidationErrors('project_ids.0');
+    invite($this->owner, $this->organization, ['email' => 'a@example.com', 'role' => 'member', 'project_ids' => [999999]])
+        ->assertUnprocessable()->assertJsonValidationErrors('project_ids.0');
+
+    expect(Invitation::query()->count())->toBe(0);
+});
+
+it('answers 403 before validating project ids for a plain member', function () {
+    $member = User::factory()->create();
+    $this->organization->addMember($member, [Role::Member]);
+
+    invite($member, $this->organization, ['email' => 'a@example.com', 'role' => 'admin', 'project_ids' => [999999]])
+        ->assertForbidden();
+});
+
+it('does not assign projects for an invitation without them', function () {
+    Project::factory()->create(['organization_id' => $this->organization->id]);
+    $invitee = User::factory()->create(['email' => 'invitee@example.com']);
+    Invitation::factory()->withPlainToken('plain')->create([
+        'organization_id' => $this->organization->id,
+        'invited_by' => $this->owner->id,
+        'email' => 'invitee@example.com',
+        'role' => 'member',
+    ]);
+    Sanctum::actingAs($invitee);
+
+    $this->postJson('/api/invitations/accept', ['token' => 'plain'])->assertOk();
+
+    expect(DB::table('project_user')->count())->toBe(0);
 });

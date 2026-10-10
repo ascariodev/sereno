@@ -47,6 +47,11 @@ class InviteRequest extends FormRequest
                 },
             ],
             'role' => ['required', Rule::enum(Role::class)],
+            'project_ids' => ['sometimes', 'array', 'max:100', 'prohibited_unless:role,member'],
+            'project_ids.*' => [
+                'integer', 'distinct',
+                Rule::exists('projects', 'id')->where('organization_id', app(CurrentOrganization::class)->id()),
+            ],
         ];
     }
 }
