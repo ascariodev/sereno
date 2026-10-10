@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Activity, House, Languages, MessageSquare, Monitor, Moon, Sun } from '@lucide/vue'
+import { Activity, House, Languages, MessageSquare, Monitor, Moon, SquareKanban, Sun } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -22,6 +22,7 @@ const auth = useAuthStore()
 
 const groups = computed<AppCommandGroup[]>(() => {
   const channelLabel = t('projectTabs.channel')
+  const planLabel = t('projectTabs.plan')
   const logLabel = t('projectTabs.log')
   const themeLabel = t('command.theme')
   const languageLabel = t('command.language')
@@ -37,6 +38,7 @@ const groups = computed<AppCommandGroup[]>(() => {
         icon: MessageSquare,
       })
     }
+    navigation.push({ value: `plan:${project.id}`, label: project.name, hint: planLabel, keywords: [project.key], icon: SquareKanban })
     navigation.push({ value: `log:${project.id}`, label: project.name, hint: logLabel, keywords: [project.key], icon: Activity })
   }
   return [
@@ -66,6 +68,7 @@ async function onSelect(value: string): Promise<void> {
   const [kind, id] = value.split(':')
   if (kind === 'home') void router.push({ name: 'projects' })
   else if (kind === 'channel') void router.push({ name: 'channel', params: { id } })
+  else if (kind === 'plan') void router.push({ name: 'project-plan', params: { projectId: id } })
   else if (kind === 'log') void router.push({ name: 'project-log', params: { projectId: id } })
   else if (kind === 'theme' && THEMES.includes(id as ThemePreference)) saveThemePreference(id as ThemePreference)
   else if (kind === 'locale' && SUPPORTED_LOCALES.includes(id as Locale)) {

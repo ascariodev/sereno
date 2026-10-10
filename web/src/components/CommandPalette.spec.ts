@@ -56,6 +56,7 @@ async function mountPalette(): Promise<{ router: Router; open: () => boolean }> 
     routes: [
       { path: '/', name: 'projects', component: stub },
       { path: '/channels/:id', name: 'channel', component: stub },
+      { path: '/projects/:projectId/plan', name: 'project-plan', component: stub },
       { path: '/projects/:projectId/log', name: 'project-log', component: stub },
     ],
   })
@@ -144,7 +145,7 @@ describe('CommandPalette', () => {
     shortcut()
     await settle()
 
-    expect(optionValues()).toEqual(['home', 'channel:7', 'log:5', 'log:6', 'theme:system', 'theme:light', 'theme:dark', 'locale:en', 'locale:es'])
+    expect(optionValues()).toEqual(['home', 'channel:7', 'plan:5', 'log:5', 'plan:6', 'log:6', 'theme:system', 'theme:light', 'theme:dark', 'locale:en', 'locale:es'])
   })
 
   it('filters by project key and section', async () => {
@@ -156,7 +157,7 @@ describe('CommandPalette', () => {
     expect(optionValues()).toEqual(['log:6'])
 
     await type('posve')
-    expect(optionValues()).toEqual(['channel:7', 'log:5'])
+    expect(optionValues()).toEqual(['channel:7', 'plan:5', 'log:5'])
   })
 
   it('finds the theme and language commands by their section name in either language', async () => {
@@ -182,6 +183,17 @@ describe('CommandPalette', () => {
     await choose('log:5')
 
     expect(router.currentRoute.value.fullPath).toBe('/projects/5/log')
+    expect(open()).toBe(false)
+  })
+
+  it('goes to the plan of a project and closes', async () => {
+    const { router, open } = await mountPalette()
+    shortcut()
+    await settle()
+
+    await choose('plan:5')
+
+    expect(router.currentRoute.value.fullPath).toBe('/projects/5/plan')
     expect(open()).toBe(false)
   })
 

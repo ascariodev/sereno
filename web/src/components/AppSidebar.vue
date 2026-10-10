@@ -25,7 +25,7 @@ const mentionsStore = useMentionsStore()
 const route = useRoute()
 
 const activeProjectId = computed<number | null>(() => {
-  if (route.name === 'project-log') return Number(route.params.projectId)
+  if (route.name === 'project-log' || route.name === 'project-plan') return Number(route.params.projectId)
   if (route.name !== 'channel') return null
   const channelId = Number(route.params.id)
   const entry = Object.entries(projectsStore.channelByProject).find(([, id]) => id === channelId)

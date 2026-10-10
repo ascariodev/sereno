@@ -2,7 +2,7 @@
 
 **Objetivo:** paso 7 del MVP: tareas por proyecto en un tablero de 4 columnas (vista Plan), con detalle, asignado,
 movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de log (panel del grupo y tarjeta del canal).
-**Estado:** en curso · Fase actual: 15
+**Estado:** en curso · Fase actual: 16
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -104,7 +104,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 ### [x] Fase 14 — Ruta y pestaña Plan (web) [límite: 5 archivos]
 - Ruta `projects/:projectId/plan` con `PlanView` (cabecera y estado de carga), pestaña Plan en `ProjectHeader`, i18n.
 
-### [ ] Fase 15 — Plan en la barra lateral y la paleta (web)
+### [x] Fase 15 — Plan en la barra lateral y la paleta (web)
 - `AppSidebar` reconoce la ruta para el proyecto activo; `CommandPalette` agrega "Plan" por proyecto.
 
 ### [ ] Fase 16 — Tablero de solo lectura (web) [límite: 5 archivos]
@@ -195,7 +195,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `plan.*`. Los límites de archivos de las fases cuentan solo código de producción, no specs.
 
 ## Notas para la próxima sesión
-- API terminado (fases 1 a 11). Web: fase 14 hecha (`PlanView` abre el store por `projectId`, `clear()` al
+- API terminado (fases 1 a 11). Web: fase 15 hecha (barra lateral y paleta). Fase 14 (`PlanView` abre el store por `projectId`, `clear()` al
   desmontar; un spec que monte `ProjectHeader` con router propio registra `project-plan`). Fase 13: `useTasksStore` con `open`, `refresh` (reconexión), `clear`,
   `columns`, `visibleColumns`, `filter` (`all|mine|from_notices`, no lo reinicia `clear`), `find`, `insert`/`replace`/
   `remove` (eventos), `create`/`update`/`move`/`destroy` (lanzan `ApiError`, devuelven la tarea). Fase 12 (`api/types.ts` con `Task`, `TASK_STATUSES` en orden de
