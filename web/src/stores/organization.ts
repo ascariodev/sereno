@@ -29,6 +29,7 @@ export const useOrganizationStore = defineStore('organization', () => {
   const canManageInvitations = computed(() => isOwner.value || !!active.value?.roles.includes('admin'))
 
   const isAdmin = computed(() => !!active.value?.roles.includes('admin'))
+  const canCreateProject = computed(() => isOwner.value || isAdmin.value)
 
   /** Mirrors MemberPolicy::updateRole: roles the active user may give to a member currently holding `targetRole`. */
   const assignableRolesFor = computed(() => (targetRole: InvitationRole | null): InvitationRole[] => {
@@ -123,7 +124,7 @@ export const useOrganizationStore = defineStore('organization', () => {
     setActive(null)
   }
 
-  return { organizations, activeId, active, isOwner, isAdmin, assignableRolesFor, canRemoveMember, canManageInvitations, loaded, version, rolesRevision, load, handleMembershipRevoked, handleForbidden, handleMembershipRoleChanged, select, create, clear }
+  return { organizations, activeId, active, isOwner, isAdmin, canCreateProject, assignableRolesFor, canRemoveMember, canManageInvitations, loaded, version, rolesRevision, load, handleMembershipRevoked, handleForbidden, handleMembershipRoleChanged, select, create, clear }
 })
 
 export function installOrganizationOnApi(): void {

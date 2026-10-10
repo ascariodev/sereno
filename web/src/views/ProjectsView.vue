@@ -3,13 +3,17 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectCard from '../components/ProjectCard.vue'
+import { useOpenProjectCreate } from '../composables/useProjectCreate'
 import { useAuthStore } from '../stores/auth'
+import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 
 const { t } = useI18n()
 const store = useProjectsStore()
 const { projects, channelByProject, loading, failed } = storeToRefs(store)
 const reload = store.reload
+const organization = useOrganizationStore()
+const openProjectCreate = useOpenProjectCreate()
 const { user } = storeToRefs(useAuthStore())
 const greeting = computed(() => (user.value ? t('projects.greeting', { name: user.value.name }) : t('projects.title')))
 </script>
@@ -17,7 +21,19 @@ const greeting = computed(() => (user.value ? t('projects.greeting', { name: use
 <template>
   <section class="projects">
     <h1 class="projects__greeting">{{ greeting }}</h1>
-    <h2 class="projects__heading">{{ t('projects.title') }}</h2>
+    <div class="projects__bar">
+      <h2 class="projects__heading">{{ t('projects.title') }}</h2>
+      <button
+        v-if="organization.canCreateProject"
+        type="button"
+        name="create-project"
+        class="projects__create"
+        aria-haspopup="dialog"
+        @click="openProjectCreate"
+      >
+        {{ t('projects.create') }}
+      </button>
+    </div>
     <p v-if="loading">{{ t('common.loading') }}</p>
     <p v-else-if="failed" role="alert">
       {{ t('projects.loadFailed') }}
@@ -26,6 +42,16 @@ const greeting = computed(() => (user.value ? t('projects.greeting', { name: use
     <p v-else-if="projects.length === 0" class="projects__empty">
       <strong>{{ t('projects.empty') }}</strong>
       <span>{{ t('projects.emptyHint') }}</span>
+      <button
+        v-if="organization.canCreateProject"
+        type="button"
+        name="create-project-empty"
+        class="projects__create"
+        aria-haspopup="dialog"
+        @click="openProjectCreate"
+      >
+        {{ t('projects.create') }}
+      </button>
     </p>
     <ul v-else class="projects__list">
       <li v-for="project in projects" :key="project.id">
@@ -50,6 +76,34 @@ const greeting = computed(() => (user.value ? t('projects.greeting', { name: use
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.projects__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.projects__create {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.projects__create:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.projects__empty .projects__create {
+  margin-top: var(--space-2);
 }
 
 .projects__heading {

@@ -207,6 +207,7 @@
     "loadFailed": "Could not load the projects.",
     "empty": "No projects yet.",
     "emptyHint": "Projects you belong to appear here.",
+    "create": "New project",
     "healthOpen": "{n} open | {n} open",
     "healthCalm": "All calm"
   },

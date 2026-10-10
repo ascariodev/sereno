@@ -107,7 +107,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - **Archivos:** `web/src/components/ProjectCreateDialog.vue` (nuevo), `i18n/es.json`, `i18n/en.json`, spec.
 - **Terminado cuando:** el spec cubre la sugerencia de clave, éxito con navegación, clave duplicada, 403 y red.
 
-### [ ] Fase 12 — Entradas para crear proyecto
+### [x] Fase 12 — Entradas para crear proyecto
 - **Alcance:** botón "Nuevo proyecto" en `ProjectsView` (cabecera y estado vacío) y en el grupo Proyectos de
   `AppSidebar`, solo para owner o admin (`ProjectPolicy::create`). Para un member, el estado vacío sigue igual.
 - **Archivos:** `web/src/views/ProjectsView.vue`, `web/src/components/AppSidebar.vue`, `i18n/es.json`,
@@ -138,6 +138,10 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   diálogo se cierra el cajón móvil (L-23). La fase 12 puede seguir el mismo patrón para `ProjectCreateDialog`.
 - 2026-10-10 — (Fase 11) `ProjectCreateDialog` usa `v-model:open`, emite `created(project)` y `useRouter()`; tras crear
   navega a `{name:'channel'}` si `channelByProject[id]` existe, si no a `{name:'projects'}`.
+- 2026-10-10 — (Fase 12) `AppLayout` es el único dueño de `ProjectCreateDialog` y hace
+  `provide(openProjectCreateKey, fn)` (`composables/useProjectCreate.ts`); `ProjectsView` lo toma con
+  `useOpenProjectCreate()` (no-op sin provider) y `AppSidebar` emite `createProject`. Getter nuevo
+  `organization.canCreateProject` (`isOwner || isAdmin`). Botones `create-project` y `create-project-empty`.
 
 ## Notas para la próxima sesión
 - Fase 1 hecha: con el registro cerrado, registrarse exige una invitación usable del mismo email, pero no la acepta.
@@ -156,6 +160,8 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   normal aparece sola porque `create()` selecciona la nueva.
 - Fase 10 hecha: botón `create-organization` en el estado vacío e ítem "Nueva organización" en `OrgSwitcher`.
 - Fase 11 hecha: `ProjectCreateDialog` (claves `projCreate.*`). La fase 12 lo monta en un único dueño, como la 10.
+- Fase 12 hecha: botón "Nuevo proyecto" en `ProjectsView` (cabecera y vacío) y en la barra lateral, solo owner/admin.
+  El layout de los botones nuevos no se revisó en el navegador (L-22).
 - Editar con Edit o `sed`: escribir con Python en Windows mete CRLF y rompe Pint (`line_ending`).
 - Verificación web: `docker compose exec web npm run typecheck` y `docker compose exec web npm run test -- --run <spec>`.
 
@@ -178,3 +184,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
 - [ ] M-9 (baja, sonnet) — `web/src/components/OrganizationCreateDialog.spec.ts`: probar que un cierre externo
   (`open=false` desde el padre) con `create` en curso descarta `created` y el toast; y separar en tests propios los
   casos 429, red y 500, que hoy comparten montaje.
+- [ ] M-10 (baja, sonnet) — `web/src/views/ProjectsView.vue`: el botón del estado vacío va dentro de un `<p>`; pasar a
+  `<div>`.
+- [ ] M-11 (baja, sonnet) — `web/src/composables/useProjectCreate.ts`: `console.warn` en desarrollo si
+  `useOpenProjectCreate()` cae al no-op por falta de provider.

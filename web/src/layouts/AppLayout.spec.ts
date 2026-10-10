@@ -162,6 +162,60 @@ describe('AppLayout', () => {
     expect(useOrganizationStore().activeId).toBe(1)
   })
 
+  it('owner opens the project dialog from the sidebar and from the projects view', async () => {
+    const { wrapper } = await mountApp()
+    expect(wrapper.find('.app-layout__sidebar button[name=create-project]').text()).toBe('New project')
+    wrapper.find<HTMLButtonElement>('.app-layout__sidebar button[name=create-project]').element.click()
+    await settle()
+    expect(document.querySelector('[role=dialog] #proj-create-name')).not.toBeNull()
+    key(document.querySelector('[role=dialog]')!, 'Escape')
+    await settle()
+    expect(document.querySelector('[role=dialog]')).toBeNull()
+
+    wrapper.find<HTMLButtonElement>('.projects__bar button[name=create-project]').element.click()
+    await settle()
+    expect(document.querySelector('[role=dialog] #proj-create-name')).not.toBeNull()
+  })
+
+  it('names the new-project button by aria-label and hides its text when the sidebar is collapsed', async () => {
+    localStorage.setItem('workspace.sidebar', 'collapsed')
+    const { wrapper } = await mountApp()
+    const button = wrapper.find('.app-layout__sidebar button[name=create-project]')
+    expect(button.exists()).toBe(true)
+    expect(button.attributes('aria-label')).toBe('New project')
+    expect(button.text()).toBe('')
+  })
+
+  it('names the new-project button by its text when the sidebar is expanded', async () => {
+    const { wrapper } = await mountApp()
+    const button = wrapper.find('.app-layout__sidebar button[name=create-project]')
+    expect(button.attributes('aria-label')).toBeUndefined()
+    expect(button.text()).toBe('New project')
+    await button.trigger('click')
+    await settle()
+    expect(document.querySelector('[role=dialog] #proj-create-name')).not.toBeNull()
+  })
+
+  it('a member sees no new-project button anywhere', async () => {
+    const { wrapper } = await mountApp()
+    await openMenu('button[name=organization]')
+    await pick('2')
+    expect(useOrganizationStore().activeId).toBe(2)
+    expect(wrapper.find('button[name=create-project]').exists()).toBe(false)
+    expect(wrapper.find('button[name=create-project-empty]').exists()).toBe(false)
+  })
+
+  it('opening the project dialog from the drawer closes the drawer', async () => {
+    await mountApp()
+    document.querySelector<HTMLButtonElement>('button[name=open-sidebar]')!.click()
+    await settle()
+    document.querySelector<HTMLButtonElement>('[role=dialog] button[name=create-project]')!.click()
+    await settle()
+    const dialogs = [...document.querySelectorAll('[role=dialog]')]
+    expect(dialogs).toHaveLength(1)
+    expect(dialogs[0].querySelector('#proj-create-name')).not.toBeNull()
+  })
+
   it('opening the create dialog from the drawer closes the drawer', async () => {
     await mountApp()
     document.querySelector<HTMLButtonElement>('button[name=open-sidebar]')!.click()

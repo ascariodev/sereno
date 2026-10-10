@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import AppSidebar from '../components/AppSidebar.vue'
 import CommandPalette from '../components/CommandPalette.vue'
 import MobileTopBar from '../components/MobileTopBar.vue'
 import OrganizationCreateDialog from '../components/OrganizationCreateDialog.vue'
+import ProjectCreateDialog from '../components/ProjectCreateDialog.vue'
 import AppDialog from '../components/ui/AppDialog.vue'
+import { openProjectCreateKey } from '../composables/useProjectCreate'
 import { useMembershipWatch } from '../realtime/useMembershipWatch'
 import { useAuthStore } from '../stores/auth'
 import { useMentionsStore } from '../stores/mentions'
@@ -20,6 +22,11 @@ const mentions = useMentionsStore()
 const drawerOpen = ref(false)
 const paletteOpen = ref(false)
 const orgCreateOpen = ref(false)
+const projectCreateOpen = ref(false)
+
+provide(openProjectCreateKey, () => {
+  projectCreateOpen.value = true
+})
 
 useMembershipWatch()
 
@@ -57,8 +64,8 @@ watch(paletteOpen, (open) => {
   if (open) drawerOpen.value = false
 })
 
-watch(orgCreateOpen, (open) => {
-  if (open) drawerOpen.value = false
+watch([orgCreateOpen, projectCreateOpen], ([orgOpen, projectOpen]) => {
+  if (orgOpen || projectOpen) drawerOpen.value = false
 })
 
 const loading = ref(false)
@@ -124,7 +131,11 @@ onBeforeUnmount(() => {
       :close-label="t('sidebar.close')"
     >
       <div @click="closeDrawerOnLink">
-        <AppSidebar @search="paletteOpen = true" @create-organization="orgCreateOpen = true" />
+        <AppSidebar
+          @search="paletteOpen = true"
+          @create-organization="orgCreateOpen = true"
+          @create-project="projectCreateOpen = true"
+        />
       </div>
     </AppDialog>
     <AppSidebar
@@ -134,9 +145,11 @@ onBeforeUnmount(() => {
       @search="paletteOpen = true"
       @toggle="toggleSidebar"
       @create-organization="orgCreateOpen = true"
+      @create-project="projectCreateOpen = true"
     />
     <CommandPalette v-model:open="paletteOpen" />
     <OrganizationCreateDialog v-model:open="orgCreateOpen" />
+    <ProjectCreateDialog v-model:open="projectCreateOpen" />
     <main class="app-layout__main">
       <p v-if="loading">{{ t('common.loading') }}</p>
       <p v-else-if="failed" role="alert">

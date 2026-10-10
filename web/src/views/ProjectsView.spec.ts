@@ -7,6 +7,7 @@ import { i18n } from '../i18n'
 import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import { openProjectCreateKey } from '../composables/useProjectCreate'
 import ProjectsView from './ProjectsView.vue'
 
 const project = (id: number, name: string, archived_at: string | null = null) => ({
@@ -181,5 +182,40 @@ describe('ProjectsView', () => {
     const wrapper = await mountView()
     expect(wrapper.find('#project-1-health').exists()).toBe(false)
     expect(wrapper.find('a').attributes('aria-describedby')).toBeUndefined()
+  })
+
+  describe('create project entry', () => {
+    const setRoles = (roles: string[]) =>
+      useOrganizationStore().$patch({ organizations: [{ id: 1, name: 'One', slug: 'one', settings: null, roles }] })
+
+    async function mountWith(roles: string[], open: () => void) {
+      vi.spyOn(api, 'get').mockResolvedValue({ data: [], meta: { current_page: 1, last_page: 1, per_page: 100, total: 0 } } as never)
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      useOrganizationStore().$patch({ activeId: 1 })
+      setRoles(roles)
+      useAuthStore().$patch({ user: { id: 1, name: 'Sergio', email: 's@x.test', locale: 'en' } })
+      const router = createAppRouter(createMemoryHistory())
+      const wrapper = mount(ProjectsView, {
+        global: { plugins: [pinia, i18n, router], provide: { [openProjectCreateKey as symbol]: open } },
+      })
+      await flushPromises()
+      return wrapper
+    }
+
+    it.each([['owner'], ['admin']])('shows both buttons to %s and each opens the dialog', async (role) => {
+      const open = vi.fn()
+      const wrapper = await mountWith([role], open)
+      await wrapper.find('button[name=create-project]').trigger('click')
+      await wrapper.find('button[name=create-project-empty]').trigger('click')
+      expect(open).toHaveBeenCalledTimes(2)
+    })
+
+    it('hides the buttons from a member and keeps the empty state', async () => {
+      const wrapper = await mountWith(['member'], vi.fn())
+      expect(wrapper.find('button[name=create-project]').exists()).toBe(false)
+      expect(wrapper.find('button[name=create-project-empty]').exists()).toBe(false)
+      expect(wrapper.text()).toContain('No projects yet.')
+    })
   })
 })
