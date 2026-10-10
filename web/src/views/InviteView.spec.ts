@@ -341,7 +341,7 @@ describe('InviteView', () => {
 
       expect(post).toHaveBeenCalledTimes(1)
       expect(wrapper.find('[data-test=error-form]').attributes('role')).toBe('alert')
-      expect(wrapper.find('[data-test=error-form]').text()).not.toBe('')
+      expect(wrapper.find('[data-test=error-form]').text()).toBe(i18n.global.t('invite.registerClosed'))
       expect(useAuthStore().isAuthenticated).toBe(false)
     })
 

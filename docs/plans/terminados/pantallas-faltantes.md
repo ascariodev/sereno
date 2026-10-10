@@ -172,7 +172,7 @@ el registro abierto se pueda cerrar por entorno dejando solo la entrada por invi
   `accept` rechaza después (cuenta huérfana, sin fuga). Ampliar `AuthTest`.
 - [ ] M-2 (baja, sonnet) — `api/.env.example` (y stacks de producción): documentar `REGISTRATION_ENABLED=true`.
 - [x] M-3 (baja, sonnet) — `RegisterRequest::authorize()`: acortar el docblock a una línea.
-- [ ] M-4 (baja, sonnet) — `web/src/views/InviteView.vue`: mostrar un texto propio para el 403 al registrarse
+- [x] M-4 (baja, sonnet) — `web/src/views/InviteView.vue`: mostrar un texto propio para el 403 al registrarse
   ("el registro está cerrado") en vez de `invite.registerFailed`, y que `InviteView.spec` afirme el texto exacto.
 - [ ] M-5 (baja, sonnet) — `web/src/composables/useRegistrationStatus.ts`: que `resetRegistrationStatus()` invalide
   la petición en vuelo (generación) para que no escriba la caché después del reset.

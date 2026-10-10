@@ -90,6 +90,7 @@
     "signInInstead": "Sign in to accept",
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "registerFailed": "Could not create the account. Try again.",
+    "registerClosed": "Registration is closed and this invitation can't be used to create an account. Ask whoever invited you for a new one.",
     "accountCreatedNotJoined": "Your account was created, but you have not joined the organization yet.",
     "accountCreatedUnusable": "Your account was created, but the invitation could not be accepted."
   },

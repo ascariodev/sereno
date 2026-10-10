@@ -90,6 +90,7 @@
     "signInInstead": "Inicia sesión para aceptar",
     "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
     "registerFailed": "No se pudo crear la cuenta. Inténtalo de nuevo.",
+    "registerClosed": "El registro está cerrado y esta invitación no permite crear una cuenta. Pide una nueva a quien te invitó.",
     "accountCreatedNotJoined": "Tu cuenta se creó, pero aún no te uniste a la organización.",
     "accountCreatedUnusable": "Tu cuenta se creó, pero no se pudo aceptar la invitación."
   },

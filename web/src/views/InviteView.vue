@@ -152,6 +152,8 @@ async function register(): Promise<void> {
         passwordConfirmation.value = ''
       }
       if (!Object.values(error.errors).some((messages) => messages.length)) formError.value = t('invite.registerFailed')
+    } else if (error.status === 403) {
+      formError.value = t('invite.registerClosed')
     } else if (error.status === 429) {
       formError.value = t('invite.tooManyAttempts')
     } else if (error.status === 0) {
