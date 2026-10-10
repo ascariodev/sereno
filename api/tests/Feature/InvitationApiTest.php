@@ -600,3 +600,40 @@ it('does not assign projects for an invitation without them', function () {
 
     expect(DB::table('project_user')->count())->toBe(0);
 });
+
+it('replaces the invited projects when resending and clears them when resending without any', function () {
+    $first = Project::factory()->create(['organization_id' => $this->organization->id]);
+    $second = Project::factory()->create(['organization_id' => $this->organization->id]);
+    $payload = ['email' => 'invitee@example.com', 'role' => 'member'];
+
+    invite($this->owner, $this->organization, $payload + ['project_ids' => [$first->id]])->assertCreated();
+    invite($this->owner, $this->organization, $payload + ['project_ids' => [$second->id]])
+        ->assertCreated()
+        ->assertJsonCount(1, 'data.projects')
+        ->assertJsonPath('data.projects.0.id', $second->id);
+
+    $pending = listInvitations($this->owner, $this->organization);
+    $pending->assertJsonCount(1, 'data');
+    expect(collect($pending->json('data.0.projects'))->pluck('id')->all())->toBe([$second->id]);
+
+    invite($this->owner, $this->organization, $payload)->assertCreated()->assertJsonCount(0, 'data.projects');
+
+    expect(DB::table('invitation_project')->count())->toBe(0);
+});
+
+it('gives no project memberships to an invited admin or owner even when the pivot has projects', function (string $role) {
+    $project = Project::factory()->create(['organization_id' => $this->organization->id]);
+    $invitee = User::factory()->create(['email' => 'invitee@example.com']);
+    $invitation = Invitation::factory()->withPlainToken('plain')->create([
+        'organization_id' => $this->organization->id,
+        'invited_by' => $this->owner->id,
+        'email' => 'invitee@example.com',
+        'role' => $role,
+    ]);
+    $invitation->projects()->sync([$project->id]);
+    Sanctum::actingAs($invitee);
+
+    $this->postJson('/api/invitations/accept', ['token' => 'plain'])->assertOk();
+
+    expect(DB::table('project_user')->count())->toBe(0);
+})->with(['admin', 'owner']);

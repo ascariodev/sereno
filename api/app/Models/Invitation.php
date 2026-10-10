@@ -97,7 +97,7 @@ class Invitation extends Model
 
     public function projects(): BelongsToMany
     {
-        return $this->belongsToMany(Project::class, 'invitation_project');
+        return $this->belongsToMany(Project::class, 'invitation_project')->orderBy('projects.id');
     }
 
     /**
