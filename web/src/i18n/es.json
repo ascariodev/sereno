@@ -103,7 +103,9 @@
     "create": "Crear organización",
     "loadFailed": "No se pudieron cargar tus organizaciones.",
     "revoked": "Ya no perteneces a {organization}.",
-    "revokedUnknown": "Ya no perteneces a esa organización."
+    "revokedUnknown": "Ya no perteneces a esa organización.",
+    "projectAccessLost": "Ya no tienes acceso a {project}.",
+    "projectAccessLostUnknown": "Ya no tienes acceso a ese proyecto."
   },
   "sidebar": {
     "menu": "Menú",

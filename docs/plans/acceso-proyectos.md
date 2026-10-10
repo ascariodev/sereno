@@ -2,7 +2,7 @@
 
 **Objetivo:** membresía por proyecto: owner y admin ven toda la organización; un `member` solo ve los proyectos
 asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asignan desde la web y al invitar.
-**Estado:** en curso · Fase actual: 13
+**Estado:** en curso · Fase actual: 14
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -118,7 +118,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - **Terminado cuando:** invitar con proyectos y aceptar deja las filas; 422 con proyectos y rol admin; un proyecto
   borrado entre medio se ignora.
 
-### [ ] Fase 13 — Web: reaccionar a cambios de acceso
+### [x] Fase 13 — Web: reaccionar a cambios de acceso
 - **Alcance:** escuchar `ProjectAccessChanged` en `users.{id}`; al perder acceso, sacar el proyecto del store,
   soltar sus canales en Echo (L-36) y salir de la vista si estaba abierta; al ganarlo o al cambiar de rol, recargar
   proyectos y canales (L-34).
@@ -179,11 +179,12 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - 2026-10-10 — (Fase 11) `Project::addMember`/`removeMember` devuelven `bool` (si hubo cambio); sin cambio no hay evento ni corte. `assign()`/`unassign()` corren en transacción con el lock de fila de `organizations` (como los cambios de membresía) y revalidan que el usuario siga en la organización (404 si no). Al quitar, las tareas del proyecto se desasignan con UPDATE directo por `project_id` y `assignee_id`, sin `TaskUpdated` (como `Organization::removeMember`), y se corta con `TerminateUserConnections::scheduleAfterCommit($userId)` (5 s; `Organization` lo reutiliza). `changeMemberRole` corta sockets solo al pasar de admin u owner a member. `Organization::removeMember` borra las filas de `project_user` de esa organización.
 - 2026-10-10 — (Fase 12) Contrato de invitaciones con proyectos: `POST /api/invitations` `{email, role, project_ids?: number[]}`; `project_ids` opcional, solo con `role` = `member` (si no, 422 en `project_ids`), enteros distintos de proyectos de la organización activa (422 en `project_ids.N`), máx. 100, archivados valen, `[]` válido. `InvitationResource` añade `projects: [{id, name, key}]` (`whenLoaded`, cargado en el POST 201 y en el GET de pendientes; `[]` sin proyectos); el preview público no cambia. `accept` no cambia: `Invitation::assignProjectsTo($user)` asigna con `Project::addMember` los que sigan existiendo en la organización de la invitación, solo con rol `member`, y no emite `ProjectAccessChanged` (el usuario carga todo al entrar).
 - 2026-10-10 — (Fase 12) `invitation_project`: PK `(invitation_id, project_id)`, FK cascade, índice por `project_id`, sin `organization_id` (sale de la invitación; excepción documentada en `database.md`). Reemplazar una invitación borra la anterior y su pivote por cascade.
+- 2026-10-10 — (Fase 13) Web: `subscribeToUser` escucha `.project.access_changed` (guard de forma, L-13) y se ignoran los de otra organización. Perder acceso: `projects.removeProject(id)` (devuelve el id del canal), `leaveProject` de `echo.ts` suelta `projects.{id}` y `channels.{id}` (borra la entrada, vacía callbacks y deja de cachear; el `unsubscribe` posterior de la vista no hace nada), toast y salida a `projects` si la ruta abierta era de ese proyecto, y `projects.refresh()` (`load(true)` sin vaciar las listas). Ganar acceso y cambio de rol: `refresh()`; tras el cambio de rol sale si el proyecto abierto ya no está en `projects` ni en `channelByProject`.
 
 ## Notas para la próxima sesión
-- Fases 1 a 12 hechas: el API del plan está completo (suite API 925 ok en el worktree). Siguiente: fase 13, web reacciona a `project.access_changed` y `membership.role_changed` (contratos en Decisiones).
+- Fases 1 a 13 hechas (suite API 925 y web 1236 ok en el worktree). Siguiente: fase 14, diálogo de miembros del proyecto (contrato de la fase 10 en Decisiones).
 - Web en el worktree: `sh .../wt.sh web npm run test -- --run <archivo>` y `... wt.sh web npm run typecheck`.
-- Trabajar en el worktree (ver Decisiones). No hay `python3` en el PATH de los subagentes; editar con heredocs o las herramientas de edición y dejar finales LF. Cuidado con `perl -pi` desde el helper: pierde barras invertidas.
+- Trabajar en el worktree (ver Decisiones). No hay `python3` en el PATH de los subagentes; editar con heredocs o las herramientas de edición y dejar finales LF.
 - La migración de datos no se corrió en la base de desarrollo: corre con el próximo `migrate` tras el merge.
 
 ## Mejoras propuestas
@@ -210,3 +211,4 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - [ ] M-18 (baja, sonnet): emitir `TaskUpdated` (o un evento de lote) al desasignar tareas por pérdida de acceso o salida de la organización, para que los tableros abiertos lo vean en vivo.
 - [ ] M-19 (baja, sonnet): test de que no sale `ProjectAccessChanged` ni el corte tras un rollback (forzar el 404 dentro de la transacción de `assign`/`unassign`).
 - [ ] M-20 (baja, sonnet): tests de invitaciones: reenviar con otros `project_ids` reemplaza los proyectos y sin ellos los limpia; un invitado admin u owner no recibe filas aunque el pivote tenga proyectos.
+- [ ] M-21 (media, sonnet): `useMembershipWatch` al perder acceso con el proyecto abierto: lanzar `refresh()` antes del `await router.replace` (un load en vuelo puede reponer el proyecto quitado) y, tras el `await`, revisar que siga la sesión y la misma organización activa antes de seguir (L-32), con spec. Y en `onMembershipRoleChanged`, capturar el nombre del proyecto antes del refresh para no usar `projectAccessLostUnknown`.
