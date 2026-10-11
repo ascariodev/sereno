@@ -251,7 +251,10 @@ export const useTasksStore = defineStore('tasks', () => {
     try {
       await deleteTask(project, taskId)
     } catch (caught) {
-      if (!(caught instanceof ApiError && caught.status === 404)) throw caught
+      if (caught instanceof ApiError && caught.status === 404 && current === generation) {
+        remove({ id: taskId, project_id: project })
+      }
+      throw caught
     }
     if (current === generation) remove({ id: taskId, project_id: project })
   }

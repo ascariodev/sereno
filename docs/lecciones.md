@@ -83,6 +83,9 @@
 - L-56: Un test de "falla al encolar" debe afirmar el efecto del fallo (`Exceptions::assertReported`), no solo que nada
   revienta: con `QUEUE_CONNECTION=sync`, mockear `Queue` `push`/`later` no intercepta nada; hay que fallar en
   `Queue::connection`. — aplicada en: test (MembershipBroadcastTest)
+- L-57: Al cambiar cómo una tienda resuelve o rechaza una acción, correr también los specs de los componentes que la
+  usan (grep del store): tragar un 404 en `tasks.destroy` rompió el toast de `TaskAside`. Si la tienda limpia estado
+  ante un error, igual lo relanza para la UI. — aplicada en: proceso (aplicar-mejoras)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
