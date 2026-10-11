@@ -23,13 +23,12 @@ const shortTime = computed(() => date.value.toLocaleTimeString(locale.value, { t
 const fullDate = computed(() => date.value.toLocaleString(locale.value, { dateStyle: 'full', timeStyle: 'medium' }))
 const deleted = computed(() => props.message.deleted_at !== null)
 const actions = inject(messageActionsKey, null)
-const canAct = computed(
-  () =>
-    actions !== null &&
-    props.ownUserId !== undefined &&
-    props.message.kind === 'user' &&
-    !deleted.value &&
-    props.message.user?.id === props.ownUserId,
+const isLiveUserMessage = computed(
+  () => actions !== null && props.ownUserId !== undefined && props.message.kind === 'user' && !deleted.value,
+)
+const canAct = computed(() => isLiveUserMessage.value && props.message.user?.id === props.ownUserId)
+const canModerate = computed(
+  () => isLiveUserMessage.value && !canAct.value && actions?.canModerate?.value === true,
 )
 const editing = computed(
   () =>
@@ -37,9 +36,9 @@ const editing = computed(
     actions?.editingId.value === props.message.id &&
     !(props.threadable && props.message.parent_id === null && actions.threadRootId.value === props.message.id),
 )
-const showMenu = computed(() => canAct.value && actions?.editingId.value !== props.message.id)
+const showMenu = computed(() => (canAct.value && actions?.editingId.value !== props.message.id) || canModerate.value)
 const menuItems = computed<AppMenuItem[]>(() => [
-  { value: 'edit', label: t('message.edit'), icon: Pencil },
+  ...(canAct.value ? [{ value: 'edit', label: t('message.edit'), icon: Pencil }] : []),
   { value: 'delete', label: t('message.delete'), icon: Trash2, danger: true },
 ])
 function onSelect(value: string): void {

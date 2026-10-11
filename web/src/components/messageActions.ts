@@ -10,6 +10,8 @@ export interface MessageActions {
   /** Id of the root whose thread panel is open; the panel hosts that root's editor, not the channel list. */
   threadRootId: Readonly<Ref<number | null>>
   stopEdit(): void
+  /** True for owners and admins, who may delete (not edit) other people's user messages. */
+  canModerate?: Readonly<Ref<boolean>>
 }
 
 export const messageActionsKey: InjectionKey<MessageActions> = Symbol('messageActions')

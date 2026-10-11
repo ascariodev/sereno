@@ -190,7 +190,7 @@ class MessageController extends Controller
             self::loadParticipants([$result['root']]);
         }
 
-        $event = new MessageDeleted($deleted, $result['root']);
+        $event = new MessageDeleted($deleted, $result['root'], $request->user()->id);
         event($event);
         foreach ($result['removed_mentions'] as $userId) {
             MentionRemoved::dispatch($userId, $deleted);

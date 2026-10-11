@@ -205,6 +205,27 @@ it('lets only the author delete a live user message', function () {
     expect(DB::table('messages')->where('id', $system->id)->value('deleted_at'))->toBeNull();
 });
 
+it('lets owners and admins delete other people messages but not system notices', function (Role $role) {
+    $moderator = User::factory()->create();
+    $this->organization->addMember($moderator, [$role]);
+    assignMembersToAllProjects();
+
+    $system = Message::factory()->system()->for($this->channel)->create();
+    destroyCall($this, $moderator, $system)->assertForbidden();
+
+    destroyCall($this, $moderator)->assertOk();
+    expect(DB::table('messages')->where('id', $this->message->id)->value('deleted_at'))->not->toBeNull();
+    destroyCall($this, $moderator)->assertForbidden();
+})->with([Role::Owner, Role::Admin]);
+
+it('does not let a moderator of another organization delete', function () {
+    $moderator = User::factory()->create();
+    $this->other->addMember($moderator, [Role::Owner]);
+
+    destroyCall($this, $moderator)->assertForbidden();
+    expect(DB::table('messages')->where('id', $this->message->id)->value('deleted_at'))->toBeNull();
+});
+
 it('isolates organizations and channels', function () {
     destroyCall($this, $this->author, org: $this->other)->assertNotFound();
 

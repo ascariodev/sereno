@@ -51,6 +51,7 @@ it('broadcasts a deleted reply with the recalculated counters of its root', func
             && $payload['channel_id'] === $this->channel->id
             && $payload['parent_id'] === $this->root->id
             && $payload['deleted_at'] !== null
+            && $payload['deleted_by'] === $this->author->id
             && $payload['root'] === ['id' => $this->root->id, 'replies_count' => 0, 'last_reply_at' => null, 'recent_participants' => []];
     });
 });

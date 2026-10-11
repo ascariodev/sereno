@@ -51,6 +51,7 @@ const deleteOpen = computed({
 provide(messageActionsKey, {
   editingId: editingMessageId,
   threadRootId: computed(() => threadId.value),
+  canModerate: computed(() => organization.isOwner || organization.isAdmin),
   stopEdit: () => {
     editingMessageId.value = null
   },

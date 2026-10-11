@@ -111,12 +111,12 @@ describe('MessageItem actions menu', () => {
   })
 
   const mounted: { unmount(): void }[] = []
-  function renderOwn(overrides: Partial<Message> = {}, ownUserId: number | null = 7, provided = true, threadable = false) {
+  function renderOwn(overrides: Partial<Message> = {}, ownUserId: number | null = 7, provided = true, threadable = false, canModerate?: boolean) {
     const wrapper = mount(MessageItem, {
       props: { message: { ...message, ...overrides }, ownUserId: ownUserId ?? undefined, threadable },
       global: {
         plugins: [i18n, createPinia()],
-        provide: provided ? { [messageActionsKey as symbol]: { edit, remove, editingId, threadRootId, stopEdit } } : {},
+        provide: provided ? { [messageActionsKey as symbol]: { edit, remove, editingId, threadRootId, stopEdit, ...(canModerate === undefined ? {} : { canModerate: ref(canModerate) }) } } : {},
       },
       attachTo: document.body,
     })
@@ -153,6 +153,24 @@ describe('MessageItem actions menu', () => {
     expect(renderOwn({ deleted_at: '2026-03-04T11:00:00Z', body: null }).find('[data-test=actions]').exists()).toBe(false)
     expect(renderOwn({}, null).find('[data-test=actions]').exists()).toBe(false)
     expect(renderOwn({}, 7, false).find('[data-test=actions]').exists()).toBe(false)
+  })
+
+  it('offers only Delete to moderators on other people user messages, never on system or deleted ones', async () => {
+    const other = { user: { id: 8, name: 'Bea' } }
+    expect(renderOwn(other, 7, true, false, false).find('[data-test=actions]').exists()).toBe(false)
+    expect(renderOwn({ ...other, kind: 'system' }, 7, true, false, true).find('[data-test=actions]').exists()).toBe(false)
+    expect(renderOwn({ ...other, deleted_at: '2026-03-04T11:00:00Z', body: null }, 7, true, false, true).find('[data-test=actions]').exists()).toBe(false)
+    mounted.splice(0).forEach((wrapper) => wrapper.unmount())
+
+    renderOwn(other, 7, true, false, true)
+    trigger().focus()
+    trigger().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }))
+    await settle()
+    expect([...document.querySelectorAll('[role=menuitem]')].map((el) => el.textContent?.trim())).toEqual(['Delete'])
+    document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+    await settle()
+    expect(remove).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }))
+    expect(edit).not.toHaveBeenCalled()
   })
 
   it('keeps the trigger focusable with a name, and reveals it by CSS hover, focus-within and touch', () => {
