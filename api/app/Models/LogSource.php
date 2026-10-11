@@ -85,7 +85,11 @@ class LogSource extends Model
     public function rotateKey(): ?string
     {
         $plainKey = static::newPlainKey();
-        $attributes = [...static::keyAttributes($plainKey), $this->getUpdatedAtColumn() => $this->freshTimestamp()];
+        $attributes = [
+            ...static::keyAttributes($plainKey),
+            'last_used_at' => null,
+            $this->getUpdatedAtColumn() => $this->freshTimestamp(),
+        ];
 
         $updated = static::query()
             ->withoutGlobalScope(OrganizationScope::class)

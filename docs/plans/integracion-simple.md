@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -23,7 +23,11 @@
   `PlanView.vue`); `IntegrationsView.vue` sin tiempo real; `LogSourceKeyDialog.vue` arma `.env` y `curl` con `config.apiUrl`.
 - Verificación web desde un worktree (los contenedores montan el checkout principal):
   `MSYS_NO_PATHCONV=1 docker run --rm -v "<worktree>/web:/app" -v workspace_web-node-modules:/app/node_modules -w /app node:24 npx vitest --run <spec>`.
-  API desde un worktree: mismo patrón con la imagen `workspace-php` y el volumen `workspace_vendor` (fijarlo en la fase 6).
+  API desde un worktree (fijado en la fase 6), desde la raíz del checkout principal, que solo se lee:
+  `WT="$(cd .claude/worktrees/plan-integracion-simple/api && pwd -W)" && MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps -T
+  -e APP_KEY="base64:$(head -c 32 /dev/urandom | base64)" -v "$WT:/var/www/api" api php artisan test --compact <archivos>`
+  (igual con `./vendor/bin/pint --test -q`). Las `DB_*` las puso el usuario en el `environment` del servicio `api`
+  (sin commit en el checkout principal): no leerlas. Los warnings `.env: Failed to open stream` son inocuos.
 - Nunca leer ni montar archivos `.env` (L-52). En posveapi el hook pre-commit falla sin PHP: `--no-verify` solo con
   pedido del usuario.
 
@@ -67,7 +71,7 @@
 - **Archivos:** `README.md`.
 - **Terminado cuando:** cada comando, variable y valor por defecto del README coincide con el código (revisor).
 
-### [ ] Fase 6 — Rotar reinicia el último uso
+### [x] Fase 6 — Rotar reinicia el último uso
 - **Alcance:** `LogSource::rotateKey` deja `last_used_at` en `null` (es el uso de la key nueva), para que el primer uso
   de una key rotada se detecte igual que el de una fuente nueva. Fijar el comando de tests del API desde un worktree.
 - **Archivos:** `api/app/Models/LogSource.php` (+ test de rotación).
@@ -155,6 +159,8 @@
   luego `SERENO_URL` del `.env`, luego `config('sereno.url')`.
 - Fase 5: README en inglés; tag anotado local `v0.2.0` sobre el commit de la fase 5 en `feat/integracion-simple`
   (sin merge a `main` del paquete ni push: esperan al usuario, fase 12). El README no nombra la URL del repo.
+- Fase 6: `rotateKey` pone `last_used_at` en null dentro del mismo UPDATE condicional; nada del API ni de la web
+  dependía de que sobreviviera a la rotación.
 
 ## Mejoras propuestas
 
