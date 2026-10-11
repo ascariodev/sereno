@@ -2,7 +2,7 @@
 
 **Objetivo:** que una URL firmada de un adjunto deje de servir poco después de que la persona pierde el acceso: la web
 pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el TTL baja de 60 a pocos minutos.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 
 ## Contexto mínimo
 - Apps afectadas: `api/` y `web/` (los commits van con `git` en la raíz del monorepo). Origen: acceso-proyectos M-2.
@@ -23,7 +23,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 
 ## Fases
 
-### [ ] Fase 1 — Endpoint que firma una URL nueva
+### [x] Fase 1 — Endpoint que firma una URL nueva
 - **Alcance:**
   - `GET /api/attachments/{attachment}/url` dentro del grupo `auth:sanctum` + `organization`, con throttle propio
     (`attachment-urls`, junto a los de `AppServiceProvider`).
@@ -95,11 +95,21 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 - 2026-10-11 (aprobado por el usuario): TTL de 5 min y paso de 60 s. El endpoint responde 404 (no 403) cuando
   no hay acceso, como `ChannelPolicy`. La ruta pública de descarga sigue validando solo la firma: el corte de acceso
   depende del TTL corto.
+- 2026-10-11: el plan se ejecuta en el worktree `.claude/worktrees/adjuntos-url` (rama `feat/adjuntos-url`). Los
+  tests corren con `docker run` sobre `workspace-php` (o `node:24`) montando el worktree, los volúmenes
+  `workspace_workspace_vendor` o `workspace_web-node-modules` y `api/.env` del checkout principal, red `workspace_default`.
+- 2026-10-11 (Fase 1) `GET /api/attachments/{attachment}/url` responde `{data:{url, expires_at}}`; `expires_at` es ISO8601
+  UTC tomado del parámetro `expires` de la URL firmada. Throttle `attachment-urls` de 120/min por usuario. `Message` no
+  usa SoftDeletes: el mensaje borrado se detecta con `deleted_at` y responde 404 con `abort`, antes del `Gate`.
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1. Leer `docs/lecciones.md` (L-38 sobre payloads a `users.{id}`, L-49 sobre correr la suite al
-  restringir accesos, L-58 sobre enlaces directos).
+- Fase 1 hecha. Siguiente: fase 2; el cliente lee `data.url` y `data.expires_at` del endpoint nuevo.
 
 ## Mejoras propuestas
 </content>
 </invoke>
+- [ ] M-1 (baja, sonnet): exponer el vencimiento desde `MessageAttachment` (p. ej. `downloadUrl()` que devuelva url y
+  vencimiento) en vez de parsear `expires` del query de la URL en `AttachmentController::url`.
+- [ ] M-2 (baja, sonnet): en `AttachmentUrlApiTest`, afirmar que los 404 (otra organización, huérfano, sin proyecto,
+  borrado) tienen el mismo cuerpo. El `false` (403) de `ChannelPolicy::view` no se alcanza aquí: el adjunto se busca con
+  el scope de organización y el middleware exige rol.

@@ -9,8 +9,11 @@ use App\Models\Channel;
 use App\Models\MessageAttachment;
 use App\Models\Scopes\OrganizationScope;
 use finfo;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use League\Flysystem\UnableToRetrieveMetadata;
@@ -71,6 +74,27 @@ class AttachmentController extends Controller
         }
 
         return new MessageAttachmentResource($attachment);
+    }
+
+    /**
+     * A fresh signed url for a linked attachment of a live message, only for who can still see its channel.
+     * Every failure is a 404 so the response does not reveal whether the attachment exists.
+     */
+    public function url(MessageAttachment $attachment): JsonResponse
+    {
+        $message = $attachment->message_id === null ? null : $attachment->message;
+
+        abort_if($message === null || $message->deleted_at !== null, 404, __('Not Found'));
+
+        Gate::authorize('view', $attachment->channel);
+
+        $url = $attachment->downloadUrl();
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+        return response()->json(['data' => [
+            'url' => $url,
+            'expires_at' => Carbon::createFromTimestampUTC((int) $query['expires'])->toIso8601String(),
+        ]]);
     }
 
     /**
