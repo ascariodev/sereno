@@ -105,6 +105,8 @@ export const useMessagesStore = defineStore('messages', () => {
   const channelId = ref<number | null>(null)
   const messages = shallowRef<Message[]>([])
   const nextCursor = ref<string | null>(null)
+  /** True after opening around a message with newer roots left out: live roots are not inserted (it would leave a gap). */
+  const hasNewer = ref(false)
   const loading = ref(false)
   const loadingMore = ref(false)
   const error = ref<ApiError | null>(null)
@@ -158,6 +160,7 @@ export const useMessagesStore = defineStore('messages', () => {
     channelId.value = null
     messages.value = []
     nextCursor.value = null
+    hasNewer.value = false
     loading.value = false
     loadingMore.value = false
     error.value = null
@@ -247,7 +250,7 @@ export const useMessagesStore = defineStore('messages', () => {
   function insert(message: Message): boolean {
     if (message.channel_id !== channelId.value) return false
     if (message.parent_id !== null) return applyReply(message, message.parent_id)
-    if (has(message.id)) return false
+    if (hasNewer.value || has(message.id)) return false
     const early = unloadedDeletions.get(message.id)
     if (early !== undefined) {
       unloadedDeletions.delete(message.id)
@@ -303,7 +306,7 @@ export const useMessagesStore = defineStore('messages', () => {
     return applied
   }
 
-  async function open(id: number): Promise<void> {
+  async function open(id: number, around: number | null = null): Promise<void> {
     clear()
     const current = generation
     const since = removalSeq
@@ -311,13 +314,14 @@ export const useMessagesStore = defineStore('messages', () => {
     loading.value = true
     try {
       const page = await api.get<CursorPage<Message>>(`/api/channels/${id}/messages`, {
-        query: { per_page: MESSAGES_PER_PAGE },
+        query: around === null ? { per_page: MESSAGES_PER_PAGE } : { per_page: MESSAGES_PER_PAGE, around },
       })
       if (current !== generation) return
       flush()
       observeAll(page.data)
       const loaded = new Set(page.data.map((message) => message.id))
-      const live = messages.value.filter((message) => !loaded.has(message.id))
+      hasNewer.value = page.meta.has_newer === true
+      const live = messages.value.filter((message) => !loaded.has(message.id) && !(hasNewer.value && message.parent_id === null))
       messages.value = [...fromServer(page.data, since), ...live].sort((a, b) => a.id - b.id)
       nextCursor.value = page.meta.next_cursor
     } catch (caught) {
@@ -329,7 +333,7 @@ export const useMessagesStore = defineStore('messages', () => {
   }
 
   async function catchUp(): Promise<void> {
-    if (channelId.value === null) return
+    if (channelId.value === null || hasNewer.value) return
     flush()
     const current = generation
     const since = removalSeq
@@ -429,5 +433,5 @@ export const useMessagesStore = defineStore('messages', () => {
     flush()
   }
 
-  return { channelId, messages, nextCursor, loading, loadingMore, error, open, loadOlder, insert, replace, remove, catchUp, send, clear }
+  return { channelId, messages, nextCursor, hasNewer, loading, loadingMore, error, open, loadOlder, insert, replace, remove, catchUp, send, clear }
 })

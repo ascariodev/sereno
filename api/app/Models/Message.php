@@ -20,6 +20,8 @@ class Message extends Model
 
     public const UPDATED_AT = null;
 
+    protected $dateFormat = 'Y-m-d H:i:s.u';
+
     public const KIND_USER = 'user';
 
     public const KIND_SYSTEM = 'system';

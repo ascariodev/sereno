@@ -387,7 +387,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 ## Mejoras propuestas
 - [x] M-1 (alta, plan nuevo, convertida en `docs/plans/editar-mensajes.md`): editar y borrar mensajes propios (no está en el paso 6 y toca `updated_at`, el evento en
   vivo y los contadores de hilo).
-- [ ] M-2 (media, sonnet): saltar a un mensaje concreto (carga alrededor de un id) al abrir una mención de un mensaje
+- [x] M-2 (media, sonnet): saltar a un mensaje concreto (carga alrededor de un id) al abrir una mención de un mensaje
   raíz antiguo; en este plan solo se abre el canal o el hilo.
 - [x] M-3 (media, sonnet): avatares de los últimos participantes en `ThreadSummary`, como en el diseño.
 - [x] M-4 (media, sonnet): borrar los archivos de adjuntos cuando se borra la organización (la cascada borra filas,
@@ -484,4 +484,4 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
   mientras carga.
 - [x] M-44 (baja, sonnet): `MessageController::loadParticipants` usa `$users->get($id)` y filtra nulos, por si un usuario se borra entre las dos consultas.
 - [x] M-45 (baja, sonnet): spec de `memberDirectory` que fije que `invalidate()` conserva la lista visible hasta que llega la nueva; y altas de otra persona en vivo (evento de membresía) en vez de esperar el TTL. Ya cubierta: spec existente en `memberDirectory.spec.ts` y `project.members_changed` invalida el directorio (ChannelView, LogView, PlanView).
-- [ ] M-46 (media, sonnet): el contador de respuestas concilia por segundos (`last_reply_at` sin fracción): una respuesta en vivo en el mismo segundo que el snapshot pierde el +1 hasta el refresco; conciliar por id de la última respuesta o con precisión de microsegundos.
+- [x] M-46 (media, sonnet): el contador de respuestas concilia por segundos (`last_reply_at` sin fracción): una respuesta en vivo en el mismo segundo que el snapshot pierde el +1 hasta el refresco; conciliar por id de la última respuesta o con precisión de microsegundos.

@@ -359,19 +359,6 @@ describe('IntegrationsView', () => {
     expect(wrapper!.find('[data-test=revoked]').exists()).toBe(true)
   })
 
-  it('reloads the list and warns on a 422 when revoking', async () => {
-    const get = stubGet(() => ({ data: [source(1)] }))
-    vi.spyOn(api, 'delete').mockRejectedValue(new ApiError(422, 'revoked', {}))
-    await mountView(['owner'])
-    await openAction('revoke')
-    await confirmAction()
-    expect(sourceCalls(get)).toHaveLength(2)
-    expect(toasts.value.map((item) => item.message)).toEqual([
-      'The log source was not revoked: it is already revoked or its project is archived. The list was reloaded.',
-    ])
-    expect(document.body.querySelector('[data-test=confirm-text]')).toBeNull()
-  })
-
   it.each([
     [{ project: ['archived'] }, 'The key was not rotated: the project is archived. The list was reloaded.'],
     [{ source: ['revoked'] }, 'The key was not rotated: the log source is revoked. The list was reloaded.'],

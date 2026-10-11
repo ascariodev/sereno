@@ -56,6 +56,11 @@ function load(): void {
   else tasks.clear()
 }
 
+function columnCount(status: TaskStatus): number {
+  const shown = tasks.visibleColumns[status].length
+  return status === 'done' && tasks.hasMoreDone && activeFilter.value === 'all' ? (tasks.doneTotal ?? shown) : shown
+}
+
 function openCreate(status: TaskStatus): void {
   createStatus.value = status
   createOpen.value = true
@@ -179,8 +184,18 @@ onUnmounted(() => {
               <header class="plan-view__column-head">
                 <span class="plan-view__dot" aria-hidden="true"></span>
                 <h2 :id="`plan-column-${status}`">{{ t(`plan.status.${statusKey[status]}`) }}</h2>
-                <span class="plan-view__count">{{ tasks.visibleColumns[status].length }}</span>
+                <span class="plan-view__count">{{ columnCount(status) }}</span>
               </header>
+              <button
+                v-if="status === 'done' && tasks.hasMoreDone"
+                type="button"
+                class="plan-view__add"
+                name="show-more-done"
+                :disabled="tasks.loadingMoreDone"
+                @click="tasks.showMoreDone()"
+              >
+                {{ t('plan.showMoreDone') }}
+              </button>
               <p v-if="tasks.visibleColumns[status].length === 0" class="plan-view__empty">{{ t('plan.empty') }}</p>
               <template v-for="task in tasks.visibleColumns[status]" :key="task.id">
                 <div v-if="drag.showsLine(status, task.id)" class="plan-view__drop-line" aria-hidden="true"></div>

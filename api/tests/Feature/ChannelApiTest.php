@@ -47,17 +47,41 @@ it('lists non archived channels with their project, readable by every role', fun
             ->assertJsonPath('data.0.name', $this->channel->name)
             ->assertJsonPath('data.0.project.key', $this->project->key)
             ->assertJsonStructure(['data' => [['id', 'project_id', 'name', 'archived_at', 'created_at']]])
-            ->assertExactJson([
-                'data' => [[
-                    'id' => $this->channel->id,
-                    'project_id' => $this->project->id,
-                    'name' => $this->channel->name,
-                    'archived_at' => null,
-                    'created_at' => $this->channel->created_at->toJSON(),
-                    'project' => ['id' => $this->project->id, 'name' => $this->project->name, 'key' => $this->project->key],
-                ]],
-            ]);
+            ->assertJsonPath('data.0', [
+                'id' => $this->channel->id,
+                'project_id' => $this->project->id,
+                'name' => $this->channel->name,
+                'archived_at' => null,
+                'created_at' => $this->channel->created_at->toJSON(),
+                'project' => ['id' => $this->project->id, 'name' => $this->project->name, 'key' => $this->project->key],
+            ])
+            ->assertJsonPath('meta.next_cursor', null);
     }
+});
+
+it('paginates channels by name with a cursor', function () {
+    foreach (['b', 'c'] as $name) {
+        Channel::factory()->for(Project::factory()->for($this->organization))->create(['name' => $name]);
+    }
+    $this->channel->update(['name' => 'a']);
+    $member = $this->users['member'];
+    assignMembersToAllProjects();
+
+    $first = asChannelReader($member, $this->organization)->getJson('/api/channels?per_page=2')
+        ->assertOk()
+        ->assertJsonPath('data.*.name', ['a', 'b'])
+        ->assertJsonPath('meta.per_page', 2);
+    $cursor = $first->json('meta.next_cursor');
+    expect($cursor)->not->toBeNull();
+
+    asChannelReader($member, $this->organization)->getJson("/api/channels?per_page=2&cursor={$cursor}")
+        ->assertOk()
+        ->assertJsonPath('data.*.name', ['c'])
+        ->assertJsonPath('meta.next_cursor', null);
+
+    asChannelReader($member, $this->organization)->getJson('/api/channels?per_page=101')->assertUnprocessable();
+    asChannelReader($member, $this->organization)->getJson('/api/channels?cursor=not-a-cursor')
+        ->assertUnprocessable()->assertJsonValidationErrors('cursor');
 });
 
 it('lists archived channels only with include_archived', function () {

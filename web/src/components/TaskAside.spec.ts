@@ -152,7 +152,17 @@ describe('TaskAside', () => {
     expect(q('[data-test="origin-link"]')).toBeNull()
   })
 
-  it('closes with replace and a toast when the task is not in the store', async () => {
+  it('loads a task that is not on the board and shows it', async () => {
+    const get = vi.spyOn(tasksApi, 'getTask').mockResolvedValue(base)
+    const { wrapper } = await mountAside(null)
+    expect(get).toHaveBeenCalledWith(5, 9, expect.anything())
+    expect(q('.task-aside')).not.toBeNull()
+    expect(wrapper.emitted('close')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('closes with replace and a toast when the task is not in the store nor in the API', async () => {
+    vi.spyOn(tasksApi, 'getTask').mockRejectedValue(new ApiError(404, 'gone', {}))
     const error = vi.spyOn(toast, 'error')
     const { wrapper } = await mountAside(null)
     expect(wrapper.emitted('close')).toEqual([[true]])

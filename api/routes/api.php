@@ -56,6 +56,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::patch('projects/{project}/log-groups/{group}', [LogGroupController::class, 'update']);
     Route::get('projects/{project}/tasks', [TaskController::class, 'index']);
     Route::post('projects/{project}/tasks', [TaskController::class, 'store']);
+    Route::get('projects/{project}/tasks/{task}', [TaskController::class, 'show']);
     Route::patch('projects/{project}/tasks/{task}', [TaskController::class, 'update']);
     Route::delete('projects/{project}/tasks/{task}', [TaskController::class, 'destroy']);
     Route::post('projects/{project}/tasks/{task}/move', [TaskController::class, 'move']);
@@ -65,6 +66,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::get('members', [MemberController::class, 'index']);
     Route::patch('members/{user}', [MemberController::class, 'update']);
     Route::delete('members/{user}', [MemberController::class, 'destroy']);
+    Route::post('members/{user}/transfer-ownership', [MemberController::class, 'transferOwnership'])->whereNumber('user');
     Route::get('channels', [ChannelController::class, 'index']);
     Route::middleware('throttle:mentions')->group(function () {
         Route::get('mentions', [MentionController::class, 'index']);

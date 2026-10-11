@@ -46,7 +46,7 @@ function destroyUserMessage(Channel $channel, User $author, ?string $body = 'tex
         $message->save();
         DB::table('messages')->where('id', $parent->id)->update([
             'replies_count' => DB::raw('replies_count + 1'),
-            'last_reply_at' => DB::raw('GREATEST(last_reply_at, '.DB::getPdo()->quote($message->created_at->format('Y-m-d H:i:s')).'::timestamp)'),
+            'last_reply_at' => DB::raw('GREATEST(last_reply_at, '.DB::getPdo()->quote($message->created_at->format('Y-m-d H:i:s.u')).'::timestamp)'),
         ]);
     }
 
@@ -203,6 +203,27 @@ it('lets only the author delete a live user message', function () {
     destroyCall($this, $this->author)->assertForbidden();
 
     expect(DB::table('messages')->where('id', $system->id)->value('deleted_at'))->toBeNull();
+});
+
+it('lets owners and admins delete other people messages but not system notices', function (Role $role) {
+    $moderator = User::factory()->create();
+    $this->organization->addMember($moderator, [$role]);
+    assignMembersToAllProjects();
+
+    $system = Message::factory()->system()->for($this->channel)->create();
+    destroyCall($this, $moderator, $system)->assertForbidden();
+
+    destroyCall($this, $moderator)->assertOk();
+    expect(DB::table('messages')->where('id', $this->message->id)->value('deleted_at'))->not->toBeNull();
+    destroyCall($this, $moderator)->assertForbidden();
+})->with([Role::Owner, Role::Admin]);
+
+it('does not let a moderator of another organization delete', function () {
+    $moderator = User::factory()->create();
+    $this->other->addMember($moderator, [Role::Owner]);
+
+    destroyCall($this, $moderator)->assertForbidden();
+    expect(DB::table('messages')->where('id', $this->message->id)->value('deleted_at'))->toBeNull();
 });
 
 it('isolates organizations and channels', function () {

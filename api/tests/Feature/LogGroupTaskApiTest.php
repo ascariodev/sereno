@@ -76,3 +76,39 @@ it('returns the task in the detail and in the status update', function () {
         ->assertJsonPath('data.task.key', 'POSVE-12')
         ->assertJsonPath('data.task.status', 'in_review');
 });
+
+it('returns the task of each group in the hourly payload, omitting groups without one, in a fixed number of queries', function () {
+    $extra = LogGroup::factory()->for($this->project)->create();
+    $otherTask = new Task(['title' => 'Other', 'position' => 2.0, 'status' => 'todo']);
+    $otherTask->project_id = $this->project->id;
+    $otherTask->number = 13;
+    $otherTask->log_group_id = $extra->id;
+    $otherTask->save();
+
+    $queries = function (string $ids): array {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $response = groupTaskGet(groupTaskUrl($this->project).'/hourly?ids='.$ids)->assertOk();
+        DB::disableQueryLog();
+
+        return [$response, count(DB::getQueryLog())];
+    };
+
+    $queries((string) $this->withTask->id);
+    [, $single] = $queries((string) $this->withTask->id);
+    [$response, $many] = $queries("{$this->withTask->id},{$this->withoutTask->id},{$extra->id}");
+
+    expect($response->json('data.tasks'))->toBe([
+        (string) $this->withTask->id => ['id' => $this->task->id, 'key' => 'POSVE-12', 'status' => 'in_review'],
+        (string) $extra->id => ['id' => $otherTask->id, 'key' => 'POSVE-13', 'status' => 'todo'],
+    ])->and($many)->toBe($single);
+});
+
+it('does not leak the task of a group of another project in the hourly payload', function () {
+    $otherProject = Project::factory()->for($this->organization)->create(['key' => 'OTHER']);
+    assignMembersToAllProjects();
+
+    $response = groupTaskGet(groupTaskUrl($otherProject).'/hourly?ids='.$this->withTask->id)->assertOk();
+
+    expect($response->json('data.tasks'))->toBe([]);
+});

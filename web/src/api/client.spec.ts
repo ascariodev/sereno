@@ -135,7 +135,7 @@ describe('api client', () => {
   })
 
   it('notifies the forbidden handler on a 403 that carried an organization header', async () => {
-    const { client } = setup(json({ message: 'You do not belong to this organization.' }, 403))
+    const { client } = setup(json({ message: 'You do not belong to this organization.', code: 'organization_forbidden' }, 403))
     client.setOrganizationProvider(() => 7)
     const handler = vi.fn()
     client.setForbiddenHandler(handler)
@@ -146,8 +146,20 @@ describe('api client', () => {
     expect(error).toMatchObject({ status: 403 })
   })
 
+  it('does not notify the forbidden handler on a policy 403 without the organization code', async () => {
+    const { client } = setup(json({ message: 'This action is unauthorized.' }, 403))
+    client.setOrganizationProvider(() => 7)
+    const handler = vi.fn()
+    client.setForbiddenHandler(handler)
+
+    const error = await client.get('/api/projects').catch((e) => e)
+
+    expect(handler).not.toHaveBeenCalled()
+    expect(error).toMatchObject({ status: 403 })
+  })
+
   it('does not notify the forbidden handler without an organization header or on other statuses', async () => {
-    const forbidden = setup(json({ message: 'Nope.' }, 403))
+    const forbidden = setup(json({ message: 'Nope.', code: 'organization_forbidden' }, 403))
     const handler = vi.fn()
     forbidden.client.setForbiddenHandler(handler)
     await forbidden.client.get('/api/me').catch(() => undefined)

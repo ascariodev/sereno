@@ -10,6 +10,7 @@ use App\Support\CurrentOrganization;
 use Closure;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -27,7 +28,24 @@ class AuthenticateLogSource
         // Clear any organization left by a previous request in the same process (L-02).
         $this->currentOrganization->set(null);
 
-        $source = $this->resolve($request->bearerToken());
+        // Checked before any query so an IP guessing keys gets blocked, even if it then sends a valid one.
+        $failuresKey = 'log-ingest-auth-failures:'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($failuresKey, config('workspace.log.auth_failures.max_attempts'))) {
+            $retryAfter = RateLimiter::availableIn($failuresKey);
+
+            return response()->json([
+                'message' => __('Too many attempts. Please try again in :seconds seconds.', ['seconds' => $retryAfter]),
+            ], 429, ['Retry-After' => $retryAfter]);
+        }
+
+        try {
+            $source = $this->resolve($request->bearerToken());
+        } catch (AuthenticationException $e) {
+            RateLimiter::hit($failuresKey, config('workspace.log.auth_failures.decay_seconds'));
+
+            throw $e;
+        }
 
         $this->currentOrganization->set($source->organization);
         $request->attributes->set(self::ATTRIBUTE, $source);

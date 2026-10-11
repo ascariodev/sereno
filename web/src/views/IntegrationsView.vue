@@ -111,8 +111,7 @@ function replaceSource(updated: LogSource): void {
   sources.value = sources.value.map((item) => (item.id === updated.id ? updated : item))
 }
 
-function unavailableKey(kind: 'rotate' | 'revoke', error: ApiError): string {
-  if (kind === 'revoke') return 'integrations.revokeUnavailable'
+function unavailableKey(error: ApiError): string {
   if (error.errors.project) return 'integrations.rotateProjectArchived'
   if (error.errors.source) return 'integrations.rotateSourceRevoked'
   return 'integrations.rotateUnavailable'
@@ -138,11 +137,11 @@ async function confirmAction(): Promise<void> {
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
-    if (error.status === 409) {
-      toast.error(t(action.kind === 'rotate' ? 'integrations.rotateConflict' : 'integrations.revokeConflict'))
+    if (action.kind === 'rotate' && error.status === 409) {
+      toast.error(t('integrations.rotateConflict'))
       void load()
-    } else if (error.status === 422) {
-      toast.error(t(unavailableKey(action.kind, error)))
+    } else if (action.kind === 'rotate' && error.status === 422) {
+      toast.error(t(unavailableKey(error)))
       void load()
     } else if (error.status === 403) {
       toast.error(t('integrations.actionForbidden'))

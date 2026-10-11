@@ -46,10 +46,23 @@ const { activeIndex, open, optionId, syncCaret, choose, handleKeydown } = useMen
   ensureLoaded: () => directory.ensureLoaded(projectId.value),
 })
 const tooLong = computed(() => mention.length.value > MAX_LENGTH)
-const hasAttachments = computed(() => props.message.attachments.length > 0)
-const canSave = computed(
-  () => !saving.value && !tooLong.value && (mention.serialized.value.trim() !== '' || hasAttachments.value),
-)
+const removedIds = ref<number[]>([])
+const keptCount = computed(() => props.message.attachments.length - removedIds.value.length)
+const hasText = computed(() => mention.serialized.value.trim() !== '')
+const canSave = computed(() => !saving.value && !tooLong.value && (hasText.value || keptCount.value > 0))
+
+function isRemoved(id: number): boolean {
+  return removedIds.value.includes(id)
+}
+
+function toggleRemoved(id: number): void {
+  errorText.value = null
+  removedIds.value = isRemoved(id) ? removedIds.value.filter((value) => value !== id) : [...removedIds.value, id]
+}
+
+function cannotRemove(id: number): boolean {
+  return saving.value || (!isRemoved(id) && !hasText.value && keptCount.value <= 1)
+}
 const errorMessage = computed(() => (tooLong.value ? t('channel.composer.tooLong', { max: MAX_LENGTH }) : errorText.value))
 const describedBy = computed(() => (errorMessage.value ? `${hintId} ${errorDomId}` : hintId))
 
@@ -72,14 +85,14 @@ function onInput(event: Event): void {
 async function save(): Promise<void> {
   if (!canSave.value) return
   const body = mention.serialized.value
-  if (body === (props.message.body ?? '')) {
+  if (body === (props.message.body ?? '') && removedIds.value.length === 0) {
     emit('done')
     return
   }
   saving.value = true
   errorText.value = null
   try {
-    const updated = await updateMessage(props.message.channel_id, props.message.id, body)
+    const updated = await updateMessage(props.message.channel_id, props.message.id, body, removedIds.value)
     // Left the channel while saving (L-32): the stores belong to another one now.
     if (!alive) return
     messages.replace(updated)
@@ -139,6 +152,21 @@ function onKeydown(event: KeyboardEvent): void {
       @click="syncCaret"
       @blur="mention.moveCaret(null)"
     />
+    <ul v-if="message.attachments.length > 0" class="message-editor__attachments" :aria-label="t('message.attachmentsLabel')">
+      <li v-for="attachment in message.attachments" :key="attachment.id" class="message-editor__attachment">
+        <span :class="{ 'message-editor__name--removed': isRemoved(attachment.id) }">{{ attachment.original_name }}</span>
+        <button
+          type="button"
+          name="remove-attachment"
+          class="message-editor__button"
+          :disabled="cannotRemove(attachment.id)"
+          :aria-label="t(isRemoved(attachment.id) ? 'message.keepAttachmentNamed' : 'message.removeAttachmentNamed', { name: attachment.original_name })"
+          @click="toggleRemoved(attachment.id)"
+        >
+          {{ isRemoved(attachment.id) ? t('message.keepAttachment') : t('message.removeAttachment') }}
+        </button>
+      </li>
+    </ul>
     <ul v-show="open" :id="listId" role="listbox" class="message-editor__suggestions" :aria-label="t('channel.composer.suggestions')">
       <li
         v-for="(member, index) in mention.suggestions.value"
@@ -225,6 +253,32 @@ function onKeydown(event: KeyboardEvent): void {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.message-editor__attachments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.message-editor__attachment {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.message-editor__attachment span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-editor__name--removed {
+  text-decoration: line-through;
+  color: var(--ink-3);
 }
 
 .message-editor__error {

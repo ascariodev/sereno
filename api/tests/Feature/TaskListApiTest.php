@@ -120,3 +120,84 @@ it('hides the tasks from another organization', function () {
 it('requires authentication', function () {
     $this->getJson("/api/projects/{$this->project->id}/tasks")->assertUnauthorized();
 });
+
+it('keeps listing the whole Done column without done_limit', function () {
+    foreach ([1, 2, 3] as $n) {
+        seedListedTask($this->project, $n, ['status' => TaskStatus::Done, 'position' => (float) $n]);
+    }
+
+    listTasksAs($this->member, $this->organization, $this->project)
+        ->assertOk()
+        ->assertJsonCount(3, 'data')
+        ->assertJsonPath('meta.done_total', 3)
+        ->assertJsonPath('meta.has_more_done', false);
+});
+
+it('limits the Done column to its latest tasks by position and keeps the other columns whole', function () {
+    $todo = seedListedTask($this->project, 1, ['position' => 1.0]);
+    $late = seedListedTask($this->project, 2, ['status' => TaskStatus::Done, 'position' => 3.0]);
+    seedListedTask($this->project, 6, ['status' => TaskStatus::Done, 'position' => 0.5]);
+    seedListedTask($this->project, 3, ['status' => TaskStatus::Done, 'position' => 1.0]);
+    $second = seedListedTask($this->project, 4, ['status' => TaskStatus::Done, 'position' => 2.0]);
+    $review = seedListedTask($this->project, 5, ['status' => TaskStatus::InReview, 'position' => 1.0]);
+
+    Sanctum::actingAs($this->member);
+    $response = $this->withHeader('X-Organization-Id', (string) $this->organization->id)
+        ->getJson("/api/projects/{$this->project->id}/tasks?done_limit=2")
+        ->assertOk();
+
+    expect(collect($response->json('data'))->pluck('id')->all())
+        ->toBe([$todo->id, $review->id, $second->id, $late->id]);
+    $response->assertJsonPath('meta.done_total', 4)->assertJsonPath('meta.has_more_done', true);
+
+    $this->getJson("/api/projects/{$this->project->id}/tasks?done_limit=4")
+        ->assertOk()
+        ->assertJsonCount(6, 'data')
+        ->assertJsonPath('meta.has_more_done', false);
+});
+
+it('rejects an invalid done_limit', function () {
+    Sanctum::actingAs($this->member);
+
+    foreach (['0', 'abc', '501'] as $value) {
+        $this->withHeader('X-Organization-Id', (string) $this->organization->id)
+            ->getJson("/api/projects/{$this->project->id}/tasks?done_limit={$value}")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('done_limit');
+    }
+});
+
+function showTaskAs(User $user, Organization $organization, Project $project, Task $task)
+{
+    Sanctum::actingAs($user);
+
+    return test()->withHeader('X-Organization-Id', (string) $organization->id)
+        ->getJson("/api/projects/{$project->id}/tasks/{$task->id}");
+}
+
+it('shows a single task with the resource shape', function () {
+    $task = seedListedTask($this->project, 1, ['status' => TaskStatus::Done]);
+
+    showTaskAs($this->member, $this->organization, $this->project, $task)
+        ->assertOk()
+        ->assertJsonPath('data.id', $task->id)
+        ->assertJsonPath('data.key', 'POSVE-1')
+        ->assertJsonPath('data.status', 'done');
+});
+
+it('does not show a task through another project or organization', function () {
+    $task = seedListedTask($this->project, 1);
+    $sibling = Project::factory()->for($this->organization)->create(['key' => 'OTHER']);
+    assignMembersToAllProjects();
+
+    showTaskAs($this->member, $this->organization, $sibling, $task)->assertNotFound();
+    showTaskAs($this->outsider, $this->other, $this->project, $task)->assertNotFound();
+    showTaskAs($this->outsider, $this->organization, $this->project, $task)->assertForbidden();
+});
+
+it('hides a single task from a member not assigned to its project', function () {
+    $task = seedListedTask($this->project, 1);
+    DB::table('project_user')->where('project_id', $this->project->id)->where('user_id', $this->member->id)->delete();
+
+    showTaskAs($this->member, $this->organization, $this->project, $task)->assertNotFound();
+});

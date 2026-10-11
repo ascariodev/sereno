@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\TaskStatus;
+use App\Events\TaskAssigned;
 use App\Events\TaskCreated;
 use App\Events\TaskDeleted;
 use App\Events\TaskUpdated;
@@ -12,6 +13,8 @@ use App\Http\Requests\Task\MoveTaskRequest;
 use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Requests\Task\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
+use App\Models\Channel;
+use App\Models\Message;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
@@ -19,6 +22,7 @@ use App\Support\ProjectAccess;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
@@ -32,29 +36,69 @@ class TaskController extends Controller
     /** Below this gap between neighbors the column is renumbered instead of halving it again. */
     private const MIN_POSITION_GAP = 1e-9;
 
-    public function index(Project $project): AnonymousResourceCollection
+    /** Done tasks listed when the board asks for a bounded Done column (`done_limit`). */
+    public const MAX_DONE_LIMIT = 500;
+
+    public function index(Request $request, Project $project): AnonymousResourceCollection
     {
         Gate::authorize('view', $project);
 
-        $cases = TaskStatus::cases();
+        $doneLimit = $request->validate([
+            'done_limit' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_DONE_LIMIT],
+        ])['done_limit'] ?? null;
+
+        $cases = array_values(array_filter(TaskStatus::cases(), fn (TaskStatus $status) => $status !== TaskStatus::Done));
         $order = 'CASE status'.str_repeat(' WHEN ? THEN ?', count($cases)).' END';
         $bindings = [];
         foreach ($cases as $index => $status) {
             array_push($bindings, $status->value, $index);
         }
 
-        $tasks = Task::query()
+        $active = Task::query()
             ->where('project_id', $project->id)
+            ->where('status', '!=', TaskStatus::Done)
             ->with(self::RELATIONS)
             ->orderByRaw($order, $bindings)
             ->orderBy('position')
             ->orderBy('id')
             ->get();
 
+        $doneQuery = Task::query()
+            ->where('project_id', $project->id)
+            ->where('status', TaskStatus::Done);
+        $doneTotal = (clone $doneQuery)->count();
+
+        // New and moved tasks land at the end of the column, so the last ones by position are the most recent. The
+        // cut is contiguous, which keeps drag & drop neighbors adjacent; it is returned in column order.
+        $done = $doneQuery
+            ->with(self::RELATIONS)
+            ->orderByDesc('position')
+            ->orderByDesc('id')
+            ->when($doneLimit !== null, fn ($query) => $query->limit($doneLimit))
+            ->get()
+            ->reverse()
+            ->values();
+
+        $tasks = $active->concat($done)->values();
+
         // key() reads the project: share the one already loaded instead of one query per task.
         $tasks->each(fn (Task $task) => $task->setRelation('project', $project));
 
-        return TaskResource::collection($tasks);
+        return TaskResource::collection($tasks)->additional(['meta' => [
+            'done_total' => $doneTotal,
+            'has_more_done' => $done->count() < $doneTotal,
+        ]]);
+    }
+
+    public function show(Project $project, Task $task): TaskResource
+    {
+        Gate::authorize('view', $project);
+        abort_unless($task->project_id === $project->id, 404);
+        Gate::authorize('view', $task);
+
+        $task->load(self::RELATIONS)->setRelation('project', $project);
+
+        return new TaskResource($task);
     }
 
     public function store(StoreTaskRequest $request, Project $project): JsonResponse
@@ -90,6 +134,11 @@ class TaskController extends Controller
                 $task->created_by = $request->user()->id;
                 $task->save();
 
+                if ($task->log_group_id !== null) {
+                    $task->setRelation('project', $project);
+                    $this->postTaskCreatedNotice($project, $task);
+                }
+
                 return $task;
             });
         } catch (UniqueConstraintViolationException $exception) {
@@ -105,8 +154,38 @@ class TaskController extends Controller
 
         $task->load(self::RELATIONS)->setRelation('project', $project);
         TaskCreated::dispatch($task);
+        $this->notifyAssignee($task, $request->user()->id);
 
         return (new TaskResource($task))->response()->setStatusCode(201);
+    }
+
+    private function postTaskCreatedNotice(Project $project, Task $task): void
+    {
+        $channel = Channel::query()
+            ->where('project_id', $project->id)
+            ->whereNull('archived_at')
+            ->first();
+
+        if ($channel === null) {
+            return;
+        }
+
+        $message = new Message([
+            'kind' => Message::KIND_SYSTEM,
+            'payload' => [
+                'type' => 'task.created_from_group',
+                'log_group_id' => $task->log_group_id,
+                'task_id' => $task->id,
+                'task_key' => $task->key(),
+                'task_status' => $task->status->value,
+            ],
+        ]);
+        $message->forceFill([
+            'organization_id' => $task->organization_id,
+            'channel_id' => $channel->id,
+            'user_id' => $task->created_by,
+            'log_group_id' => $task->log_group_id,
+        ])->save();
     }
 
     public function update(UpdateTaskRequest $request, Project $project, Task $task): TaskResource
@@ -123,8 +202,20 @@ class TaskController extends Controller
 
         $task->load(self::RELATIONS)->setRelation('project', $project);
         TaskUpdated::dispatch($task);
+        if ($newAssigneeId !== null) {
+            $this->notifyAssignee($task, $request->user()->id);
+        }
 
         return new TaskResource($task);
+    }
+
+    private function notifyAssignee(Task $task, int $actorId): void
+    {
+        if ($task->assignee_id === null || $task->assignee_id === $actorId) {
+            return;
+        }
+
+        TaskAssigned::dispatch($task->assignee_id, $task->organization_id, $task->project_id, $task->id);
     }
 
     public function destroy(DeleteTaskRequest $request, Project $project, Task $task): Response
@@ -145,7 +236,9 @@ class TaskController extends Controller
         $beforeId = $request->beforeId();
         $afterId = $request->afterId();
 
-        $task = DB::transaction(function () use ($project, $task, $status, $beforeId, $afterId) {
+        $renumbered = [];
+
+        $task = DB::transaction(function () use ($project, $task, $status, $beforeId, $afterId, &$renumbered) {
             // Same lock as store() takes with its UPDATE: creations and moves of the project are serialized, so no
             // task enters the target column while it is read. NO KEY keeps inserts that reference the project free.
             $this->lockActiveProject($project, __('This project is archived and its tasks cannot be moved.'));
@@ -178,7 +271,7 @@ class TaskController extends Controller
                 || $position <= $previous->position
                 || $position >= $next->position
             )) {
-                $position = $this->renumberColumn($column, $slot);
+                $position = $this->renumberColumn($column, $slot, $renumbered);
             }
 
             $task->status = $status;
@@ -190,6 +283,10 @@ class TaskController extends Controller
 
         $task->load(self::RELATIONS)->setRelation('project', $project);
         TaskUpdated::dispatch($task);
+
+        Task::query()->with(self::RELATIONS)->whereKey($renumbered)->get()->each(
+            fn (Task $neighbor) => TaskUpdated::dispatch($neighbor->setRelation('project', $project))
+        );
 
         return new TaskResource($task);
     }
@@ -269,13 +366,15 @@ class TaskController extends Controller
      * Spreads the column over 1, 2, 3... leaving the moved task's slot free, and returns the position of that slot.
      *
      * @param  Collection<int, Task>  $column
+     * @param  list<int>  $renumbered  receives the ids whose position changed, so other clients get them in live
      */
-    private function renumberColumn(Collection $column, int $slot): float
+    private function renumberColumn(Collection $column, int $slot, array &$renumbered): float
     {
         foreach ($column as $index => $neighbor) {
             $position = (float) ($index < $slot ? $index + 1 : $index + 2);
             if ((float) $neighbor->position !== $position) {
                 DB::table('tasks')->where('id', $neighbor->id)->update(['position' => $position]);
+                $renumbered[] = $neighbor->id;
             }
         }
 

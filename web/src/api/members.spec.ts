@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { listMembers, removeMember, updateMemberRole } from './members'
+import { listMembers, removeMember, transferOwnership, updateMemberRole } from './members'
 import type { Member } from './types'
 
 const member: Member = {
@@ -86,5 +86,24 @@ describe('members client', () => {
 
     stubFetch({ message: 'The organization needs at least one owner.' }, 422)
     await expect(removeMember(1)).rejects.toMatchObject({ status: 422 })
+  })
+
+  it('posts the ownership transfer and unwraps the member', async () => {
+    const fetchMock = stubFetch({ data: { ...member, role: 'owner' } })
+
+    const result = await transferOwnership(2)
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(new URL(url).pathname).toBe('/api/members/2/transfer-ownership')
+    expect(init?.method).toBe('POST')
+    expect(result.role).toBe('owner')
+  })
+
+  it('rejects the transfer with 403 and 404', async () => {
+    stubFetch({ message: 'This action is unauthorized.' }, 403)
+    await expect(transferOwnership(2)).rejects.toMatchObject({ status: 403 })
+
+    stubFetch({ message: 'Not found.' }, 404)
+    await expect(transferOwnership(99)).rejects.toMatchObject({ status: 404 })
   })
 })

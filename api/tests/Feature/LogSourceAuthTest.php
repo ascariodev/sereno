@@ -112,3 +112,68 @@ it('writes last_used_at at most once per minute', function () {
     ingest($this->plainKey)->assertOk();
     expect($this->source->fresh()->last_used_at->equalTo(now()))->toBeTrue();
 });
+
+it('blocks an IP with a translated 429 after too many failed authentications', function () {
+    config()->set('workspace.log.auth_failures.max_attempts', 3);
+
+    foreach (range(1, 3) as $attempt) {
+        ingest(LogSource::newPlainKey())->assertUnauthorized();
+    }
+
+    $response = ingest(LogSource::newPlainKey(), 'es')->assertTooManyRequests();
+
+    expect((int) $response->headers->get('Retry-After'))->toBeGreaterThan(0)->toBeLessThanOrEqual(60);
+    $response->assertExactJson(['message' => __('Too many attempts. Please try again in :seconds seconds.', [
+        'seconds' => $response->headers->get('Retry-After'),
+    ], 'es')]);
+});
+
+it('blocks even a valid key from an IP over the failure limit', function () {
+    config()->set('workspace.log.auth_failures.max_attempts', 2);
+
+    ingest(null)->assertUnauthorized();
+    ingest('wsk_short')->assertUnauthorized();
+
+    ingest($this->plainKey)->assertTooManyRequests();
+    expect($this->source->fresh()->last_used_at)->toBeNull();
+});
+
+it('does not count successful authentications as failures', function () {
+    config()->set('workspace.log.auth_failures.max_attempts', 2);
+
+    ingest(LogSource::newPlainKey())->assertUnauthorized();
+    ingest($this->plainKey)->assertOk();
+    ingest($this->plainKey)->assertOk();
+    ingest(LogSource::newPlainKey())->assertUnauthorized();
+
+    ingest(LogSource::newPlainKey())->assertTooManyRequests();
+});
+
+it('limits failed authentications per IP', function () {
+    config()->set('workspace.log.auth_failures.max_attempts', 2);
+
+    $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.1']);
+    ingest(LogSource::newPlainKey())->assertUnauthorized();
+    ingest(LogSource::newPlainKey())->assertUnauthorized();
+    ingest($this->plainKey)->assertTooManyRequests();
+
+    $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.2']);
+    ingest(LogSource::newPlainKey())->assertUnauthorized();
+    ingest($this->plainKey)->assertOk();
+});
+
+it('lifts the block when the failure window expires', function () {
+    config()->set('workspace.log.auth_failures.max_attempts', 2);
+    config()->set('workspace.log.auth_failures.decay_seconds', 60);
+    $this->freezeSecond();
+
+    ingest(LogSource::newPlainKey())->assertUnauthorized();
+    ingest(LogSource::newPlainKey())->assertUnauthorized();
+    ingest($this->plainKey)->assertTooManyRequests();
+
+    $this->travel(59)->seconds();
+    ingest($this->plainKey)->assertTooManyRequests();
+
+    $this->travel(2)->seconds();
+    ingest($this->plainKey)->assertOk();
+});

@@ -5,6 +5,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import { acceptInvitation, previewInvitation } from '../api/invitations'
 import type { InvitationPreview } from '../api/types'
+import AppButton from '../components/ui/AppButton.vue'
+import AppInput from '../components/ui/AppInput.vue'
 import BrandMark from '../components/ui/BrandMark.vue'
 import { toast } from '../components/ui/toast'
 import { useAuthStore } from '../stores/auth'
@@ -33,7 +35,6 @@ const password = ref('')
 const passwordConfirmation = ref('')
 const fieldErrors = ref<Record<string, string[]>>({})
 const formError = ref<string | null>(null)
-type RegisterField = 'name' | 'email' | 'password'
 let generation = 0
 let controller: AbortController | null = null
 
@@ -121,16 +122,6 @@ async function accept(): Promise<void> {
   }
 }
 
-function errorIds(field: RegisterField): string[] {
-  return (fieldErrors.value[field] ?? []).map((_, index) => `invite-${field}-error-${index}`)
-}
-
-function describedBy(field: RegisterField): string | undefined {
-  const ids = errorIds(field)
-  if (field === 'email' && ids.length) ids.push('invite-email-hint')
-  return ids.length ? ids.join(' ') : undefined
-}
-
 async function register(): Promise<void> {
   if (registering.value || accepting.value || !preview.value) return
   const current = generation
@@ -199,9 +190,9 @@ async function signOut(): Promise<void> {
       <template v-else-if="loadError === 'failed'">
         <h1>{{ t('invite.title') }}</h1>
         <p role="alert" data-test="load-failed">{{ t('invite.loadFailed') }}</p>
-        <button type="button" class="invite__button" data-test="retry" @click="load">
+        <AppButton type="button" data-test="retry" @click="load">
           {{ t('common.retry') }}
-        </button>
+        </AppButton>
       </template>
 
       <template v-else-if="preview">
@@ -237,29 +228,27 @@ async function signOut(): Promise<void> {
             <p v-if="registered" role="status" data-test="registered-not-joined">
               {{ t('invite.accountCreatedNotJoined') }}
             </p>
-            <button
+            <AppButton
               type="button"
-              class="invite__button"
               data-test="accept"
               :disabled="accepting"
               @click="accept"
             >
               {{ accepting ? t('invite.accepting') : t('invite.accept') }}
-            </button>
+            </AppButton>
           </template>
           <template v-else>
             <p role="alert" data-test="other-email">
               {{ t('invite.otherEmail', { current: auth.user.email, invited: preview.email }) }}
             </p>
-            <button
+            <AppButton
               type="button"
-              class="invite__button"
               data-test="sign-out"
               :disabled="signingOut"
               @click="signOut"
             >
               {{ t('invite.signOut') }}
-            </button>
+            </AppButton>
           </template>
           <p v-if="acceptError" class="invite__error" role="alert" data-test="accept-error">{{ acceptError }}</p>
         </template>
@@ -267,95 +256,62 @@ async function signOut(): Promise<void> {
         <form v-else class="invite__form" novalidate data-test="register-form" @submit.prevent="register">
           <h2>{{ t('invite.createTitle') }}</h2>
 
-          <div class="invite__field">
-            <label for="invite-name">{{ t('invite.name') }}</label>
-            <input
-              id="invite-name"
-              v-model="name"
-              type="text"
-              name="name"
-              autocomplete="name"
-              required
-              :aria-invalid="describedBy('name') ? 'true' : undefined"
-              :aria-describedby="describedBy('name')"
-            />
-            <p
-              v-for="(message, index) in fieldErrors.name"
-              :id="`invite-name-error-${index}`"
-              :key="`${index}-${message}`"
-              class="invite__error"
-              data-test="error-name"
-            >
-              {{ message }}
-            </p>
-          </div>
+          <AppInput
+            id="invite-name"
+            :label="t('invite.name')"
+            v-model="name"
+            type="text"
+            name="name"
+            autocomplete="name"
+            required
+            :errors="fieldErrors.name"
+            error-test="error-name"
+          />
 
-          <div class="invite__field">
-            <label for="invite-email">{{ t('invite.email') }}</label>
-            <input
-              id="invite-email"
-              type="email"
-              name="email"
-              autocomplete="username"
-              readonly
-              :value="preview.email"
-              :aria-invalid="describedBy('email') ? 'true' : undefined"
-              :aria-describedby="describedBy('email')"
-            />
-            <p
-              v-for="(message, index) in fieldErrors.email"
-              :id="`invite-email-error-${index}`"
-              :key="`${index}-${message}`"
-              class="invite__error"
-              data-test="error-email"
-            >
-              {{ message }}
-            </p>
+          <AppInput
+            id="invite-email"
+            :label="t('invite.email')"
+            type="email"
+            name="email"
+            autocomplete="username"
+            readonly
+            :model-value="preview.email"
+            :errors="fieldErrors.email"
+            error-test="error-email"
+            describedby-extra="invite-email-hint"
+          >
             <p v-if="fieldErrors.email?.length" id="invite-email-hint" class="invite__error" data-test="email-taken-hint">
               {{ t('invite.emailTaken') }}
             </p>
-          </div>
+          </AppInput>
 
-          <div class="invite__field">
-            <label for="invite-password">{{ t('invite.password') }}</label>
-            <input
-              id="invite-password"
-              v-model="password"
-              type="password"
-              name="password"
-              autocomplete="new-password"
-              required
-              :aria-invalid="describedBy('password') ? 'true' : undefined"
-              :aria-describedby="describedBy('password')"
-            />
-            <p
-              v-for="(message, index) in fieldErrors.password"
-              :id="`invite-password-error-${index}`"
-              :key="`${index}-${message}`"
-              class="invite__error"
-              data-test="error-password"
-            >
-              {{ message }}
-            </p>
-          </div>
+          <AppInput
+            id="invite-password"
+            :label="t('invite.password')"
+            v-model="password"
+            type="password"
+            name="password"
+            autocomplete="new-password"
+            required
+            :errors="fieldErrors.password"
+            error-test="error-password"
+          />
 
-          <div class="invite__field">
-            <label for="invite-password-confirmation">{{ t('invite.passwordConfirmation') }}</label>
-            <input
-              id="invite-password-confirmation"
-              v-model="passwordConfirmation"
-              type="password"
-              name="password_confirmation"
-              autocomplete="new-password"
-              required
-            />
-          </div>
+          <AppInput
+            id="invite-password-confirmation"
+            :label="t('invite.passwordConfirmation')"
+            v-model="passwordConfirmation"
+            type="password"
+            name="password_confirmation"
+            autocomplete="new-password"
+            required
+          />
 
           <p v-if="formError" class="invite__error" role="alert" data-test="error-form">{{ formError }}</p>
 
-          <button type="submit" class="invite__button" data-test="register" :disabled="registering || accepting">
+          <AppButton type="submit" data-test="register" :disabled="registering || accepting">
             {{ registering || accepting ? t('invite.creating') : t('invite.createAccount') }}
-          </button>
+          </AppButton>
 
           <p class="invite__alt">
             {{ t('invite.haveAccount') }}
@@ -434,22 +390,6 @@ async function signOut(): Promise<void> {
   overflow-wrap: anywhere;
   text-align: right;
 }
-.invite__button {
-  min-height: 46px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--ink);
-  color: var(--surface);
-  font: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.invite__button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.invite__button:focus-visible,
 .invite__link:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -466,30 +406,6 @@ async function signOut(): Promise<void> {
 .invite__form h2 {
   margin: 0;
   font-size: 18px;
-}
-.invite__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.invite__field label {
-  font-size: 13px;
-  font-weight: 600;
-}
-.invite__field input {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--ink);
-}
-.invite__field input[readonly] {
-  color: var(--ink-3);
-}
-.invite__field input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
 }
 .invite__card .invite__alt {
   font-size: 13px;

@@ -41,8 +41,18 @@ describe('tasks client', () => {
     const result = await listTasks(3)
 
     expect(new URL(fetchMock.mock.calls[0][0]).pathname).toBe('/api/projects/3/tasks')
+    expect(new URL(fetchMock.mock.calls[0][0]).search).toBe('')
     expect(fetchMock.mock.calls[0][1]?.method).toBe('GET')
-    expect(result).toEqual([task])
+    expect(result).toEqual({ tasks: [task], doneTotal: null, hasMoreDone: false })
+  })
+
+  it('asks for a bounded Done column and reads its meta', async () => {
+    const fetchMock = stubFetch({ data: [task], meta: { done_total: 120, has_more_done: true } })
+
+    const result = await listTasks(3, undefined, 50)
+
+    expect(new URL(fetchMock.mock.calls[0][0]).searchParams.get('done_limit')).toBe('50')
+    expect(result).toEqual({ tasks: [task], doneTotal: 120, hasMoreDone: true })
   })
 
   it('creates with snake_case fields and unwraps the task', async () => {

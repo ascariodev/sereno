@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import type { LogGroup, Message, MessagePayload } from '../api/types'
 import { resetHourlyCounts } from '../composables/useHourlyCounts'
-import { resetGroupStatuses, setGroupStatus, setGroupTask } from '../composables/useLogGroupStatuses'
+import { observeStatusMessage, resetGroupStatuses, setGroupStatus, setGroupTask } from '../composables/useLogGroupStatuses'
 import { i18n } from '../i18n'
 import SystemNotice from './SystemNotice.vue'
 
@@ -132,6 +132,41 @@ describe('SystemNotice', () => {
     const wrapper = mount(SystemNotice, { props: { message: message(titled, ana) }, global: { plugins: [i18n] } })
     expect(wrapper.find('.system-notice-line em').text()).toBe('Timeout en webhook')
     expect(textIn('en', message({ ...changed, title: '  ' }, ana))).toContain('Ana marked the log group as resolved')
+  })
+
+  describe('task created from a group', () => {
+    const taskCreated = { type: 'task.created_from_group', log_group_id: 5, task_id: 9, task_key: 'POSVE-12', task_status: 'todo' }
+    const router = () =>
+      createRouter({ history: createMemoryHistory(), routes: [{ path: '/p/:projectId/plan', name: 'project-plan', component: { template: '<i/>' } }] })
+    const mountCreated = (payload: unknown, projectId: number | null = 3) =>
+      mount(SystemNotice, { props: { message: message(payload, ana), projectId: projectId ?? undefined }, global: { plugins: [i18n, router()] } })
+
+    it('renders a compact line with the actor and a link to the task', () => {
+      const wrapper = mountCreated(taskCreated)
+      expect(wrapper.find('article').exists()).toBe(false)
+      expect(wrapper.text()).toContain('Ana created task POSVE-12 from this log group')
+      expect(wrapper.get('[data-test=notice-task-created-link]').attributes('href')).toBe('/p/3/plan?task=9')
+      i18n.global.locale.value = 'es'
+      return wrapper.vm.$nextTick().then(() => expect(wrapper.text()).toContain('Ana creó la tarea POSVE-12 desde este grupo de logs'))
+    })
+
+    it('shows the key as plain text without a project and falls back when fields are missing', () => {
+      const plain = mountCreated(taskCreated, null)
+      expect(plain.find('a').exists()).toBe(false)
+      expect(plain.text()).toContain('POSVE-12')
+      expect(textIn('en', message({ ...taskCreated, task_key: 12 }, ana))).toBe('System notice')
+      expect(textIn('en', message({ type: 'task.created_from_group', log_group_id: 5 }, ana))).toBe('System notice')
+    })
+
+    it('feeds the shared group task so the card shows the chip', async () => {
+      const wrapper = mount(SystemNotice, { props: { message: message(opened), projectId: 3 }, global: { plugins: [i18n, router()] } })
+      expect(wrapper.find('[data-test=notice-task-chip]').exists()).toBe(false)
+      observeStatusMessage(message(taskCreated, ana))
+      await flushPromises()
+      const chip = wrapper.get('[data-test=notice-task-chip]')
+      expect(chip.text()).toBe('Task POSVE-12')
+      expect(chip.attributes('href')).toBe('/p/3/plan?task=9')
+    })
   })
 
   it('shows unknown levels and statuses as they come', () => {

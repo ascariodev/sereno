@@ -7,6 +7,7 @@ export const MESSAGE_CREATED_EVENT = '.message.created'
 export const MEMBERSHIP_REVOKED_EVENT = '.membership.revoked'
 export const MEMBERSHIP_ROLE_CHANGED_EVENT = '.membership.role_changed'
 export const PROJECT_ACCESS_CHANGED_EVENT = '.project.access_changed'
+export const TASK_ASSIGNED_EVENT = '.task.assigned'
 export const MESSAGE_UPDATED_EVENT = '.message.updated'
 export const MESSAGE_DELETED_EVENT = '.message.deleted'
 export const MENTION_CREATED_EVENT = '.mention.created'
@@ -16,6 +17,7 @@ export const TASK_UPDATED_EVENT = '.task.updated'
 export const TASK_DELETED_EVENT = '.task.deleted'
 export const PROJECT_MEMBERS_CHANGED_EVENT = '.project.members_changed'
 export const LOG_SOURCE_CONNECTED_EVENT = '.log_source.connected'
+export const ORGANIZATION_MEMBERS_CHANGED_EVENT = '.organization.members_changed'
 
 export interface RealtimePayload {
   message?: Message
@@ -29,6 +31,7 @@ export interface RealtimePayload {
   root?: MessageDeletedEvent['root']
   task?: Partial<Task>
   project_id?: number
+  task_id?: number
   granted?: boolean
   last_used_at?: string
 }
@@ -97,6 +100,10 @@ export function projectChannelName(organizationId: number, projectId: number): s
 
 function organizationChannelPrefix(organizationId: number): string {
   return `organizations.${organizationId}.`
+}
+
+export function organizationMembersChannelName(organizationId: number): string {
+  return `${organizationChannelPrefix(organizationId)}members`
 }
 
 export function userChannelName(userId: number): string {
@@ -302,6 +309,7 @@ export interface UserSubscriptionHandlers {
   onMembershipRevoked?: (organizationId: number) => void
   onRoleChanged?: (organizationId: number, role: string) => void
   onProjectAccessChanged?: (organizationId: number, projectId: number, granted: boolean) => void
+  onTaskAssigned?: (organizationId: number, projectId: number, taskId: number) => void
   onMention?: (mention: MentionCreatedPayload) => void
   onMentionRemoved?: (mention: MentionRemovedPayload) => void
 }
@@ -311,6 +319,7 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
     onMembershipRevoked = () => {},
     onRoleChanged = () => {},
     onProjectAccessChanged = () => {},
+    onTaskAssigned = () => {},
     onMention = () => {},
     onMentionRemoved = () => {},
   } = handlers
@@ -318,6 +327,7 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
     MEMBERSHIP_REVOKED_EVENT,
     MEMBERSHIP_ROLE_CHANGED_EVENT,
     PROJECT_ACCESS_CHANGED_EVENT,
+    TASK_ASSIGNED_EVENT,
     MENTION_CREATED_EVENT,
     MENTION_REMOVED_EVENT,
   ]
@@ -329,6 +339,10 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
     } else if (event === PROJECT_ACCESS_CHANGED_EVENT) {
       if (typeof data.project_id === 'number' && typeof data.granted === 'boolean') {
         onProjectAccessChanged(data.organization_id, data.project_id, data.granted)
+      }
+    } else if (event === TASK_ASSIGNED_EVENT) {
+      if (typeof data.project_id === 'number' && typeof data.task_id === 'number') {
+        onTaskAssigned(data.organization_id, data.project_id, data.task_id)
       }
     } else if (event === MENTION_CREATED_EVENT) {
       const { message, channel_id: channelId, parent_id: parentId } = data
@@ -345,6 +359,10 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
       })
     }
   })
+}
+
+export function subscribeToOrganizationMembers(organizationId: number, onChanged: () => void): () => void {
+  return subscribe(organizationMembersChannelName(organizationId), [ORGANIZATION_MEMBERS_CHANGED_EVENT], () => onChanged())
 }
 
 export function joinSession(userId: number): () => void {

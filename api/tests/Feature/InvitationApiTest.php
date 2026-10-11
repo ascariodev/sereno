@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Events\OrganizationMembersChanged;
 use App\Events\ProjectMembersChanged;
 use App\Models\Invitation;
 use App\Models\Organization;
@@ -172,6 +173,23 @@ it('accepts an invitation, creating the membership with the role', function () {
     expect($invitee->unsetRelation('roles')->hasRole('admin'))->toBeTrue();
     setPermissionsTeamId(null);
     expect(Invitation::query()->withoutGlobalScopes()->firstOrFail()->accepted_at)->not->toBeNull();
+});
+
+it('broadcasts to the organization members channel when an invitation is accepted', function () {
+    Event::fake([OrganizationMembersChanged::class]);
+    $invitee = User::factory()->create(['email' => 'invitee@example.com']);
+    Invitation::factory()->withPlainToken('plain')->create([
+        'organization_id' => $this->organization->id,
+        'invited_by' => $this->owner->id,
+        'email' => 'invitee@example.com',
+        'role' => 'member',
+    ]);
+    Sanctum::actingAs($invitee);
+
+    $this->postJson('/api/invitations/accept', ['token' => 'plain'])->assertOk();
+
+    Event::assertDispatchedTimes(OrganizationMembersChanged::class, 1);
+    Event::assertDispatched(OrganizationMembersChanged::class, fn ($event) => $event->organizationId === $this->organization->id && $event->userId === $invitee->id);
 });
 
 it('does not accept a used invitation twice', function () {
@@ -416,6 +434,32 @@ it('lists only pending invitations of the active organization with the inviter',
         ->assertJsonPath('data.0.role', 'admin')
         ->assertJsonPath('data.0.invited_by', ['id' => $this->owner->id, 'name' => $this->owner->name])
         ->assertJsonMissingPath('data.0.token');
+});
+
+it('paginates pending invitations by cursor, newest first', function () {
+    foreach ([3, 2, 1] as $daysAgo) {
+        Invitation::factory()->create(['organization_id' => $this->organization->id, 'invited_by' => $this->owner->id, 'email' => "p{$daysAgo}@example.com", 'created_at' => now()->subDays($daysAgo)]);
+    }
+
+    Sanctum::actingAs($this->owner);
+    $headers = ['X-Organization-Id' => (string) $this->organization->id];
+
+    $first = $this->getJson('/api/invitations?per_page=2', $headers)
+        ->assertOk()
+        ->assertJsonPath('data.*.email', ['p1@example.com', 'p2@example.com'])
+        ->assertJsonPath('meta.per_page', 2);
+    $cursor = $first->json('meta.next_cursor');
+    expect($cursor)->not->toBeNull();
+
+    $this->getJson("/api/invitations?per_page=2&cursor={$cursor}", $headers)
+        ->assertOk()
+        ->assertJsonPath('data.*.email', ['p3@example.com'])
+        ->assertJsonPath('meta.next_cursor', null);
+
+    $this->getJson('/api/invitations?per_page=101', $headers)->assertUnprocessable();
+    $this->getJson('/api/invitations?cursor=not-a-cursor', $headers)->assertUnprocessable()->assertJsonValidationErrors('cursor');
+    $forged = rtrim(strtr(base64_encode(json_encode(['created_at' => 'nope', 'id' => 1, '_pointsToNextItems' => true])), '+/', '-_'), '=');
+    $this->getJson("/api/invitations?cursor={$forged}", $headers)->assertUnprocessable()->assertJsonValidationErrors('cursor');
 });
 
 it('lets an admin list pending invitations', function () {

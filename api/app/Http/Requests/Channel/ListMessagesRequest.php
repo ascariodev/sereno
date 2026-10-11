@@ -23,6 +23,7 @@ class ListMessagesRequest extends FormRequest
         return [
             'cursor' => ['nullable', 'string', $this->validCursor(...)],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
+            'around' => ['nullable', 'integer', 'min:1', 'max:'.PHP_INT_MAX],
         ];
     }
 
@@ -33,6 +34,11 @@ class ListMessagesRequest extends FormRequest
         if (! is_int($id) || $id < 1) {
             $fail(__('The cursor is invalid.'));
         }
+    }
+
+    public function around(): ?int
+    {
+        return $this->filled('cursor') || $this->validated('around') === null ? null : (int) $this->validated('around');
     }
 
     public function perPage(): int

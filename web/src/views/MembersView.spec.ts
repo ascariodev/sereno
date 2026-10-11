@@ -5,7 +5,7 @@ import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { toast, toasts } from '../components/ui/toast'
 import { i18n, setLocale } from '../i18n'
-import { MEMBERSHIP_REVOKED_EVENT, setRealtimeClientFactory } from '../realtime/echo'
+import { MEMBERSHIP_REVOKED_EVENT, ORGANIZATION_MEMBERS_CHANGED_EVENT, setRealtimeClientFactory } from '../realtime/echo'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
@@ -91,6 +91,28 @@ describe('MembersView', () => {
     const rows = wrapper!.findAll('[data-test=member]')
     expect(rows[0].find('[data-test=role-select]').element).toHaveProperty('value', 'admin')
     expect(wrapper!.findAll('[data-test=remove]')).toHaveLength(1)
+  })
+
+  it('refreshes the list when another admin changes a role, only for owners and admins', async () => {
+    const fake = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => fake.client)
+    const { get } = await mountView([member(1, 'admin'), member(2, 'member')], ['admin'])
+    expect(fake.client.private).toHaveBeenCalledWith('organizations.1.members')
+    get.mockResolvedValue({ data: [member(1, 'admin'), member(2, 'admin')] })
+    fake.listeners.get(`organizations.1.members|${ORGANIZATION_MEMBERS_CHANGED_EVENT}`)?.({ organization_id: 1 })
+    await flushPromises()
+    expect(wrapper!.findAll('[data-test=member]')[1].find('[data-test=role-select]').element).toHaveProperty('value', 'admin')
+    wrapper!.unmount()
+    wrapper = undefined
+    setRealtimeClientFactory(() => null)
+  })
+
+  it('does not follow the members channel as a plain member', async () => {
+    const fake = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => fake.client)
+    await mountView([member(1, 'member')], ['member'])
+    expect(fake.client.private).not.toHaveBeenCalled()
+    setRealtimeClientFactory(() => null)
   })
 
   it('does not reload the list when the role already matches (own change from the view)', async () => {
@@ -491,6 +513,77 @@ describe('MembersView', () => {
       expect(router.currentRoute.value.name).toBe('projects')
       expect(wrapper!.text()).toContain('You do not belong to any organization yet.')
       expect(wrapper!.find('[data-test=member]').exists()).toBe(false)
+    })
+  })
+
+  describe('transfer ownership', () => {
+    function dialogButton(name: string): HTMLButtonElement | null {
+      return document.querySelector(`[role=dialog] [data-test=${name}]`)
+    }
+
+    it('offers the transfer only to owners and only on other members', async () => {
+      await mountView([member(1, 'owner'), member(2, 'member'), member(3, 'admin')], ['owner'])
+      const rows = wrapper!.findAll('[data-test=member]')
+      expect(rows[0].find('[data-test=transfer]').exists()).toBe(false)
+      expect(rows[1].find('[data-test=transfer]').attributes('aria-label')).toBe('Transfer ownership to User 2')
+      expect(rows[2].find('[data-test=transfer]').exists()).toBe(true)
+    })
+
+    it('hides the transfer from admins and members', async () => {
+      await mountView([member(1, 'admin'), member(2, 'member')], ['admin'])
+      expect(wrapper!.find('[data-test=transfer]').exists()).toBe(false)
+    })
+
+    it('asks for confirmation, posts the transfer and reloads the roles', async () => {
+      const { organization } = await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      const post = vi.spyOn(api, 'post').mockResolvedValue({ data: member(2, 'owner') })
+      const load = vi.spyOn(organization, 'load').mockResolvedValue(undefined)
+      const get = vi.spyOn(api, 'get').mockResolvedValue({ data: [member(1, 'admin'), member(2, 'owner')] })
+      await wrapper!.findAll('[data-test=transfer]')[0].trigger('click')
+      await flushPromises()
+      expect(document.querySelector('[data-test=transfer-text]')!.textContent).toContain('User 2')
+      expect(post).not.toHaveBeenCalled()
+      dialogButton('transfer-confirm')!.click()
+      await flushPromises()
+      expect(post).toHaveBeenCalledWith('/api/members/2/transfer-ownership')
+      expect(load).toHaveBeenCalledTimes(1)
+      expect(get).toHaveBeenCalledWith('/api/members', expect.anything())
+      expect(toasts.value.map((item) => item.kind)).toEqual(['success'])
+      expect(document.querySelector('[role=dialog]')).toBeNull()
+    })
+
+    it('cancels without transferring', async () => {
+      await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      const post = vi.spyOn(api, 'post')
+      await wrapper!.find('[data-test=transfer]').trigger('click')
+      await flushPromises()
+      dialogButton('transfer-cancel')!.click()
+      await flushPromises()
+      expect(post).not.toHaveBeenCalled()
+      expect(document.querySelector('[role=dialog]')).toBeNull()
+    })
+
+    it('shows the server error on 403 and keeps the list', async () => {
+      await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      vi.spyOn(api, 'post').mockRejectedValue(new ApiError(403, 'This action is unauthorized.', {}))
+      await wrapper!.find('[data-test=transfer]').trigger('click')
+      await flushPromises()
+      dialogButton('transfer-confirm')!.click()
+      await flushPromises()
+      expect(wrapper!.find('[data-test=role-error]').text()).toBe('This action is unauthorized.')
+      expect(wrapper!.findAll('[data-test=member]')).toHaveLength(2)
+      expect(document.querySelector('[role=dialog]')).toBeNull()
+    })
+
+    it('drops the row when the target is no longer a member', async () => {
+      await mountView([member(1, 'owner'), member(2, 'member')], ['owner'])
+      vi.spyOn(api, 'post').mockRejectedValue(new ApiError(404, 'Not found.', {}))
+      await wrapper!.find('[data-test=transfer]').trigger('click')
+      await flushPromises()
+      dialogButton('transfer-confirm')!.click()
+      await flushPromises()
+      expect(wrapper!.findAll('[data-test=name]').map((el) => el.text())).toEqual(['User 1'])
+      expect(toasts.value.map((item) => item.kind)).toEqual(['info'])
     })
   })
 })

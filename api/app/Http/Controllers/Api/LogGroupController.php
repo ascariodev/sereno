@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\LogLevel;
+use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LogGroup\HourlyLogGroupsRequest;
 use App\Http\Requests\LogGroup\ListLogGroupsRequest;
@@ -14,6 +15,7 @@ use App\Models\LogEvent;
 use App\Models\LogGroup;
 use App\Models\Message;
 use App\Models\Project;
+use App\Models\Task;
 use App\Support\LogGroupHourlyCounts;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Collection;
@@ -45,7 +47,10 @@ class LogGroupController extends Controller
 
     public function hourly(HourlyLogGroupsRequest $request, Project $project): LogGroupHourlyResource
     {
-        return new LogGroupHourlyResource(LogGroupHourlyCounts::for($project, $request->ids(), now()));
+        $hourly = LogGroupHourlyCounts::for($project, $request->ids(), now());
+        $hourly['tasks'] = $this->tasksOfGroups($project, array_keys($hourly['counts']));
+
+        return new LogGroupHourlyResource($hourly);
     }
 
     public function show(Project $project, LogGroup $group): LogGroupResource
@@ -84,6 +89,25 @@ class LogGroupController extends Controller
         $this->bindTaskProject(collect([$group->load('task')]), $project);
 
         return new LogGroupResource($group);
+    }
+
+    /**
+     * @param  list<int>  $groupIds
+     * @return array<int, array{id: int, key: string, status: TaskStatus}>
+     */
+    private function tasksOfGroups(Project $project, array $groupIds): array
+    {
+        if ($groupIds === []) {
+            return [];
+        }
+
+        $tasks = [];
+        foreach (Task::query()->where('project_id', $project->id)->whereIn('log_group_id', $groupIds)->get() as $task) {
+            $task->setRelation('project', $project);
+            $tasks[$task->log_group_id] = ['id' => $task->id, 'key' => $task->key(), 'status' => $task->status];
+        }
+
+        return $tasks;
     }
 
     /** @param  Collection<int, LogGroup>  $groups */

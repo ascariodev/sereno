@@ -86,10 +86,10 @@
 
 ## Mejoras propuestas
 - [x] M-1 (alta, plan nuevo): gestión de miembros (listar, cambiar rol, quitar), que hoy no existe en el API. Resuelta por el plan `docs/plans/terminados/miembros.md`.
-- [ ] M-2 (media, sonnet): componentes `AppInput` y `AppButton` para no copiar los estilos de `LoginView` en cada formulario.
+- [x] M-2 (media, sonnet): componentes `AppInput` y `AppButton` para no copiar los estilos de `LoginView` en cada formulario.
 - [x] M-3 (baja, haiku): `InvitationController::show` carga `organization` con una consulta aparte; usar `load('organization')` o equivalente.
 - [x] M-4 (baja, haiku): test de que un admin que lista ve también las invitaciones de rol owner.
-- [ ] M-5 (media, sonnet): paginar `GET /api/invitations` si el volumen crece.
+- [x] M-5 (media, sonnet): paginar `GET /api/invitations` si el volumen crece.
 - [x] M-6 (baja, haiku): `InvitationPolicy::delete` falla cerrado si `Role::tryFrom` devuelve null (hoy un admin pasaría con un rol inválido en BD).
 - [x] M-7 (baja, haiku): test unitario de `whileLoadingSession` que compruebe que libera el bloqueo cuando la función lanza.
 - [x] M-8 (descartada: tras desmontar, las escrituras que evita el guard no son observables; el spec queda leyendo `vm`): `InviteView.spec` lee `loadError` desde `vm` de la vista desmontada; afirmar por el DOM o por una señal pública para no depender del acceso a `script setup`.
@@ -100,3 +100,5 @@
 - [x] M-13 (baja, haiku): deshabilitar el botón Invitar mientras la lista carga, para que `load` no pise una invitación recién creada.
 - [x] M-14 (baja, haiku): estilo destructivo (rojo) en el botón "Revocar invitación" del diálogo de confirmación.
 - [x] M-15 (baja, haiku): `LoginView.vue` usa `:key="message"` en los `v-for` de errores; pasar a `${index}-${message}` como InviteView.
+- [ ] M-16 (media, sonnet): unificar los botones y campos de los diálogos (CreateLogSourceDialog, InviteDialog,
+  OrganizationCreateDialog, ProjectCreateDialog, ProjectMembersDialog) sobre `AppInput`/`AppButton` con variantes.

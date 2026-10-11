@@ -98,7 +98,7 @@ describe('MentionsView', () => {
     expect(title.text()).toContain('Unread')
     expect(wrapper.find(`#${link.attributes('aria-describedby')}`).text()).toContain('check')
     expect(wrapper.find('a.mention').html()).toContain('Ada')
-    expect(link.attributes('href')).toBe('/channels/4')
+    expect(link.attributes('href')).toBe('/channels/4?message=101')
   })
 
   it('shows the deleted marker instead of the body of a deleted message', async () => {

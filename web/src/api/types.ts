@@ -132,6 +132,8 @@ export interface HourlyCounts {
   hours: number
   /** Events per hour, oldest first, keyed by group id. Ids not in the project are omitted; may be `{}`. */
   counts: Record<string, number[]>
+  /** Task linked to each group that has one, keyed by group id. Absent on older servers. */
+  tasks?: Record<string, LogGroupTask>
 }
 
 export interface LogGroupOpenedPayload {
@@ -150,12 +152,34 @@ export interface LogGroupStatusChangedPayload {
   previous_status: LogGroupStatus
 }
 
+export interface TaskCreatedFromGroupPayload {
+  type: 'task.created_from_group'
+  log_group_id: number
+  task_id: number
+  task_key: string
+  task_status: TaskStatus
+}
+
 export interface UnknownPayload {
   type: string
   [key: string]: unknown
 }
 
-export type MessagePayload = LogGroupOpenedPayload | LogGroupStatusChangedPayload | UnknownPayload
+export type MessagePayload =
+  | LogGroupOpenedPayload
+  | LogGroupStatusChangedPayload
+  | TaskCreatedFromGroupPayload
+  | UnknownPayload
+
+export function isTaskCreatedFromGroupPayload(payload: MessagePayload | null): payload is TaskCreatedFromGroupPayload {
+  return (
+    payload?.type === 'task.created_from_group' &&
+    typeof payload.log_group_id === 'number' &&
+    typeof payload.task_id === 'number' &&
+    typeof payload.task_key === 'string' &&
+    typeof payload.task_status === 'string'
+  )
+}
 
 export function isLogGroupOpenedPayload(payload: MessagePayload | null): payload is LogGroupOpenedPayload {
   return (

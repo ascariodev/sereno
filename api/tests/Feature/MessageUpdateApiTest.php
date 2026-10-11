@@ -2,6 +2,7 @@
 
 use App\Enums\Role;
 use App\Events\MentionCreated;
+use App\Events\MessageUpdated;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Organization;
@@ -10,6 +11,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -169,4 +171,82 @@ it('returns the thread summary of an edited root', function () {
     patchEdit($this, $this->author)->assertOk()
         ->assertJsonPath('data.replies_count', 1)
         ->assertJsonPath('data.recent_participants', [['id' => $this->ana->id, 'name' => 'Ana']]);
+});
+
+function addEditAttachment(object $test, string $path): int
+{
+    return DB::table('message_attachments')->insertGetId([
+        'organization_id' => $test->organization->id,
+        'channel_id' => $test->channel->id,
+        'message_id' => $test->message->id,
+        'uploaded_by' => $test->author->id,
+        'disk' => 'local',
+        'path' => $path,
+        'original_name' => 'a.pdf',
+        'mime' => 'application/pdf',
+        'size' => 10,
+    ]);
+}
+
+it('removes attachments, deletes their files after commit and counts it as an edit', function () {
+    Storage::fake('local');
+    Storage::disk('local')->put('chat/a', 'x');
+    Storage::disk('local')->put('chat/b', 'y');
+    $a = addEditAttachment($this, 'chat/a');
+    $b = addEditAttachment($this, 'chat/b');
+    Event::fake([MessageUpdated::class]);
+
+    patchEdit($this, $this->author, payload: ['body' => 'original', 'remove_attachment_ids' => [$a]])->assertOk()
+        ->assertJsonCount(1, 'data.attachments')
+        ->assertJsonPath('data.attachments.0.id', $b);
+
+    expect(DB::table('message_attachments')->where('message_id', $this->message->id)->pluck('id')->all())->toBe([$b])
+        ->and($this->message->refresh()->edited_at)->not->toBeNull();
+    Storage::disk('local')->assertMissing('chat/a');
+    Storage::disk('local')->assertExists('chat/b');
+    Event::assertDispatched(MessageUpdated::class);
+});
+
+it('rejects removing the last attachment of a message without text and keeps the file', function () {
+    Storage::fake('local');
+    Storage::disk('local')->put('chat/a', 'x');
+    $a = addEditAttachment($this, 'chat/a');
+    $this->message->forceFill(['body' => null])->save();
+
+    patchEdit($this, $this->author, payload: ['body' => null, 'remove_attachment_ids' => [$a]])
+        ->assertUnprocessable()->assertJsonValidationErrors('body');
+    patchEdit($this, $this->author, payload: ['remove_attachment_ids' => [$a]])
+        ->assertUnprocessable()->assertJsonValidationErrors('body');
+
+    expect(DB::table('message_attachments')->where('id', $a)->exists())->toBeTrue();
+    Storage::disk('local')->assertExists('chat/a');
+});
+
+it('allows removing the last attachment when the message keeps text', function () {
+    Storage::fake('local');
+    Storage::disk('local')->put('chat/a', 'x');
+    $a = addEditAttachment($this, 'chat/a');
+
+    patchEdit($this, $this->author, payload: ['body' => 'original', 'remove_attachment_ids' => [$a]])->assertOk()
+        ->assertJsonCount(0, 'data.attachments');
+    Storage::disk('local')->assertMissing('chat/a');
+});
+
+it('rejects removing attachments that are not of the message', function () {
+    $foreign = Message::factory()->for($this->channel)->create(['kind' => Message::KIND_USER, 'user_id' => $this->author->id, 'body' => 'x']);
+    $id = DB::table('message_attachments')->insertGetId([
+        'organization_id' => $this->organization->id,
+        'channel_id' => $this->channel->id,
+        'message_id' => $foreign->id,
+        'uploaded_by' => $this->author->id,
+        'disk' => 'local',
+        'path' => 'chat/z',
+        'original_name' => 'a.pdf',
+        'mime' => 'application/pdf',
+        'size' => 10,
+    ]);
+
+    patchEdit($this, $this->author, payload: ['body' => 'original', 'remove_attachment_ids' => [$id, 99999999]])
+        ->assertUnprocessable()->assertJsonValidationErrors(['remove_attachment_ids.0', 'remove_attachment_ids.1']);
+    expect(DB::table('message_attachments')->where('id', $id)->exists())->toBeTrue();
 });

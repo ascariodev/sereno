@@ -47,7 +47,8 @@ it('requires a numeric X-Organization-Id header', function (?string $value) {
 
     $request->getJson('/api/tenant-test')
         ->assertBadRequest()
-        ->assertJsonPath('message', __('The :header header is missing or invalid.', ['header' => 'X-Organization-Id']));
+        ->assertJsonPath('message', __('The :header header is missing or invalid.', ['header' => 'X-Organization-Id']))
+        ->assertJsonPath('code', 'organization_header_invalid');
 })->with([
     'missing' => [null],
     'not numeric' => ['abc'],
@@ -58,6 +59,7 @@ it('rejects an organization the user does not belong to', function (callable $id
         ->getJson('/api/tenant-test')
         ->assertForbidden()
         ->assertJsonPath('message', __('You do not belong to this organization.'))
+        ->assertJsonPath('code', 'organization_forbidden')
         ->assertJsonMissingPath('data');
 })->with([
     'foreign' => [fn ($test) => $test->foreign->id],

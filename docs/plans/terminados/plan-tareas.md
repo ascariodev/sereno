@@ -226,11 +226,11 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   listados (fase 3).
 
 ## Mejoras propuestas
-- [ ] M-1 (media, sonnet): mensaje de sistema en el canal al crear una tarea desde un aviso, y chip "Tarea POSVE-12"
+- [x] M-1 (media, sonnet): mensaje de sistema en el canal al crear una tarea desde un aviso, y chip "Tarea POSVE-12"
   en la tarjeta del aviso.
 - [ ] M-2 (alta, plan nuevo): comentarios en las tareas (contador del diseño).
-- [ ] M-3 (media, sonnet): avisar al asignado por `users.{id}` (solo ids, L-38).
-- [ ] M-4 (media, sonnet): paginar o limitar la columna Hecho si crece.
+- [x] M-3 (media, sonnet): avisar al asignado por `users.{id}` (solo ids, L-38).
+- [x] M-4 (media, sonnet): paginar o limitar la columna Hecho si crece.
 - [ ] M-5 (media, sonnet): efectos cruzados opcionales entre tarea y grupo (Hecho resuelve, reabierto avisa).
 - [x] M-6 (baja, sonnet): test de `TaskPolicy` sin organización activa (falla cerrada en `viewAny` y `create`).
 - [x] M-7 (baja, sonnet): orden por columna de `TaskController@index` con `orderByRaw` y bindings o un helper en `TaskStatus`, en vez de interpolar el `CASE`.
@@ -244,11 +244,11 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   simplificar `TaskController@update`; 404 de tarea de otro proyecto antes de validar.
 - [x] M-12 (baja, sonnet): `LogGroupTaskApiTest`: quitar el umbral arbitrario `toBeLessThan(12)`; basta el conteo
   constante.
-- [ ] M-13 (media, sonnet): avisar en vivo al tablero de las tareas desasignadas al quitar un miembro (evento por
-  proyecto afectado tras el commit).
+- [x] M-13 (media, sonnet): avisar en vivo al tablero de las tareas desasignadas al quitar un miembro (evento por
+  proyecto afectado tras el commit). Ya aplicada (verificado 2026-10-11: `Task::unassignUser` emite `TaskUpdated`).
 - [x] M-14 (baja, sonnet): extraer `positiveId` (duplicado en `ProjectChannel` y `ChannelChannel`) a un helper
   compartido; en `BroadcastingAuthTest`, el proyecto del canal en el `beforeEach`.
-- [ ] M-15 (media, sonnet): `renumberColumn` emite `task.updated` por cada tarea renumerada (o un evento de columna),
+- [x] M-15 (media, sonnet): `renumberColumn` emite `task.updated` por cada tarea renumerada (o un evento de columna),
   para que el tablero en vivo no quede desfasado.
 - [x] M-16 (baja, sonnet): el `catch (UniqueConstraintViolationException)` de `TaskController@store` solo traduce a 422
   la violación de `tasks_log_group_id_unique` y relanza las demás.
@@ -272,5 +272,5 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - [x] M-25 (baja, sonnet): `TaskCard`: `padding-right` en el título para que el botón del menú no lo tape, indentar el hijo del wrap y spec propio del `aria-label` y de `readOnly`.
 - [x] M-26 (baja, sonnet): spec de `dragend` sin `drop` (soltar fuera) que deje el estado de arrastre limpio; y bloquear un movimiento por menú mientras hay uno por arrastre en vuelo (y viceversa).
 - [x] M-27 (baja, sonnet): test de 422 por `log_group_id` en `LogGroupAside.spec` y, tras ese 422, mostrar el enlace a la tarea existente; conservar el diálogo abierto al cruzar el breakpoint del aside.
-- [ ] M-28 (media, sonnet): que el payload de los avisos o el canal sepan la tarea del grupo (p. ej. `task` en el estado de grupos del canal) para no depender del estado del cliente; mostrar el enlace aunque el grupo esté resuelto; limpiar la entrada del mapa al borrar la tarea.
+- [x] M-28 (media, sonnet): que el payload de los avisos o el canal sepan la tarea del grupo (p. ej. `task` en el estado de grupos del canal) para no depender del estado del cliente; mostrar el enlace aunque el grupo esté resuelto; limpiar la entrada del mapa al borrar la tarea.
 - [x] M-29 (baja, sonnet): `--column-in-review` (#E9A23B) en modo claro da 2.04:1 contra la columna (#F7F8FA), bajo el 3:1 de AA para indicadores; oscurecerlo solo en claro. Y decidir si `ProjectHeader`/`AppSegmented` usan `--shadow-card` o un token propio. Hecho: `#B36B00` en claro (3.94:1). Las sombras de `ProjectHeader` y `AppSegmented` (opacidad 0.08) se dejan aparte: no son la de tarjeta (0.04).

@@ -76,7 +76,7 @@
 
 ## Mejoras propuestas
 - [x] M-1 (alta, plan nuevo): cortar en vivo las suscripciones Reverb de un miembro quitado (requiere un canal privado por usuario u organización). Pasó a `docs/plans/corte-realtime.md`.
-- [ ] M-2 (media, sonnet): transferir la propiedad (owner) en un paso, sin pasar por dos owners.
+- [x] M-2 (media, sonnet): transferir la propiedad (owner) en un paso, sin pasar por dos owners.
 - [x] M-3 (baja, sonnet): fijar `joined_at` con `toIso8601String()` en `MemberResource` y probar el formato.
 - [x] M-4 (baja, sonnet): test de que `MemberPolicy::viewAny` no concede sin team activo.
 - [x] M-5 (baja, sonnet) [descartada 2026-10-08: el orden del FOR UPDATE ya está probado; un test con dos conexiones exige salir de RefreshDatabase en una base compartida]: test de concurrencia real con dos conexiones para el lock de `mutateMembership` (hoy solo se prueba el orden del SQL).

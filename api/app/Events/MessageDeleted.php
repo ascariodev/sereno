@@ -24,10 +24,12 @@ class MessageDeleted implements ShouldBroadcast, ShouldDispatchAfterCommit
 
     public readonly ?string $deletedAt;
 
+    public readonly ?int $deletedBy;
+
     /** @var array{id: int, replies_count: int, last_reply_at: string|null, recent_participants: array<int, array{id: int, name: string}>} */
     public readonly array $root;
 
-    public function __construct(Message $message, ?Message $root = null)
+    public function __construct(Message $message, ?Message $root = null, ?int $deletedBy = null)
     {
         $root ??= $message;
 
@@ -36,6 +38,7 @@ class MessageDeleted implements ShouldBroadcast, ShouldDispatchAfterCommit
         $this->id = $message->id;
         $this->parentId = $message->parent_id;
         $this->deletedAt = $message->deleted_at?->toJSON();
+        $this->deletedBy = $deletedBy;
         $this->root = [
             'id' => $root->id,
             'replies_count' => $root->replies_count,
@@ -65,6 +68,7 @@ class MessageDeleted implements ShouldBroadcast, ShouldDispatchAfterCommit
             'channel_id' => $this->channelId,
             'parent_id' => $this->parentId,
             'deleted_at' => $this->deletedAt,
+            'deleted_by' => $this->deletedBy,
             'root' => $this->root,
         ];
     }

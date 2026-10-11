@@ -24,6 +24,9 @@ function stubFetch(body: unknown, status = 200) {
   return fetchMock
 }
 
+const jsonResponse = (body: unknown) =>
+  new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
+
 afterEach(() => vi.unstubAllGlobals())
 
 describe('invitations client', () => {
@@ -80,6 +83,20 @@ describe('invitations client', () => {
     expect(new URL(fetchMock.mock.calls[0][0]).pathname).toBe('/api/invitations')
     expect(result).toHaveLength(2)
     expect(result[1].invited_by).toBeNull()
+  })
+
+  it('follows the cursor until the last page', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ data: [invitation], meta: { next_cursor: 'c1' } }))
+      .mockResolvedValueOnce(jsonResponse({ data: [{ ...invitation, id: 5 }], meta: { next_cursor: null } }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await listInvitations()
+
+    expect(result.map((item) => item.id)).toEqual([4, 5])
+    expect(new URL(fetchMock.mock.calls[0][0]).search).toBe('')
+    expect(new URL(fetchMock.mock.calls[1][0]).searchParams.get('cursor')).toBe('c1')
   })
 
   it('creates with email and role and unwraps the invitation', async () => {

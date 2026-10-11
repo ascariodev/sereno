@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\Locale;
 use App\Enums\Role;
+use App\Events\OrganizationMembersChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Invitation\InviteRequest;
+use App\Http\Requests\Invitation\ListInvitationsRequest;
 use App\Http\Resources\InvitationResource;
 use App\Models\Invitation;
 use App\Notifications\InvitationNotification;
@@ -20,12 +22,10 @@ use Illuminate\Support\Facades\Notification;
 
 class InvitationController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(ListInvitationsRequest $request): AnonymousResourceCollection
     {
-        Gate::authorize('viewAny', Invitation::class);
-
         return InvitationResource::collection(
-            Invitation::query()->pending()->with(['inviter', 'projects'])->orderByDesc('created_at')->orderByDesc('id')->get(),
+            Invitation::query()->pending()->with(['inviter', 'projects'])->orderByDesc('created_at')->orderByDesc('id')->cursorPaginate($request->perPage())->withQueryString(),
         );
     }
 
@@ -125,6 +125,7 @@ class InvitationController extends Controller
             }
 
             $invitation->organization->addMember($user, [Role::from($invitation->role)]);
+            OrganizationMembersChanged::dispatch($invitation->organization_id, $user->id);
             $invitation->assignProjectsTo($user);
             $invitation->forceFill(['accepted_at' => now()])->save();
 

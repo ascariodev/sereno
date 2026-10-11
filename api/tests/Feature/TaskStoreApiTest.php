@@ -1,7 +1,10 @@
 <?php
 
 use App\Enums\Role;
+use App\Events\MessageCreated;
+use App\Models\Channel;
 use App\Models\LogGroup;
+use App\Models\Message;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
@@ -9,6 +12,7 @@ use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -67,6 +71,42 @@ it('creates a task with the creator, the full resource and status 201', function
     expect($task->organization_id)->toBe($this->organization->id)
         ->and($task->created_by)->toBe($this->member->id)
         ->and($task->log_group_id)->toBe($group->id);
+});
+
+it('posts a system notice in the project channel when the task comes from a log group', function () {
+    Event::fake([MessageCreated::class]);
+    $channel = Channel::factory()->for($this->project)->create();
+    $group = LogGroup::factory()->for($this->project)->create();
+
+    storeTaskAs($this->member, $this->organization, $this->project, ['title' => 'A', 'log_group_id' => $group->id])
+        ->assertCreated();
+
+    $task = storedTasks($this->project)->sole();
+    $message = Message::withoutGlobalScopes()->where('channel_id', $channel->id)->sole();
+    expect($message->kind)->toBe(Message::KIND_SYSTEM)
+        ->and($message->body)->toBeNull()
+        ->and($message->user_id)->toBe($this->member->id)
+        ->and($message->log_group_id)->toBe($group->id)
+        ->and($message->payload)->toEqual([
+            'type' => 'task.created_from_group',
+            'log_group_id' => $group->id,
+            'task_id' => $task->id,
+            'task_key' => 'POSVE-1',
+            'task_status' => 'todo',
+        ]);
+    Event::assertDispatched(MessageCreated::class, fn (MessageCreated $event) => $event->channelId === $channel->id);
+});
+
+it('posts no notice for a task without log group or when the channel is missing or archived', function () {
+    $channel = Channel::factory()->for($this->project)->create();
+    storeTaskAs($this->member, $this->organization, $this->project, ['title' => 'Plain'])->assertCreated();
+    expect(Message::withoutGlobalScopes()->count())->toBe(0);
+
+    $channel->forceFill(['archived_at' => now()])->save();
+    $group = LogGroup::factory()->for($this->project)->create();
+    storeTaskAs($this->member, $this->organization, $this->project, ['title' => 'A', 'log_group_id' => $group->id])
+        ->assertCreated();
+    expect(Message::withoutGlobalScopes()->count())->toBe(0);
 });
 
 it('defaults to todo without assignee nor log group', function () {

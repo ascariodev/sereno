@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Events\TaskAssigned;
 use App\Events\TaskCreated;
 use App\Events\TaskDeleted;
 use App\Events\TaskUpdated;
@@ -125,4 +126,39 @@ it('does not broadcast a delete of a task that does not exist', function () {
     taskBroadcastCall($this, 'DELETE', '/999999')->assertNotFound();
 
     Event::assertNotDispatched(TaskDeleted::class);
+});
+
+it('notifies the assignee on the user channel with only ids when creating or reassigning', function () {
+    Event::fake([TaskAssigned::class]);
+    $other = User::factory()->create();
+    $this->organization->addMember($other, [Role::Member]);
+    $this->project->addMember($other);
+
+    $created = taskBroadcastCall($this, 'POST', '', ['title' => 'New', 'assignee_id' => $other->id])->assertCreated();
+    taskBroadcastCall($this, 'PATCH', "/{$this->task->id}", ['assignee_id' => $other->id])->assertOk();
+
+    Event::assertDispatchedTimes(TaskAssigned::class, 2);
+    Event::assertDispatched(TaskAssigned::class, fn (TaskAssigned $event) => $event->broadcastOn()->name === "private-users.{$other->id}"
+        && $event->broadcastAs() === 'task.assigned'
+        && $event->broadcastWith() === [
+            'organization_id' => $this->organization->id,
+            'project_id' => $this->project->id,
+            'task_id' => $created->json('data.id'),
+        ]);
+});
+
+it('does not notify on self assignment, unassignment or an unchanged assignee', function () {
+    Event::fake([TaskAssigned::class]);
+    $other = User::factory()->create();
+    $this->organization->addMember($other, [Role::Member]);
+    $this->project->addMember($other);
+
+    taskBroadcastCall($this, 'POST', '', ['title' => 'Mine', 'assignee_id' => $this->member->id])->assertCreated();
+    taskBroadcastCall($this, 'POST', '', ['title' => 'Nobody'])->assertCreated();
+    $this->task->forceFill(['assignee_id' => $other->id])->save();
+    taskBroadcastCall($this, 'PATCH', "/{$this->task->id}", ['assignee_id' => $other->id])->assertOk();
+    taskBroadcastCall($this, 'PATCH', "/{$this->task->id}", ['assignee_id' => null])->assertOk();
+    taskBroadcastCall($this, 'PATCH', "/{$this->task->id}", ['assignee_id' => $this->member->id])->assertOk();
+
+    Event::assertNotDispatched(TaskAssigned::class);
 });

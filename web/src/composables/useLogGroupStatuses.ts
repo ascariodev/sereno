@@ -1,11 +1,13 @@
 import { reactive } from 'vue'
-import { isLogGroupStatusChangedPayload } from '../api/types'
+import { isLogGroupStatusChangedPayload, isTaskCreatedFromGroupPayload } from '../api/types'
 import type { LogGroupStatus, LogGroupTask, Message } from '../api/types'
 
 const statuses = reactive(new Map<number, LogGroupStatus>())
 const tasks = reactive(new Map<number, LogGroupTask>())
 const lastMessageId = new Map<number, number>()
 let highestSeenId = 0
+let taskClock = 0
+const taskWrittenAt = new Map<number, number>()
 
 export function setGroupStatus(groupId: number, status: LogGroupStatus): void {
   statuses.set(groupId, status)
@@ -15,6 +17,11 @@ export function setGroupStatus(groupId: number, status: LogGroupStatus): void {
 export function observeStatusMessage(message: Message): void {
   highestSeenId = Math.max(highestSeenId, message.id)
   const payload = message.payload
+  if (isTaskCreatedFromGroupPayload(payload)) {
+    tasks.set(payload.log_group_id, { id: payload.task_id, key: payload.task_key, status: payload.task_status })
+    taskWrittenAt.set(payload.log_group_id, ++taskClock)
+    return
+  }
   if (!isLogGroupStatusChangedPayload(payload)) return
   if ((lastMessageId.get(payload.log_group_id) ?? 0) >= message.id) return
   lastMessageId.set(payload.log_group_id, message.id)
@@ -24,6 +31,7 @@ export function observeStatusMessage(message: Message): void {
 export function resetGroupStatuses(): void {
   statuses.clear()
   tasks.clear()
+  taskWrittenAt.clear()
   lastMessageId.clear()
   highestSeenId = 0
 }
@@ -34,8 +42,23 @@ export function statusOfGroup(groupId: number | null): LogGroupStatus | undefine
 
 export function setGroupTask(groupId: number, task: LogGroupTask): void {
   tasks.set(groupId, task)
+  taskWrittenAt.set(groupId, ++taskClock)
 }
 
 export function taskOfGroup(groupId: number | null): LogGroupTask | undefined {
   return groupId === null ? undefined : tasks.get(groupId)
+}
+
+export function forgetGroupTask(taskId: number): void {
+  for (const [groupId, task] of tasks) {
+    if (task.id === taskId) tasks.delete(groupId)
+  }
+}
+
+export function currentTaskClock(): number {
+  return taskClock
+}
+
+export function dropGroupTaskNotWrittenSince(groupId: number, since: number): void {
+  if ((taskWrittenAt.get(groupId) ?? 0) <= since) tasks.delete(groupId)
 }

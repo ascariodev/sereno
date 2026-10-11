@@ -26,13 +26,13 @@ class ResolveOrganization
         $organizationId = $request->header(self::HEADER);
 
         if (! is_string($organizationId) || ! ctype_digit($organizationId)) {
-            return response()->json(['message' => __('The :header header is missing or invalid.', ['header' => self::HEADER])], 400);
+            return response()->json(['message' => __('The :header header is missing or invalid.', ['header' => self::HEADER]), 'code' => 'organization_header_invalid'], 400);
         }
 
         $organization = $request->user()->organizations()->whereKey((int) $organizationId)->first();
 
         if ($organization === null) {
-            return response()->json(['message' => __('You do not belong to this organization.')], 403);
+            return response()->json(['message' => __('You do not belong to this organization.'), 'code' => 'organization_forbidden'], 403);
         }
 
         $this->currentOrganization->set($organization);

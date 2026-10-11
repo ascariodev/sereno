@@ -15,6 +15,7 @@ import {
   MEMBERSHIP_REVOKED_EVENT,
   MEMBERSHIP_ROLE_CHANGED_EVENT,
   PROJECT_ACCESS_CHANGED_EVENT,
+  TASK_ASSIGNED_EVENT,
   setRealtimeClientFactory,
   subscribeToChannel,
 } from './echo'
@@ -40,6 +41,9 @@ async function mountWatch(remaining: unknown[] = [two]) {
     routes: [
       { path: '/', name: 'projects', component: page },
       { path: '/channels/:id', name: 'channel', component: page },
+      { path: '/settings/invitations', name: 'invitations', component: page },
+      { path: '/projects/:projectId/plan', name: 'project-plan', component: page },
+      { path: '/projects/:projectId/integrations', name: 'project-integrations', component: page },
     ],
   })
   await router.push('/channels/7')
@@ -69,6 +73,10 @@ function changeProjectAccess(organizationId: number, projectId: number, granted:
     project_id: projectId,
     granted,
   })
+}
+
+function assignTask(organizationId: number) {
+  fake.listeners.get(`users.1|${TASK_ASSIGNED_EVENT}`)?.({ organization_id: organizationId, project_id: 4, task_id: 9 })
 }
 
 const projectRow = (id: number, name: string) => ({
@@ -141,6 +149,21 @@ describe('useMembershipWatch', () => {
     expect(toasts.value).toHaveLength(0)
   })
 
+  it('toasts an assignment in the active organization with a link to the task', async () => {
+    const { router } = await mountWatch()
+    assignTask(1)
+    expect(toasts.value.map((item) => item.message)).toEqual(['You were assigned a task.'])
+    toasts.value[0].action?.onSelect()
+    await flushPromises()
+    expect(router.currentRoute.value.fullPath).toBe('/projects/4/plan?task=9')
+  })
+
+  it('ignores an assignment from another organization', async () => {
+    await mountWatch()
+    assignTask(2)
+    expect(toasts.value).toHaveLength(0)
+  })
+
   it('on losing a project drops it from the store, leaves its channels and leaves its open view', async () => {
     const { get, router } = await mountWatch()
     serveProjects(get, [1, 2])
@@ -209,6 +232,34 @@ describe('useMembershipWatch', () => {
     await flushPromises()
     expect(get.mock.calls.length).toBe(calls)
     expect(projects.projects.map((p) => p.id)).toEqual([1])
+  })
+
+  it('on a role change that removes admin rights leaves the invitations page', async () => {
+    const { get, router } = await mountWatch([{ ...one, roles: ['member'] }, two])
+    useOrganizationStore().$patch({ organizations: [{ ...one, roles: ['admin'] }, two] })
+    await router.push('/settings/invitations')
+    get.mockImplementation(async (path: string) =>
+      path === '/api/projects'
+        ? { data: [], meta: { current_page: 1, last_page: 1, per_page: 100, total: 0 } }
+        : path === '/api/channels'
+          ? { data: [] }
+          : { data: [{ ...one, roles: ['member'] }, two] },
+    )
+    changeRole(1, 'member')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('projects')
+    expect(toasts.value.map((t) => t.message)).toEqual(['Your role no longer allows you to see that page.'])
+  })
+
+  it('on a role change that keeps admin rights stays on the invitations page', async () => {
+    const { get, router } = await mountWatch([{ ...one, roles: ['admin'] }, two])
+    useOrganizationStore().$patch({ organizations: [{ ...one, roles: ['owner'] }, two] })
+    await router.push('/settings/invitations')
+    changeRole(1, 'admin')
+    await flushPromises()
+    expect(get).toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('invitations')
+    expect(toasts.value).toHaveLength(0)
   })
 
   it('on a role change reloads projects and leaves a view that is no longer visible', async () => {
@@ -454,7 +505,7 @@ describe('useMembershipWatch', () => {
   it('ignores a 403 while an own leave of that organization is in progress', async () => {
     const { get, router } = await mountWatch([two])
     api.setOrganizationProvider(() => 1)
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 403 }))
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{"code":"organization_forbidden"}', { status: 403 }))
     const release = expectOwnLeave(1)
     await api.post('/api/anything', {}).catch(() => undefined)
     await flushPromises()
@@ -467,7 +518,7 @@ describe('useMembershipWatch', () => {
   it('removes its forbidden handler on unmount, but not one installed by another instance', async () => {
     const { get } = await mountWatch([two])
     api.setOrganizationProvider(() => 1)
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 403 }))
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{"code":"organization_forbidden"}', { status: 403 }))
     const other = vi.fn()
     api.setForbiddenHandler(other)
     wrapper!.unmount()
@@ -545,7 +596,7 @@ describe('useMembershipWatch', () => {
     return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
       String(input).endsWith('/api/organizations')
         ? new Response(JSON.stringify({ data: organizations }), { status: 200 })
-        : new Response('{"message":"Forbidden."}', { status: 403 }),
+        : new Response('{"message":"Forbidden.","code":"organization_forbidden"}', { status: 403 }),
     )
   }
 

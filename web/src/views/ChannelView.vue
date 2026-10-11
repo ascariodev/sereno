@@ -2,7 +2,8 @@
 import { computed, nextTick, onBeforeUnmount, onUnmounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { api, ApiError } from '../api/client'
+import { listAllChannels } from '../api/channels'
+import { ApiError } from '../api/client'
 import { getLogGroup } from '../api/logGroups'
 import { deleteMessage } from '../api/messages'
 import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
@@ -51,6 +52,7 @@ const deleteOpen = computed({
 provide(messageActionsKey, {
   editingId: editingMessageId,
   threadRootId: computed(() => threadId.value),
+  canModerate: computed(() => organization.isOwner || organization.isAdmin),
   stopEdit: () => {
     editingMessageId.value = null
   },
@@ -91,14 +93,18 @@ const threadId = computed(() => {
   const raw = Array.isArray(route.query.thread) ? route.query.thread[0] : route.query.thread
   return typeof raw === 'string' && /^[1-9]\d*$/.test(raw) ? Number(raw) : null
 })
+const focusMessageId = computed(() => {
+  const raw = Array.isArray(route.query.message) ? route.query.message[0] : route.query.message
+  return typeof raw === 'string' && /^[1-9]\d*$/.test(raw) ? Number(raw) : null
+})
 const notFound = computed(() => messages.error?.status === 404)
 const firstLoadFailed = computed(() => messages.error !== null && !notFound.value && messages.messages.length === 0)
 
 async function loadChannel(id: number, current: number): Promise<void> {
   try {
-    const response = await api.get<{ data: Channel[] }>('/api/channels', { query: { include_archived: 1 } })
+    const all = await listAllChannels({ includeArchived: true })
     if (current !== generation) return
-    channel.value = response.data.find((item) => item.id === id) ?? null
+    channel.value = all.find((item) => item.id === id) ?? null
     if (channel.value) panelProjectId.value = channel.value.project_id
   } catch {
     if (current === generation) {
@@ -156,6 +162,13 @@ function openThread(id: number): void {
   delete query.group
   query.thread = String(id)
   void router.push({ query })
+}
+
+async function jumpToLatest(): Promise<void> {
+  const query = { ...route.query }
+  delete query.message
+  await router.replace({ query })
+  void messages.open(channelId.value)
 }
 
 function closeThread(): void {
@@ -312,7 +325,7 @@ function reload(): void {
     return
   }
   void loadChannel(channelId.value, current)
-  void messages.open(channelId.value)
+  void messages.open(channelId.value, focusMessageId.value)
   if (organization.activeId !== null) {
     unsubscribe = subscribeToChannel(organization.activeId, channelId.value, {
       onCreated: onLiveMessage,
@@ -382,6 +395,7 @@ defineExpose({ openThread })
           <MessageList
             :messages="messages.messages"
             :has-more="messages.nextCursor !== null"
+            :focus-id="focusMessageId"
             :loading-more="messages.loadingMore"
             :project-id="channel?.project_id"
             :own-user-id="auth.user?.id"
@@ -392,6 +406,9 @@ defineExpose({ openThread })
             @select="selectGroup"
             @open-thread="openThread"
           />
+          <button v-if="messages.hasNewer" type="button" name="jump-latest" @click="jumpToLatest">
+            {{ t('channel.jumpToLatest') }}
+          </button>
           <p v-if="channel?.archived_at" class="channel__archived">{{ t('channel.archived') }}</p>
           <MessageComposer v-else-if="channel" />
         </template>

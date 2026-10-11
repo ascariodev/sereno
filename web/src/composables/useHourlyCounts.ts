@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import { getHourlyCounts } from '../api/logGroups'
+import { currentTaskClock, dropGroupTaskNotWrittenSince, setGroupTask } from './useLogGroupStatuses'
 
 export const HOURLY_BATCH_SIZE = 100
 
@@ -13,14 +14,19 @@ let controller = new AbortController()
 
 async function fetchChunk(projectId: number, ids: number[], versions: Map<number, number>): Promise<void> {
   const current = generation
+  const clockAtRequest = currentTaskClock()
   try {
     const response = await getHourlyCounts(projectId, ids, controller.signal)
     if (current !== generation) return
     const received = response.counts ?? {}
+    const receivedTasks = response.tasks ?? {}
     for (const id of ids) {
       if (requestVersion.get(id) !== versions.get(id)) continue
       const series = received[String(id)]
       if (Array.isArray(series)) counts.set(id, series)
+      const task = receivedTasks[String(id)]
+      if (task) setGroupTask(id, task)
+      else if (response.tasks) dropGroupTaskNotWrittenSince(id, clockAtRequest)
     }
   } catch (error) {
     if (current !== generation || (error instanceof DOMException && error.name === 'AbortError')) return

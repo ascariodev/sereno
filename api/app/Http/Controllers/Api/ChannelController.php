@@ -28,7 +28,8 @@ class ChannelController extends Controller
             )
                 ->orderBy('name')
                 ->orderBy('id')
-                ->get(),
+                ->cursorPaginate($request->perPage())
+                ->withQueryString(),
         );
     }
 }

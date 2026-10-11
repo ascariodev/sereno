@@ -75,6 +75,13 @@ describe('ThreadAside', () => {
     expect(w.findAll('.message-item__body').map((el) => el.text())).toEqual(['msg 11', 'msg 12'])
   })
 
+  it('hides the composer when the root is deleted without replies', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ ...page([]), meta: { next_cursor: null, root: message(10) } } as never)
+    const w = mountAside({ root: { ...root, body: null, deleted_at: '2026-03-04T12:00:00Z', replies_count: 0 } })
+    await flushPromises()
+    expect(w.find('textarea').exists()).toBe(false)
+  })
+
   it('finds the root in the channel store when the prop is omitted', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)

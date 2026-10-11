@@ -34,16 +34,20 @@ it('lets the author update and delete their message', function () {
         ->and(Gate::forUser($author)->allows('delete', $this->message))->toBeTrue();
 });
 
-it('denies other members, admins and owners', function (string $role) {
-    $user = $this->users[$role];
-    if ($role === 'member') {
-        $user = User::factory()->create();
-        $this->organization->addMember($user, [Role::Member]);
-    }
+it('denies another member updating or deleting the message', function () {
+    $user = User::factory()->create();
+    $this->organization->addMember($user, [Role::Member]);
 
     expect(Gate::forUser($user)->allows('update', $this->message))->toBeFalse()
         ->and(Gate::forUser($user)->allows('delete', $this->message))->toBeFalse();
-})->with(['member', 'admin', 'owner']);
+});
+
+it('lets admins and owners delete but not update the message', function (string $role) {
+    $user = $this->users[$role];
+
+    expect(Gate::forUser($user)->allows('update', $this->message))->toBeFalse()
+        ->and(Gate::forUser($user)->allows('delete', $this->message))->toBeTrue();
+})->with(['admin', 'owner']);
 
 it('denies a user from another organization', function () {
     $outsider = User::factory()->create();

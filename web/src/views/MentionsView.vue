@@ -31,7 +31,7 @@ function target(mention: Mention) {
   return {
     name: 'channel',
     params: { id: mention.channel.id },
-    query: mention.parent_id === null ? {} : { thread: String(mention.parent_id) },
+    query: mention.parent_id === null ? { message: String(mention.message.id) } : { thread: String(mention.parent_id) },
   }
 }
 

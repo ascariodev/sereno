@@ -17,10 +17,15 @@ use App\Models\Channel;
 use App\Models\Message;
 use App\Models\MessageAttachment;
 use App\Models\User;
+use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Pagination\CursorPaginator;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class MessageController extends Controller
 {
@@ -32,17 +37,43 @@ class MessageController extends Controller
 
     public function index(ListMessagesRequest $request, Channel $channel): AnonymousResourceCollection
     {
-        $page = $channel->messages()
+        $roots = fn () => $channel->messages()
             ->whereNull('parent_id')
             ->where(fn ($query) => $query->whereNull('deleted_at')->orWhere('replies_count', '>', 0))
-            ->with(self::RELATIONS)
-            ->orderByDesc('id')
-            ->cursorPaginate($request->perPage())
-            ->withQueryString();
+            ->with(self::RELATIONS);
+
+        $around = $request->around();
+        $hasNewer = false;
+        $page = $around === null
+            ? $roots()->orderByDesc('id')->cursorPaginate($request->perPage())->withQueryString()
+            : $this->pageAround($roots, $around, $request->perPage(), $hasNewer);
 
         self::loadParticipants($page->items());
 
-        return MessageResource::collection($page);
+        $collection = MessageResource::collection($page);
+
+        return $around === null ? $collection : $collection->additional(['meta' => ['has_newer' => $hasNewer]]);
+    }
+
+    /**
+     * The roots around `$around`: about half the page of older ones (itself included) and the rest newer, newest first.
+     * `next_cursor` continues towards older roots like a normal page; the newer side is not paginated (`has_newer`).
+     */
+    private function pageAround(Closure $roots, int $around, int $perPage, bool &$hasNewer): CursorPaginator
+    {
+        $olderSize = intdiv($perPage, 2) + 1;
+        $older = $roots()->where('id', '<=', $around)->orderByDesc('id')->limit($olderSize + 1)->get();
+        $newerSize = $perPage - $olderSize;
+        $newer = $roots()->where('id', '>', $around)->orderBy('id')->limit($newerSize + 1)->get();
+        $hasNewer = $newer->count() > $newerSize;
+        $newer = $newer->take($newerSize)->reverse();
+
+        return new CursorPaginator(
+            $newer->concat($older)->values(),
+            $newer->count() + $olderSize,
+            null,
+            ['path' => Paginator::resolveCurrentPath(), 'parameters' => ['id']],
+        );
     }
 
     /**
@@ -125,7 +156,7 @@ class MessageController extends Controller
             if ($parentId !== null) {
                 Message::query()->whereKey($parentId)->update([
                     'replies_count' => DB::raw('replies_count + 1'),
-                    'last_reply_at' => DB::raw('GREATEST(last_reply_at, '.DB::getPdo()->quote($message->created_at->format('Y-m-d H:i:s')).'::timestamp)'),
+                    'last_reply_at' => DB::raw('GREATEST(last_reply_at, '.DB::getPdo()->quote($message->created_at->format('Y-m-d H:i:s.u')).'::timestamp)'),
                 ]);
             }
 
@@ -143,7 +174,11 @@ class MessageController extends Controller
 
         $removed = [];
 
-        DB::transaction(function () use ($request, $channel, &$message, $mentions, $body, &$edited, &$removed) {
+        $removeIds = $request->validated('remove_attachment_ids', []);
+
+        $files = collect();
+
+        DB::transaction(function () use ($request, $channel, &$message, $mentions, $body, &$edited, &$removed, $removeIds, &$files) {
             // Same order as MessageDeletion (root, then reply). The row is reread after the lock: a delete or
             // another edit committed while waiting must not be overwritten with the stale bound model.
             if ($message->parent_id !== null) {
@@ -154,15 +189,32 @@ class MessageController extends Controller
             abort_if($locked === null, 404);
             $message = $locked;
 
-            if (($message->body ?? '') !== ($body ?? '')) {
+            if ($removeIds !== []) {
+                $files = MessageAttachment::query()->where('message_id', $message->id)->whereIn('id', $removeIds)->get(['id', 'disk', 'path']);
+                MessageAttachment::query()->whereIn('id', $files->pluck('id'))->delete();
+
+                if (($body ?? '') === '' && ! $message->attachments()->exists()) {
+                    throw ValidationException::withMessages(['body' => __('A message without text must keep at least one attachment.')]);
+                }
+            }
+
+            if (($message->body ?? '') !== ($body ?? '') || $files->isNotEmpty()) {
                 $edited = true;
                 $message->body = $body;
-                $message->edited_at = now();
+                $message->edited_at = now()->startOfSecond();
                 $message->save();
             }
 
             $removed = $mentions->sync($message, $mentions->target($channel, $body, $request->user()->id))['removed'];
         });
+
+        foreach ($files as $file) {
+            try {
+                Storage::disk($file->disk)->delete($file->path);
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
 
         $message->load(self::RELATIONS);
         self::loadParticipants([$message]);
@@ -190,7 +242,7 @@ class MessageController extends Controller
             self::loadParticipants([$result['root']]);
         }
 
-        $event = new MessageDeleted($deleted, $result['root']);
+        $event = new MessageDeleted($deleted, $result['root'], $request->user()->id);
         event($event);
         foreach ($result['removed_mentions'] as $userId) {
             MentionRemoved::dispatch($userId, $deleted);

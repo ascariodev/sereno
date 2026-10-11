@@ -25,9 +25,29 @@ export interface MoveTaskInput {
 
 const base = (projectId: number) => `/api/projects/${projectId}/tasks`
 
-/** All tasks of the project, ordered by column and position. */
-export async function listTasks(projectId: number, signal?: AbortSignal): Promise<Task[]> {
-  const response = await api.get<DataEnvelope<Task[]>>(base(projectId), { signal })
+export interface TaskList {
+  tasks: Task[]
+  /** Done tasks of the project, loaded or not. Null if the API does not say. */
+  doneTotal: number | null
+  hasMoreDone: boolean
+}
+
+interface TaskListResponse extends DataEnvelope<Task[]> {
+  meta?: { done_total?: number; has_more_done?: boolean }
+}
+
+/** The tasks of the project ordered by column and position; `doneLimit` keeps only the first Done tasks. */
+export async function listTasks(projectId: number, signal?: AbortSignal, doneLimit?: number): Promise<TaskList> {
+  const response = await api.get<TaskListResponse>(base(projectId), { signal, query: { done_limit: doneLimit } })
+  return {
+    tasks: response.data,
+    doneTotal: response.meta?.done_total ?? null,
+    hasMoreDone: response.meta?.has_more_done === true,
+  }
+}
+
+export async function getTask(projectId: number, taskId: number, signal?: AbortSignal): Promise<Task> {
+  const response = await api.get<DataEnvelope<Task>>(`${base(projectId)}/${taskId}`, { signal })
   return response.data
 }
 
