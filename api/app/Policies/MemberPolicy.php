@@ -32,6 +32,11 @@ class MemberPolicy
             && ! $target->hasRole(Role::Owner->value);
     }
 
+    public function transferOwnership(User $actor, User $target): bool
+    {
+        return $actor->hasRole(Role::Owner->value) && ! $actor->is($target);
+    }
+
     public function remove(User $actor, User $target): bool
     {
         if ($actor->is($target) || $actor->hasRole(Role::Owner->value)) {

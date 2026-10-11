@@ -3,7 +3,7 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
-import { listMembers, removeMember, updateMemberRole } from '../api/members'
+import { listMembers, removeMember, transferOwnership, updateMemberRole } from '../api/members'
 import type { InvitationRole, Member } from '../api/types'
 import AppDialog from '../components/ui/AppDialog.vue'
 import { toast } from '../components/ui/toast'
@@ -26,6 +26,8 @@ const savingId = ref<number | null>(null)
 const roleError = ref<{ id: number; message: string } | null>(null)
 const pending = ref<Member | null>(null)
 const removing = ref(false)
+const pendingTransfer = ref<Member | null>(null)
+const transferring = ref(false)
 let leaving = false
 let generation = 0
 let controller: AbortController | null = null
@@ -34,6 +36,13 @@ const confirmOpen = computed({
   get: () => pending.value !== null,
   set: (open: boolean) => {
     if (!open && !removing.value) pending.value = null
+  },
+})
+
+const transferOpen = computed({
+  get: () => pendingTransfer.value !== null,
+  set: (open: boolean) => {
+    if (!open && !transferring.value) pendingTransfer.value = null
   },
 })
 
@@ -61,6 +70,7 @@ async function load(): Promise<void> {
   savingId.value = null
   roleError.value = null
   pending.value = null
+  pendingTransfer.value = null
   loading.value = true
   try {
     const result = await listMembers(controller.signal)
@@ -77,7 +87,7 @@ async function load(): Promise<void> {
 }
 
 async function refresh(): Promise<void> {
-  if (loading.value || savingId.value !== null || removing.value) return
+  if (loading.value || savingId.value !== null || removing.value || transferring.value) return
   const current = generation
   try {
     const result = await listMembers()
@@ -192,6 +202,43 @@ async function confirmRemove(): Promise<void> {
   }
 }
 
+async function confirmTransfer(): Promise<void> {
+  const target = pendingTransfer.value
+  if (!target || transferring.value) return
+  const current = generation
+  transferring.value = true
+  roleError.value = null
+  try {
+    await transferOwnership(target.id)
+    directory.invalidate()
+    try {
+      await organization.load()
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error
+      if (current === generation) toast.error(t('members.roleReloadFailed'))
+    }
+    if (current !== generation) return
+    toast.success(t('members.transferred', { name: target.name }))
+    await load()
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error
+    if (current !== generation) return
+    if (error.status === 404) {
+      directory.invalidate()
+      members.value = members.value.filter((m) => m.id !== target.id)
+      toast.info(t('members.removeGone'))
+    } else {
+      roleError.value = {
+        id: target.id,
+        message: error.status === 422 || error.status === 403 ? error.message : t('members.transferFailed'),
+      }
+    }
+  } finally {
+    transferring.value = false
+    if (current === generation) pendingTransfer.value = null
+  }
+}
+
 watch(
   () => organization.activeId,
   (activeId) => {
@@ -206,6 +253,7 @@ watch(
     savingId.value = null
     roleError.value = null
     pending.value = null
+    pendingTransfer.value = null
     loading.value = false
     failed.value = false
   },
@@ -286,6 +334,17 @@ onUnmounted(() => {
           </div>
         </dl>
         <button
+          v-if="organization.isOwner && !isSelf(member)"
+          type="button"
+          class="members__transfer"
+          data-test="transfer"
+          :aria-label="t('members.transferFor', { name: member.name })"
+          :disabled="savingId === member.id || removing || transferring"
+          @click="pendingTransfer = member"
+        >
+          {{ t('members.transfer') }}
+        </button>
+        <button
           v-if="canRemove(member)"
           type="button"
           class="members__remove"
@@ -325,6 +384,20 @@ onUnmounted(() => {
               ? t(pendingIsSelf ? 'members.leaving' : 'members.removing')
               : t(pendingIsSelf ? 'members.leaveAction' : 'members.removeAction')
           }}
+        </button>
+      </div>
+    </AppDialog>
+
+    <AppDialog v-model:open="transferOpen" :title="t('members.transferTitle')" :close-label="t('members.cancel')">
+      <p v-if="pendingTransfer" data-test="transfer-text">
+        {{ t('members.transferConfirm', { name: pendingTransfer.name }) }}
+      </p>
+      <div class="members__actions">
+        <button type="button" class="members__cancel" data-test="transfer-cancel" :disabled="transferring" @click="pendingTransfer = null">
+          {{ t('members.cancel') }}
+        </button>
+        <button type="button" class="members__confirm" data-test="transfer-confirm" :disabled="transferring" @click="confirmTransfer">
+          {{ transferring ? t('members.transferring') : t('members.transferAction') }}
         </button>
       </div>
     </AppDialog>
@@ -443,6 +516,7 @@ onUnmounted(() => {
   color: var(--ink-2);
 }
 
+.members__transfer,
 .members__remove,
 .members__cancel,
 .members__confirm {
@@ -468,6 +542,7 @@ onUnmounted(() => {
   color: var(--level-error-fg);
 }
 
+.members__transfer:disabled,
 .members__remove:disabled,
 .members__confirm:disabled,
 .members__cancel:disabled {
@@ -475,6 +550,7 @@ onUnmounted(() => {
   cursor: default;
 }
 
+.members__transfer:focus-visible,
 .members__remove:focus-visible,
 .members__cancel:focus-visible,
 .members__confirm:focus-visible {

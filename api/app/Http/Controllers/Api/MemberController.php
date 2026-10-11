@@ -8,6 +8,7 @@ use App\Http\Requests\Member\UpdateMemberRoleRequest;
 use App\Http\Resources\MemberResource;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
@@ -34,6 +35,17 @@ class MemberController extends Controller
         $organization = app(CurrentOrganization::class)->get();
 
         $organization->changeMemberRole($user, Role::from($request->validated('role')));
+
+        return (new MemberResource($organization->users()->with('roles')->whereKey($user->id)->firstOrFail()))->showEmail();
+    }
+
+    public function transferOwnership(Request $request, User $user): MemberResource
+    {
+        Gate::authorize('transferOwnership', $user);
+
+        $organization = app(CurrentOrganization::class)->get();
+
+        $organization->transferOwnership($request->user(), $user);
 
         return (new MemberResource($organization->users()->with('roles')->whereKey($user->id)->firstOrFail()))->showEmail();
     }

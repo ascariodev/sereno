@@ -14,3 +14,8 @@ export async function updateMemberRole(id: number, role: InvitationRole): Promis
 export async function removeMember(id: number): Promise<void> {
   await api.delete<void>(`/api/members/${id}`)
 }
+
+export async function transferOwnership(id: number): Promise<Member> {
+  const response = await api.post<DataEnvelope<Member>>(`/api/members/${id}/transfer-ownership`)
+  return response.data
+}

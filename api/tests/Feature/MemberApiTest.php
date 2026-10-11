@@ -1,10 +1,14 @@
 <?php
 
 use App\Enums\Role;
+use App\Events\MembershipRoleChanged;
+use App\Events\OrganizationMembersChanged;
 use App\Models\Invitation;
 use App\Models\Organization;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Sanctum\Sanctum;
 
@@ -355,4 +359,100 @@ it('rejects a role sent as an array without a PHP warning', function () {
     changeRole($this->owner, $this->organization, $member, ['admin'])->assertStatus(422)->assertJsonValidationErrors('role');
     changeRole($member, $this->organization, $this->owner, ['admin'])->assertForbidden();
     expect(roleIn($this->organization, $member))->toBe('member');
+});
+
+function transferOwnershipRequest(User $actor, Organization $organization, User|int $target)
+{
+    Sanctum::actingAs($actor);
+
+    return test()->withHeader('X-Organization-Id', (string) $organization->id)
+        ->postJson('/api/members/'.($target instanceof User ? $target->id : $target).'/transfer-ownership');
+}
+
+it('transfers ownership in one step leaving the former owner as admin', function (Role $targetRole) {
+    $target = memberWithRole($this->organization, $targetRole, 'Target');
+    Event::fake([MembershipRoleChanged::class, OrganizationMembersChanged::class]);
+
+    transferOwnershipRequest($this->owner, $this->organization, $target)
+        ->assertOk()
+        ->assertJsonPath('data.id', $target->id)
+        ->assertJsonPath('data.role', 'owner');
+
+    expect(roleIn($this->organization, $target))->toBe('owner')
+        ->and(roleIn($this->organization, $this->owner))->toBe('admin');
+    Event::assertDispatchedTimes(MembershipRoleChanged::class, 2);
+    Event::assertDispatched(MembershipRoleChanged::class, fn ($e) => $e->userId === $this->owner->id && $e->role === 'admin');
+    Event::assertDispatched(MembershipRoleChanged::class, fn ($e) => $e->userId === $target->id && $e->role === 'owner');
+    Event::assertDispatchedTimes(OrganizationMembersChanged::class, 2);
+})->with([Role::Member, Role::Admin]);
+
+it('demotes the actor even when the target is already an owner', function () {
+    $target = memberWithRole($this->organization, Role::Owner, 'Target');
+    Event::fake([MembershipRoleChanged::class, OrganizationMembersChanged::class]);
+
+    transferOwnershipRequest($this->owner, $this->organization, $target)->assertOk()->assertJsonPath('data.role', 'owner');
+
+    expect(roleIn($this->organization, $target))->toBe('owner')
+        ->and(roleIn($this->organization, $this->owner))->toBe('admin');
+    Event::assertDispatchedTimes(MembershipRoleChanged::class, 1);
+});
+
+it('does not let non-owners transfer ownership', function (Role $actorRole) {
+    $actor = memberWithRole($this->organization, $actorRole, 'Actor');
+    $target = memberWithRole($this->organization, Role::Member, 'Target');
+
+    transferOwnershipRequest($actor, $this->organization, $target)->assertForbidden();
+
+    expect(roleIn($this->organization, $actor))->toBe($actorRole->value)
+        ->and(roleIn($this->organization, $target))->toBe('member')
+        ->and(roleIn($this->organization, $this->owner))->toBe('owner');
+})->with([Role::Admin, Role::Member]);
+
+it('does not let an owner transfer ownership to themselves', function () {
+    transferOwnershipRequest($this->owner, $this->organization, $this->owner)->assertForbidden();
+
+    expect(roleIn($this->organization, $this->owner))->toBe('owner');
+});
+
+it('does not transfer ownership to a user of another organization', function () {
+    $other = Organization::factory()->create();
+    $stranger = User::factory()->create();
+    $other->addMember($stranger, [Role::Member]);
+
+    transferOwnershipRequest($this->owner, $this->organization, $stranger)->assertNotFound();
+
+    expect(roleIn($this->organization, $this->owner))->toBe('owner')
+        ->and(roleIn($other, $stranger))->toBe('member');
+});
+
+it('rejects transferring ownership in an organization the actor does not belong to', function () {
+    $other = Organization::factory()->create();
+    $otherOwner = User::factory()->create();
+    $other->addMember($otherOwner, [Role::Owner]);
+    $target = memberWithRole($other, Role::Member, 'Target');
+
+    transferOwnershipRequest($this->owner, $other, $target)->assertForbidden();
+
+    expect(roleIn($other, $target))->toBe('member')
+        ->and(roleIn($other, $otherOwner))->toBe('owner');
+});
+
+it('changes nothing when the actor stopped being owner before the lock', function () {
+    $target = memberWithRole($this->organization, Role::Member, 'Target');
+    Event::fake([MembershipRoleChanged::class, OrganizationMembersChanged::class]);
+    setPermissionsTeamId($this->organization->id);
+    $this->owner->unsetRelation('roles')->syncRoles([Role::Admin]);
+    $this->owner->unsetRelation('roles');
+
+    expect(fn () => $this->organization->transferOwnership($this->owner, $target))
+        ->toThrow(AuthorizationException::class);
+
+    expect(roleIn($this->organization, $target))->toBe('member');
+    Event::assertNothingDispatched();
+});
+
+it('requires authentication to transfer ownership', function () {
+    $this->withHeader('X-Organization-Id', (string) $this->organization->id)
+        ->postJson('/api/members/1/transfer-ownership')
+        ->assertUnauthorized();
 });

@@ -11,6 +11,7 @@ use App\Events\ProjectMembersChanged;
 use App\Exceptions\LastOwnerException;
 use App\Jobs\TerminateUserConnections;
 use Database\Factories\OrganizationFactory;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -129,6 +130,45 @@ class Organization extends Model
             // Reverb does not re-authorize open subscriptions: channels of unassigned projects would stay open.
             if ($losesProjectAccess) {
                 TerminateUserConnections::scheduleAfterCommit($user->id);
+            }
+        });
+    }
+
+    /**
+     * Makes `$to` an owner and demotes `$from` to admin in one transaction, so the organization never has zero
+     * owners nor needs two for the hand-over.
+     *
+     * @throws AuthorizationException when `$from` is no longer an owner by the time the lock is held
+     * @throws ModelNotFoundException when either user is not a member
+     */
+    public function transferOwnership(User $from, User $to): void
+    {
+        $this->mutateMembership($from, function () use ($from, $to) {
+            if (! $this->users()->whereKey($to->id)->exists()) {
+                throw (new ModelNotFoundException)->setModel(User::class, [$to->id]);
+            }
+
+            if (! $from->hasRole(Role::Owner->value)) {
+                throw new AuthorizationException;
+            }
+
+            $to->unsetRelation('roles');
+
+            try {
+                $targetWasOwner = $to->hasRole(Role::Owner->value);
+
+                $to->syncRoles([Role::Owner]);
+                $from->syncRoles([Role::Admin]);
+            } finally {
+                $to->unsetRelation('roles');
+            }
+
+            MembershipRoleChanged::dispatch($from->id, $this->id, Role::Admin->value);
+            OrganizationMembersChanged::dispatch($this->id, $from->id);
+
+            if (! $targetWasOwner) {
+                MembershipRoleChanged::dispatch($to->id, $this->id, Role::Owner->value);
+                OrganizationMembersChanged::dispatch($this->id, $to->id);
             }
         });
     }
