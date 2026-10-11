@@ -2,7 +2,7 @@
 
 **Objetivo:** que una URL firmada de un adjunto deje de servir poco después de que la persona pierde el acceso: la web
 pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el TTL baja de 60 a pocos minutos.
-**Estado:** en curso · Fase actual: cierre
+**Estado:** terminado
 
 ## Contexto mínimo
 - Apps afectadas: `api/` y `web/` (los commits van con `git` en la raíz del monorepo). Origen: acceso-proyectos M-2.
@@ -120,7 +120,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
   Quedaron en la base de desarrollo, canal 1, un mensaje con `test.png` y 45 mensajes "relleno N".
 
 ## Notas para la próxima sesión
-- Fases 1 a 4 hechas. Falta la suite completa del API y cerrar el plan.
+- Plan terminado: 4 fases. Suite API 1036 ok sobre el worktree. Falta el merge de `feat/adjuntos-url` a `main` (pedirlo).
 - El usuario cambia `api/.env.example:77` de `CHAT_ATTACHMENT_URL_TTL=60` a `5` (comentario sugerido: minutos; el
   vencimiento se redondea hacia arriba al minuto y la web pide una URL nueva al vencer). Si producción define 60, bajarlo.
 
