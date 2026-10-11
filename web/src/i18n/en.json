@@ -379,6 +379,8 @@
     "label": "Log group details",
     "heading": "Log group #{id}",
     "close": "Close details",
+    "expand": "Expand details",
+    "collapse": "Collapse details",
     "events": "Events",
     "firstSeen": "First seen",
     "lastSeen": "Last seen",
