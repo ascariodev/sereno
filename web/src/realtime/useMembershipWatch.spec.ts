@@ -15,6 +15,7 @@ import {
   MEMBERSHIP_REVOKED_EVENT,
   MEMBERSHIP_ROLE_CHANGED_EVENT,
   PROJECT_ACCESS_CHANGED_EVENT,
+  TASK_ASSIGNED_EVENT,
   setRealtimeClientFactory,
   subscribeToChannel,
 } from './echo'
@@ -41,6 +42,7 @@ async function mountWatch(remaining: unknown[] = [two]) {
       { path: '/', name: 'projects', component: page },
       { path: '/channels/:id', name: 'channel', component: page },
       { path: '/settings/invitations', name: 'invitations', component: page },
+      { path: '/projects/:projectId/plan', name: 'project-plan', component: page },
       { path: '/projects/:projectId/integrations', name: 'project-integrations', component: page },
     ],
   })
@@ -71,6 +73,10 @@ function changeProjectAccess(organizationId: number, projectId: number, granted:
     project_id: projectId,
     granted,
   })
+}
+
+function assignTask(organizationId: number) {
+  fake.listeners.get(`users.1|${TASK_ASSIGNED_EVENT}`)?.({ organization_id: organizationId, project_id: 4, task_id: 9 })
 }
 
 const projectRow = (id: number, name: string) => ({
@@ -140,6 +146,21 @@ describe('useMembershipWatch', () => {
     expect(organization.isAdmin).toBe(true)
     expect(organization.rolesRevision).toBe(1)
     expect(router.currentRoute.value.name).toBe('channel')
+    expect(toasts.value).toHaveLength(0)
+  })
+
+  it('toasts an assignment in the active organization with a link to the task', async () => {
+    const { router } = await mountWatch()
+    assignTask(1)
+    expect(toasts.value.map((item) => item.message)).toEqual(['You were assigned a task.'])
+    toasts.value[0].action?.onSelect()
+    await flushPromises()
+    expect(router.currentRoute.value.fullPath).toBe('/projects/4/plan?task=9')
+  })
+
+  it('ignores an assignment from another organization', async () => {
+    await mountWatch()
+    assignTask(2)
     expect(toasts.value).toHaveLength(0)
   })
 

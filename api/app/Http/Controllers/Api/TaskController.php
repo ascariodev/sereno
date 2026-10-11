@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\TaskStatus;
+use App\Events\TaskAssigned;
 use App\Events\TaskCreated;
 use App\Events\TaskDeleted;
 use App\Events\TaskUpdated;
@@ -112,6 +113,7 @@ class TaskController extends Controller
 
         $task->load(self::RELATIONS)->setRelation('project', $project);
         TaskCreated::dispatch($task);
+        $this->notifyAssignee($task, $request->user()->id);
 
         return (new TaskResource($task))->response()->setStatusCode(201);
     }
@@ -159,8 +161,20 @@ class TaskController extends Controller
 
         $task->load(self::RELATIONS)->setRelation('project', $project);
         TaskUpdated::dispatch($task);
+        if ($newAssigneeId !== null) {
+            $this->notifyAssignee($task, $request->user()->id);
+        }
 
         return new TaskResource($task);
+    }
+
+    private function notifyAssignee(Task $task, int $actorId): void
+    {
+        if ($task->assignee_id === null || $task->assignee_id === $actorId) {
+            return;
+        }
+
+        TaskAssigned::dispatch($task->assignee_id, $task->organization_id, $task->project_id, $task->id);
     }
 
     public function destroy(DeleteTaskRequest $request, Project $project, Task $task): Response

@@ -229,7 +229,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - [x] M-1 (media, sonnet): mensaje de sistema en el canal al crear una tarea desde un aviso, y chip "Tarea POSVE-12"
   en la tarjeta del aviso.
 - [ ] M-2 (alta, plan nuevo): comentarios en las tareas (contador del diseño).
-- [ ] M-3 (media, sonnet): avisar al asignado por `users.{id}` (solo ids, L-38).
+- [x] M-3 (media, sonnet): avisar al asignado por `users.{id}` (solo ids, L-38).
 - [ ] M-4 (media, sonnet): paginar o limitar la columna Hecho si crece.
 - [ ] M-5 (media, sonnet): efectos cruzados opcionales entre tarea y grupo (Hecho resuelve, reabierto avisa).
 - [x] M-6 (baja, sonnet): test de `TaskPolicy` sin organización activa (falla cerrada en `viewAny` y `create`).

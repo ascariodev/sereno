@@ -116,6 +116,16 @@ export function useMembershipWatch(): void {
     await refreshing
   }
 
+  function onTaskAssigned(organizationId: number, projectId: number, taskId: number): void {
+    if (organization.activeId !== organizationId) return
+    toast.info(t('plan.taskAssigned'), {
+      action: {
+        label: t('plan.taskAssignedOpen'),
+        onSelect: () => void router.push({ name: 'project-plan', params: { projectId }, query: { task: String(taskId) } }),
+      },
+    })
+  }
+
   function routeStillAllowed(): boolean {
     if (route.name === 'invitations') return organization.canManageInvitations
     if (route.name === 'project-integrations') return organization.canManageLogSources
@@ -170,6 +180,7 @@ export function useMembershipWatch(): void {
         onRoleChanged: (organizationId, role) => void onMembershipRoleChanged(organizationId, role),
         onProjectAccessChanged: (organizationId, projectId, granted) =>
           void onProjectAccessChanged(organizationId, projectId, granted).catch(ignoreApiError),
+        onTaskAssigned,
       })
       leaveSession = joinSession(userId)
       unsubscribeReconnect = onReconnect(onReconnected)

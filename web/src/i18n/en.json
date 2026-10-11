@@ -452,6 +452,8 @@
   "plan": {
     "title": "Plan",
     "notFound": "This project does not exist or you cannot access it.",
+    "taskAssigned": "You were assigned a task.",
+    "taskAssignedOpen": "View",
     "loadFailed": "Could not load the tasks.",
     "board": "Task board",
     "status": {
