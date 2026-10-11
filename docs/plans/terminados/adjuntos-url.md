@@ -121,6 +121,9 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 - 2026-10-11 (M-2, decisión del usuario) `AttachmentController::url` lanza `ModelNotFoundException` en todos sus 404
   (huérfano, mensaje borrado, `Gate::denies` del canal): responden igual que un id inexistente ("Resource not found.",
   render de `bootstrap/app.php`) y no filtran si el adjunto existe. `download` sigue con `abort(404, __('Not Found'))`.
+- 2026-10-11 (M-5) El respaldo tras el `await` es `window.open(url, '_blank')` sin `noopener`, con `opener = null` en la
+  misma tarea: con `noopener` el estándar devuelve null aunque abra. Solo un null ahí muestra el toast
+  `attachments.popupBlocked`. Reemplaza el respaldo con `noopener` de la Fase 3.
 
 ## Notas para la próxima sesión
 - Plan terminado: 4 fases. Suite API 1036 ok sobre el worktree. Falta el merge de `feat/adjuntos-url` a `main` (pedirlo).
@@ -139,7 +142,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
   entradas cuya URL del store ya cambió: tras un fallo y una URL nueva que carga bien sigue visible. Filtrar `failed`
   contra las URLs actuales (ya pasaba con el `Set`).
 - [x] M-4 (baja, sonnet): extraer el tipo `{ url; expires_at }` de `getAttachmentUrl` a una interfaz en `web/src/api/types.ts`.
-- [ ] M-5 (baja, sonnet): en `MessageAttachments.vue`, si `window.open` devolvió null y el respaldo tras el `await`
+- [x] M-5 (baja, sonnet): en `MessageAttachments.vue`, si `window.open` devolvió null y el respaldo tras el `await`
   también (Safari lo bloquea), mostrar un toast en vez de no hacer nada.
 - [ ] M-6 (baja, sonnet): distinguir el 404 de un error de red o 500 en el toast de apertura (hoy siempre "puede que ya
   no esté disponible"); requiere una clave i18n nueva.

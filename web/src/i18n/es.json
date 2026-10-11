@@ -345,7 +345,8 @@
     "rateLimited": "Estás subiendo demasiado rápido. Inténtalo de nuevo en un momento.",
     "download": "Descargar",
     "previewUnavailable": "La vista previa ya no está disponible.",
-    "openFailed": "No se pudo abrir el archivo. Puede que ya no esté disponible."
+    "openFailed": "No se pudo abrir el archivo. Puede que ya no esté disponible.",
+    "popupBlocked": "El navegador bloqueó la pestaña nueva. Permite las ventanas emergentes de este sitio e inténtalo de nuevo."
   },
   "mentions": {
     "title": "Menciones",

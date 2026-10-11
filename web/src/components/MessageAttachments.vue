@@ -53,8 +53,14 @@ async function openFresh(event: MouseEvent, a: MessageAttachment) {
   if (win) win.opener = null
   try {
     const { url } = await getAttachmentUrl(a.id)
-    if (win) win.location.href = url
-    else window.open(url, '_blank', 'noopener')
+    if (win) {
+      win.location.href = url
+      return
+    }
+    // With 'noopener' the standard lets window.open return null for a window that did open, so null would not prove a block.
+    const fallback = window.open(url, '_blank')
+    if (fallback) fallback.opener = null
+    else toast.error(t('attachments.popupBlocked'))
   } catch {
     win?.close()
     toast.error(t('attachments.openFailed'))

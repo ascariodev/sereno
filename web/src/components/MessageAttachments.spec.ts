@@ -213,6 +213,30 @@ describe('MessageAttachments', () => {
       ])
     })
 
+    it('shows a toast when the popup is blocked in the gesture and again after the request', async () => {
+      renew.mockResolvedValue(fresh)
+      const open = vi.spyOn(window, 'open').mockReturnValue(null)
+      const w = render([image])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(open).toHaveBeenNthCalledWith(2, fresh.url, '_blank')
+      expect(toasts.value.map((item) => [item.kind, item.message])).toEqual([
+        ['error', 'Your browser blocked the new tab. Allow pop-ups for this site and try again.'],
+      ])
+    })
+
+    it('opens the fallback window without a toast when only the gesture window was blocked', async () => {
+      renew.mockResolvedValue(fresh)
+      const win = { opener: {} as unknown }
+      const open = vi.spyOn(window, 'open').mockReturnValueOnce(null).mockReturnValueOnce(win as unknown as Window)
+      const w = render([image])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(open).toHaveBeenNthCalledWith(2, fresh.url, '_blank')
+      expect(win.opener).toBeNull()
+      expect(toasts.value).toHaveLength(0)
+    })
+
     it('leaves native behaviour for modified clicks', async () => {
       const { open } = fakeWindow()
       const w = render([image])
