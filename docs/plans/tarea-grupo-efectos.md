@@ -2,7 +2,7 @@
 
 **Objetivo:** en los proyectos que lo activen, mover a Hecho una tarea creada desde un aviso resuelve su grupo de log, y
 si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. Origen: plan-tareas M-5 (y canales M-19).
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -82,7 +82,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
     estado (nada); reapertura manual (aviso); proyecto sin canal activo (nada, sin error); y el payload exacto.
   - Pasan `PostLogGroupNoticeTest`, `LogEventRecorderTest` y `LogGroupApiTest`.
 
-### [ ] Fase 5 — Pintar el aviso de reapertura en la web
+### [x] Fase 5 — Pintar el aviso de reapertura en la web
 - **Alcance:**
   - Guard `isTaskGroupReopenedPayload`, que valida la forma de los campos (L-13).
   - `SystemNotice` pinta "Se reabrió el grupo de la tarea PRJ-12", con chip a la tarea (como `task.created_from_group`).
@@ -131,11 +131,15 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
   KEY UPDATE, lee de ahí el estado previo y llama a la acción solo de resolved a open.
 
 ## Notas para la próxima sesión
-- Seguir con la fase 5 (web). El contenedor `web` monta el checkout principal: para tests y tipos del worktree hace
-  falta un contenedor desechable con `web/` del worktree montado (como `t.sh` para el API).
+- Seguir con la fase 6, tras confirmar con el usuario dónde va el interruptor. Tests de la web del worktree con
+  `.claude/worktrees/w.sh` (node:24 desechable con `web/` del worktree y el volumen `workspace_web-node-modules`).
+  El aviso `task.group_reopened` se pinta en `SystemNotice` con clave `notice.taskGroupReopened`.
 - Leer `docs/lecciones.md` (L-41 concurrencia, L-42 condiciones en el worker, L-49 suite completa, L-13 guards).
 
 ## Mejoras propuestas
 - [ ] M-1 (baja, sonnet): en `LogGroupController::update`, no reasignar el parámetro enlazado `$group` con el
   resultado de `DB::transaction` (usar otro nombre) y recortar los comentarios largos del controlador y de
   `PostTaskGroupReopenedNotice`.
+- [ ] M-2 (baja, sonnet): en `SystemNotice.vue`, extraer el chip a la tarea (`RouterLink` o `<b>` sin proyecto),
+  repetido en `task.created_from_group` y `task.group_reopened`; de paso, el `<b>` sin proyecto no debería usar la clase
+  `system-notice-line__actor`.

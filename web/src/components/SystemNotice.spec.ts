@@ -169,6 +169,38 @@ describe('SystemNotice', () => {
     })
   })
 
+  describe('group reopened for a done task', () => {
+    const reopened = { type: 'task.group_reopened', log_group_id: 5, task_id: 9, task_key: 'POSVE-12' }
+    const mountReopened = (payload: unknown, projectId: number | null = 3) =>
+      mount(SystemNotice, {
+        props: { message: message(payload), projectId: projectId ?? undefined },
+        global: {
+          plugins: [
+            i18n,
+            createRouter({ history: createMemoryHistory(), routes: [{ path: '/p/:projectId/plan', name: 'project-plan', component: { template: '<i/>' } }] }),
+          ],
+        },
+      })
+
+    it('renders a compact line with a chip to the task, in both languages', async () => {
+      const wrapper = mountReopened(reopened)
+      expect(wrapper.find('article').exists()).toBe(false)
+      expect(wrapper.text()).toContain('The log group of task POSVE-12 was reopened')
+      expect(wrapper.get('[data-test=notice-task-reopened-link]').attributes('href')).toBe('/p/3/plan?task=9')
+      i18n.global.locale.value = 'es'
+      await wrapper.vm.$nextTick()
+      expect(wrapper.text()).toContain('Se reabrió el grupo de logs de la tarea POSVE-12')
+    })
+
+    it('shows plain text without a project and falls back to the generic notice when malformed', () => {
+      const plain = mountReopened(reopened, null)
+      expect(plain.find('a').exists()).toBe(false)
+      expect(plain.text()).toContain('POSVE-12')
+      expect(textIn('en', message({ ...reopened, task_key: 12 }))).toBe('System notice')
+      expect(textIn('en', message({ type: 'task.group_reopened', log_group_id: 5 }))).toBe('System notice')
+    })
+  })
+
   it('shows unknown levels and statuses as they come', () => {
     expect(textIn('en', message({ ...opened, level: 'verbose' }))).toContain('verbose')
     expect(textIn('en', message({ ...changed, status: 'archived' }, ana))).toContain('as archived')

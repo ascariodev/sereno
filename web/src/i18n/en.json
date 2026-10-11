@@ -403,6 +403,7 @@
     "statusChanged": "{actor} marked the log group as {status}",
     "statusChangedTitled": "{actor} marked {title} as {status}",
     "taskCreated": "{actor} created task {task} from this log group",
+    "taskGroupReopened": "The log group of task {task} was reopened",
     "taskChip": "Task {key}",
     "actions": {
       "resolve": "Resolve",

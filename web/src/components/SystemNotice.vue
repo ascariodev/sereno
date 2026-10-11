@@ -4,7 +4,7 @@ import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { statusFrom, updateLogGroupStatus } from '../api/logGroups'
-import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload, isTaskCreatedFromGroupPayload } from '../api/types'
+import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload, isTaskCreatedFromGroupPayload, isTaskGroupReopenedPayload } from '../api/types'
 import type { LogGroupStatus, Message } from '../api/types'
 import { levelTone as toneOf } from '../api/logLevels'
 import { hourlyCountsOf, requestHourlyCounts } from '../composables/useHourlyCounts'
@@ -33,6 +33,7 @@ const payload = computed(() => props.message.payload)
 const opened = computed(() => (isLogGroupOpenedPayload(payload.value) ? payload.value : null))
 const changed = computed(() => (isLogGroupStatusChangedPayload(payload.value) ? payload.value : null))
 const taskCreated = computed(() => (isTaskCreatedFromGroupPayload(payload.value) ? payload.value : null))
+const taskReopened = computed(() => (isTaskGroupReopenedPayload(payload.value) ? payload.value : null))
 const groupId = computed(() => opened.value?.log_group_id ?? null)
 const sharedStatus = computed(() => statusOfGroup(groupId.value))
 const doneStatus = computed(() => (sharedStatus.value && sharedStatus.value !== 'open' ? sharedStatus.value : null))
@@ -197,6 +198,25 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
           {{ taskCreated.task_key }}
         </RouterLink>
         <b v-else class="system-notice-line__actor">{{ taskCreated.task_key }}</b>
+      </template>
+    </i18n-t>
+    <time class="system-notice-line__time" :datetime="message.created_at" :title="fullDate">{{ shortTime }}</time>
+  </div>
+  <div v-else-if="taskReopened" class="system-notice-line">
+    <span class="system-notice-line__icon system-notice-line__icon--task" aria-hidden="true">
+      <RotateCcw :size="13" :stroke-width="2.4" />
+    </span>
+    <i18n-t keypath="notice.taskGroupReopened" tag="span" scope="global">
+      <template #task>
+        <RouterLink
+          v-if="projectId !== undefined"
+          class="system-notice-line__task"
+          data-test="notice-task-reopened-link"
+          :to="{ name: 'project-plan', params: { projectId }, query: { task: String(taskReopened.task_id) } }"
+        >
+          {{ taskReopened.task_key }}
+        </RouterLink>
+        <b v-else class="system-notice-line__actor">{{ taskReopened.task_key }}</b>
       </template>
     </i18n-t>
     <time class="system-notice-line__time" :datetime="message.created_at" :title="fullDate">{{ shortTime }}</time>
