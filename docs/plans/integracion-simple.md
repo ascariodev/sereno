@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 12 (espera al usuario: publicar en Packagist)
+**Estado:** en curso · Fase actual: 12 (espera al usuario: registrar en Packagist)
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -184,9 +184,11 @@
 - Mejoras M-1 a M-4 aplicadas en la rama `feat/integracion-simple` del paquete (commits f2822bb, 97add1e, f84c3f0,
   a1852f0 posteriores al tag local `v0.2.0` en 47da781: **mover el tag** al último commit antes de publicar, fase 12);
   M-5 en el monorepo.
-- Fase 12 en curso: `feat/integracion-simple` fusionada a `main` local del paquete (44159b7, suite 79 en verde) y tag
-  `v0.2.0` movido ahí. Sin push: `git ls-remote` a Gitea falla por autenticación desde esta máquina. Falta que el usuario
-  elija dónde queda público el repo, lo haga público, registre en Packagist y resuelva la autenticación del push.
+- Fase 12 en curso: `feat/integracion-simple` fusionada a `main` del paquete (44159b7, suite 79 en verde), tag
+  `v0.2.0` movido ahí. Repo público elegido por el usuario: espejo en GitHub `https://github.com/ascariodev/sereno-laravel`
+  (remoto `github` del paquete); `main` y `v0.2.0` empujados (público, verificado sin auth). `origin` (Gitea) sin push:
+  falla la autenticación desde esta máquina. Falta: el usuario registra el repo en Packagist; luego verificar
+  `composer require sereno/laravel` en un contenedor limpio y el auto-discovery.
 - Fase 11: código y specs revisados y commiteados (suite web 1337 en verde). La vista pasa al diálogo `shownSource`
   (computed: `issuedSource` con el `last_used_at` de su fila en `sources`); región `aria-live="polite"` estable con
   `keyDialog.waiting`/`connected`; tokens `--level-info-*`. Prueba manual hecha tras el merge a `main` local (346beb3, sin push) y
