@@ -94,6 +94,31 @@ it('answers 404 when the message was deleted', function () {
     requestingUrl($this->ana, $this->organization, $attachment)->assertNotFound();
 });
 
+it('answers every 404 with the same body as a nonexistent attachment', function () {
+    $hidden = Channel::factory()->for(Project::factory()->for($this->organization))->create();
+    $hiddenMessage = Message::withoutEvents(fn () => Message::factory()->for($hidden)->for($this->author)->create());
+    $foreignChannel = Channel::factory()->for(Project::factory()->for($this->other))->create();
+    $foreignMessage = Message::withoutEvents(fn () => Message::factory()->for($foreignChannel)->for($this->author)->create());
+    $deleted = urlAttachment($this, $this->organization, $this->channel, $this->message);
+    DB::table('messages')->where('id', $this->message->id)->update(['deleted_at' => now()]);
+
+    $missing = new MessageAttachment;
+    $missing->id = (int) DB::table('message_attachments')->max('id') + 1000;
+
+    $bodies = [
+        requestingUrl($this->ana, $this->organization, urlAttachment($this, $this->organization, $hidden, $hiddenMessage))->assertNotFound()->getContent(),
+        requestingUrl($this->ana, $this->organization, urlAttachment($this, $this->other, $foreignChannel, $foreignMessage))->assertNotFound()->getContent(),
+        requestingUrl($this->ana, $this->organization, urlAttachment($this, $this->organization, $this->channel, null))->assertNotFound()->getContent(),
+        requestingUrl($this->ana, $this->organization, $deleted)->assertNotFound()->getContent(),
+    ];
+    $nonexistent = requestingUrl($this->ana, $this->organization, $missing)->assertNotFound()->getContent();
+
+    expect(json_decode($nonexistent, true))->not->toBeEmpty();
+    foreach ($bodies as $body) {
+        expect(json_decode($body, true))->toBe(json_decode($nonexistent, true));
+    }
+});
+
 it('answers 403 with an organization the user does not belong to', function () {
     $attachment = urlAttachment($this, $this->organization, $this->channel, $this->message);
 

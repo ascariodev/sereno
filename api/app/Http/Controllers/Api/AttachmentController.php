@@ -9,6 +9,7 @@ use App\Models\Channel;
 use App\Models\MessageAttachment;
 use App\Models\Scopes\OrganizationScope;
 use finfo;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -83,9 +84,9 @@ class AttachmentController extends Controller
     {
         $message = $attachment->message_id === null ? null : $attachment->message;
 
-        abort_if($message === null || $message->deleted_at !== null, 404, __('Not Found'));
-
-        Gate::authorize('view', $attachment->channel);
+        if ($message === null || $message->deleted_at !== null || Gate::denies('view', $attachment->channel)) {
+            throw new ModelNotFoundException;
+        }
 
         $signed = $attachment->signedDownload();
 

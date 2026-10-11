@@ -118,6 +118,9 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
   nueva; un clic tras vencer abrió el archivo con una URL fresca (200). El panel del navegador devuelve null en
   `window.open`, así que se probó el respaldo `window.open(url, '_blank', 'noopener')`, no la ventana abierta en el gesto.
   Quedaron en la base de desarrollo, canal 1, un mensaje con `test.png` y 45 mensajes "relleno N".
+- 2026-10-11 (M-2, decisión del usuario) `AttachmentController::url` lanza `ModelNotFoundException` en todos sus 404
+  (huérfano, mensaje borrado, `Gate::denies` del canal): responden igual que un id inexistente ("Resource not found.",
+  render de `bootstrap/app.php`) y no filtran si el adjunto existe. `download` sigue con `abort(404, __('Not Found'))`.
 
 ## Notas para la próxima sesión
 - Plan terminado: 4 fases. Suite API 1036 ok sobre el worktree. Falta el merge de `feat/adjuntos-url` a `main` (pedirlo).
@@ -129,7 +132,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 </invoke>
 - [x] M-1 (baja, sonnet): exponer el vencimiento desde `MessageAttachment` (p. ej. `downloadUrl()` que devuelva url y
   vencimiento) en vez de parsear `expires` del query de la URL en `AttachmentController::url`.
-- [ ] M-2 (baja, sonnet): en `AttachmentUrlApiTest`, afirmar que los 404 (otra organización, huérfano, sin proyecto,
+- [x] M-2 (baja, sonnet): en `AttachmentUrlApiTest`, afirmar que los 404 (otra organización, huérfano, sin proyecto,
   borrado) tienen el mismo cuerpo. El `false` (403) de `ChannelPolicy::view` no se alcanza aquí: el adjunto se busca con
   el scope de organización y el middleware exige rol.
 - [ ] M-3 (baja, sonnet): en `MessageAttachments.vue`, el aviso "ya no disponible" usa `failed.size > 0` y no descarta
@@ -140,3 +143,5 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
   también (Safari lo bloquea), mostrar un toast en vez de no hacer nada.
 - [ ] M-6 (baja, sonnet): distinguir el 404 de un error de red o 500 en el toast de apertura (hoy siempre "puede que ya
   no esté disponible"); requiere una clave i18n nueva.
+- [ ] M-7 (baja, sonnet): en `AttachmentUrlApiTest`, afirmar el 404 también en `es` (`Accept-Language`, "Recurso no
+  encontrado.").
