@@ -269,7 +269,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   (Safari no enfoca botones al hacer clic).
 - [x] M-24 (baja, sonnet): `TaskAside.spec`: sembrar usuario autenticado y restaurar `window.matchMedia`;
   `PlanView.spec`: borrado en vivo con el panel abierto quita `?task=` y conserva `?filter=`.
-- [ ] M-25 (baja, sonnet): `TaskCard`: `padding-right` en el título para que el botón del menú no lo tape, indentar el hijo del wrap y spec propio del `aria-label` y de `readOnly`.
+- [x] M-25 (baja, sonnet): `TaskCard`: `padding-right` en el título para que el botón del menú no lo tape, indentar el hijo del wrap y spec propio del `aria-label` y de `readOnly`.
 - [ ] M-26 (baja, sonnet): spec de `dragend` sin `drop` (soltar fuera) que deje el estado de arrastre limpio; y bloquear un movimiento por menú mientras hay uno por arrastre en vuelo (y viceversa).
 - [ ] M-27 (baja, sonnet): test de 422 por `log_group_id` en `LogGroupAside.spec` y, tras ese 422, mostrar el enlace a la tarea existente; conservar el diálogo abierto al cruzar el breakpoint del aside.
 - [ ] M-28 (media, sonnet): que el payload de los avisos o el canal sepan la tarea del grupo (p. ej. `task` en el estado de grupos del canal) para no depender del estado del cliente; mostrar el enlace aunque el grupo esté resuelto; limpiar la entrada del mapa al borrar la tarea.

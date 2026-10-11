@@ -21,23 +21,23 @@ const assignee = computed(() => props.task.assignee ?? null)
 
 <template>
   <div class="task-card-wrap" :draggable="readOnly ? undefined : 'true'">
-  <RouterLink class="task-card" draggable="false" :to="to" :aria-labelledby="titleId" :aria-describedby="metaId">
-    <span v-if="group" class="task-card__notice">
-      <LevelPill :level="group.level" />
-      <span class="task-card__events">{{ group.events_count }} {{ t('notice.eventsWord', group.events_count) }}</span>
-    </span>
-    <span :id="titleId" class="task-card__title">{{ task.title }}</span>
-    <span :id="metaId" class="task-card__meta">
-      <ProjectKey :value="task.key" />
-      <span class="task-card__spacer"></span>
-      <AppAvatar v-if="assignee" :name="assignee.name" :id="assignee.id" :size="24" />
-      <span class="sr-only">
-        {{ assignee ? t('plan.assignedTo', { name: assignee.name }) : t('plan.unassigned') }}
-        <template v-if="group">. {{ t('plan.fromNotice') }}</template>
+    <RouterLink class="task-card" draggable="false" :to="to" :aria-labelledby="titleId" :aria-describedby="metaId">
+      <span v-if="group" class="task-card__notice">
+        <LevelPill :level="group.level" />
+        <span class="task-card__events">{{ group.events_count }} {{ t('notice.eventsWord', group.events_count) }}</span>
       </span>
-    </span>
-  </RouterLink>
-  <TaskMoveMenu class="task-card__move" :task="task" :read-only="readOnly" />
+      <span :id="titleId" class="task-card__title">{{ task.title }}</span>
+      <span :id="metaId" class="task-card__meta">
+        <ProjectKey :value="task.key" />
+        <span class="task-card__spacer"></span>
+        <AppAvatar v-if="assignee" :name="assignee.name" :id="assignee.id" :size="24" />
+        <span class="sr-only">
+          {{ assignee ? t('plan.assignedTo', { name: assignee.name }) : t('plan.unassigned') }}
+          <template v-if="group">. {{ t('plan.fromNotice') }}</template>
+        </span>
+      </span>
+    </RouterLink>
+    <TaskMoveMenu class="task-card__move" :task="task" :read-only="readOnly" />
   </div>
 </template>
 
@@ -86,6 +86,7 @@ const assignee = computed(() => props.task.assignee ?? null)
 .task-card__title {
   font-weight: 500;
   line-height: 1.4;
+  padding-right: 28px;
   overflow-wrap: anywhere;
 }
 .task-card__meta {
