@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Actions\PostLogGroupStatusNotice;
+use App\Actions\PostTaskGroupReopenedNotice;
+use App\Enums\LogGroupStatus;
 use App\Enums\LogLevel;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
@@ -71,19 +73,28 @@ class LogGroupController extends Controller
         return new LogGroupResource($group);
     }
 
-    public function update(UpdateLogGroupRequest $request, Project $project, LogGroup $group, PostLogGroupStatusNotice $postNotice): LogGroupResource
+    public function update(UpdateLogGroupRequest $request, Project $project, LogGroup $group, PostLogGroupStatusNotice $postNotice, PostTaskGroupReopenedNotice $postReopened): LogGroupResource
     {
         abort_unless($group->project_id === $project->id, 404);
 
-        $previousStatus = $group->status;
-        $group->status = $request->validated('status');
+        $group = DB::transaction(function () use ($group, $request, $postNotice, $postReopened) {
+            // Locked to read the real previous status: ingestion can reopen or resolve it in parallel. The task is only
+            // read afterwards, never locked before the group.
+            $locked = LogGroup::query()->whereKey($group->id)->lock('for no key update')->firstOrFail();
+            $previousStatus = $locked->status;
+            $locked->status = $request->validated('status');
 
-        if ($group->isDirty('status')) {
-            DB::transaction(function () use ($group, $previousStatus, $request, $postNotice) {
-                $group->save();
-                $postNotice($group, $previousStatus, $request->user());
-            });
-        }
+            if ($locked->isDirty('status')) {
+                $locked->save();
+                $postNotice($locked, $previousStatus, $request->user());
+
+                if ($previousStatus === LogGroupStatus::Resolved && $locked->status === LogGroupStatus::Open) {
+                    $postReopened($locked->organization_id, $locked->project_id, $locked->id);
+                }
+            }
+
+            return $locked;
+        });
 
         $this->bindTaskProject(collect([$group->load('task')]), $project);
 

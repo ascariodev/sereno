@@ -2,7 +2,7 @@
 
 **Objetivo:** en los proyectos que lo activen, mover a Hecho una tarea creada desde un aviso resuelve su grupo de log, y
 si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. Origen: plan-tareas M-5 (y canales M-19).
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -69,7 +69,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
   - Pasan `TaskMoveApiTest`, `TaskMoveConcurrencyTest` y `LogGroupApiTest`.
   - La suite completa del API pasa (L-49).
 
-### [ ] Fase 4 — Aviso en el canal al reabrir un grupo con tarea en Hecho
+### [x] Fase 4 — Aviso en el canal al reabrir un grupo con tarea en Hecho
 - **Alcance:**
   - Acción que, si el proyecto tiene el ajuste y el grupo tiene tarea en `done`, publica un mensaje de sistema
     `task.group_reopened` {log_group_id, task_id, task_key} en el canal activo del proyecto. Solo ids y valores planos.
@@ -124,9 +124,18 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
   Grupo antes que tarea por la retención (borra grupo y luego el `nullOnDelete` toca la tarea). El ajuste se lee de la
   fila bloqueada del proyecto (`lockActiveProject` la devuelve). Resolver y avisar va después de guardar la tarea.
 
+- 2026-10-11 (fase 4): `App\Actions\PostTaskGroupReopenedNotice(organizationId, projectId, logGroupId)` lee en el
+  worker, sin scopes, que el grupo siga `open`, el ajuste, la tarea en `done` y el canal activo, y publica
+  `task.group_reopened` {log_group_id, task_id (int), task_key} con `user_id` null. Listener en cola
+  `PostTaskGroupReopenedNoticeListener` (tries=1, auto-discovery). `LogGroupController::update` bloquea el grupo FOR NO
+  KEY UPDATE, lee de ahí el estado previo y llama a la acción solo de resolved a open.
+
 ## Notas para la próxima sesión
-- Seguir con la fase 4. En `LogGroupController::update` el estado previo se lee sin bloquear: para evaluar "de resolved
-  a open" bloquear el grupo (FOR NO KEY UPDATE) dentro de la transacción, sin tomar la tarea antes que el grupo.
+- Seguir con la fase 5 (web). El contenedor `web` monta el checkout principal: para tests y tipos del worktree hace
+  falta un contenedor desechable con `web/` del worktree montado (como `t.sh` para el API).
 - Leer `docs/lecciones.md` (L-41 concurrencia, L-42 condiciones en el worker, L-49 suite completa, L-13 guards).
 
 ## Mejoras propuestas
+- [ ] M-1 (baja, sonnet): en `LogGroupController::update`, no reasignar el parámetro enlazado `$group` con el
+  resultado de `DB::transaction` (usar otro nombre) y recortar los comentarios largos del controlador y de
+  `PostTaskGroupReopenedNotice`.
