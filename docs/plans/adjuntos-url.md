@@ -2,7 +2,7 @@
 
 **Objetivo:** que una URL firmada de un adjunto deje de servir poco después de que la persona pierde el acceso: la web
 pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el TTL baja de 60 a pocos minutos.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 
 ## Contexto mínimo
 - Apps afectadas: `api/` y `web/` (los commits van con `git` en la raíz del monorepo). Origen: acceso-proyectos M-2.
@@ -42,7 +42,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 
   Pasan `AttachmentDownloadApiTest` y pint.
 
-### [ ] Fase 2 — Miniaturas que renuevan la URL vencida
+### [x] Fase 2 — Miniaturas que renuevan la URL vencida
 - **Alcance:**
   - `getAttachmentUrl(id)` en el cliente web.
   - En `MessageAttachments.vue`, el `@error` de la miniatura pide una URL nueva y reintenta una sola vez. El estado de
@@ -101,9 +101,14 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 - 2026-10-11 (Fase 1) `GET /api/attachments/{attachment}/url` responde `{data:{url, expires_at}}`; `expires_at` es ISO8601
   UTC tomado del parámetro `expires` de la URL firmada. Throttle `attachment-urls` de 120/min por usuario. `Message` no
   usa SoftDeletes: el mensaje borrado se detecta con `deleted_at` y responde 404 con `abort`, antes del `Gate`.
+- 2026-10-11 (Fase 2) `getAttachmentUrl(id)` en `web/src/api/messages.ts`. `MessageAttachments.vue` guarda tres mapas
+  por id (`retried`, `renewed`, `failed`) con la URL del store a la que se refieren: una URL nueva del store para el mismo
+  id (p. ej. `MessageUpdated`) rearma el reintento y descarta la renovada (L-39). Una renovación que llega tras cambiar la
+  URL del store se ignora (`from !== a.url`). Una sola renovación por URL del store.
 
 ## Notas para la próxima sesión
-- Fase 1 hecha. Siguiente: fase 2; el cliente lee `data.url` y `data.expires_at` del endpoint nuevo.
+- Fases 1 y 2 hechas. Siguiente: fase 3; reutilizar `getAttachmentUrl`. El `href` estático sigue con `a.url` del store
+  (no `previewUrl(a)`): decidir en la fase 3 si el respaldo usa la renovada.
 
 ## Mejoras propuestas
 </content>
@@ -113,3 +118,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 - [ ] M-2 (baja, sonnet): en `AttachmentUrlApiTest`, afirmar que los 404 (otra organización, huérfano, sin proyecto,
   borrado) tienen el mismo cuerpo. El `false` (403) de `ChannelPolicy::view` no se alcanza aquí: el adjunto se busca con
   el scope de organización y el middleware exige rol.
+- [ ] M-3 (baja, sonnet): en `MessageAttachments.vue`, el aviso "ya no disponible" usa `failed.size > 0` y no descarta
+  entradas cuya URL del store ya cambió: tras un fallo y una URL nueva que carga bien sigue visible. Filtrar `failed`
+  contra las URLs actuales (ya pasaba con el `Set`).
+- [ ] M-4 (baja, sonnet): extraer el tipo `{ url; expires_at }` de `getAttachmentUrl` a una interfaz en `web/src/api/types.ts`.

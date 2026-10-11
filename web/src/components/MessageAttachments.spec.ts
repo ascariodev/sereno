@@ -1,5 +1,7 @@
-import { mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as messagesApi from '../api/messages'
+import { ApiError } from '../api/client'
 import { i18n } from '../i18n'
 import type { MessageAttachment } from '../api/types'
 import MessageAttachments from './MessageAttachments.vue'
@@ -15,9 +17,14 @@ function render(attachments: MessageAttachment[]) {
   return mount(MessageAttachments, { props: { attachments }, global: { plugins: [i18n] } })
 }
 
+let renew: ReturnType<typeof vi.spyOn>
+
 describe('MessageAttachments', () => {
+  afterEach(() => vi.restoreAllMocks())
+
   beforeEach(() => {
     i18n.global.locale.value = 'en'
+    renew = vi.spyOn(messagesApi, 'getAttachmentUrl').mockRejectedValue(new ApiError(404, 'gone'))
   })
 
   it('renders nothing without attachments', () => {
@@ -31,7 +38,9 @@ describe('MessageAttachments', () => {
     const w = render([image, { ...image, id: 3, url: 'http://api/attachments/3?sig=c' }])
     expect(w.get('[role="status"]').text()).toBe('')
     await w.findAll('img')[0].trigger('error')
+    await flushPromises()
     await w.get('img').trigger('error')
+    await flushPromises()
     expect(w.findAll('[role="status"]')).toHaveLength(1)
     expect(w.get('[role="status"]').text()).toBe('The preview is no longer available.')
   })
@@ -66,9 +75,10 @@ describe('MessageAttachments', () => {
     expect(w.text()).not.toContain('no longer available')
   })
 
-  it('falls back to the notice and file row when the image fails, without retrying', async () => {
+  it('falls back to the notice and file row when renewing the url fails', async () => {
     const w = render([image, pdf])
     await w.get('img').trigger('error')
+    await flushPromises()
     expect(w.find('img').exists()).toBe(false)
     expect(w.text()).toContain('The preview is no longer available.')
     expect(w.text()).toContain('foto.png')
@@ -81,7 +91,63 @@ describe('MessageAttachments', () => {
   it('retries the preview when the same attachment arrives with a new signed url', async () => {
     const w = render([image])
     await w.get('img').trigger('error')
+    await flushPromises()
     expect(w.find('img').exists()).toBe(false)
+    const fresh = { ...image, url: 'http://api/attachments/1?sig=new' }
+    await w.setProps({ attachments: [fresh] })
+    expect(w.get('img').attributes('src')).toBe(fresh.url)
+  })
+
+  it('requests a new url on error and paints with it', async () => {
+    renew.mockResolvedValue({ url: 'http://api/attachments/1?sig=renewed', expires_at: '2026-03-04T10:35:00Z' })
+    const w = render([image])
+    await w.get('img').trigger('error')
+    await flushPromises()
+    expect(renew).toHaveBeenCalledExactlyOnceWith(1)
+    expect(w.get('img').attributes('src')).toBe('http://api/attachments/1?sig=renewed')
+    expect(w.get('[role="status"]').text()).toBe('')
+  })
+
+  it('keeps the failed state when the renewed url fails too, without looping', async () => {
+    renew.mockResolvedValue({ url: 'http://api/attachments/1?sig=renewed', expires_at: '2026-03-04T10:35:00Z' })
+    const w = render([image])
+    await w.get('img').trigger('error')
+    await flushPromises()
+    await w.get('img').trigger('error')
+    await flushPromises()
+    expect(w.find('img').exists()).toBe(false)
+    expect(w.text()).toContain('The preview is no longer available.')
+    expect(renew).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the failed state when the API answers 404', async () => {
+    const w = render([image])
+    await w.get('img').trigger('error')
+    await flushPromises()
+    expect(renew).toHaveBeenCalledTimes(1)
+    expect(w.find('img').exists()).toBe(false)
+    expect(w.text()).toContain('The preview is no longer available.')
+  })
+
+  it('retries again, once, when the store delivers a new url after a failure', async () => {
+    const w = render([image])
+    await w.get('img').trigger('error')
+    await flushPromises()
+    expect(w.find('img').exists()).toBe(false)
+    const fresh = { ...image, url: 'http://api/attachments/1?sig=new' }
+    await w.setProps({ attachments: [fresh] })
+    renew.mockResolvedValue({ url: 'http://api/attachments/1?sig=renewed2', expires_at: '2026-03-04T10:35:00Z' })
+    await w.get('img').trigger('error')
+    await flushPromises()
+    expect(renew).toHaveBeenCalledTimes(2)
+    expect(w.get('img').attributes('src')).toBe('http://api/attachments/1?sig=renewed2')
+  })
+
+  it('drops a renewed url when the store delivers a different one', async () => {
+    renew.mockResolvedValue({ url: 'http://api/attachments/1?sig=renewed', expires_at: '2026-03-04T10:35:00Z' })
+    const w = render([image])
+    await w.get('img').trigger('error')
+    await flushPromises()
     const fresh = { ...image, url: 'http://api/attachments/1?sig=new' }
     await w.setProps({ attachments: [fresh] })
     expect(w.get('img').attributes('src')).toBe(fresh.url)

@@ -2,6 +2,7 @@
 import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { MessageAttachment } from '../api/types'
+import { getAttachmentUrl } from '../api/messages'
 import { formatFileSize } from '../formatFileSize'
 
 defineProps<{ attachments: MessageAttachment[] }>()
@@ -9,11 +10,33 @@ defineProps<{ attachments: MessageAttachment[] }>()
 const { t } = useI18n()
 
 const PREVIEWABLE = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
-const failed = reactive(new Set<string>())
+// Keyed by attachment id and remembering the store url they refer to: a new url for the same id resets them.
+const retried = reactive(new Map<number, string>())
+const renewed = reactive(new Map<number, { from: string; url: string }>())
+const failed = reactive(new Map<number, string>())
 const notice = computed(() => (failed.size > 0 ? t('attachments.previewUnavailable') : ''))
 
+function previewUrl(a: MessageAttachment): string {
+  const r = renewed.get(a.id)
+  return r && r.from === a.url ? r.url : a.url
+}
+
 function showsPreview(a: MessageAttachment): boolean {
-  return PREVIEWABLE.includes(a.mime) && !failed.has(a.url)
+  return PREVIEWABLE.includes(a.mime) && failed.get(a.id) !== a.url
+}
+
+async function onPreviewError(a: MessageAttachment) {
+  if (retried.get(a.id) === a.url) {
+    failed.set(a.id, a.url)
+    return
+  }
+  retried.set(a.id, a.url)
+  try {
+    const { url } = await getAttachmentUrl(a.id)
+    renewed.set(a.id, { from: a.url, url })
+  } catch {
+    failed.set(a.id, a.url)
+  }
 }
 </script>
 
@@ -23,7 +46,7 @@ function showsPreview(a: MessageAttachment): boolean {
   <ul class="message-attachments" :aria-label="t('attachments.list')">
     <li v-for="a in attachments" :key="a.id" class="message-attachment">
       <a v-if="showsPreview(a)" class="message-attachment__thumb" :href="a.url" target="_blank" rel="noopener">
-        <img :src="a.url" :alt="a.original_name" loading="lazy" @error="failed.add(a.url)" />
+        <img :src="previewUrl(a)" :alt="a.original_name" loading="lazy" @error="onPreviewError(a)" />
       </a>
       <template v-else>
         <p v-if="PREVIEWABLE.includes(a.mime)" class="message-attachment__note">

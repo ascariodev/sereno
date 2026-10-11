@@ -41,3 +41,8 @@ export async function updateMessage(
 export function deleteMessage(channelId: number, messageId: number): Promise<DeleteMessageResponse> {
   return api.delete(`/api/channels/${channelId}/messages/${messageId}`)
 }
+
+export async function getAttachmentUrl(attachmentId: number): Promise<{ url: string; expires_at: string }> {
+  const response = await api.get<DataEnvelope<{ url: string; expires_at: string }>>(`/api/attachments/${attachmentId}/url`)
+  return response.data
+}
