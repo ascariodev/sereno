@@ -36,6 +36,7 @@ export interface ApiClient {
   setOrganizationProvider(provider: Provider<number | string>): void
   setUnauthorizedHandler(handler: (() => void) | null): void
   setForbiddenHandler(handler: ((organizationId: number) => void) | null): void
+  clearForbiddenHandler(handler: (organizationId: number) => void): void
 }
 
 export function createApiClient(options: ApiClientOptions): ApiClient {
@@ -134,6 +135,9 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     },
     setForbiddenHandler: (handler) => {
       onForbidden = handler
+    },
+    clearForbiddenHandler: (handler) => {
+      if (onForbidden === handler) onForbidden = null
     },
   }
 }

@@ -143,7 +143,8 @@ export function useMembershipWatch(): void {
     leaveSession = null
   }
 
-  api.setForbiddenHandler((organizationId) => void onForbidden(organizationId).catch(reportUnexpected))
+  const forbiddenHandler = (organizationId: number) => void onForbidden(organizationId).catch(reportUnexpected)
+  api.setForbiddenHandler(forbiddenHandler)
   const unsubscribeDenied = onChannelDenied((organizationId, status) => {
     if (status === 403) void onForbidden(organizationId).catch(reportUnexpected)
   })
@@ -168,6 +169,6 @@ export function useMembershipWatch(): void {
   onUnmounted(() => {
     stopWatching()
     unsubscribeDenied()
-    api.setForbiddenHandler(null)
+    api.clearForbiddenHandler(forbiddenHandler)
   })
 }

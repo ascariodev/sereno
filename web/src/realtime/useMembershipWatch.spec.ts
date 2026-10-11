@@ -451,6 +451,34 @@ describe('useMembershipWatch', () => {
     expect(toasts.value).toHaveLength(1)
   })
 
+  it('ignores a 403 while an own leave of that organization is in progress', async () => {
+    const { get, router } = await mountWatch([two])
+    api.setOrganizationProvider(() => 1)
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 403 }))
+    const release = expectOwnLeave(1)
+    await api.post('/api/anything', {}).catch(() => undefined)
+    await flushPromises()
+    release()
+    expect(organizationLoads(get)).toBe(0)
+    expect(router.currentRoute.value.name).toBe('channel')
+    expect(toasts.value).toHaveLength(0)
+  })
+
+  it('removes its forbidden handler on unmount, but not one installed by another instance', async () => {
+    const { get } = await mountWatch([two])
+    api.setOrganizationProvider(() => 1)
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 403 }))
+    const other = vi.fn()
+    api.setForbiddenHandler(other)
+    wrapper!.unmount()
+    wrapper = undefined
+    await api.post('/api/anything', {}).catch(() => undefined)
+    expect(other).toHaveBeenCalledWith(1)
+    api.setForbiddenHandler(null)
+    await api.post('/api/anything', {}).catch(() => undefined)
+    expect(organizationLoads(get)).toBe(0)
+  })
+
   it('a 403 on a channel with the membership intact does not toast', async () => {
     const { get, router } = await mountWatch([one, two])
     denyChannel(1, 403)
