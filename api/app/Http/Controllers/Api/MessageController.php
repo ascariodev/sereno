@@ -72,7 +72,7 @@ class MessageController extends Controller
 
         foreach ($withReplies as $root) {
             $root->setRelation('recentParticipants', ($authors[$root->id] ?? collect())
-                ->map(fn ($id) => $users[$id])->values());
+                ->map(fn ($id) => $users->get($id))->filter()->values());
         }
     }
 
