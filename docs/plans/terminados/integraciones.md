@@ -213,7 +213,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - [x] M-10 — `test_no_pisa_un_canal_definido_por_la_app` llama a `register()` a mano: definir el canal en
   `defineEnvironment` para seguir el orden real de arranque; y opcionalmente probar `vendor:publish --tag=sereno-config`.
   Complejidad: baja (sonnet).
-- [ ] M-11 — Con organización activa `null`, `clear()` deja `projects.loaded = false` y `IntegrationsView` mostraría
+- [x] M-11 — Con organización activa `null`, `clear()` deja `projects.loaded = false` y `IntegrationsView` mostraría
   "cargando" sin fin; hoy las rutas exigen organización. Complejidad: baja (sonnet).
 - [ ] M-12 — Si una recarga (cambio de proyecto u organización) cierra el diálogo de crear con la creación en vuelo,
   la fuente queda creada en el servidor y la key, que solo se ve una vez, se pierde: avisar o rotar. Caso raro.
