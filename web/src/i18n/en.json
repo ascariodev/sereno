@@ -574,6 +574,8 @@
     "warning": "Copy the key now: it will not be shown again. If you lose it, rotate the key.",
     "key": "Key for {name}",
     "endpoint": "Ingest endpoint",
+    "waiting": "Waiting for the first event…",
+    "connected": "Connected",
     "install": "Install in Laravel (package sereno/laravel)",
     "env": "Manual setup: Laravel .env",
     "curl": "Other languages: test with curl",

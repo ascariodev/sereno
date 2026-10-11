@@ -390,6 +390,34 @@ describe('IntegrationsView', () => {
       expect(rows[1].find('[data-test=last-used]').text()).not.toBe('Never')
     })
 
+    it('moves the open key dialog from waiting to connected on the event', async () => {
+      const fake = live()
+      stubGet(() => ({ data: [source(1)] }))
+      vi.spyOn(api, 'post').mockResolvedValue({ data: { ...source(1, { key_prefix: 'wsk_new1' }), key: 'wsk_secret' } })
+      await mountView(['owner'])
+      await openAction('rotate')
+      await confirmAction()
+      const status = document.body.querySelector('[data-test=status]')!
+      expect(status.textContent?.trim()).toBe('Waiting for the first event…')
+      fake.emit(NAME, { id: 99, project_id: 7, last_used_at: '2026-10-10T12:00:00.000000Z' })
+      await flushPromises()
+      expect(status.textContent?.trim()).toBe('Waiting for the first event…')
+      fake.emit(NAME, { id: 1, project_id: 7, last_used_at: '2026-10-10T12:00:00.000000Z' })
+      await flushPromises()
+      expect(document.body.querySelector('[data-test=status]')).toBe(status)
+      expect(status.textContent?.trim()).toBe('Connected')
+      expect(document.body.querySelector('[data-test=key]')!.textContent).toBe('wsk_secret')
+    })
+
+    it('keeps the dialog waiting after rotating a source that had been used', async () => {
+      stubGet(() => ({ data: [source(1, { last_used_at: '2026-10-09T10:00:00Z' })] }))
+      vi.spyOn(api, 'post').mockResolvedValue({ data: { ...source(1), key: 'wsk_secret' } })
+      await mountView(['owner'])
+      await openAction('rotate')
+      await confirmAction()
+      expect(document.body.querySelector('[data-test=status]')!.textContent?.trim()).toBe('Waiting for the first event…')
+    })
+
     it('ignores an event for a source that is not listed', async () => {
       const fake = live()
       stubGet(() => ({ data: [source(1)] }))

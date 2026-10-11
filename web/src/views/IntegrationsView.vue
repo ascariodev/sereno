@@ -28,6 +28,17 @@ const projectMissing = computed(() => validId.value && !project.value && project
 const sources = ref<LogSource[]>([])
 const createOpen = ref(false)
 const issuedSource = ref<LogSourceWithKey | null>(null)
+const shownSource = computed<LogSourceWithKey | null>({
+  get: () => {
+    const issued = issuedSource.value
+    if (!issued) return null
+    const listed = sources.value.find((item) => item.id === issued.id)
+    return listed ? { ...issued, last_used_at: listed.last_used_at } : issued
+  },
+  set: (value) => {
+    issuedSource.value = value
+  },
+})
 const pending = ref<{ kind: 'rotate' | 'revoke'; source: LogSource } | null>(null)
 const busy = ref(false)
 const loading = ref(false)
@@ -289,7 +300,7 @@ onUnmounted(() => {
       </template>
     </div>
     <CreateLogSourceDialog v-model:open="createOpen" :project-id="projectId" @created="onCreated" />
-    <LogSourceKeyDialog v-model:source="issuedSource" />
+    <LogSourceKeyDialog v-model:source="shownSource" />
     <AppDialog
       v-model:open="confirmOpen"
       :title="pending?.kind === 'rotate' ? t('integrations.rotateTitle') : t('integrations.revokeTitle')"

@@ -178,6 +178,11 @@
 - Fase 10: el diálogo muestra primero `composer require sereno/laravel && php artisan sereno:install <key>
   --url=<config.apiUrl>` (una línea); `.env` con `SERENO_KEY`/`SERENO_URL`; `config.apiUrl` es la base sin `/api` (el
   paquete agrega `/api/ingest/events`). Claves i18n nuevas `keyDialog.install` y `copyInstall`.
+- Fase 11: código y specs revisados y commiteados (suite web 1337 en verde). La vista pasa al diálogo `shownSource`
+  (computed: `issuedSource` con el `last_used_at` de su fila en `sources`); región `aria-live="polite"` estable con
+  `keyDialog.waiting`/`connected`; tokens `--level-info-*`. **Falta la prueba manual**: los contenedores corren el
+  checkout principal y la cola de `main` no conoce `LogSourceConnected`, así que requiere el merge a `main` (pedido del
+  usuario) y `docker compose restart queue`. La fase queda `[ ]` hasta hacerla.
 
 ## Mejoras propuestas
 
@@ -192,3 +197,6 @@
 
 - M-4: Compartir `INGEST_PATH` entre `ConnectionTester` y `SerenoLogHandler` (paquete) y enviar la prueba con
   `withoutRedirecting()` para que una redirección dé un mensaje claro. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+
+- M-5: En `IntegrationsView.spec`, "keeps waiting after rotating a used source" afirma también que la fila pasa a
+  "Never"; y `aria-atomic="true"` en la región de estado del diálogo. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

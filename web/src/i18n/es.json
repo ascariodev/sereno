@@ -574,6 +574,8 @@
     "warning": "Copia la clave ahora: no se volverá a mostrar. Si la pierdes, rota la clave.",
     "key": "Clave de {name}",
     "endpoint": "Endpoint de ingesta",
+    "waiting": "Esperando el primer evento…",
+    "connected": "Conectado",
     "install": "Instalar en Laravel (paquete sereno/laravel)",
     "env": "Configuración manual: .env de Laravel",
     "curl": "Otros lenguajes: prueba con curl",

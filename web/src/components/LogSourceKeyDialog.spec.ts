@@ -90,4 +90,27 @@ describe('LogSourceKeyDialog', () => {
     await flushPromises()
     expect(source.value).toBeNull()
   })
+
+  it('waits for the first event in a polite live region and then shows connected in the same region', async () => {
+    const source = mountHost()
+    await flushPromises()
+    const status = q('[data-test="status"]')!
+    expect(status.getAttribute('aria-live')).toBe('polite')
+    expect(status.textContent?.trim()).toBe('Waiting for the first event…')
+    source.value = { ...issued, last_used_at: '2026-10-10T12:00:00.000000Z' }
+    await flushPromises()
+    expect(q('[data-test="status"]')).toBe(status)
+    expect(status.getAttribute('aria-live')).toBe('polite')
+    expect(status.textContent?.trim()).toBe('Connected')
+  })
+
+  it('shows connected right away when the source already has a last use', async () => {
+    const source = ref<LogSourceWithKey | null>({ ...issued, last_used_at: '2026-10-10T12:00:00Z' })
+    const host = defineComponent({
+      render: () => h(LogSourceKeyDialog, { source: source.value, 'onUpdate:source': (value: LogSourceWithKey | null) => (source.value = value) }),
+    })
+    mount(host, { attachTo: document.body, global: { plugins: [i18n] } })
+    await flushPromises()
+    expect(q('[data-test="status"]')?.textContent?.trim()).toBe('Connected')
+  })
 })

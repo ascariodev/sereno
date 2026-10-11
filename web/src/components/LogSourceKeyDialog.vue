@@ -17,6 +17,8 @@ const open = computed({
   },
 })
 
+const connected = computed(() => source.value?.last_used_at != null)
+
 const ingestUrl = computed(() => `${config.apiUrl}/api/ingest/events`)
 
 const installCommand = computed(
@@ -38,6 +40,15 @@ const curlExample = computed(
   <AppDialog v-model:open="open" :title="t('keyDialog.title')" :description="t('keyDialog.description')" :close-label="t('keyDialog.close')">
     <div v-if="source" class="key-dialog">
       <p class="key-dialog__warning" role="alert" data-test="warning">{{ t('keyDialog.warning') }}</p>
+
+      <p
+        class="key-dialog__status"
+        :class="{ 'key-dialog__status--connected': connected }"
+        aria-live="polite"
+        data-test="status"
+      >
+        {{ connected ? t('keyDialog.connected') : t('keyDialog.waiting') }}
+      </p>
 
       <section class="key-dialog__block">
         <h3 class="key-dialog__label">{{ t('keyDialog.install') }}</h3>
@@ -99,6 +110,21 @@ const curlExample = computed(
   background: var(--accent-soft);
   color: var(--ink);
   font-size: 13.5px;
+}
+.key-dialog__status {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.key-dialog__status--connected {
+  border-color: var(--level-info-fg);
+  background: var(--level-info-bg);
+  color: var(--level-info-fg);
 }
 .key-dialog__block {
   display: flex;
