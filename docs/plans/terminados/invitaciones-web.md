@@ -102,3 +102,4 @@
 - [x] M-15 (baja, haiku): `LoginView.vue` usa `:key="message"` en los `v-for` de errores; pasar a `${index}-${message}` como InviteView.
 - [ ] M-16 (media, sonnet): unificar los botones y campos de los diálogos (CreateLogSourceDialog, InviteDialog,
   OrganizationCreateDialog, ProjectCreateDialog, ProjectMembersDialog) sobre `AppInput`/`AppButton` con variantes.
+  Va a un plan propio: `docs/plans/dialogos-unificados.md` (aprobado 2026-10-11).
