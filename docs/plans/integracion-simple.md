@@ -1,9 +1,9 @@
 # Plan: integracion-simple
 
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
-`composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
+`composer require ascariodev/sereno-laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 12 (espera al usuario: publicar en Packagist)
+**Estado:** en curso · Fase actual: 12 (espera al usuario: registrar en Packagist)
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -115,13 +115,13 @@
 
 ### [ ] Fase 12 — Publicar en Packagist [riesgo]
 - **Alcance:** el usuario hace público el repo (Gitea público o espejo en GitHub, a decidir) y registra
-  `sereno/laravel` en Packagist; push de `main` y `v0.2.0` solo con su pedido. Verificar en un contenedor limpio que
-  `composer require sereno/laravel` instala sin credenciales y que el auto-discovery registra el provider.
+  `ascariodev/sereno-laravel` en Packagist; push de `main` y `v0.2.0` solo con su pedido. Verificar en un contenedor limpio que
+  `composer require ascariodev/sereno-laravel` instala sin credenciales y que el auto-discovery registra el provider.
 - **Archivos:** ninguno en código (posible ajuste de README si cambia la URL del repo).
 - **Terminado cuando:** instalación limpia desde Packagist verificada.
 
-### [ ] Fase 13 — posveapi usa sereno/laravel de Packagist [riesgo]
-- **Alcance:** en `feat/sereno-paquete`: quitar el repositorio `vcs`, `require sereno/laravel:^0.2`, namespace
+### [ ] Fase 13 — posveapi usa ascariodev/sereno-laravel de Packagist [riesgo]
+- **Alcance:** en `feat/sereno-paquete`: quitar el repositorio `vcs`, `require ascariodev/sereno-laravel:^0.2`, namespace
   `Sereno\Laravel\` en `config/logging.php` y su test, variables `SERENO_KEY`/`SERENO_URL` en `.env.example`,
   `config/logging.php` y `scripts/build-notify.js`.
 - **Archivos:** `composer.json`, `composer.lock`, `config/logging.php`, `.env.example`, `scripts/build-notify.js`
@@ -137,6 +137,9 @@
 - 2026-10-10 — "Conectado" se basa en el primer uso de la key (`last_used_at` de null a valor) con un evento Reverb al
   canal del proyecto; rotar reinicia `last_used_at`. Cambio de semántica del API: "último uso" pasa a ser el de la key
   vigente.
+- 2026-10-11 — El vendor `sereno` ya está tomado en Packagist: el paquete pasa a `ascariodev/sereno-laravel` (usuario).
+  Namespace `Sereno\Laravel\`, comandos y variables no cambian. `v0.2.0` ya publicado en GitHub con el nombre viejo
+  queda como está (no se reescribe un tag publicado); el primer release en Packagist es `v0.2.1`.
 - 2026-10-10 — OTLP y SDKs de otros lenguajes quedan fuera de este plan.
 - 2026-10-10 — Worktrees: paquete en `../sereno-laravel/.claude/worktrees/integracion-simple` (rama
   `feat/integracion-simple`); monorepo en `.claude/worktrees/plan-integracion-simple` (rama `docs/plan-integracion-simple`,
@@ -184,6 +187,12 @@
 - Mejoras M-1 a M-4 aplicadas en la rama `feat/integracion-simple` del paquete (commits f2822bb, 97add1e, f84c3f0,
   a1852f0 posteriores al tag local `v0.2.0` en 47da781: **mover el tag** al último commit antes de publicar, fase 12);
   M-5 en el monorepo.
+- Fase 12 en curso: `feat/integracion-simple` fusionada a `main` del paquete (44159b7, suite 79 en verde), tag
+  `v0.2.0` movido ahí. Repo público elegido por el usuario: espejo en GitHub `https://github.com/ascariodev/sereno-laravel`
+  (remoto `github` del paquete); `main` y `v0.2.0` empujados (público, verificado sin auth). `origin` (Gitea) sin push:
+  falla la autenticación desde esta máquina. Renombrado a `ascariodev/sereno-laravel` y publicado `v0.2.1` (a835f3c) en
+  GitHub. Falta: el usuario registra el repo en Packagist; luego verificar
+  `composer require ascariodev/sereno-laravel` en un contenedor limpio y el auto-discovery.
 - Fase 11: código y specs revisados y commiteados (suite web 1337 en verde). La vista pasa al diálogo `shownSource`
   (computed: `issuedSource` con el `last_used_at` de su fila en `sources`); región `aria-live="polite"` estable con
   `keyDialog.waiting`/`connected`; tokens `--level-info-*`. Prueba manual hecha tras el merge a `main` local (346beb3, sin push) y

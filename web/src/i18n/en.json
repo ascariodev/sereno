@@ -576,7 +576,7 @@
     "endpoint": "Ingest endpoint",
     "waiting": "Waiting for the first event…",
     "connected": "Connected",
-    "install": "Install in Laravel (package sereno/laravel)",
+    "install": "Install in Laravel (package ascariodev/sereno-laravel)",
     "env": "Manual setup: Laravel .env",
     "curl": "Other languages: test with curl",
     "copyKey": "Copy key",
