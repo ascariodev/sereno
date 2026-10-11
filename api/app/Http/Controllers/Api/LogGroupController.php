@@ -54,6 +54,7 @@ class LogGroupController extends Controller
         Gate::authorize('view', $group);
 
         $group->setRelation('events', LogEvent::query()
+            ->with('source:id,name')
             ->where('log_group_id', $group->id)
             ->where('received_at', '>=', now()->subDays(config('workspace.log.retention_days')))
             ->orderByDesc('received_at')

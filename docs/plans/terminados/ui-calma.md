@@ -273,7 +273,7 @@ detalle del grupo, vista Log, Inicio, Login y layout móvil, sobre Reka UI envue
       Complejidad: media · Archivos: ~5 · Riesgo: contrato público → opus
 - [ ] M-4: lista de mensajes virtualizada (TanStack Virtual, ya viene con Reka) si la fase 25 no pasa.
       Complejidad: alta · Archivos: ~3 · Riesgo: ninguno → plan nuevo
-- [ ] M-5: nombre de la fuente en `LogEventResource` para mostrar «Fuente api-prod» en el panel.
+- [x] M-5: nombre de la fuente en `LogEventResource` para mostrar «Fuente api-prod» en el panel.
       Complejidad: baja · Archivos: ~3 · Riesgo: contrato público → sonnet
 - [x] M-6: barra lateral contraída (solo íconos con AppTooltip), como en el artboard Plan.
       Complejidad: baja · Archivos: ~3 · Riesgo: ninguno → sonnet

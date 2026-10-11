@@ -112,6 +112,7 @@ const eventText = computed(() => {
       </section>
       <section class="log-group-panel__event">
         <h3>{{ t('logGroup.lastEvent') }}</h3>
+        <p v-if="latestEvent?.source" class="log-group-panel__source" data-test="event-source">{{ t('logGroup.eventSource', { name: latestEvent.source }) }}</p>
         <pre v-if="latestEvent" data-test="latest-event">{{ eventText }}</pre>
         <p v-else class="log-group-panel__none">{{ t('logGroup.noEvents') }}</p>
       </section>
@@ -262,6 +263,12 @@ const eventText = computed(() => {
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-3);
+}
+.log-group-panel__source {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
 }
 .log-group-panel__event pre {
   margin: 0;

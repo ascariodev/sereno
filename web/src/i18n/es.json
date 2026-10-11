@@ -366,6 +366,7 @@
     "firstSeen": "Primera vez",
     "lastSeen": "Última vez",
     "lastEvent": "Último evento",
+    "eventSource": "Fuente {name}",
     "activity": "Últimas 24 h",
     "createTask": "Crear tarea",
     "viewTask": "Ver {key}",

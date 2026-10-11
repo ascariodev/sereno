@@ -366,6 +366,7 @@
     "firstSeen": "First seen",
     "lastSeen": "Last seen",
     "lastEvent": "Latest event",
+    "eventSource": "Source {name}",
     "activity": "Last 24 h",
     "createTask": "Create task",
     "viewTask": "View {key}",

@@ -18,6 +18,7 @@ class LogEventResource extends JsonResource
             'context' => $this->context,
             'occurred_at' => $this->occurred_at,
             'received_at' => $this->received_at,
+            'source' => $this->whenLoaded('source', fn () => $this->source?->name),
         ];
     }
 }
