@@ -41,13 +41,16 @@ describe('LogSourceKeyDialog', () => {
     expect(q('[data-test="warning"]')).not.toBeNull()
     expect(q('[data-test="key"]')?.textContent).toBe(issued.key)
     expect(q('[data-test="endpoint"]')?.textContent).toBe(`${config.apiUrl}/api/ingest/events`)
-    expect(q('[data-test="env"]')?.textContent).toBe(`SERENO_LOG_URL=${config.apiUrl}\nSERENO_LOG_KEY=${issued.key}`)
-    const curl = q('[data-test="curl"]')?.textContent ?? ''
-    expect(curl).toContain(`${config.apiUrl}/api/ingest/events`)
-    expect(curl).toContain(`Authorization: Bearer ${issued.key}`)
-    expect(curl).toContain(' \\\n  -H "Authorization')
-    expect(curl).not.toContain('\\n')
-    expect(curl.split('\n')).toHaveLength(4)
+    expect(q('[data-test="install"]')?.textContent).toBe(
+      `composer require sereno/laravel && php artisan sereno:install ${issued.key} --url=${config.apiUrl}`,
+    )
+    expect(q('[data-test="env"]')?.textContent).toBe(`SERENO_KEY=${issued.key}\nSERENO_URL=${config.apiUrl}`)
+    expect(q('[data-test="curl"]')?.textContent).toBe(
+      `curl -X POST ${config.apiUrl}/api/ingest/events \\\n` +
+        `  -H "Authorization: Bearer ${issued.key}" \\\n` +
+        `  -H "Content-Type: application/json" \\\n` +
+        `  -d '{"events":[{"level":"error","message":"Test event"}]}'`,
+    )
   })
 
   it('copies the exact text of each block', async () => {
@@ -57,10 +60,11 @@ describe('LogSourceKeyDialog', () => {
     mountHost()
     await flushPromises()
     const buttons = [...document.body.querySelectorAll<HTMLButtonElement>('.copy-button')]
-    expect(buttons).toHaveLength(4)
+    expect(buttons).toHaveLength(5)
     for (const button of buttons) button.click()
     await flushPromises()
     expect(writeText.mock.calls.map((call) => call[0])).toEqual([
+      `composer require sereno/laravel && php artisan sereno:install ${issued.key} --url=${config.apiUrl}`,
       issued.key,
       `${config.apiUrl}/api/ingest/events`,
       q('[data-test="env"]')?.textContent,

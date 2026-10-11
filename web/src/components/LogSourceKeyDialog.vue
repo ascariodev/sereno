@@ -19,7 +19,11 @@ const open = computed({
 
 const ingestUrl = computed(() => `${config.apiUrl}/api/ingest/events`)
 
-const envBlock = computed(() => `SERENO_LOG_URL=${config.apiUrl}\nSERENO_LOG_KEY=${source.value?.key ?? ''}`)
+const installCommand = computed(
+  () => `composer require sereno/laravel && php artisan sereno:install ${source.value?.key ?? ''} --url=${config.apiUrl}`,
+)
+
+const envBlock = computed(() => `SERENO_KEY=${source.value?.key ?? ''}\nSERENO_URL=${config.apiUrl}`)
 
 const curlExample = computed(
   () =>
@@ -34,6 +38,14 @@ const curlExample = computed(
   <AppDialog v-model:open="open" :title="t('keyDialog.title')" :description="t('keyDialog.description')" :close-label="t('keyDialog.close')">
     <div v-if="source" class="key-dialog">
       <p class="key-dialog__warning" role="alert" data-test="warning">{{ t('keyDialog.warning') }}</p>
+
+      <section class="key-dialog__block">
+        <h3 class="key-dialog__label">{{ t('keyDialog.install') }}</h3>
+        <div class="key-dialog__row">
+          <pre class="key-dialog__code" data-test="install">{{ installCommand }}</pre>
+          <CopyButton :text="installCommand" :label="t('keyDialog.copyInstall')" />
+        </div>
+      </section>
 
       <section class="key-dialog__block">
         <h3 class="key-dialog__label">{{ t('keyDialog.key', { name: source.name }) }}</h3>

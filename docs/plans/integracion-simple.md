@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -98,7 +98,7 @@
 - **Archivos:** `web/src/views/IntegrationsView.vue` (+ spec).
 - **Terminado cuando:** spec: el evento actualiza la fila; cambio de proyecto suelta la suscripción vieja (L-28).
 
-### [ ] Fase 10 — Comando de instalación en el diálogo de la key
+### [x] Fase 10 — Comando de instalación en el diálogo de la key
 - **Alcance:** `LogSourceKeyDialog` muestra primero el comando
   `composer require sereno/laravel && php artisan sereno:install <key> --url=<config.apiUrl>` con botón de copiar; el
   bloque `.env` pasa a `SERENO_KEY` y `SERENO_URL`; el `curl` queda para otros lenguajes.
@@ -175,6 +175,9 @@
   `applyConnected(event)` actualiza la fila por id. `onReconnect` usa `refresh()` silencioso (no `load()`, que cierra el
   diálogo de la key) y fusiona: filas tocadas (`touchedAt`) después de lanzarlo conservan su valor local, porque el
   evento sale una sola vez por key. Para la fase 11: `issuedSource` NO se actualiza todavía con el evento.
+- Fase 10: el diálogo muestra primero `composer require sereno/laravel && php artisan sereno:install <key>
+  --url=<config.apiUrl>` (una línea); `.env` con `SERENO_KEY`/`SERENO_URL`; `config.apiUrl` es la base sin `/api` (el
+  paquete agrega `/api/ingest/events`). Claves i18n nuevas `keyDialog.install` y `copyInstall`.
 
 ## Mejoras propuestas
 
