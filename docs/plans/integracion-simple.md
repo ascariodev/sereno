@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -61,7 +61,7 @@
   `src/SerenoServiceProvider.php` (+ tests con `Http::fake`).
 - **Terminado cuando:** tests de los tres resultados en ambos comandos.
 
-### [ ] Fase 5 — README para Packagist y v0.2.0
+### [x] Fase 5 — README para Packagist y v0.2.0
 - **Alcance:** README desde cero: `composer require sereno/laravel`, `php artisan sereno:install`, variables nuevas y
   viejas, `sereno:test`, sin instrucciones de Gitea ni tokens. Commit y tag local `v0.2.0` (sin push).
 - **Archivos:** `README.md`.
@@ -153,6 +153,8 @@
   `sereno:test` sale FAILURE si no conecta; `sereno:install` sale SUCCESS aunque la prueba falle (el `.env` ya quedó
   escrito): el README de la fase 5 lo dice, junto con `sereno:test` y `--no-test`. URL efectiva del install: `--url`,
   luego `SERENO_URL` del `.env`, luego `config('sereno.url')`.
+- Fase 5: README en inglés; tag anotado local `v0.2.0` sobre el commit de la fase 5 en `feat/integracion-simple`
+  (sin merge a `main` del paquete ni push: esperan al usuario, fase 12). El README no nombra la URL del repo.
 
 ## Mejoras propuestas
 
