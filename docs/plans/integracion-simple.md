@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -45,7 +45,7 @@
 - **Terminado cuando:** tests: las nuevas variables configuran el canal, las viejas siguen valiendo y las nuevas
   tienen prioridad.
 
-### [ ] Fase 3 — Comando sereno:install
+### [x] Fase 3 — Comando sereno:install
 - **Alcance:** `php artisan sereno:install {key} {--url=}`: valida el formato `wsk_`, escribe o reemplaza `SERENO_KEY`
   (y `SERENO_URL` si llega `--url`) en `.env` y agrega `sereno` a `LOG_STACK` sin duplicar. Si `LOG_CHANNEL` no es
   `stack`, avisa cómo agregarlo a mano. No toca archivos PHP. Sin `.env`, falla con un mensaje claro.
@@ -144,6 +144,10 @@
 - Fase 2: `config/sereno.php` usa `env('SERENO_X', env('SERENO_LOG_X', default))`. Un `SERENO_KEY=` vacío tapa a
   `SERENO_LOG_KEY` (env solo cae al respaldo si la variable no existe): `sereno:install` nunca escribe valores vacíos.
   Con `DEFAULT_URL` null, `config('sereno.url')` es null: la fase 4 lo trata como "sin URL".
+- Fase 3: `InstallCommand` valida key `/\Awsk_[A-Za-z0-9]+\z/` y `--url` con FILTER_VALIDATE_URL (rechaza `$ " ' \` y
+  backtick); soporta `.env` en CRLF; `LOG_STACK` ausente se toma como `single`. Agrega `illuminate/console ^13.0`.
+  Para la fase 4: el install pasa `$key` y `$url` directo al tester (la config del proceso no ve el `.env` recién
+  escrito); `sereno:test` usa `config('sereno.key')` y `config('sereno.url')`. Mensajes de consola en inglés.
 
 ## Mejoras propuestas
 
@@ -152,3 +156,6 @@
 
 - M-2: Agregar `.gitattributes` al paquete (`* text=auto eol=lf`) para evitar ruido LF/CRLF en Windows.
   Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+
+- M-3: `sereno:install` ignora comentarios en línea (`LOG_STACK="a,b" # nota`) y detecta `export NAME=` o espacios
+  antes del `=` para no duplicar la variable. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
