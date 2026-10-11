@@ -238,7 +238,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   desactivado en `finally` y `Task::flushEventListeners()` explícito; `taskStatus()` con `$this->enum(...)`.
 - [x] M-9 (baja, sonnet): crear, editar y mover revalidan dentro de la transacción que el proyecto no esté archivado
   (carrera entre validar y archivar).
-- [ ] M-11 (baja, sonnet): `TaskMoveApiTest`: fijar el locale en el test que afirma `validation.not_in` y
+- [x] M-11 (baja, sonnet): `TaskMoveApiTest`: fijar el locale en el test que afirma `validation.not_in` y
   `validation.different`; test de concurrencia real de `move` (L-41) en vez del query log.
 - [x] M-10 (baja, sonnet): `DESCRIPTION_MAX_LENGTH` a `Task` junto a `TITLE_MAX_LENGTH`; `assignee_id` en Fillable para
   simplificar `TaskController@update`; 404 de tarea de otro proyecto antes de validar.

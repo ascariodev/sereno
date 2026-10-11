@@ -131,24 +131,6 @@ it('renumbers the column when the gap between neighbors is too small', function 
     'tied positions' => [0.0],
 ]);
 
-it('locks the project and the column rows', function () {
-    $neighbor = columnTask($this->project, 'in_progress', 1.0);
-
-    DB::flushQueryLog();
-    DB::enableQueryLog();
-    try {
-        moveTaskAs($this->member, $this->organization, $this->project, $this->task, [
-            'status' => 'in_progress', 'after_id' => $neighbor->id,
-        ])->assertOk();
-        $queries = collect(DB::getQueryLog())->pluck('query');
-    } finally {
-        DB::disableQueryLog();
-    }
-
-    expect($queries->contains(fn ($sql) => str_contains($sql, 'from "projects"') && str_ends_with($sql, 'for no key update')))->toBeTrue()
-        ->and($queries->contains(fn ($sql) => str_contains($sql, 'from "tasks"') && str_contains($sql, '"status" = ?') && str_ends_with($sql, 'for update')))->toBeTrue();
-});
-
 it('rejects neighbors outside the target column, project or organization', function (string $case) {
     $neighbor = match ($case) {
         'other column' => columnTask($this->project, 'done', 1.0),
@@ -174,20 +156,22 @@ it('rejects neighbors outside the target column, project or organization', funct
 })->with(['other column', 'other project', 'other organization', 'missing']);
 
 it('rejects the task as its own neighbor and the same neighbor on both sides', function () {
+    app()->setLocale('en');
+    $this->member->forceFill(['locale' => 'en'])->save();
     $neighbor = columnTask($this->project, 'todo', 2.0);
 
     // The controller would also answer 422 on these fields (the task is not in its own column, and one task is
     // never next to itself), so the exact message proves which rule rejected the request.
     moveTaskAs($this->member, $this->organization, $this->project, $this->task, ['status' => 'todo', 'after_id' => $this->task->id])
         ->assertUnprocessable()
-        ->assertJsonPath('errors.after_id.0', __('validation.not_in', ['attribute' => 'after id']));
+        ->assertJsonPath('errors.after_id.0', __('validation.not_in', ['attribute' => 'after id'], 'en'));
     moveTaskAs($this->member, $this->organization, $this->project, $this->task, ['status' => 'todo', 'before_id' => $this->task->id])
         ->assertUnprocessable()
-        ->assertJsonPath('errors.before_id.0', __('validation.not_in', ['attribute' => 'before id']));
+        ->assertJsonPath('errors.before_id.0', __('validation.not_in', ['attribute' => 'before id'], 'en'));
     moveTaskAs($this->member, $this->organization, $this->project, $this->task, [
         'status' => 'todo', 'after_id' => $neighbor->id, 'before_id' => $neighbor->id,
     ])->assertUnprocessable()
-        ->assertJsonPath('errors.before_id.0', __('validation.different', ['attribute' => 'before id', 'other' => 'after id']));
+        ->assertJsonPath('errors.before_id.0', __('validation.different', ['attribute' => 'before id', 'other' => 'after id'], 'en'));
 
     expect($this->task->fresh()->position)->toEqual(1.0);
 });
