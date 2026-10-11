@@ -68,4 +68,4 @@
 - [x] M-12 (baja, sonnet): `Organization::changeMemberRole` emite `MembershipRoleChanged` aunque el rol nuevo sea igual al actual; omitirlo.
 - [ ] M-13 (media, sonnet): notificar el cambio de rol a los demás admins con la lista de miembros abierta (hoy solo se avisa al afectado) y redirigir si el nuevo rol deja al usuario en una ruta que ya no debería ver.
 - [x] M-14 (baja, sonnet): en `useMembershipWatch`, quitar el forbidden handler solo si sigue siendo el propio (`setForbiddenHandler(null)` hoy borra el de otra instancia si montara antes del desmontaje), y agregar specs de "el 403 se ignora tras expectOwnLeave" y "el handler se quita al desmontar".
-- [ ] M-15 (media, sonnet): que el API devuelva un `code` en el 403 de `ResolveOrganization` (cambio aditivo) para que el cliente recargue solo con ese 403 y no con cualquier 403 de policy.
+- [x] M-15 (media, sonnet): que el API devuelva un `code` en el 403 de `ResolveOrganization` (cambio aditivo) para que el cliente recargue solo con ese 403 y no con cualquier 403 de policy.

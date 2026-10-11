@@ -454,7 +454,7 @@ describe('useMembershipWatch', () => {
   it('ignores a 403 while an own leave of that organization is in progress', async () => {
     const { get, router } = await mountWatch([two])
     api.setOrganizationProvider(() => 1)
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 403 }))
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{"code":"organization_forbidden"}', { status: 403 }))
     const release = expectOwnLeave(1)
     await api.post('/api/anything', {}).catch(() => undefined)
     await flushPromises()
@@ -467,7 +467,7 @@ describe('useMembershipWatch', () => {
   it('removes its forbidden handler on unmount, but not one installed by another instance', async () => {
     const { get } = await mountWatch([two])
     api.setOrganizationProvider(() => 1)
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 403 }))
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{"code":"organization_forbidden"}', { status: 403 }))
     const other = vi.fn()
     api.setForbiddenHandler(other)
     wrapper!.unmount()
@@ -545,7 +545,7 @@ describe('useMembershipWatch', () => {
     return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
       String(input).endsWith('/api/organizations')
         ? new Response(JSON.stringify({ data: organizations }), { status: 200 })
-        : new Response('{"message":"Forbidden."}', { status: 403 }),
+        : new Response('{"message":"Forbidden.","code":"organization_forbidden"}', { status: 403 }),
     )
   }
 

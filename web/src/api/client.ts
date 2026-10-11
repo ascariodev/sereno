@@ -98,7 +98,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       }
     }
 
-    let payload: { message?: unknown; errors?: unknown } = {}
+    let payload: { message?: unknown; errors?: unknown; code?: unknown } = {}
     try {
       payload = await response.json()
     } catch {
@@ -111,7 +111,9 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         : {}
 
     if (response.status === 401) onUnauthorized?.()
-    if (response.status === 403 && sentOrganizationId !== null) onForbidden?.(sentOrganizationId)
+    if (response.status === 403 && payload.code === 'organization_forbidden' && sentOrganizationId !== null) {
+      onForbidden?.(sentOrganizationId)
+    }
     throw new ApiError(response.status, message, errors)
   }
 
