@@ -84,7 +84,8 @@ siempre desde la raíz, dentro de `web/` compose usa otro nombre de proyecto):
 3. Canales de proyecto con avisos de log (Reverb). **Hecho.**
 4. Web mínima: login, proyectos, canal. **Hecho.**
 5. Conectar posveapi y dejar Slack. **Hecho**, salvo retirar Slack (aplazado: queda de respaldo).
-6. Chat completo: hilos, menciones, adjuntos. **Hecho.**
+6. Chat completo: hilos, menciones, adjuntos. **Hecho.** Las URLs firmadas de adjuntos duran 5 min (plan
+   `adjuntos-url`): la web pide una nueva a `GET /api/attachments/{id}/url`, que valida el acceso, cuando la guardada vence.
 7. Plan: tareas, tablero, crear tarea desde un aviso. **Hecho.**
 8. Escritorio: PWA instalable hecha; falta Tauri.
 9. Móvil, push y facturación SaaS.
