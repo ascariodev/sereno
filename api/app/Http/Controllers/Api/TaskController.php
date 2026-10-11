@@ -22,6 +22,7 @@ use App\Support\ProjectAccess;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
@@ -35,29 +36,69 @@ class TaskController extends Controller
     /** Below this gap between neighbors the column is renumbered instead of halving it again. */
     private const MIN_POSITION_GAP = 1e-9;
 
-    public function index(Project $project): AnonymousResourceCollection
+    /** Done tasks listed when the board asks for a bounded Done column (`done_limit`). */
+    public const MAX_DONE_LIMIT = 500;
+
+    public function index(Request $request, Project $project): AnonymousResourceCollection
     {
         Gate::authorize('view', $project);
 
-        $cases = TaskStatus::cases();
+        $doneLimit = $request->validate([
+            'done_limit' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_DONE_LIMIT],
+        ])['done_limit'] ?? null;
+
+        $cases = array_values(array_filter(TaskStatus::cases(), fn (TaskStatus $status) => $status !== TaskStatus::Done));
         $order = 'CASE status'.str_repeat(' WHEN ? THEN ?', count($cases)).' END';
         $bindings = [];
         foreach ($cases as $index => $status) {
             array_push($bindings, $status->value, $index);
         }
 
-        $tasks = Task::query()
+        $active = Task::query()
             ->where('project_id', $project->id)
+            ->where('status', '!=', TaskStatus::Done)
             ->with(self::RELATIONS)
             ->orderByRaw($order, $bindings)
             ->orderBy('position')
             ->orderBy('id')
             ->get();
 
+        $doneQuery = Task::query()
+            ->where('project_id', $project->id)
+            ->where('status', TaskStatus::Done);
+        $doneTotal = (clone $doneQuery)->count();
+
+        // New and moved tasks land at the end of the column, so the last ones by position are the most recent. The
+        // cut is contiguous, which keeps drag & drop neighbors adjacent; it is returned in column order.
+        $done = $doneQuery
+            ->with(self::RELATIONS)
+            ->orderByDesc('position')
+            ->orderByDesc('id')
+            ->when($doneLimit !== null, fn ($query) => $query->limit($doneLimit))
+            ->get()
+            ->reverse()
+            ->values();
+
+        $tasks = $active->concat($done)->values();
+
         // key() reads the project: share the one already loaded instead of one query per task.
         $tasks->each(fn (Task $task) => $task->setRelation('project', $project));
 
-        return TaskResource::collection($tasks);
+        return TaskResource::collection($tasks)->additional(['meta' => [
+            'done_total' => $doneTotal,
+            'has_more_done' => $done->count() < $doneTotal,
+        ]]);
+    }
+
+    public function show(Project $project, Task $task): TaskResource
+    {
+        Gate::authorize('view', $project);
+        abort_unless($task->project_id === $project->id, 404);
+        Gate::authorize('view', $task);
+
+        $task->load(self::RELATIONS)->setRelation('project', $project);
+
+        return new TaskResource($task);
     }
 
     public function store(StoreTaskRequest $request, Project $project): JsonResponse

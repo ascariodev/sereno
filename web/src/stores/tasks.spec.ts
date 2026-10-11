@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import type { Task, TaskStatus } from '../api/types'
 import { useAuthStore } from './auth'
-import { MAX_TOMBSTONES, updatedStamp, useTasksStore } from './tasks'
+import { DONE_PAGE_SIZE, MAX_TOMBSTONES, updatedStamp, useTasksStore } from './tasks'
 
 const task = (id: number, overrides: Partial<Task> = {}): Task => ({
   id,
@@ -22,6 +22,8 @@ const task = (id: number, overrides: Partial<Task> = {}): Task => ({
   ...overrides,
 })
 const envelope = (data: unknown) => ({ data }) as never
+const partial = (data: unknown, doneTotal: number, hasMoreDone = true) =>
+  ({ data, meta: { done_total: doneTotal, has_more_done: hasMoreDone } }) as never
 const ids = (list: readonly Task[]) => list.map((item) => item.id)
 
 function deferred(): { promise: Promise<unknown>; resolve: (value: unknown) => void; reject: (error: unknown) => void } {
@@ -63,7 +65,7 @@ describe('tasks store', () => {
     )
     const store = useTasksStore()
     expect(await store.open(7)).toBe(true)
-    expect(get).toHaveBeenCalledWith('/api/projects/7/tasks', { signal: expect.any(AbortSignal) })
+    expect(get).toHaveBeenCalledWith('/api/projects/7/tasks', { signal: expect.any(AbortSignal), query: { done_limit: DONE_PAGE_SIZE } })
     expect(store.projectId).toBe(7)
     expect(store.loading).toBe(false)
     expect(ids(store.columns.todo)).toEqual([2, 3, 1])
@@ -346,5 +348,72 @@ describe('tasks store', () => {
     const store = await opened([task(1, { position: 3 })])
     expect(store.replace(task(1, { position: 1 }))).toBe(true)
     expect(store.find(1)?.position).toBe(1)
+  })
+
+  describe('partial Done column', () => {
+    it('asks for the first Done tasks and keeps the totals', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(partial([task(1), task(2, { status: 'done' })], 90))
+      const store = useTasksStore()
+      await store.open(7)
+      expect(get.mock.calls[0][1]?.query).toEqual({ done_limit: DONE_PAGE_SIZE })
+      expect(store.hasMoreDone).toBe(true)
+      expect(store.doneTotal).toBe(90)
+    })
+
+    it('shows more by asking for a larger limit and refresh keeps it', async () => {
+      const get = vi
+        .spyOn(api, 'get')
+        .mockResolvedValueOnce(partial([task(1, { status: 'done' })], 3))
+        .mockResolvedValueOnce(partial([task(1, { status: 'done' }), task(2, { status: 'done' })], 3, false))
+        .mockResolvedValueOnce(partial([task(1, { status: 'done' }), task(2, { status: 'done' })], 3, false))
+      const store = useTasksStore()
+      await store.open(7)
+      expect(await store.showMoreDone()).toBe(true)
+      expect(get.mock.calls[1][1]?.query).toEqual({ done_limit: DONE_PAGE_SIZE * 2 })
+      expect(ids(store.columns.done)).toEqual([1, 2])
+      expect(store.hasMoreDone).toBe(false)
+      expect(store.loadingMoreDone).toBe(false)
+      expect(await store.showMoreDone()).toBe(false)
+      await store.refresh()
+      expect(get.mock.calls[2][1]?.query).toEqual({ done_limit: DONE_PAGE_SIZE * 2 })
+    })
+
+    it('ignores a live Done task before the loaded part but takes newer ones, and an own move is always kept', async () => {
+      vi.spyOn(api, 'get').mockResolvedValueOnce(partial([task(5, { status: 'done' }), task(8, { status: 'done' })], 9))
+      const store = useTasksStore()
+      await store.open(7)
+      expect(store.replace(task(2, { status: 'done' }))).toBe(false)
+      expect(store.insert(task(6, { status: 'done' }))).toBe(true)
+      expect(store.insert(task(9, { status: 'done' }))).toBe(true)
+      expect(store.replace(task(1, { status: 'todo' }))).toBe(true)
+      vi.spyOn(api, 'post').mockResolvedValueOnce(envelope(task(3, { status: 'done', position: 4.5 })))
+      await store.move(7, 3, { status: 'done', beforeId: 5 })
+      expect(ids(store.columns.done)).toEqual([3, 5, 6, 8, 9])
+    })
+
+    it('ensure() returns a loaded task, fetches an unloaded one and returns null when missing', async () => {
+      vi.spyOn(api, 'get').mockResolvedValueOnce(partial([task(5, { status: 'done' })], 9))
+      const store = useTasksStore()
+      await store.open(7)
+      const get = vi.spyOn(api, 'get').mockResolvedValueOnce(envelope(task(2, { status: 'done' })))
+      get.mockClear()
+      expect((await store.ensure(7, 5))?.id).toBe(5)
+      expect(get).not.toHaveBeenCalled()
+      expect((await store.ensure(7, 2))?.id).toBe(2)
+      expect(get).toHaveBeenCalledWith('/api/projects/7/tasks/2', expect.anything())
+      expect(store.find(2)).toBeDefined()
+      get.mockRejectedValueOnce(new ApiError(404, 'gone'))
+      expect(await store.ensure(7, 3)).toBeNull()
+    })
+
+    it('takes any Done task once the whole column is loaded, and clear() resets the state', async () => {
+      vi.spyOn(api, 'get').mockResolvedValueOnce(partial([task(1, { status: 'done' })], 1, false))
+      const store = useTasksStore()
+      await store.open(7)
+      expect(store.replace(task(8, { status: 'done' }))).toBe(true)
+      store.clear()
+      expect(store.hasMoreDone).toBe(false)
+      expect(store.doneTotal).toBeNull()
+    })
   })
 })

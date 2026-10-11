@@ -4,6 +4,7 @@ import { ApiError } from '../api/client'
 import {
   createTask,
   deleteTask,
+  getTask,
   listTasks,
   moveTask,
   updateTask,
@@ -19,6 +20,9 @@ export type TaskFilter = (typeof TASK_FILTERS)[number]
 
 /** Deleted ids remembered so a late event or response does not bring them back (oldest dropped first). */
 export const MAX_TOMBSTONES = 500
+
+/** Done tasks requested at first and added by each "show more". */
+export const DONE_PAGE_SIZE = 50
 
 export type TaskColumns = Record<TaskStatus, Task[]>
 
@@ -69,9 +73,14 @@ export const useTasksStore = defineStore('tasks', () => {
   const tasks = shallowRef<Task[]>([])
   const loading = ref(false)
   const error = ref<ApiError | null>(null)
+  /** Done is loaded as its last `doneLimit` tasks by position (the most recent), so the column stays contiguous. */
+  const hasMoreDone = ref(false)
+  const doneTotal = ref<number | null>(null)
+  const loadingMoreDone = ref(false)
   /** A view preference: kept across projects and `clear()`. */
   const filter = ref<TaskFilter>('all')
   let generation = 0
+  let doneLimit = DONE_PAGE_SIZE
   let loadSeq = 0
   let controller = new AbortController()
   let tombstones = new Set<number>()
@@ -95,11 +104,22 @@ export const useTasksStore = defineStore('tasks', () => {
     return projectId.value !== null && task.project_id === projectId.value && isTaskStatus(task.status) && !tombstones.has(task.id)
   }
 
-  /** Adds or replaces a task of the open project unless it is deleted or older than the loaded version. */
-  function upsert(task: Task): boolean {
+  /** Whether a Done task unknown to the board lies before the loaded part of the column (it would leave a gap). */
+  function beforeLoadedDone(task: Task): boolean {
+    if (!hasMoreDone.value || task.status !== 'done') return false
+    const first = tasks.value.filter((item) => item.status === 'done').sort(compareTasks)[0]
+    return first !== undefined && compareTasks(task, first) < 0
+  }
+
+  /**
+   * Adds or replaces a task of the open project unless it is deleted or older than the loaded version. A Done task
+   * before the loaded part of the column is skipped unless `force` (own move: it was dropped next to a loaded task).
+   */
+  function upsert(task: Task, force = false): boolean {
     if (!accepts(task)) return false
     const index = tasks.value.findIndex((item) => item.id === task.id)
     if (index >= 0 && isStale(task, tasks.value[index])) return false
+    if (index < 0 && !force && beforeLoadedDone(task)) return false
     const next = tasks.value.slice()
     if (index >= 0) next[index] = task
     else next.push(task)
@@ -143,6 +163,10 @@ export const useTasksStore = defineStore('tasks', () => {
     everLoaded = false
     projectId.value = null
     tasks.value = []
+    hasMoreDone.value = false
+    doneTotal.value = null
+    loadingMoreDone.value = false
+    doneLimit = DONE_PAGE_SIZE
     loading.value = false
     error.value = null
   }
@@ -157,7 +181,8 @@ export const useTasksStore = defineStore('tasks', () => {
     const id = projectId.value as number
     const knownAtStart = new Set(tasks.value.map((task) => task.id))
     try {
-      const list = await listTasks(id, controller.signal)
+      const page = await listTasks(id, controller.signal, doneLimit)
+      const list = page.tasks
       if (current !== generation) return false
       if (seq !== loadSeq) return latestLoad
       const byId = new Map(tasks.value.map((task) => [task.id, task]))
@@ -173,6 +198,8 @@ export const useTasksStore = defineStore('tasks', () => {
         if (!fetched.has(task.id) && !knownAtStart.has(task.id)) merged.push(task)
       }
       tasks.value = merged
+      hasMoreDone.value = page.hasMoreDone
+      doneTotal.value = page.doneTotal
       everLoaded = true
       error.value = null
       return true
@@ -219,9 +246,38 @@ export const useTasksStore = defineStore('tasks', () => {
     return startLoad()
   }
 
+  /** Loads the previous (older) Done tasks. False if there are no more, one is loading, or the load failed or was discarded. */
+  async function showMoreDone(): Promise<boolean> {
+    if (projectId.value === null || !hasMoreDone.value || loadingMoreDone.value) return false
+    const current = generation
+    loadingMoreDone.value = true
+    doneLimit += DONE_PAGE_SIZE
+    try {
+      return await startLoad()
+    } finally {
+      if (current === generation) loadingMoreDone.value = false
+    }
+  }
+
+  /** The task of the open project by id, asking the API if the board does not have it (e.g. an unloaded Done task). Null if missing. */
+  async function ensure(project: number, taskId: number): Promise<Task | null> {
+    const known = find(taskId)
+    if (known) return known
+    if (project !== projectId.value || tombstones.has(taskId)) return null
+    const current = generation
+    try {
+      const fetched = await getTask(project, taskId, controller.signal)
+      if (current !== generation || project !== projectId.value) return null
+      upsert(fetched, true)
+      return find(taskId) ?? null
+    } catch {
+      return null
+    }
+  }
+
   /** Applies an own response unless the store was cleared or switched project meanwhile. */
-  function applyOwn(current: number, project: number, task: Task): void {
-    if (current === generation && project === projectId.value) upsert(task)
+  function applyOwn(current: number, project: number, task: Task, force = false): void {
+    if (current === generation && project === projectId.value) upsert(task, force)
   }
 
   /** The actions throw the `ApiError`; they return the server task even when the board no longer shows it. */
@@ -242,7 +298,7 @@ export const useTasksStore = defineStore('tasks', () => {
   async function move(project: number, taskId: number, input: MoveTaskInput): Promise<Task> {
     const current = generation
     const task = await moveTask(project, taskId, input)
-    applyOwn(current, project, task)
+    applyOwn(current, project, task, true)
     return task
   }
 
@@ -264,12 +320,17 @@ export const useTasksStore = defineStore('tasks', () => {
     tasks,
     loading,
     error,
+    hasMoreDone,
+    doneTotal,
+    loadingMoreDone,
     filter,
     columns,
     visibleColumns,
     find,
     open,
     refresh,
+    showMoreDone,
+    ensure,
     clear,
     insert,
     replace,

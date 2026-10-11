@@ -129,6 +129,31 @@ describe('PlanView', () => {
       created_by: 1, assignee: null, log_group: null, created_at: '2026-10-10T00:00:00.000000Z', updated_at: '2026-10-10T00:00:00.000000Z', ...extra,
     })
 
+    it('shows the Done total and a button that loads more Done tasks', async () => {
+      let limit: unknown
+      vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: { query?: Record<string, unknown> }) => {
+        if (path === '/api/projects') return { data: [project(5, 'POSVE')], meta: { last_page: 1 } } as never
+        if (path === '/api/channels') return { data: [] } as never
+        if (/\/tasks$/.test(path)) {
+          limit = options?.query?.done_limit
+          const more = limit === 100
+          const data = more ? [task(3, 'done'), task(4, 'done')] : [task(3, 'done')]
+          return { data, meta: { done_total: 2, has_more_done: !more } } as never
+        }
+        return undefined as never
+      })
+      const wrapper = await mountView()
+      const done = () => wrapper.findAll('section.plan-view__column')[3]
+      expect(limit).toBe(50)
+      expect(done().find('.plan-view__count').text()).toBe('2')
+      expect(done().findAll('a.task-card')).toHaveLength(1)
+      await done().find('button[name=show-more-done]').trigger('click')
+      await flushPromises()
+      expect(limit).toBe(100)
+      expect(done().findAll('a.task-card')).toHaveLength(2)
+      expect(done().find('button[name=show-more-done]').exists()).toBe(false)
+    })
+
     it('renders four columns with counts, empty state per column and cards linking to ?task=', async () => {
       mockApi(() => ({
         data: [

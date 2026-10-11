@@ -480,6 +480,7 @@
     "newTask": "Nueva tarea",
     "addTask": "Agregar tarea",
     "empty": "Sin tareas",
+    "showMoreDone": "Ver más tareas hechas",
     "unassigned": "Sin asignar",
     "assignedTo": "Asignada a {name}",
     "fromNotice": "Desde un aviso de log"

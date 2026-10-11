@@ -108,13 +108,27 @@ watch(
   },
 )
 
+function notFound(): void {
+  if (closed) return
+  closed = true
+  toast.error(t('taskAside.notFound'))
+  emit('close', true)
+}
+
+let lookedUp = false
+
 watch(
   task,
   (current) => {
     if (current || closed) return
-    closed = true
-    toast.error(t('taskAside.notFound'))
-    emit('close', true)
+    if (!lookedUp) {
+      lookedUp = true
+      void tasks.ensure(props.projectId, props.taskId).then((found) => {
+        if (!found && !task.value) notFound()
+      })
+      return
+    }
+    notFound()
   },
   { immediate: true },
 )

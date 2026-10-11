@@ -86,6 +86,10 @@
 - L-57: Al cambiar cómo una tienda resuelve o rechaza una acción, correr también los specs de los componentes que la
   usan (grep del store): tragar un 404 en `tasks.destroy` rompió el toast de `TaskAside`. Si la tienda limpia estado
   ante un error, igual lo relanza para la UI. — aplicada en: proceso (aplicar-mejoras)
+- L-58: Al cargar solo un tramo de una lista (paginar, `limit`, ventana `around`), mirar primero dónde entran los
+  elementos nuevos para cortar por ese lado, qué hacen los eventos en vivo que caen fuera del tramo, y que los
+  enlaces directos (`?task=`, `?message=`) pidan al API lo que no está cargado en vez de dar "no encontrado". —
+  aplicada en: plan-tareas M-4, chat M-2
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

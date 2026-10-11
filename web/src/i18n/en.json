@@ -480,6 +480,7 @@
     "newTask": "New task",
     "addTask": "Add task",
     "empty": "No tasks",
+    "showMoreDone": "Show more done tasks",
     "unassigned": "Unassigned",
     "assignedTo": "Assigned to {name}",
     "fromNotice": "From a log notice"
