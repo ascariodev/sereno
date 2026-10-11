@@ -22,6 +22,8 @@ const base: Task = {
 }
 const group: TaskLogGroup = { id: 44, level: 'error', title: 'Timeout', status: 'open', events_count: 3 }
 
+const originalMatchMedia = window.matchMedia
+
 function fakeMatchMedia(matches: boolean) {
   window.matchMedia = vi.fn().mockReturnValue({ matches, addEventListener: vi.fn(), removeEventListener: vi.fn() })
 }
@@ -66,7 +68,10 @@ describe('TaskAside', () => {
     document.body.innerHTML = ''
     fakeMatchMedia(false)
   })
-  afterEach(() => useTasksStore().clear())
+  afterEach(() => {
+    useTasksStore().clear()
+    window.matchMedia = originalMatchMedia
+  })
 
   it('fills the form and saves the three fields through the store', async () => {
     const spy = vi.spyOn(tasksApi, 'updateTask').mockResolvedValue({ ...base, title: 'New', description: null, assignee: { id: 3, name: 'Bea' }, updated_at: '2026-01-02T00:00:00.000000Z' })

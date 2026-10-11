@@ -615,6 +615,17 @@ describe('PlanView', () => {
       expect(wrapper.findAll('[data-task-id]')).toHaveLength(1)
     })
 
+    it('reloads and resubscribes when the active organization changes', async () => {
+      const fake = live()
+      const spy = mockApi(() => ({ data: [mk(1)] }))
+      await mountView()
+      useOrganizationStore().$patch({ activeId: 2 })
+      await flushPromises()
+      expect(taskCalls(spy)).toHaveLength(2)
+      expect(fake.client.leave).toHaveBeenCalledWith(NAME)
+      expect(fake.client.private).toHaveBeenCalledWith('organizations.2.projects.5')
+    })
+
     it('invalidates the member directory of the project when its members change', async () => {
       const fake = live()
       mockApi(() => ({ data: [] }))
@@ -671,6 +682,18 @@ describe('PlanView', () => {
       expect(post).not.toHaveBeenCalled()
       expect(wrapper.find('.plan-view__drop-line').exists()).toBe(false)
       expect(wrapper.findAll('[data-task-id]')).toHaveLength(1)
+    })
+
+    it('keeps ?filter= when a live delete closes the open panel', async () => {
+      const fake = live()
+      const group = { id: 9, level: 'error', title: 'g', status: 'open', events_count: 1 }
+      mockApi(() => ({ data: [mk(1, 'todo', { log_group: group }), mk(2, 'todo', { log_group: group })] }))
+      const wrapper = await mountView('/projects/5/plan?filter=from_notices&task=2')
+      fake.emit('.task.deleted', { id: 2, project_id: 5 })
+      await flushPromises()
+      const query = wrapper.router.currentRoute.value.query
+      expect(query.task).toBeUndefined()
+      expect(query.filter).toBe('from_notices')
     })
 
     it('reacts in the open panel: live edit, then live delete closes it', async () => {

@@ -258,7 +258,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   solo con los campos definidos, como `updateTask`.
 - [x] M-19 (baja, sonnet): `tasks` store: `destroy` quita la tarea si el API responde 404; con "Mías" y sin usuario
   cargado, decidir qué mostrar; guard en vez de `as number` al olvidar el tombstone más viejo.
-- [ ] M-20 (baja, sonnet): `PlanView.spec`: test del cambio de organización; orden de imports de iconos en
+- [x] M-20 (baja, sonnet): `PlanView.spec`: test del cambio de organización; orden de imports de iconos en
   `ProjectHeader.vue`.
 - [ ] M-21 (baja, sonnet): tablero: token de sombra para la tarjeta (diseño `0 1px 2px`), `border-radius` de
   `.task-card` con token `--radius-*`, contraste de `--column-in-review` en oscuro, fusionar los tests de carga
@@ -267,7 +267,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   "Desde avisos" (diseño) y reescribir un `?filter=` inválido.
 - [ ] M-23 (baja, sonnet): `TaskCreateDialog`: alternativa de foco cuando `document.activeElement` es `body` al abrir
   (Safari no enfoca botones al hacer clic).
-- [ ] M-24 (baja, sonnet): `TaskAside.spec`: sembrar usuario autenticado y restaurar `window.matchMedia`;
+- [x] M-24 (baja, sonnet): `TaskAside.spec`: sembrar usuario autenticado y restaurar `window.matchMedia`;
   `PlanView.spec`: borrado en vivo con el panel abierto quita `?task=` y conserva `?filter=`.
 - [ ] M-25 (baja, sonnet): `TaskCard`: `padding-right` en el título para que el botón del menú no lo tape, indentar el hijo del wrap y spec propio del `aria-label` y de `readOnly`.
 - [ ] M-26 (baja, sonnet): spec de `dragend` sin `drop` (soltar fuera) que deje el estado de arrastre limpio; y bloquear un movimiento por menú mientras hay uno por arrastre en vuelo (y viceversa).

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Activity, Plug, SquareKanban, MessageSquare, Users } from '@lucide/vue'
+import { Activity, MessageSquare, Plug, SquareKanban, Users } from '@lucide/vue'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useOrganizationStore } from '../stores/organization'
