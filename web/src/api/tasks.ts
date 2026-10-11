@@ -32,13 +32,12 @@ export async function listTasks(projectId: number, signal?: AbortSignal): Promis
 }
 
 export async function createTask(projectId: number, input: CreateTaskInput): Promise<Task> {
-  const response = await api.post<DataEnvelope<Task>>(base(projectId), {
-    title: input.title,
-    description: input.description,
-    status: input.status,
-    assignee_id: input.assigneeId,
-    log_group_id: input.logGroupId,
-  })
+  const body: Record<string, unknown> = { title: input.title }
+  if (input.description !== undefined) body.description = input.description
+  if (input.status !== undefined) body.status = input.status
+  if (input.assigneeId !== undefined) body.assignee_id = input.assigneeId
+  if (input.logGroupId !== undefined) body.log_group_id = input.logGroupId
+  const response = await api.post<DataEnvelope<Task>>(base(projectId), body)
   return response.data
 }
 

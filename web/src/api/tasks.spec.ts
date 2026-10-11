@@ -55,6 +55,14 @@ describe('tasks client', () => {
     expect(result.key).toBe('POSVE-14')
   })
 
+  it('creates sending only the defined fields', async () => {
+    const fetchMock = stubFetch({ data: task }, 201)
+
+    await createTask(3, { title: 'Fix timeout' })
+
+    expect(sentBody(fetchMock)).toEqual({ title: 'Fix timeout' })
+  })
+
   it('sends only the fields to edit, allowing null to unassign', async () => {
     const fetchMock = stubFetch({ data: task })
 

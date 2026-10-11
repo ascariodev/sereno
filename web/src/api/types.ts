@@ -1,3 +1,5 @@
+import type { LogLevel } from './logLevels'
+
 export interface User {
   id: number
   name: string
@@ -111,7 +113,7 @@ export interface TaskAssignee {
 
 export interface TaskLogGroup {
   id: number
-  level: string
+  level: LogLevel
   title: string
   status: LogGroupStatus
   events_count: number

@@ -254,7 +254,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   la violación de `tasks_log_group_id_unique` y relanza las demás.
 - [x] M-17 (baja, sonnet): base común para `TaskCreated` y `TaskUpdated`; test de que un delete con 404 o 403 no
   emite `TaskDeleted`.
-- [ ] M-18 (baja, sonnet): `TaskLogGroup.level` con el tipo de nivel de log existente; `createTask` arma el cuerpo
+- [x] M-18 (baja, sonnet): `TaskLogGroup.level` con el tipo de nivel de log existente; `createTask` arma el cuerpo
   solo con los campos definidos, como `updateTask`.
 - [ ] M-19 (baja, sonnet): `tasks` store: `destroy` quita la tarea si el API responde 404; con "Mías" y sin usuario
   cargado, decidir qué mostrar; guard en vez de `as number` al olvidar el tombstone más viejo.
