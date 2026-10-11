@@ -244,8 +244,8 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   simplificar `TaskController@update`; 404 de tarea de otro proyecto antes de validar.
 - [x] M-12 (baja, sonnet): `LogGroupTaskApiTest`: quitar el umbral arbitrario `toBeLessThan(12)`; basta el conteo
   constante.
-- [ ] M-13 (media, sonnet): avisar en vivo al tablero de las tareas desasignadas al quitar un miembro (evento por
-  proyecto afectado tras el commit).
+- [x] M-13 (media, sonnet): avisar en vivo al tablero de las tareas desasignadas al quitar un miembro (evento por
+  proyecto afectado tras el commit). Ya aplicada (verificado 2026-10-11: `Task::unassignUser` emite `TaskUpdated`).
 - [x] M-14 (baja, sonnet): extraer `positiveId` (duplicado en `ProjectChannel` y `ChannelChannel`) a un helper
   compartido; en `BroadcastingAuthTest`, el proyecto del canal en el `beforeEach`.
 - [ ] M-15 (media, sonnet): `renumberColumn` emite `task.updated` por cada tarea renumerada (o un evento de columna),
