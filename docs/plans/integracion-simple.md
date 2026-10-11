@@ -181,6 +181,9 @@
 - Fase 10: el diálogo muestra primero `composer require sereno/laravel && php artisan sereno:install <key>
   --url=<config.apiUrl>` (una línea); `.env` con `SERENO_KEY`/`SERENO_URL`; `config.apiUrl` es la base sin `/api` (el
   paquete agrega `/api/ingest/events`). Claves i18n nuevas `keyDialog.install` y `copyInstall`.
+- Mejoras M-1 a M-4 aplicadas en la rama `feat/integracion-simple` del paquete (commits f2822bb, 97add1e, f84c3f0,
+  a1852f0 posteriores al tag local `v0.2.0` en 47da781: **mover el tag** al último commit antes de publicar, fase 12);
+  M-5 en el monorepo.
 - Fase 11: código y specs revisados y commiteados (suite web 1337 en verde). La vista pasa al diálogo `shownSource`
   (computed: `issuedSource` con el `last_used_at` de su fila en `sources`); región `aria-live="polite"` estable con
   `keyDialog.waiting`/`connected`; tokens `--level-info-*`. Prueba manual hecha tras el merge a `main` local (346beb3, sin push) y
@@ -188,17 +191,17 @@
 
 ## Mejoras propuestas
 
-- M-1: Ordenar alfabéticamente los `use` de `tests/Unit/Logging/EventFormatterTest.php` (paquete; `Sereno\` quedó antes
+- [x] M-1: Ordenar alfabéticamente los `use` de `tests/Unit/Logging/EventFormatterTest.php` (paquete; `Sereno\` quedó antes
   de `Monolog\`). Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 
-- M-2: Agregar `.gitattributes` al paquete (`* text=auto eol=lf`) para evitar ruido LF/CRLF en Windows.
+- [x] M-2: Agregar `.gitattributes` al paquete (`* text=auto eol=lf`) para evitar ruido LF/CRLF en Windows.
   Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 
-- M-3: `sereno:install` ignora comentarios en línea (`LOG_STACK="a,b" # nota`) y detecta `export NAME=` o espacios
+- [x] M-3: `sereno:install` ignora comentarios en línea (`LOG_STACK="a,b" # nota`) y detecta `export NAME=` o espacios
   antes del `=` para no duplicar la variable. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 
-- M-4: Compartir `INGEST_PATH` entre `ConnectionTester` y `SerenoLogHandler` (paquete) y enviar la prueba con
+- [x] M-4: Compartir `INGEST_PATH` entre `ConnectionTester` y `SerenoLogHandler` (paquete) y enviar la prueba con
   `withoutRedirecting()` para que una redirección dé un mensaje claro. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 
-- M-5: En `IntegrationsView.spec`, "keeps waiting after rotating a used source" afirma también que la fila pasa a
+- [x] M-5: En `IntegrationsView.spec`, "keeps waiting after rotating a used source" afirma también que la fila pasa a
   "Never"; y `aria-atomic="true"` en la región de estado del diálogo. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

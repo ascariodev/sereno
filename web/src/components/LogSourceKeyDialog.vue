@@ -45,6 +45,7 @@ const curlExample = computed(
         class="key-dialog__status"
         :class="{ 'key-dialog__status--connected': connected }"
         aria-live="polite"
+        aria-atomic="true"
         data-test="status"
       >
         {{ connected ? t('keyDialog.connected') : t('keyDialog.waiting') }}
