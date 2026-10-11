@@ -2,7 +2,7 @@
 
 **Objetivo:** en los proyectos que lo activen, mover a Hecho una tarea creada desde un aviso resuelve su grupo de log, y
 si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. Origen: plan-tareas M-5 (y canales M-19).
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -44,7 +44,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
     autorización según la policy.
   - Pasan `ProjectApiTest` (o el que cubra proyectos) y pint.
 
-### [ ] Fase 2 — Aviso de estado del grupo compartido (canales M-19)
+### [x] Fase 2 — Aviso de estado del grupo compartido (canales M-19)
 - **Alcance:**
   - Sacar `postStatusNotice` de `LogGroupController` a una acción (p. ej. `App\Actions\PostLogGroupStatusNotice`) que
     reciba el grupo, el estado previo y el actor.
@@ -121,7 +121,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
   principal, los tests del API se corren con `.claude/worktrees/t.sh` (contenedor desechable con el api del worktree).
 
 ## Notas para la próxima sesión
-- Seguir con la fase 2. La web (fase 6) muestra el interruptor solo a owner/admin. Leer `docs/lecciones.md` (L-41 concurrencia, L-42 condiciones en el worker, L-49 suite completa
+- Seguir con la fase 3. La acción es `App\Actions\PostLogGroupStatusNotice::__invoke(LogGroup $group, LogGroupStatus $previousStatus, User $actor)` (se resuelve con `app()` o por inyección). La web (fase 6) muestra el interruptor solo a owner/admin. Leer `docs/lecciones.md` (L-41 concurrencia, L-42 condiciones en el worker, L-49 suite completa
   al tocar accesos o transacciones, L-13 guards de payload).
 
 ## Mejoras propuestas
