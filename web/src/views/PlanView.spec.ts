@@ -217,6 +217,30 @@ describe('PlanView', () => {
       expect(titles(wrapper)).toHaveLength(3)
     })
 
+    it('rewrites an invalid filter with replace, keeping the other keys', async () => {
+      mockApi(data)
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      useAuthStore().$patch({ token: 't', user: { id: 1, name: 'Ana', email: 'a@b.c', locale: null } })
+      useOrganizationStore().$patch({ activeId: 1 })
+      const history = createMemoryHistory()
+      const router = createAppRouter(history)
+      await router.push('/projects/5/plan?filter=bogus&task=2&x=1')
+      const push = vi.spyOn(history, 'push')
+      const replace = vi.spyOn(history, 'replace')
+      mount(PlanView, { global: { plugins: [pinia, i18n, router] } })
+      await flushPromises()
+      expect(router.currentRoute.value.query).toEqual({ task: '2', x: '1' })
+      expect(push).not.toHaveBeenCalled()
+      expect(replace).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows the activity icon only on the from-notices chip', async () => {
+      mockApi(data)
+      const wrapper = await mountView('/projects/5/plan')
+      expect(chips(wrapper).map((c) => c.find('svg').exists())).toEqual([false, false, true])
+    })
+
     it('writes the filter to the query keeping ?task= and without reloading', async () => {
       const spy = mockApi(data)
       const wrapper = await mountView('/projects/5/plan?task=2')

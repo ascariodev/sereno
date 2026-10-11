@@ -263,7 +263,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - [x] M-21 (baja, sonnet): tablero: token de sombra para la tarjeta (diseño `0 1px 2px`), `border-radius` de
   `.task-card` con token `--radius-*`, contraste de `--column-in-review` en oscuro, fusionar los tests de carga
   solapados de `PlanView.spec` y revisar el layout en el navegador a 1024 px y en móvil.
-- [ ] M-22 (baja, sonnet): filtros: reindentar el `<template v-else>` de `PlanView.vue`, icono de actividad en
+- [x] M-22 (baja, sonnet): filtros: reindentar el `<template v-else>` de `PlanView.vue`, icono de actividad en
   "Desde avisos" (diseño) y reescribir un `?filter=` inválido.
 - [ ] M-23 (baja, sonnet): `TaskCreateDialog`: alternativa de foco cuando `document.activeElement` es `body` al abrir
   (Safari no enfoca botones al hacer clic).
