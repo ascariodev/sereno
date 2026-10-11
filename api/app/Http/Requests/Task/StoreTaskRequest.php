@@ -90,6 +90,6 @@ class StoreTaskRequest extends FormRequest
 
     public function taskStatus(): TaskStatus
     {
-        return TaskStatus::tryFrom((string) $this->validated('status')) ?? TaskStatus::Todo;
+        return $this->enum('status', TaskStatus::class) ?? TaskStatus::Todo;
     }
 }
