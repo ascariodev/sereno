@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { i18n, setLocale } from '../i18n'
+import { setRealtimeClientFactory } from '../realtime/echo'
+import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
@@ -361,5 +363,172 @@ describe('IntegrationsView', () => {
     await openAction('rotate')
     await confirmAction()
     expect(toasts.value.map((item) => item.message)).toEqual([message])
+  })
+
+  describe('live connection', () => {
+    const NAME = 'organizations.1.projects.7'
+    const CONNECTED = '.log_source.connected'
+
+    function live() {
+      const fake = createFakeRealtimeClient()
+      setRealtimeClientFactory(() => fake.client)
+      const emit = (name: string, data: object) => fake.listeners.get(`${name}|${CONNECTED}`)?.(data)
+      return { ...fake, emit }
+    }
+
+    afterEach(() => setRealtimeClientFactory(() => null))
+
+    it('updates the last use of the row when the source connects', async () => {
+      const fake = live()
+      stubGet(() => ({ data: [source(1), source(2)] }))
+      await mountView(['owner'])
+      expect(fake.client.private).toHaveBeenCalledWith(NAME)
+      fake.emit(NAME, { id: 2, project_id: 7, last_used_at: '2026-10-10T12:00:00.000000Z' })
+      await flushPromises()
+      const rows = wrapper!.findAll('[data-test=source]')
+      expect(rows[0].find('[data-test=last-used]').text()).toBe('Never')
+      expect(rows[1].find('[data-test=last-used]').text()).not.toBe('Never')
+    })
+
+    it('moves the open key dialog from waiting to connected on the event', async () => {
+      const fake = live()
+      stubGet(() => ({ data: [source(1)] }))
+      vi.spyOn(api, 'post').mockResolvedValue({ data: { ...source(1, { key_prefix: 'wsk_new1' }), key: 'wsk_secret' } })
+      await mountView(['owner'])
+      await openAction('rotate')
+      await confirmAction()
+      const status = document.body.querySelector('[data-test=status]')!
+      expect(status.textContent?.trim()).toBe('Waiting for the first event…')
+      fake.emit(NAME, { id: 99, project_id: 7, last_used_at: '2026-10-10T12:00:00.000000Z' })
+      await flushPromises()
+      expect(status.textContent?.trim()).toBe('Waiting for the first event…')
+      fake.emit(NAME, { id: 1, project_id: 7, last_used_at: '2026-10-10T12:00:00.000000Z' })
+      await flushPromises()
+      expect(document.body.querySelector('[data-test=status]')).toBe(status)
+      expect(status.textContent?.trim()).toBe('Connected')
+      expect(document.body.querySelector('[data-test=key]')!.textContent).toBe('wsk_secret')
+    })
+
+    it('keeps the dialog waiting after rotating a source that had been used', async () => {
+      stubGet(() => ({ data: [source(1, { last_used_at: '2026-10-09T10:00:00Z' })] }))
+      vi.spyOn(api, 'post').mockResolvedValue({ data: { ...source(1), key: 'wsk_secret' } })
+      await mountView(['owner'])
+      await openAction('rotate')
+      await confirmAction()
+      expect(document.body.querySelector('[data-test=status]')!.textContent?.trim()).toBe('Waiting for the first event…')
+    })
+
+    it('ignores an event for a source that is not listed', async () => {
+      const fake = live()
+      stubGet(() => ({ data: [source(1)] }))
+      await mountView(['owner'])
+      fake.emit(NAME, { id: 99, project_id: 7, last_used_at: '2026-10-10T12:00:00.000000Z' })
+      await flushPromises()
+      expect(wrapper!.findAll('[data-test=source]')).toHaveLength(1)
+      expect(wrapper!.find('[data-test=last-used]').text()).toBe('Never')
+    })
+
+    it('does not subscribe without permission', async () => {
+      const fake = live()
+      stubGet(() => ({ data: [] }))
+      await mountView(['member'])
+      expect(fake.client.private).not.toHaveBeenCalled()
+    })
+
+    it('refreshes the list on reconnect without closing the key dialog, and leaves on unmount', async () => {
+      const fake = live()
+      const get = stubGet(() => ({ data: [source(1)] }))
+      vi.spyOn(api, 'post').mockResolvedValue({ data: { ...source(1), key: 'wsk_secret' } })
+      fake.setStatus('connected')
+      await mountView(['owner'])
+      await openAction('rotate')
+      await confirmAction()
+      expect(document.body.querySelector('[role=dialog]')).not.toBeNull()
+      fake.setStatus('reconnecting')
+      fake.setStatus('connected')
+      await flushPromises()
+      expect(sourceCalls(get)).toHaveLength(2)
+      expect(document.body.textContent).toContain('wsk_secret')
+      wrapper!.unmount()
+      wrapper = undefined
+      expect(fake.client.leave).toHaveBeenCalledWith(NAME)
+      expect(fake.statusListeners.size).toBe(0)
+    })
+
+    it('keeps the connection of a row when a stale refresh lands after the event', async () => {
+      const fake = live()
+      let calls = 0
+      let resolveRefresh: (value: unknown) => void = () => undefined
+      stubGet(() => {
+        calls++
+        if (calls === 2) return new Promise((resolve) => (resolveRefresh = resolve))
+        return { data: [source(1)] }
+      })
+      fake.setStatus('connected')
+      await mountView(['owner'])
+      fake.setStatus('reconnecting')
+      fake.setStatus('connected')
+      fake.emit(NAME, { id: 1, project_id: 7, last_used_at: '2026-10-10T12:00:00.000000Z' })
+      resolveRefresh({ data: [source(1)] })
+      await flushPromises()
+      expect(wrapper!.find('[data-test=last-used]').text()).not.toBe('Never')
+    })
+
+    it('keeps a row rotated while a refresh is in flight', async () => {
+      const fake = live()
+      let calls = 0
+      let resolveRefresh: (value: unknown) => void = () => undefined
+      stubGet(() => {
+        calls++
+        if (calls === 2) return new Promise((resolve) => (resolveRefresh = resolve))
+        return { data: [source(1, { last_used_at: '2026-10-09T10:00:00Z' })] }
+      })
+      vi.spyOn(api, 'post').mockResolvedValue({ data: { ...source(1, { key_prefix: 'wsk_new1' }), key: 'wsk_secret' } })
+      fake.setStatus('connected')
+      await mountView(['owner'])
+      await openAction('rotate')
+      fake.setStatus('reconnecting')
+      fake.setStatus('connected')
+      await confirmAction()
+      resolveRefresh({ data: [source(1, { last_used_at: '2026-10-09T10:00:00Z' })] })
+      await flushPromises()
+      expect(wrapper!.find('[data-test=last-used]').text()).toBe('Never')
+      expect(wrapper!.find('[data-test=prefix]').text()).toBe('wsk_new1…')
+    })
+
+    it('keeps a source created while a refresh is in flight', async () => {
+      const fake = live()
+      let calls = 0
+      let resolveRefresh: (value: unknown) => void = () => undefined
+      stubGet(() => {
+        calls++
+        if (calls === 2) return new Promise((resolve) => (resolveRefresh = resolve))
+        return { data: [source(1)] }
+      })
+      vi.spyOn(api, 'post').mockResolvedValue({ data: { ...source(2), key: 'wsk_secret' } })
+      fake.setStatus('connected')
+      await mountView(['owner'])
+      fake.setStatus('reconnecting')
+      fake.setStatus('connected')
+      await wrapper!.find('[data-test=create]').trigger('click')
+      const input = document.body.querySelector('input') as HTMLInputElement
+      input.value = 'Source 2'
+      input.dispatchEvent(new Event('input'))
+      ;(document.body.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit', { cancelable: true }))
+      await flushPromises()
+      resolveRefresh({ data: [source(1)] })
+      await flushPromises()
+      expect(wrapper!.findAll('[data-test=source]')).toHaveLength(2)
+    })
+
+    it('drops the old subscription when the project changes (L-28)', async () => {
+      const fake = live()
+      stubGet(() => ({ data: [] }))
+      const router = await mountView(['owner'])
+      await router.push('/projects/8/integrations')
+      await flushPromises()
+      expect(fake.client.leave).toHaveBeenCalledWith(NAME)
+      expect(fake.client.private).toHaveBeenCalledWith('organizations.1.projects.8')
+    })
   })
 })

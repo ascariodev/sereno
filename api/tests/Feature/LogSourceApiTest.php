@@ -185,6 +185,24 @@ it('rotates the key so only the new one authenticates and it is shown only once'
     ingestWith($newKey)->assertStatus(202);
 });
 
+it('resets last_used_at on rotation so the first use of the new key marks it again', function () {
+    Queue::fake();
+    $oldKey = LogSource::newPlainKey();
+    $source = LogSource::factory()->for($this->project)->withPlainKey($oldKey)->create(['last_used_at' => now()->subHour()]);
+
+    $newKey = asSourceUser($this->users['admin'], $this->organization)
+        ->postJson(rotateKeyUrl($this->project, $source))
+        ->assertOk()
+        ->assertJsonPath('data.last_used_at', null)
+        ->json('data.key');
+
+    expect($source->fresh()->last_used_at)->toBeNull();
+
+    ingestWith($newKey)->assertStatus(202);
+
+    expect($source->fresh()->last_used_at)->not->toBeNull();
+});
+
 it('lets owners rotate and forbids members', function () {
     $source = LogSource::factory()->for($this->project)->create();
     $hash = $source->key_hash;

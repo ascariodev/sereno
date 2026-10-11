@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\LogSourceConnected;
 use App\Models\Concerns\BelongsToOrganization;
 use App\Models\Concerns\EnsuresProjectInOrganization;
 use App\Models\Scopes\OrganizationScope;
@@ -85,7 +86,11 @@ class LogSource extends Model
     public function rotateKey(): ?string
     {
         $plainKey = static::newPlainKey();
-        $attributes = [...static::keyAttributes($plainKey), $this->getUpdatedAtColumn() => $this->freshTimestamp()];
+        $attributes = [
+            ...static::keyAttributes($plainKey),
+            'last_used_at' => null,
+            $this->getUpdatedAtColumn() => $this->freshTimestamp(),
+        ];
 
         $updated = static::query()
             ->withoutGlobalScope(OrganizationScope::class)
@@ -132,23 +137,33 @@ class LogSource extends Model
 
     /**
      * At most one write per resolution window: the condition lives in the UPDATE so concurrent
-     * requests do not need a cache or a lock, and updated_at is left untouched.
+     * requests do not need a cache or a lock, and updated_at is left untouched. The first use of
+     * the key (null to a value) is announced once: of two concurrent first requests only one
+     * UPDATE affects the row, and the other one writes nothing.
      */
     public function markAsUsed(): void
     {
         $now = now();
+        $isFirstUse = $this->getOriginal('last_used_at') === null;
 
-        $updated = static::query()
+        $query = static::query()
             ->withoutGlobalScope(OrganizationScope::class)
-            ->whereKey($this->getKey())
-            ->where(fn ($query) => $query
-                ->whereNull('last_used_at')
-                ->orWhere('last_used_at', '<', $now->copy()->subSeconds(self::LAST_USED_RESOLUTION_SECONDS)))
-            ->toBase()
-            ->update(['last_used_at' => $now]);
+            ->whereKey($this->getKey());
 
-        if ($updated > 0) {
-            $this->forceFill(['last_used_at' => $now])->syncOriginalAttribute('last_used_at');
+        if ($isFirstUse) {
+            $query->whereNull('last_used_at');
+        } else {
+            $query->where('last_used_at', '<', $now->copy()->subSeconds(self::LAST_USED_RESOLUTION_SECONDS));
+        }
+
+        if ($query->toBase()->update(['last_used_at' => $now]) === 0) {
+            return;
+        }
+
+        $this->forceFill(['last_used_at' => $now])->syncOriginalAttribute('last_used_at');
+
+        if ($isFirstUse) {
+            LogSourceConnected::dispatch($this);
         }
     }
 

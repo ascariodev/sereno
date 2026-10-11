@@ -1,6 +1,6 @@
 import Echo from 'laravel-echo'
 import Pusher, { type ChannelAuthorizationCallback } from 'pusher-js'
-import { isTaskStatus, type Message, type MessageDeletedEvent, type Task, type TaskDeletedEvent } from '../api/types'
+import { isTaskStatus, type LogSourceConnectedEvent, type Message, type MessageDeletedEvent, type Task, type TaskDeletedEvent } from '../api/types'
 import { config } from '../config'
 
 export const MESSAGE_CREATED_EVENT = '.message.created'
@@ -15,6 +15,7 @@ export const TASK_CREATED_EVENT = '.task.created'
 export const TASK_UPDATED_EVENT = '.task.updated'
 export const TASK_DELETED_EVENT = '.task.deleted'
 export const PROJECT_MEMBERS_CHANGED_EVENT = '.project.members_changed'
+export const LOG_SOURCE_CONNECTED_EVENT = '.log_source.connected'
 
 export interface RealtimePayload {
   message?: Message
@@ -29,6 +30,7 @@ export interface RealtimePayload {
   task?: Partial<Task>
   project_id?: number
   granted?: boolean
+  last_used_at?: string
 }
 
 export interface MentionCreatedPayload {
@@ -228,6 +230,7 @@ export interface ProjectSubscriptionHandlers {
   onTaskUpdated?: (task: Task) => void
   onTaskDeleted?: (event: TaskDeletedEvent) => void
   onMembersChanged?: (projectId: number) => void
+  onLogSourceConnected?: (event: LogSourceConnectedEvent) => void
 }
 
 function validTask(task: Partial<Task> | undefined): task is Task {
@@ -245,9 +248,27 @@ export function subscribeToProject(
   projectId: number,
   handlers: ProjectSubscriptionHandlers,
 ): () => void {
-  const { onTaskCreated = () => {}, onTaskUpdated = () => {}, onTaskDeleted = () => {}, onMembersChanged = () => {} } = handlers
-  const events = [TASK_CREATED_EVENT, TASK_UPDATED_EVENT, TASK_DELETED_EVENT, PROJECT_MEMBERS_CHANGED_EVENT]
+  const {
+    onTaskCreated = () => {},
+    onTaskUpdated = () => {},
+    onTaskDeleted = () => {},
+    onMembersChanged = () => {},
+    onLogSourceConnected = () => {},
+  } = handlers
+  const events = [
+    TASK_CREATED_EVENT,
+    TASK_UPDATED_EVENT,
+    TASK_DELETED_EVENT,
+    PROJECT_MEMBERS_CHANGED_EVENT,
+    LOG_SOURCE_CONNECTED_EVENT,
+  ]
   return subscribe(projectChannelName(organizationId, projectId), events, (event, data) => {
+    if (event === LOG_SOURCE_CONNECTED_EVENT) {
+      if (typeof data.id === 'number' && typeof data.project_id === 'number' && typeof data.last_used_at === 'string') {
+        onLogSourceConnected({ id: data.id, project_id: data.project_id, last_used_at: data.last_used_at })
+      }
+      return
+    }
     if (event === PROJECT_MEMBERS_CHANGED_EVENT) {
       dispatchMembersChanged(data, onMembersChanged)
       return

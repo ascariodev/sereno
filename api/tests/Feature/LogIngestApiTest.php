@@ -105,7 +105,7 @@ it('rejects invalid bodies with 422 and never 500', function (mixed $body) {
     Queue::fake();
 
     postIngest($body)->assertUnprocessable();
-    Queue::assertNothingPushed();
+    Queue::assertNotPushed(IngestLogEvents::class);
 })->with([
     'no body' => [[]],
     'empty events' => [['events' => []]],

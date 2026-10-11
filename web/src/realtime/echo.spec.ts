@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { Message, MessageDeletedEvent, TaskDeletedEvent } from '../api/types'
+import type { LogSourceConnectedEvent, Message, MessageDeletedEvent, TaskDeletedEvent } from '../api/types'
 import { config } from '../config'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import {
@@ -7,6 +7,7 @@ import {
   disconnectRealtime,
   joinSession,
   leaveOrganization,
+  LOG_SOURCE_CONNECTED_EVENT,
   MEMBERSHIP_REVOKED_EVENT,
   MEMBERSHIP_ROLE_CHANGED_EVENT,
   MENTION_CREATED_EVENT,
@@ -140,6 +141,29 @@ describe('realtime', () => {
     expect(fromChannel).toEqual([5])
     expect(created).toEqual([])
     expect(deleted).toEqual([])
+  })
+
+  it('forwards log_source.connected only with a well-formed payload', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const received: LogSourceConnectedEvent[] = []
+    const created: number[] = []
+    subscribeToProject(3, 5, {
+      onLogSourceConnected: (event) => received.push(event),
+      onTaskCreated: (task) => created.push(task.id),
+    })
+    const emit = (data: object) => listeners.get(`organizations.3.projects.5|${LOG_SOURCE_CONNECTED_EVENT}`)?.(data)
+    const lastUsedAt = '2026-10-10T12:00:00.000000Z'
+
+    emit({ id: 2, project_id: 5, last_used_at: lastUsedAt })
+    emit({ id: '2', project_id: 5, last_used_at: lastUsedAt })
+    emit({ id: 2, project_id: '5', last_used_at: lastUsedAt })
+    emit({ id: 2, project_id: 5, last_used_at: null })
+    emit({ id: 2, project_id: 5 })
+    emit({})
+
+    expect(received).toEqual([{ id: 2, project_id: 5, last_used_at: lastUsedAt }])
+    expect(created).toEqual([])
   })
 
   it('leaveOrganization drops the project channels of that organization', () => {

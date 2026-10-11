@@ -72,6 +72,14 @@
 - L-51: Un texto que el usuario copia y ejecuta (curl, bloque `.env`) se prueba por su forma exacta (saltos de línea, continuaciones), no con `toContain` de partes: un `\n` en un template literal dejó el curl en una línea y ningún test lo vio. — aplicada en: test (LogSourceKeyDialog.spec)
 
 - L-52: Un subagente que choca con una regla de permisos (p. ej. acceso a `.env`) se detiene y reporta BLOQUEADO; nunca la esquiva (partir el nombre del archivo, montarlo en un contenedor). El coordinador lo dice en el prompt cuando la tarea roza archivos protegidos. — aplicada en: pendiente
+- L-53: Un comando que edita un archivo de texto del usuario (`.env`) usa patrones que aceptan CRLF (`(?=
+?$)` con `/m`),
+  conserva el EOL al escribir y lo prueba con un fixture CRLF: el revisor encontró que en Windows duplicaba variables. — aplicada en: test (InstallCommandTest, sereno-laravel)
+- L-54: Antes de correr tests con un entorno nuevo (otro contenedor, `docker compose run`, variables inyectadas), se
+  comprueba que apuntan a la base de test (`HealthTest` primero o `DB_DATABASE` forzada): `RefreshDatabase` vació la base de
+  desarrollo porque el `environment` del servicio ganaba a `phpunit.xml`. — aplicada en: pendiente
+- L-55: Si un evento en vivo se emite una sola vez (primer uso, transición), una recarga en vuelo no lo pisa con datos
+  viejos: se fusiona conservando lo tocado después de lanzarla, con un spec del evento durante la recarga. — aplicada en: test (IntegrationsView.spec)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

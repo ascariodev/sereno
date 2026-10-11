@@ -4,12 +4,13 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { ApiError } from '../api/client'
 import { listLogSources, revokeLogSource, rotateLogSourceKey } from '../api/logSources'
-import type { LogSource, LogSourceWithKey } from '../api/types'
+import type { LogSource, LogSourceConnectedEvent, LogSourceWithKey } from '../api/types'
 import CreateLogSourceDialog from '../components/CreateLogSourceDialog.vue'
 import LogSourceKeyDialog from '../components/LogSourceKeyDialog.vue'
 import ProjectHeader from '../components/ProjectHeader.vue'
 import AppDialog from '../components/ui/AppDialog.vue'
 import { toast } from '../components/ui/toast'
+import { onReconnect, subscribeToProject } from '../realtime/echo'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 
@@ -27,11 +28,24 @@ const projectMissing = computed(() => validId.value && !project.value && project
 const sources = ref<LogSource[]>([])
 const createOpen = ref(false)
 const issuedSource = ref<LogSourceWithKey | null>(null)
+const shownSource = computed<LogSourceWithKey | null>({
+  get: () => {
+    const issued = issuedSource.value
+    if (!issued) return null
+    const listed = sources.value.find((item) => item.id === issued.id)
+    return listed ? { ...issued, last_used_at: listed.last_used_at } : issued
+  },
+  set: (value) => {
+    issuedSource.value = value
+  },
+})
 const pending = ref<{ kind: 'rotate' | 'revoke'; source: LogSource } | null>(null)
 const busy = ref(false)
 const loading = ref(false)
 const failed = ref(false)
 let generation = 0
+let tick = 0
+const touchedAt = new Map<number, number>()
 let controller: AbortController | null = null
 
 const confirmOpen = computed({
@@ -45,8 +59,13 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleString(locale.value, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+function touch(id: number): void {
+  touchedAt.set(id, ++tick)
+}
+
 function reset(): void {
   generation++
+  touchedAt.clear()
   controller?.abort()
   sources.value = []
   createOpen.value = false
@@ -82,11 +101,13 @@ function withoutKey(issued: LogSourceWithKey): LogSource {
 
 function onCreated(created: LogSourceWithKey): void {
   const listed = withoutKey(created)
+  touch(listed.id)
   sources.value = [...sources.value.filter((item) => item.id !== listed.id), listed]
   issuedSource.value = created
 }
 
 function replaceSource(updated: LogSource): void {
+  touch(updated.id)
   sources.value = sources.value.map((item) => (item.id === updated.id ? updated : item))
 }
 
@@ -134,6 +155,45 @@ async function confirmAction(): Promise<void> {
   }
 }
 
+async function refresh(): Promise<void> {
+  const current = generation
+  const launchedAt = tick
+  try {
+    const result = await listLogSources(projectId.value)
+    if (current !== generation) return
+    const changedSince = (id: number) => (touchedAt.get(id) ?? 0) > launchedAt
+    const local = new Map(sources.value.map((item) => [item.id, item]))
+    const merged = result.map((item) => (changedSince(item.id) ? (local.get(item.id) ?? item) : item))
+    const listed = new Set(result.map((item) => item.id))
+    sources.value = [...merged, ...sources.value.filter((item) => !listed.has(item.id) && changedSince(item.id))]
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error
+  }
+}
+
+function applyConnected(event: LogSourceConnectedEvent): void {
+  touch(event.id)
+  sources.value = sources.value.map((item) =>
+    item.id === event.id ? { ...item, last_used_at: event.last_used_at } : item,
+  )
+}
+
+let unsubscribe: (() => void) | null = null
+let unsubscribeReconnect: (() => void) | null = null
+
+function leaveRealtime(): void {
+  unsubscribe?.()
+  unsubscribeReconnect?.()
+  unsubscribe = unsubscribeReconnect = null
+}
+
+function joinRealtime(): void {
+  leaveRealtime()
+  if (!organization.canManageLogSources || !validId.value || organization.activeId === null) return
+  unsubscribe = subscribeToProject(organization.activeId, projectId.value, { onLogSourceConnected: applyConnected })
+  unsubscribeReconnect = onReconnect(() => void refresh())
+}
+
 function retry(): void {
   if (!project.value) void projects.reload()
   else void load()
@@ -148,7 +208,16 @@ watch(
   { immediate: true },
 )
 
-onUnmounted(reset)
+watch(
+  () => `${organization.activeId}:${projectId.value}:${organization.canManageLogSources}`,
+  joinRealtime,
+  { immediate: true },
+)
+
+onUnmounted(() => {
+  leaveRealtime()
+  reset()
+})
 </script>
 
 <template>
@@ -231,7 +300,7 @@ onUnmounted(reset)
       </template>
     </div>
     <CreateLogSourceDialog v-model:open="createOpen" :project-id="projectId" @created="onCreated" />
-    <LogSourceKeyDialog v-model:source="issuedSource" />
+    <LogSourceKeyDialog v-model:source="shownSource" />
     <AppDialog
       v-model:open="confirmOpen"
       :title="pending?.kind === 'rotate' ? t('integrations.rotateTitle') : t('integrations.revokeTitle')"
