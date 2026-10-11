@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** pendiente · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -29,7 +29,7 @@
 
 ## Fases
 
-### [ ] Fase 1 — Renombrar el paquete a sereno/laravel [límite]
+### [x] Fase 1 — Renombrar el paquete a sereno/laravel [límite]
 - **Alcance:** `name` `sereno/laravel`, namespace `Sereno\Laravel\` (y `Sereno\Laravel\Tests\`), provider en
   `extra.laravel`, `license` `MIT` con archivo `LICENSE`. Solo renombre: sin cambios de comportamiento.
 - **Archivos:** `composer.json`, `LICENSE`, `src/SerenoServiceProvider.php`, `src/Logging/*.php` (3); tests solo
@@ -133,8 +133,16 @@
   canal del proyecto; rotar reinicia `last_used_at`. Cambio de semántica del API: "último uso" pasa a ser el de la key
   vigente.
 - 2026-10-10 — OTLP y SDKs de otros lenguajes quedan fuera de este plan.
+- 2026-10-10 — Worktrees: paquete en `../sereno-laravel/.claude/worktrees/integracion-simple` (rama
+  `feat/integracion-simple`); monorepo en `.claude/worktrees/plan-integracion-simple` (rama `docs/plan-integracion-simple`,
+  la misma del plan). Las fases 12 y 13 esperan al usuario (publicación).
 
 ## Notas para la próxima sesión
-- Plan sin aprobar. Al activarlo, crear el worktree del paquete y el del monorepo con `worktree.mjs`.
+- Plan aprobado y en ejecución; worktrees creados (ver Decisiones).
+- Fase 1: `LICENSE` con titular genérico "2026 Sereno" (el usuario puede cambiarlo). README aún con el nombre viejo
+  hasta la fase 5. Los commits del paquete van en su worktree; los del plan, en este.
 
 ## Mejoras propuestas
+
+- M-1: Ordenar alfabéticamente los `use` de `tests/Unit/Logging/EventFormatterTest.php` (paquete; `Sereno\` quedó antes
+  de `Monolog\`). Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
