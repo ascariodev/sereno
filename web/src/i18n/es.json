@@ -152,11 +152,9 @@
     "revokeConfirm": "¿Revocar \"{name}\"? Dejará de aceptar eventos y no se puede deshacer.",
     "revokedToast": "\"{name}\" fue revocada.",
     "rotateConflict": "No se rotó la clave: otra persona la cambió o la revocó. Se recargó la lista.",
-    "revokeConflict": "No se revocó la fuente: otra persona la cambió. Se recargó la lista.",
     "rotateProjectArchived": "No se rotó la clave: el proyecto está archivado. Se recargó la lista.",
     "rotateSourceRevoked": "No se rotó la clave: la fuente está revocada. Se recargó la lista.",
     "rotateUnavailable": "No se rotó la clave: la fuente está revocada o su proyecto está archivado. Se recargó la lista.",
-    "revokeUnavailable": "No se revocó la fuente: ya está revocada o su proyecto está archivado. Se recargó la lista.",
     "actionForbidden": "No tienes permiso para hacer eso.",
     "actionFailed": "La acción falló. Inténtalo de nuevo."
   },

@@ -152,11 +152,9 @@
     "revokeConfirm": "Revoke \"{name}\"? It will stop accepting events and this cannot be undone.",
     "revokedToast": "\"{name}\" was revoked.",
     "rotateConflict": "The key was not rotated: it was changed or revoked by someone else. The list was reloaded.",
-    "revokeConflict": "The log source was not revoked: it was changed by someone else. The list was reloaded.",
     "rotateProjectArchived": "The key was not rotated: the project is archived. The list was reloaded.",
     "rotateSourceRevoked": "The key was not rotated: the log source is revoked. The list was reloaded.",
     "rotateUnavailable": "The key was not rotated: the log source is revoked or its project is archived. The list was reloaded.",
-    "revokeUnavailable": "The log source was not revoked: it is already revoked or its project is archived. The list was reloaded.",
     "actionForbidden": "You are not allowed to do that.",
     "actionFailed": "The action failed. Try again."
   },
