@@ -13,6 +13,7 @@ import {
   type UpdateTaskInput,
 } from '../api/tasks'
 import { isTaskStatus, TASK_STATUSES, type Task, type TaskDeletedEvent, type TaskStatus } from '../api/types'
+import { forgetGroupTask } from '../composables/useLogGroupStatuses'
 import { useAuthStore } from './auth'
 
 export const TASK_FILTERS = ['all', 'mine', 'from_notices'] as const
@@ -143,6 +144,7 @@ export const useTasksStore = defineStore('tasks', () => {
   /** `task.deleted` in live. The id is remembered so a late create or update does not bring it back. */
   function remove(event: TaskDeletedEvent): boolean {
     if (projectId.value === null || event.project_id !== projectId.value) return false
+    forgetGroupTask(event.id)
     tombstones.add(event.id)
     if (tombstones.size > MAX_TOMBSTONES) {
       const oldest = tombstones.values().next()

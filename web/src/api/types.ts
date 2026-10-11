@@ -132,6 +132,8 @@ export interface HourlyCounts {
   hours: number
   /** Events per hour, oldest first, keyed by group id. Ids not in the project are omitted; may be `{}`. */
   counts: Record<string, number[]>
+  /** Task linked to each group that has one, keyed by group id. Absent on older servers. */
+  tasks?: Record<string, LogGroupTask>
 }
 
 export interface LogGroupOpenedPayload {

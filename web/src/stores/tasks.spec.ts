@@ -4,6 +4,7 @@ import { api, ApiError } from '../api/client'
 import type { Task, TaskStatus } from '../api/types'
 import { useAuthStore } from './auth'
 import { DONE_PAGE_SIZE, MAX_TOMBSTONES, updatedStamp, useTasksStore } from './tasks'
+import { resetGroupStatuses, setGroupTask, taskOfGroup } from '../composables/useLogGroupStatuses'
 
 const task = (id: number, overrides: Partial<Task> = {}): Task => ({
   id,
@@ -203,6 +204,18 @@ describe('tasks store', () => {
     vi.spyOn(api, 'get').mockResolvedValueOnce(envelope([task(1), task(2)]))
     await store.refresh()
     expect(ids(store.tasks)).toEqual([2])
+  })
+
+  it('forgets the group task link when its task is deleted, but not on an event of another project', async () => {
+    const store = await opened([task(1), task(2)])
+    setGroupTask(5, { id: 1, key: 'POSVE-1', status: 'todo' })
+    setGroupTask(6, { id: 2, key: 'POSVE-2', status: 'todo' })
+    store.remove({ id: 1, project_id: 8 })
+    expect(taskOfGroup(5)).toBeDefined()
+    store.remove({ id: 1, project_id: 7 })
+    expect(taskOfGroup(5)).toBeUndefined()
+    expect(taskOfGroup(6)?.id).toBe(2)
+    resetGroupStatuses()
   })
 
   it('ignores events of another project or with an unknown status', async () => {

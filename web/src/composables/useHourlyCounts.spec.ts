@@ -7,6 +7,7 @@ import SystemNotice from '../components/SystemNotice.vue'
 import { i18n } from '../i18n'
 import { useMessagesStore } from '../stores/messages'
 import { HOURLY_BATCH_SIZE, hourlyCountsOf, requestHourlyCounts, resetHourlyCounts } from './useHourlyCounts'
+import { resetGroupStatuses, setGroupTask, taskOfGroup } from './useLogGroupStatuses'
 
 const HOURLY_PATH = '/api/projects/3/log-groups/hourly'
 
@@ -184,5 +185,53 @@ describe('useHourlyCounts', () => {
     requestHourlyCounts(3, 5, 10)
     await flushPromises()
     expect(spy).toHaveBeenCalledTimes(2)
+  })
+
+  it('feeds the shared group task from the response so the chip shows without a task-created message', async () => {
+    resetGroupStatuses()
+    vi.spyOn(api, 'get').mockResolvedValue({
+      data: {
+        from: '',
+        hours: 24,
+        counts: { '5': series(1), '6': series(1) },
+        tasks: { '5': { id: 9, key: 'POSVE-12', status: 'todo' } },
+      },
+    } as never)
+    requestHourlyCounts(3, 5, 1)
+    requestHourlyCounts(3, 6, 2)
+    await flushPromises()
+    expect(taskOfGroup(5)).toEqual({ id: 9, key: 'POSVE-12', status: 'todo' })
+    expect(taskOfGroup(6)).toBeUndefined()
+    resetGroupStatuses()
+  })
+
+  it('treats response tasks as authoritative for the requested groups, except one written after the request', async () => {
+    resetGroupStatuses()
+    setGroupTask(5, { id: 1, key: 'POSVE-1', status: 'todo' })
+    setGroupTask(6, { id: 2, key: 'POSVE-2', status: 'todo' })
+    setGroupTask(7, { id: 3, key: 'POSVE-3', status: 'todo' })
+    let resolve: (value: unknown) => void = () => {}
+    vi.spyOn(api, 'get').mockImplementation(() => new Promise((r) => (resolve = r)))
+    requestHourlyCounts(3, 5, 1)
+    requestHourlyCounts(3, 6, 2)
+    requestHourlyCounts(3, 7, 3)
+    await flushPromises()
+    setGroupTask(6, { id: 9, key: 'POSVE-9', status: 'todo' })
+    resolve({ data: { from: '', hours: 24, counts: { '5': series(1), '6': series(1), '7': series(1) }, tasks: { '7': { id: 3, key: 'POSVE-3', status: 'done' } } } })
+    await flushPromises()
+    expect(taskOfGroup(5)).toBeUndefined()
+    expect(taskOfGroup(6)?.id).toBe(9)
+    expect(taskOfGroup(7)?.status).toBe('done')
+    resetGroupStatuses()
+  })
+
+  it('leaves the group tasks alone when the server sends no tasks field', async () => {
+    resetGroupStatuses()
+    setGroupTask(5, { id: 1, key: 'POSVE-1', status: 'todo' })
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { from: '', hours: 24, counts: { '5': series(1) } } } as never)
+    requestHourlyCounts(3, 5, 1)
+    await flushPromises()
+    expect(taskOfGroup(5)?.id).toBe(1)
+    resetGroupStatuses()
   })
 })
