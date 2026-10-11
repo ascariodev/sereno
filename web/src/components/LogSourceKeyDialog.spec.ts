@@ -42,7 +42,7 @@ describe('LogSourceKeyDialog', () => {
     expect(q('[data-test="key"]')?.textContent).toBe(issued.key)
     expect(q('[data-test="endpoint"]')?.textContent).toBe(`${config.apiUrl}/api/ingest/events`)
     expect(q('[data-test="install"]')?.textContent).toBe(
-      `composer require sereno/laravel && php artisan sereno:install ${issued.key} --url=${config.apiUrl}`,
+      `composer require ascariodev/sereno-laravel && php artisan sereno:install ${issued.key} --url=${config.apiUrl}`,
     )
     expect(q('[data-test="env"]')?.textContent).toBe(`SERENO_KEY=${issued.key}\nSERENO_URL=${config.apiUrl}`)
     expect(q('[data-test="curl"]')?.textContent).toBe(
@@ -64,7 +64,7 @@ describe('LogSourceKeyDialog', () => {
     for (const button of buttons) button.click()
     await flushPromises()
     expect(writeText.mock.calls.map((call) => call[0])).toEqual([
-      `composer require sereno/laravel && php artisan sereno:install ${issued.key} --url=${config.apiUrl}`,
+      `composer require ascariodev/sereno-laravel && php artisan sereno:install ${issued.key} --url=${config.apiUrl}`,
       issued.key,
       `${config.apiUrl}/api/ingest/events`,
       q('[data-test="env"]')?.textContent,

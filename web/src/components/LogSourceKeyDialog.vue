@@ -22,7 +22,7 @@ const connected = computed(() => source.value?.last_used_at != null)
 const ingestUrl = computed(() => `${config.apiUrl}/api/ingest/events`)
 
 const installCommand = computed(
-  () => `composer require sereno/laravel && php artisan sereno:install ${source.value?.key ?? ''} --url=${config.apiUrl}`,
+  () => `composer require ascariodev/sereno-laravel && php artisan sereno:install ${source.value?.key ?? ''} --url=${config.apiUrl}`,
 )
 
 const envBlock = computed(() => `SERENO_KEY=${source.value?.key ?? ''}\nSERENO_URL=${config.apiUrl}`)
