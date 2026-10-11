@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -26,7 +26,8 @@
   API desde un worktree (fijado en la fase 6), desde la raíz del checkout principal, que solo se lee:
   `WT="$(cd .claude/worktrees/plan-integracion-simple/api && pwd -W)" && MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps -T
   -e APP_KEY="base64:$(head -c 32 /dev/urandom | base64)" -v "$WT:/var/www/api" api php artisan test --compact <archivos>`
-  (igual con `./vendor/bin/pint --test -q`). Las `DB_*` las puso el usuario en el `environment` del servicio `api`
+  (igual con `./vendor/bin/pint --test -q`). **Obligatorio `-e DB_DATABASE=workspace_test`**: el `environment` del
+  servicio trae la base de desarrollo y `phpunit.xml` no la fuerza. Las `DB_*` las puso el usuario en el `environment` del servicio `api`
   (sin commit en el checkout principal): no leerlas. Los warnings `.env: Failed to open stream` son inocuos.
 - Nunca leer ni montar archivos `.env` (L-52). En posveapi el hook pre-commit falla sin PHP: `--no-verify` solo con
   pedido del usuario.
@@ -77,7 +78,7 @@
 - **Archivos:** `api/app/Models/LogSource.php` (+ test de rotación).
 - **Terminado cuando:** test: tras rotar, `last_used_at` es null y el primer uso de la key nueva lo marca.
 
-### [ ] Fase 7 — Evento log_source.connected [riesgo]
+### [x] Fase 7 — Evento log_source.connected [riesgo]
 - **Alcance:** `markAsUsed()` distingue el primer uso (UPDATE `WHERE last_used_at IS NULL` que afecta una fila) y en
   ese caso emite `LogSourceConnected` al canal del proyecto (`log_source.connected`, payload `id`, `project_id`,
   `last_used_at`; sin key ni prefijo). Dos primeras peticiones simultáneas emiten un solo evento.
@@ -161,6 +162,12 @@
   (sin merge a `main` del paquete ni push: esperan al usuario, fase 12). El README no nombra la URL del repo.
 - Fase 6: `rotateKey` pone `last_used_at` en null dentro del mismo UPDATE condicional; nada del API ni de la web
   dependía de que sobreviviera a la rotación.
+- Fase 7: `LogSourceConnected` (`broadcastAs` `log_source.connected`; en Echo `.log_source.connected`) al canal
+  `private-organizations.{org}.projects.{project}` (`ProjectChannel`), payload `{id: int, project_id: int,
+  last_used_at: string}` con `last_used_at` en formato `Carbon::toJSON()` (`2026-10-10T12:00:00.000000Z`, el mismo de
+  `LogSourceResource`). El primer uso encola el broadcast: `LogIngestApiTest` afirma `assertNotPushed(IngestLogEvents)`.
+  Incidente: las corridas de las fases 6 y 7 sin `DB_DATABASE=workspace_test` vaciaron la base de desarrollo; se
+  reconstruyó con `migrate:fresh --seed` por pedido del usuario (L-54).
 
 ## Mejoras propuestas
 
