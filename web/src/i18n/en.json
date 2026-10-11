@@ -297,6 +297,7 @@
     "today": "Today",
     "reconnected": "Reconnected",
     "loadOlder": "Load older messages",
+    "jumpToLatest": "Jump to latest",
     "systemNotice": "System notice",
     "unknownUser": "Unknown user",
     "unknownMention": "user",

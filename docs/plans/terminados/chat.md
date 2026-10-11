@@ -387,7 +387,7 @@ mencionar a miembros con bandeja de menciones sin leer, y adjuntar archivos a lo
 ## Mejoras propuestas
 - [x] M-1 (alta, plan nuevo, convertida en `docs/plans/editar-mensajes.md`): editar y borrar mensajes propios (no está en el paso 6 y toca `updated_at`, el evento en
   vivo y los contadores de hilo).
-- [ ] M-2 (media, sonnet): saltar a un mensaje concreto (carga alrededor de un id) al abrir una mención de un mensaje
+- [x] M-2 (media, sonnet): saltar a un mensaje concreto (carga alrededor de un id) al abrir una mención de un mensaje
   raíz antiguo; en este plan solo se abre el canal o el hilo.
 - [x] M-3 (media, sonnet): avatares de los últimos participantes en `ThreadSummary`, como en el diseño.
 - [x] M-4 (media, sonnet): borrar los archivos de adjuntos cuando se borra la organización (la cascada borra filas,

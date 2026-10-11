@@ -5,7 +5,7 @@ import type { Message } from '../api/types'
 import MessageItem from './MessageItem.vue'
 import SystemNotice from './SystemNotice.vue'
 
-const props = defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number; ownUserId?: number; emptyLabel?: string; threadable?: boolean; canCreateTask?: boolean }>()
+const props = defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number; ownUserId?: number; emptyLabel?: string; threadable?: boolean; canCreateTask?: boolean; focusId?: number | null }>()
 defineEmits<{ loadOlder: []; select: [groupId: number]; openThread: [messageId: number]; createTask: [groupId: number, title: string] }>()
 
 const { t, locale } = useI18n()
@@ -42,15 +42,46 @@ watch(
   { flush: 'post' },
 )
 
-onMounted(scrollToBottom)
-onUnmounted(() => resizeObserver?.disconnect())
+const HIGHLIGHT_MS = 2500
+const highlightedId = ref<number | null>(null)
+let jumpedTo: number | null = null
+let highlightTimer: ReturnType<typeof setTimeout> | undefined
+
+function jumpToFocus(): boolean {
+  const id = props.focusId ?? null
+  if (id === null || id === jumpedTo) return false
+  const target = container.value?.querySelector<HTMLElement>(`[data-message-id="${id}"]`)
+  if (!target) return false
+  jumpedTo = id
+  target.scrollIntoView?.({ block: 'center' })
+  trackPinned()
+  highlightedId.value = id
+  clearTimeout(highlightTimer)
+  highlightTimer = setTimeout(() => (highlightedId.value = null), HIGHLIGHT_MS)
+  return true
+}
+
+onMounted(() => {
+  if (!jumpToFocus()) scrollToBottom()
+})
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+  clearTimeout(highlightTimer)
+})
+
+watch(
+  () => props.focusId,
+  () => void nextTick(jumpToFocus),
+)
 
 watch(
   () => props.messages,
   (next, previous) => {
     const el = container.value
     if (!el || previous.length === 0 || next.length === 0) {
-      void nextTick(scrollToBottom)
+      void nextTick(() => {
+        if (!jumpToFocus()) scrollToBottom()
+      })
       return
     }
     const appended = next[next.length - 1].id !== previous[previous.length - 1].id
@@ -120,7 +151,11 @@ const rows = computed<Row[]>(() => {
     <ul v-else ref="items" class="message-list__items">
       <template v-for="row in rows" :key="row.key">
         <li v-if="row.type === 'day'" class="message-list__day">{{ row.label }}</li>
-        <li v-else :class="['message', `message--${row.message.kind}`]">
+        <li
+          v-else
+          :class="['message', `message--${row.message.kind}`, { 'message--highlight': highlightedId === row.message.id }]"
+          :data-message-id="row.message.id"
+        >
           <SystemNotice
             v-if="row.message.kind === 'system'"
             :message="row.message"
@@ -139,6 +174,12 @@ const rows = computed<Row[]>(() => {
 </template>
 
 <style scoped>
+.message--highlight {
+  background: var(--accent-soft);
+  border-radius: var(--radius-panel);
+  transition: background-color 0.3s;
+}
+
 .message-list {
   flex: 1 1 auto;
   min-height: 0;

@@ -90,6 +90,58 @@ describe('MessageList', () => {
       expect(box.top).toBe(900)
     })
 
+    describe('focus', () => {
+      const scrollIntoView = vi.fn()
+      const mountFocused = (focusId: number | null) =>
+        mount(MessageList, {
+          props: { messages: [at(1), at(2), at(3)], hasMore: false, loadingMore: false, focusId },
+          global: { plugins: [i18n] },
+          attachTo: document.body,
+        })
+
+      beforeEach(() => {
+        vi.useFakeTimers()
+        scrollIntoView.mockClear()
+        HTMLElement.prototype.scrollIntoView = scrollIntoView
+      })
+      afterEach(() => {
+        vi.useRealTimers()
+        delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollIntoView
+        document.body.innerHTML = ''
+      })
+
+      it('scrolls to the focused message instead of the bottom and highlights it briefly', async () => {
+        const wrapper = mountFocused(2)
+        expect(scrollIntoView).toHaveBeenCalledTimes(1)
+        expect(scrollIntoView.mock.contexts[0]).toBe(wrapper.get('[data-message-id="2"]').element)
+        expect(box.top).toBe(0)
+        await nextTick()
+        expect(wrapper.get('[data-message-id="2"]').classes()).toContain('message--highlight')
+        expect(wrapper.findAll('.message--highlight')).toHaveLength(1)
+        await vi.advanceTimersByTimeAsync(3000)
+        expect(wrapper.find('.message--highlight').exists()).toBe(false)
+        wrapper.unmount()
+      })
+
+      it('goes to the bottom when the focused message is not in the list', () => {
+        const wrapper = mountFocused(99)
+        expect(scrollIntoView).not.toHaveBeenCalled()
+        expect(box.top).toBe(1200)
+        expect(wrapper.find('.message--highlight').exists()).toBe(false)
+        wrapper.unmount()
+      })
+
+      it('jumps again when the focus changes and cancels the highlight timer on unmount', async () => {
+        const wrapper = mountFocused(1)
+        await wrapper.setProps({ focusId: 3 })
+        await nextTick()
+        expect(scrollIntoView).toHaveBeenCalledTimes(2)
+        expect(wrapper.findAll('.message--highlight')).toHaveLength(1)
+        wrapper.unmount()
+        expect(vi.getTimerCount()).toBe(0)
+      })
+    })
+
     it('follows a new message from someone else when near the bottom', async () => {
       const wrapper = mountList([at(1), at(2)], 99)
       box.top = 420

@@ -33,6 +33,46 @@ describe('messages store', () => {
     resetGroupStatuses()
   })
 
+  it('sends around only when opening on a given message', async () => {
+    const get = vi.spyOn(api, 'get').mockResolvedValue(page([4, 3], 'c') as never)
+    const store = useMessagesStore()
+    await store.open(5, 3)
+    expect(get).toHaveBeenLastCalledWith('/api/channels/5/messages', { query: { per_page: 50, around: 3 } })
+    expect(store.messages.map((item) => item.id)).toEqual([3, 4])
+    expect(store.nextCursor).toBe('c')
+    await store.open(5)
+    expect(get).toHaveBeenLastCalledWith('/api/channels/5/messages', { query: { per_page: 50 } })
+  })
+
+  it('does not insert live roots while newer ones are left out, and resets on a normal open', async () => {
+    const get = vi
+      .spyOn(api, 'get')
+      .mockResolvedValueOnce({ data: [message(4), message(3)], meta: { next_cursor: null, has_newer: true } } as never)
+      .mockResolvedValueOnce(page([9, 8], null) as never)
+    const store = useMessagesStore()
+    await store.open(5, 3)
+    expect(store.hasNewer).toBe(true)
+    expect(store.insert(message(10))).toBe(false)
+    await nextTick()
+    expect(store.messages.map((item) => item.id)).toEqual([3, 4])
+    await store.catchUp()
+    expect(get).toHaveBeenCalledTimes(1)
+    await store.open(5)
+    expect(store.hasNewer).toBe(false)
+    expect(store.insert(message(10))).toBe(true)
+  })
+
+  it('drops live roots that arrived during an around load that left newer ones out', async () => {
+    let resolve: (value: unknown) => void = () => {}
+    vi.spyOn(api, 'get').mockReturnValue(new Promise((done) => (resolve = done)) as never)
+    const store = useMessagesStore()
+    const opening = store.open(5, 3)
+    store.insert(message(10))
+    resolve({ data: [message(4), message(3)], meta: { next_cursor: null, has_newer: true } })
+    await opening
+    expect(store.messages.map((item) => item.id)).toEqual([3, 4])
+  })
+
   it('records a status_changed that arrives while the channel is loading', async () => {
     let resolve: (value: unknown) => void = () => {}
     vi.spyOn(api, 'get').mockReturnValue(new Promise((done) => (resolve = done)) as never)

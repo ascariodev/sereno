@@ -607,6 +607,32 @@ describe('ChannelView thread panel', () => {
     expect(useThreadStore().rootId).toBeNull()
   })
 
+  it('loads the list around ?message= and ignores an invalid value', async () => {
+    const spy = mockThread()
+    const listCalls = () => spy.mock.calls.filter(([path]) => path === '/api/channels/7/messages')
+    await mountView('/channels/7?message=1')
+    expect(listCalls()[0][1]).toEqual({ query: { per_page: 50, around: 1 } })
+    spy.mockClear()
+    await mountView('/channels/7?message=abc')
+    expect(listCalls()[0][1]).toEqual({ query: { per_page: 50 } })
+  })
+
+  it('shows the jump-to-latest button when newer roots were left out and reloads without ?message=', async () => {
+    const spy = vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: { query?: Record<string, unknown> }) => {
+      if (path === '/api/channels') return channels as never
+      if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
+      return { data: [root], meta: { next_cursor: null, ...(options?.query?.around ? { has_newer: true } : {}) } } as never
+    })
+    const wrapper = await mountView('/channels/7?message=1')
+    const button = wrapper.get('button[name="jump-latest"]')
+    await button.trigger('click')
+    await flushPromises()
+    expect(wrapper.router.currentRoute.value.query.message).toBeUndefined()
+    const lists = spy.mock.calls.filter(([path]) => path === '/api/channels/7/messages')
+    expect(lists.at(-1)?.[1]).toEqual({ query: { per_page: 50 } })
+    expect(wrapper.find('button[name="jump-latest"]').exists()).toBe(false)
+  })
+
   it('ignores an invalid ?thread= value', async () => {
     const spy = mockThread()
     const wrapper = await mountView('/channels/7?thread=abc')

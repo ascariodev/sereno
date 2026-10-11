@@ -17,8 +17,11 @@ use App\Models\Channel;
 use App\Models\Message;
 use App\Models\MessageAttachment;
 use App\Models\User;
+use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Pagination\CursorPaginator;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -34,17 +37,43 @@ class MessageController extends Controller
 
     public function index(ListMessagesRequest $request, Channel $channel): AnonymousResourceCollection
     {
-        $page = $channel->messages()
+        $roots = fn () => $channel->messages()
             ->whereNull('parent_id')
             ->where(fn ($query) => $query->whereNull('deleted_at')->orWhere('replies_count', '>', 0))
-            ->with(self::RELATIONS)
-            ->orderByDesc('id')
-            ->cursorPaginate($request->perPage())
-            ->withQueryString();
+            ->with(self::RELATIONS);
+
+        $around = $request->around();
+        $hasNewer = false;
+        $page = $around === null
+            ? $roots()->orderByDesc('id')->cursorPaginate($request->perPage())->withQueryString()
+            : $this->pageAround($roots, $around, $request->perPage(), $hasNewer);
 
         self::loadParticipants($page->items());
 
-        return MessageResource::collection($page);
+        $collection = MessageResource::collection($page);
+
+        return $around === null ? $collection : $collection->additional(['meta' => ['has_newer' => $hasNewer]]);
+    }
+
+    /**
+     * The roots around `$around`: about half the page of older ones (itself included) and the rest newer, newest first.
+     * `next_cursor` continues towards older roots like a normal page; the newer side is not paginated (`has_newer`).
+     */
+    private function pageAround(Closure $roots, int $around, int $perPage, bool &$hasNewer): CursorPaginator
+    {
+        $olderSize = intdiv($perPage, 2) + 1;
+        $older = $roots()->where('id', '<=', $around)->orderByDesc('id')->limit($olderSize + 1)->get();
+        $newerSize = $perPage - $olderSize;
+        $newer = $roots()->where('id', '>', $around)->orderBy('id')->limit($newerSize + 1)->get();
+        $hasNewer = $newer->count() > $newerSize;
+        $newer = $newer->take($newerSize)->reverse();
+
+        return new CursorPaginator(
+            $newer->concat($older)->values(),
+            $newer->count() + $olderSize,
+            null,
+            ['path' => Paginator::resolveCurrentPath(), 'parameters' => ['id']],
+        );
     }
 
     /**

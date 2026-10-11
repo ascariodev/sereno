@@ -92,6 +92,10 @@ const threadId = computed(() => {
   const raw = Array.isArray(route.query.thread) ? route.query.thread[0] : route.query.thread
   return typeof raw === 'string' && /^[1-9]\d*$/.test(raw) ? Number(raw) : null
 })
+const focusMessageId = computed(() => {
+  const raw = Array.isArray(route.query.message) ? route.query.message[0] : route.query.message
+  return typeof raw === 'string' && /^[1-9]\d*$/.test(raw) ? Number(raw) : null
+})
 const notFound = computed(() => messages.error?.status === 404)
 const firstLoadFailed = computed(() => messages.error !== null && !notFound.value && messages.messages.length === 0)
 
@@ -157,6 +161,13 @@ function openThread(id: number): void {
   delete query.group
   query.thread = String(id)
   void router.push({ query })
+}
+
+async function jumpToLatest(): Promise<void> {
+  const query = { ...route.query }
+  delete query.message
+  await router.replace({ query })
+  void messages.open(channelId.value)
 }
 
 function closeThread(): void {
@@ -313,7 +324,7 @@ function reload(): void {
     return
   }
   void loadChannel(channelId.value, current)
-  void messages.open(channelId.value)
+  void messages.open(channelId.value, focusMessageId.value)
   if (organization.activeId !== null) {
     unsubscribe = subscribeToChannel(organization.activeId, channelId.value, {
       onCreated: onLiveMessage,
@@ -383,6 +394,7 @@ defineExpose({ openThread })
           <MessageList
             :messages="messages.messages"
             :has-more="messages.nextCursor !== null"
+            :focus-id="focusMessageId"
             :loading-more="messages.loadingMore"
             :project-id="channel?.project_id"
             :own-user-id="auth.user?.id"
@@ -393,6 +405,9 @@ defineExpose({ openThread })
             @select="selectGroup"
             @open-thread="openThread"
           />
+          <button v-if="messages.hasNewer" type="button" name="jump-latest" @click="jumpToLatest">
+            {{ t('channel.jumpToLatest') }}
+          </button>
           <p v-if="channel?.archived_at" class="channel__archived">{{ t('channel.archived') }}</p>
           <MessageComposer v-else-if="channel" />
         </template>
