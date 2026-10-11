@@ -91,7 +91,7 @@ jobs:
           rsync -a --chmod=D755,F644 web/docker-compose.prod.yml "$SERVER_DIR/docker-compose.prod.yml"
           # Poda: cada build trae mtime reciente (rsync -a lo conserva y re-copia lo vigente), así que solo
           # envejecen los assets que ya no están en ningún deploy reciente.
-          find "$SERVER_DIR/dist/assets" -type f -mtime +14 -delete
+          [ -d "$SERVER_DIR/dist/assets" ] && find "$SERVER_DIR/dist/assets" -type f -mtime +14 -delete || true
 
       - name: Levantar nginx
         run: bash web/docker/deploy/deploy.sh
