@@ -96,6 +96,7 @@ describe('LogSourceKeyDialog', () => {
     await flushPromises()
     const status = q('[data-test="status"]')!
     expect(status.getAttribute('aria-live')).toBe('polite')
+    expect(status.getAttribute('aria-atomic')).toBe('true')
     expect(status.textContent?.trim()).toBe('Waiting for the first event…')
     source.value = { ...issued, last_used_at: '2026-10-10T12:00:00.000000Z' }
     await flushPromises()

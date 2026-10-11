@@ -416,6 +416,7 @@ describe('IntegrationsView', () => {
       await openAction('rotate')
       await confirmAction()
       expect(document.body.querySelector('[data-test=status]')!.textContent?.trim()).toBe('Waiting for the first event…')
+      expect(wrapper!.find('[data-test=last-used]').text()).toBe('Never')
     })
 
     it('ignores an event for a source that is not listed', async () => {
