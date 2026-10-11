@@ -190,7 +190,8 @@
 - Fase 12 en curso: `feat/integracion-simple` fusionada a `main` del paquete (44159b7, suite 79 en verde), tag
   `v0.2.0` movido ahí. Repo público elegido por el usuario: espejo en GitHub `https://github.com/ascariodev/sereno-laravel`
   (remoto `github` del paquete); `main` y `v0.2.0` empujados (público, verificado sin auth). `origin` (Gitea) sin push:
-  falla la autenticación desde esta máquina. Falta: el usuario registra el repo en Packagist; luego verificar
+  falla la autenticación desde esta máquina. Renombrado a `ascariodev/sereno-laravel` y publicado `v0.2.1` (a835f3c) en
+  GitHub. Falta: el usuario registra el repo en Packagist; luego verificar
   `composer require ascariodev/sereno-laravel` en un contenedor limpio y el auto-discovery.
 - Fase 11: código y specs revisados y commiteados (suite web 1337 en verde). La vista pasa al diálogo `shownSource`
   (computed: `issuedSource` con el `last_used_at` de su fila en `sources`); región `aria-live="polite"` estable con
