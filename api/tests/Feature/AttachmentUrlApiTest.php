@@ -94,6 +94,20 @@ it('answers 404 when the message was deleted', function () {
     requestingUrl($this->ana, $this->organization, $attachment)->assertNotFound();
 });
 
+it('translates the 404 message according to Accept-Language', function () {
+    $attachment = urlAttachment($this, $this->organization, $this->channel, null);
+
+    test()->withHeader('Accept-Language', 'es');
+    requestingUrl($this->ana, $this->organization, $attachment)
+        ->assertNotFound()
+        ->assertJsonPath('message', 'Recurso no encontrado.');
+
+    test()->withHeader('Accept-Language', 'en');
+    requestingUrl($this->ana, $this->organization, $attachment)
+        ->assertNotFound()
+        ->assertJsonPath('message', 'Resource not found.');
+});
+
 it('answers every 404 with the same body as a nonexistent attachment', function () {
     $hidden = Channel::factory()->for(Project::factory()->for($this->organization))->create();
     $hiddenMessage = Message::withoutEvents(fn () => Message::factory()->for($hidden)->for($this->author)->create());
