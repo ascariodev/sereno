@@ -17,10 +17,12 @@ import {
   MESSAGE_UPDATED_EVENT,
   onChannelDenied,
   onReconnect,
+  ORGANIZATION_MEMBERS_CHANGED_EVENT,
   PROJECT_MEMBERS_CHANGED_EVENT,
   setRealtimeClientFactory,
   setRealtimeTokenProvider,
   subscribeToChannel,
+  subscribeToOrganizationMembers,
   subscribeToProject,
   subscribeToUser,
   TASK_CREATED_EVENT,
@@ -310,6 +312,20 @@ describe('realtime', () => {
 
     leave()
     expect(client.leave).toHaveBeenCalledWith('users.5')
+  })
+
+  it('notifies the organization members channel and leaves it with the organization', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    let calls = 0
+    subscribeToOrganizationMembers(3, () => calls++)
+
+    expect(client.private).toHaveBeenCalledWith('organizations.3.members')
+    listeners.get(`organizations.3.members|${ORGANIZATION_MEMBERS_CHANGED_EVENT}`)?.({ organization_id: 3 })
+    expect(calls).toBe(1)
+
+    leaveOrganization(3)
+    expect(client.leave).toHaveBeenCalledWith('organizations.3.members')
   })
 
   it('forwards membership.role_changed with organization and role, ignoring malformed payloads', () => {

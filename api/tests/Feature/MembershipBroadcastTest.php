@@ -3,6 +3,7 @@
 use App\Enums\Role;
 use App\Events\MembershipRevoked;
 use App\Events\MembershipRoleChanged;
+use App\Events\OrganizationMembersChanged;
 use App\Exceptions\LastOwnerException;
 use App\Jobs\TerminateUserConnections;
 use App\Models\Organization;
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
-    Event::fake([MembershipRevoked::class, MembershipRoleChanged::class]);
+    Event::fake([MembershipRevoked::class, MembershipRoleChanged::class, OrganizationMembersChanged::class]);
     $this->organization = Organization::factory()->create();
     $this->owner = User::factory()->create();
     $this->member = User::factory()->create();
@@ -91,10 +92,29 @@ it('broadcasts the new role to the affected user private channel when it changes
     });
 });
 
+it('broadcasts to the organization members channel when a member is removed', function () {
+    $this->organization->removeMember($this->member);
+
+    Event::assertDispatchedTimes(OrganizationMembersChanged::class, 1);
+    Event::assertDispatched(OrganizationMembersChanged::class, fn (OrganizationMembersChanged $event) => $event->broadcastWith() === ['organization_id' => $this->organization->id, 'user_id' => $this->member->id]);
+});
+
+it('broadcasts only ids to the organization members channel when a role changes', function () {
+    $this->organization->changeMemberRole($this->member, Role::Admin);
+
+    Event::assertDispatchedTimes(OrganizationMembersChanged::class, 1);
+    Event::assertDispatched(OrganizationMembersChanged::class, function (OrganizationMembersChanged $event) {
+        return $event->broadcastOn()->name === "private-organizations.{$this->organization->id}.members"
+            && $event->broadcastAs() === 'organization.members_changed'
+            && $event->broadcastWith() === ['organization_id' => $this->organization->id, 'user_id' => $this->member->id];
+    });
+});
+
 it('does not broadcast a role change when the role is the same as the current one', function () {
     $this->organization->changeMemberRole($this->member, Role::Member);
 
     Event::assertNotDispatched(MembershipRoleChanged::class);
+    Event::assertNotDispatched(OrganizationMembersChanged::class);
 });
 
 it('does not broadcast a role change when it would demote the last owner', function () {

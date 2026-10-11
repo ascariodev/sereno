@@ -116,6 +116,12 @@ export function useMembershipWatch(): void {
     await refreshing
   }
 
+  function routeStillAllowed(): boolean {
+    if (route.name === 'invitations') return organization.canManageInvitations
+    if (route.name === 'project-integrations') return organization.canManageLogSources
+    return true
+  }
+
   async function onMembershipRoleChanged(organizationId: number, role: string): Promise<void> {
     const openProject = organization.activeId === organizationId ? openProjectId() : null
     const openProjectName = projectsStore.projects.find((project) => project.id === openProject)?.name
@@ -126,6 +132,11 @@ export function useMembershipWatch(): void {
       await projectsStore.refresh()
     } catch (error) {
       ignoreApiError(error)
+      return
+    }
+    if (organization.activeId === organizationId && !routeStillAllowed()) {
+      toast.info(t('organization.roleRouteLost'))
+      await router.replace({ name: 'projects' })
       return
     }
     if (openProject === null || projectsStore.failed) return

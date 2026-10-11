@@ -40,6 +40,8 @@ async function mountWatch(remaining: unknown[] = [two]) {
     routes: [
       { path: '/', name: 'projects', component: page },
       { path: '/channels/:id', name: 'channel', component: page },
+      { path: '/settings/invitations', name: 'invitations', component: page },
+      { path: '/projects/:projectId/integrations', name: 'project-integrations', component: page },
     ],
   })
   await router.push('/channels/7')
@@ -209,6 +211,34 @@ describe('useMembershipWatch', () => {
     await flushPromises()
     expect(get.mock.calls.length).toBe(calls)
     expect(projects.projects.map((p) => p.id)).toEqual([1])
+  })
+
+  it('on a role change that removes admin rights leaves the invitations page', async () => {
+    const { get, router } = await mountWatch([{ ...one, roles: ['member'] }, two])
+    useOrganizationStore().$patch({ organizations: [{ ...one, roles: ['admin'] }, two] })
+    await router.push('/settings/invitations')
+    get.mockImplementation(async (path: string) =>
+      path === '/api/projects'
+        ? { data: [], meta: { current_page: 1, last_page: 1, per_page: 100, total: 0 } }
+        : path === '/api/channels'
+          ? { data: [] }
+          : { data: [{ ...one, roles: ['member'] }, two] },
+    )
+    changeRole(1, 'member')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('projects')
+    expect(toasts.value.map((t) => t.message)).toEqual(['Your role no longer allows you to see that page.'])
+  })
+
+  it('on a role change that keeps admin rights stays on the invitations page', async () => {
+    const { get, router } = await mountWatch([{ ...one, roles: ['admin'] }, two])
+    useOrganizationStore().$patch({ organizations: [{ ...one, roles: ['owner'] }, two] })
+    await router.push('/settings/invitations')
+    changeRole(1, 'admin')
+    await flushPromises()
+    expect(get).toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('invitations')
+    expect(toasts.value).toHaveLength(0)
   })
 
   it('on a role change reloads projects and leaves a view that is no longer visible', async () => {

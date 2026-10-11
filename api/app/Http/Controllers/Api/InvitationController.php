@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\Locale;
 use App\Enums\Role;
+use App\Events\OrganizationMembersChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Invitation\InviteRequest;
 use App\Http\Requests\Invitation\ListInvitationsRequest;
@@ -124,6 +125,7 @@ class InvitationController extends Controller
             }
 
             $invitation->organization->addMember($user, [Role::from($invitation->role)]);
+            OrganizationMembersChanged::dispatch($invitation->organization_id, $user->id);
             $invitation->assignProjectsTo($user);
             $invitation->forceFill(['accepted_at' => now()])->save();
 

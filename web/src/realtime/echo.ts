@@ -16,6 +16,7 @@ export const TASK_UPDATED_EVENT = '.task.updated'
 export const TASK_DELETED_EVENT = '.task.deleted'
 export const PROJECT_MEMBERS_CHANGED_EVENT = '.project.members_changed'
 export const LOG_SOURCE_CONNECTED_EVENT = '.log_source.connected'
+export const ORGANIZATION_MEMBERS_CHANGED_EVENT = '.organization.members_changed'
 
 export interface RealtimePayload {
   message?: Message
@@ -97,6 +98,10 @@ export function projectChannelName(organizationId: number, projectId: number): s
 
 function organizationChannelPrefix(organizationId: number): string {
   return `organizations.${organizationId}.`
+}
+
+export function organizationMembersChannelName(organizationId: number): string {
+  return `${organizationChannelPrefix(organizationId)}members`
 }
 
 export function userChannelName(userId: number): string {
@@ -345,6 +350,10 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
       })
     }
   })
+}
+
+export function subscribeToOrganizationMembers(organizationId: number, onChanged: () => void): () => void {
+  return subscribe(organizationMembersChannelName(organizationId), [ORGANIZATION_MEMBERS_CHANGED_EVENT], () => onChanged())
 }
 
 export function joinSession(userId: number): () => void {

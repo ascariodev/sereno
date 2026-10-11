@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Events\OrganizationMembersChanged;
 use App\Events\ProjectMembersChanged;
 use App\Models\Invitation;
 use App\Models\Organization;
@@ -172,6 +173,23 @@ it('accepts an invitation, creating the membership with the role', function () {
     expect($invitee->unsetRelation('roles')->hasRole('admin'))->toBeTrue();
     setPermissionsTeamId(null);
     expect(Invitation::query()->withoutGlobalScopes()->firstOrFail()->accepted_at)->not->toBeNull();
+});
+
+it('broadcasts to the organization members channel when an invitation is accepted', function () {
+    Event::fake([OrganizationMembersChanged::class]);
+    $invitee = User::factory()->create(['email' => 'invitee@example.com']);
+    Invitation::factory()->withPlainToken('plain')->create([
+        'organization_id' => $this->organization->id,
+        'invited_by' => $this->owner->id,
+        'email' => 'invitee@example.com',
+        'role' => 'member',
+    ]);
+    Sanctum::actingAs($invitee);
+
+    $this->postJson('/api/invitations/accept', ['token' => 'plain'])->assertOk();
+
+    Event::assertDispatchedTimes(OrganizationMembersChanged::class, 1);
+    Event::assertDispatched(OrganizationMembersChanged::class, fn ($event) => $event->organizationId === $this->organization->id && $event->userId === $invitee->id);
 });
 
 it('does not accept a used invitation twice', function () {

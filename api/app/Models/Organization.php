@@ -6,6 +6,7 @@ use App\Enums\Locale;
 use App\Enums\Role;
 use App\Events\MembershipRevoked;
 use App\Events\MembershipRoleChanged;
+use App\Events\OrganizationMembersChanged;
 use App\Events\ProjectMembersChanged;
 use App\Exceptions\LastOwnerException;
 use App\Jobs\TerminateUserConnections;
@@ -123,6 +124,7 @@ class Organization extends Model
             }
 
             MembershipRoleChanged::dispatch($user->id, $this->id, $role->value);
+            OrganizationMembersChanged::dispatch($this->id, $user->id);
 
             // Reverb does not re-authorize open subscriptions: channels of unassigned projects would stay open.
             if ($losesProjectAccess) {
@@ -166,6 +168,7 @@ class Organization extends Model
                 ->each(fn (Project $project) => ProjectMembersChanged::dispatch($project));
 
             MembershipRevoked::dispatch($user->id, $this->id);
+            OrganizationMembersChanged::dispatch($this->id, $user->id);
             TerminateUserConnections::scheduleAfterCommit($user->id);
         });
     }

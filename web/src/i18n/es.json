@@ -105,7 +105,8 @@
     "revoked": "Ya no perteneces a {organization}.",
     "revokedUnknown": "Ya no perteneces a esa organización.",
     "projectAccessLost": "Ya no tienes acceso a {project}.",
-    "projectAccessLostUnknown": "Ya no tienes acceso a ese proyecto."
+    "projectAccessLostUnknown": "Ya no tienes acceso a ese proyecto.",
+    "roleRouteLost": "Tu rol ya no te permite ver esa página."
   },
   "sidebar": {
     "menu": "Menú",

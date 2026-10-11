@@ -7,6 +7,7 @@ import { listMembers, removeMember, updateMemberRole } from '../api/members'
 import type { InvitationRole, Member } from '../api/types'
 import AppDialog from '../components/ui/AppDialog.vue'
 import { toast } from '../components/ui/toast'
+import { subscribeToOrganizationMembers } from '../realtime/echo'
 import { expectOwnLeave } from '../realtime/useMembershipWatch'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
@@ -72,6 +73,19 @@ async function load(): Promise<void> {
     failed.value = true
   } finally {
     if (current === generation) loading.value = false
+  }
+}
+
+async function refresh(): Promise<void> {
+  if (loading.value || savingId.value !== null || removing.value) return
+  const current = generation
+  try {
+    const result = await listMembers()
+    if (current !== generation) return
+    members.value = result
+    directory.invalidate()
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error
   }
 }
 
@@ -204,6 +218,15 @@ watch(
     if (leaving || organization.activeId === null) return
     void load()
   },
+)
+
+watch(
+  () => [organization.activeId, organization.canManageInvitations] as const,
+  ([activeId, canWatch], _previous, onCleanup) => {
+    if (activeId === null || !canWatch) return
+    onCleanup(subscribeToOrganizationMembers(activeId, () => void refresh()))
+  },
+  { immediate: true },
 )
 
 onUnmounted(() => {
