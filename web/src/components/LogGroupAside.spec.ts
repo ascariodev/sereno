@@ -380,6 +380,24 @@ describe('LogGroupAside', () => {
       expect(toasts.value.some((item) => item.message.includes('P-3'))).toBe(true)
     })
 
+    it('keeps the dialog open with the typed title when crossing the breakpoint', async () => {
+      fakeMatchMedia(false)
+      mountAside()
+      await flushPromises()
+      await wrapper!.find('button[name=create-task]').trigger('click')
+      await flushPromises()
+      const input = document.body.querySelector<HTMLInputElement>('#task-create-title')!
+      input.value = 'Edited title'
+      input.dispatchEvent(new Event('input'))
+      listener!({ matches: true })
+      await flushPromises()
+      expect(document.body.querySelector<HTMLInputElement>('#task-create-title')!.value).toBe('Edited title')
+      listener!({ matches: false })
+      await flushPromises()
+      expect(document.body.querySelector<HTMLInputElement>('#task-create-title')!.value).toBe('Edited title')
+      expect(groupCalls()).toBe(1)
+    })
+
     it('prefills at most 200 characters of the title', async () => {
       fakeMatchMedia(false)
       vi.mocked(api.get).mockResolvedValue({ data: { ...loaded.data, title: 'é'.repeat(250) } } as never)

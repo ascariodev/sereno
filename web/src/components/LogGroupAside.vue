@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { getLogGroup } from '../api/logGroups'
 import type { LogGroupStatus, Task } from '../api/types'
 import { useLogGroup } from '../composables/useLogGroup'
-import { setGroupStatus, statusOfGroup } from '../composables/useLogGroupStatuses'
+import { setGroupStatus, setGroupTask, statusOfGroup, taskOfGroup } from '../composables/useLogGroupStatuses'
 import { useProjectsStore } from '../stores/projects'
 import LogGroupPanel from './LogGroupPanel.vue'
+import { TASK_TITLE_MAX_LENGTH } from './taskLimits'
+import TaskCreateDialog from './TaskCreateDialog.vue'
 import { toast } from './ui/toast'
 import AppDialog from './ui/AppDialog.vue'
 
@@ -28,9 +31,14 @@ const canCreateTask = computed(() => {
 
 let closed = false
 
+const createOpen = ref(false)
+
 watch(
   () => props.groupId,
-  () => (closed = false),
+  () => {
+    closed = false
+    createOpen.value = false
+  },
 )
 
 watch(loadError, (error) => {
@@ -46,6 +54,32 @@ watch(
     if (status) setStatus(status)
   },
 )
+
+const initialTitle = computed(() => [...(group.value?.title ?? '')].slice(0, TASK_TITLE_MAX_LENGTH).join(''))
+const showCreateDialog = computed(() => canCreateTask.value && group.value !== null && !(group.value.task ?? taskOfGroup(props.groupId)))
+
+function focusTaskLink(): void {
+  void nextTick(() => panel.value?.$el.querySelector<HTMLElement>('[data-test="group-task-link"]')?.focus())
+}
+
+function onTaskCreated(task: Task): void {
+  setGroupTask(props.groupId, { id: task.id, key: task.key, status: task.status })
+  setTask(task)
+  focusTaskLink()
+}
+
+async function onGroupTaken(): Promise<void> {
+  const target = props.groupId
+  try {
+    const loaded = await getLogGroup(props.projectId, target)
+    if (!loaded.task) throw new Error('no task')
+    setGroupTask(target, loaded.task)
+    if (target === props.groupId) focusTaskLink()
+    toast.info(t('notice.actions.taskExists', { key: loaded.task.key }))
+  } catch {
+    toast.error(t('notice.actions.taskExistsFailed'))
+  }
+}
 
 function applyStatus(status: LogGroupStatus): void {
   setGroupStatus(props.groupId, status)
@@ -98,6 +132,7 @@ function onOpenChange(open: boolean): void {
 <template>
   <AppDialog v-if="narrow" :open="true" variant="sheet-bottom" :title="t('logGroup.label')" hide-title @update:open="onOpenChange">
     <LogGroupPanel
+      ref="panel"
       class="log-group-aside__sheet-panel"
       :project-id="projectId"
       :group-id="groupId"
@@ -107,7 +142,7 @@ function onOpenChange(open: boolean): void {
       :hourly="hourly"
       :can-create-task="canCreateTask"
       @status="applyStatus"
-      @task="(task: Task) => setTask(task)"
+      @create-task="createOpen = true"
       @close="emit('close')"
     />
   </AppDialog>
@@ -123,8 +158,17 @@ function onOpenChange(open: boolean): void {
     :hourly="hourly"
     :can-create-task="canCreateTask"
     @status="applyStatus"
-    @task="(task: Task) => setTask(task)"
+    @create-task="createOpen = true"
     @close="emit('close')"
+  />
+  <TaskCreateDialog
+    v-if="showCreateDialog"
+    v-model:open="createOpen"
+    :project-id="projectId"
+    :initial-title="initialTitle"
+    :log-group-id="groupId"
+    @created="onTaskCreated"
+    @group-taken="onGroupTaken"
   />
 </template>
 

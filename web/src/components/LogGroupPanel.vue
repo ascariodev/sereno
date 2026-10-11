@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { Check, EyeOff, ListPlus, X } from '@lucide/vue'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
-import { getLogGroup, statusFrom, updateLogGroupStatus } from '../api/logGroups'
-import type { LogGroup, LogGroupStatus, Task } from '../api/types'
-import { setGroupTask, taskOfGroup } from '../composables/useLogGroupStatuses'
-import { TASK_TITLE_MAX_LENGTH } from './taskLimits'
-import TaskCreateDialog from './TaskCreateDialog.vue'
+import { statusFrom, updateLogGroupStatus } from '../api/logGroups'
+import type { LogGroup, LogGroupStatus } from '../api/types'
+import { taskOfGroup } from '../composables/useLogGroupStatuses'
 import { toast } from './ui/toast'
 import Sparkline from './ui/Sparkline.vue'
 import LevelPill from './ui/LevelPill.vue'
@@ -23,41 +21,13 @@ const props = defineProps<{
   /** Shows the create-task button (false in an archived or unknown project). */
   canCreateTask?: boolean
 }>()
-const emit = defineEmits<{ close: []; status: [status: LogGroupStatus]; task: [task: Task] }>()
+const emit = defineEmits<{ close: []; status: [status: LogGroupStatus]; createTask: [] }>()
 
 const { t, locale } = useI18n()
 
 const pending = ref(false)
-const createOpen = ref(false)
-const taskLink = ref<{ $el: HTMLElement } | null>(null)
-
-watch(
-  () => props.groupId,
-  () => (createOpen.value = false),
-)
-
-const initialTitle = computed(() => [...(props.group?.title ?? '')].slice(0, TASK_TITLE_MAX_LENGTH).join(''))
 
 const shownTask = computed(() => props.group?.task ?? taskOfGroup(props.groupId) ?? null)
-
-function onTaskCreated(task: Task): void {
-  setGroupTask(props.groupId, { id: task.id, key: task.key, status: task.status })
-  emit('task', task)
-  void nextTick(() => taskLink.value?.$el.focus())
-}
-
-async function onGroupTaken(): Promise<void> {
-  const target = props.groupId
-  try {
-    const loaded = await getLogGroup(props.projectId, target)
-    if (!loaded.task) throw new Error('no task')
-    setGroupTask(target, loaded.task)
-    if (target === props.groupId) void nextTick(() => taskLink.value?.$el.focus())
-    toast.info(t('notice.actions.taskExists', { key: loaded.task.key }))
-  } catch {
-    toast.error(t('notice.actions.taskExistsFailed'))
-  }
-}
 
 async function act(status: LogGroupStatus): Promise<void> {
   if (pending.value || !props.group) return
@@ -171,7 +141,6 @@ const eventText = computed(() => {
           </button>
           <RouterLink
             v-if="shownTask"
-            ref="taskLink"
             class="log-group-panel__secondary"
             data-test="group-task-link"
             :to="{ name: 'project-plan', params: { projectId }, query: { task: String(shownTask.id) } }"
@@ -183,22 +152,13 @@ const eventText = computed(() => {
             type="button"
             name="create-task"
             class="log-group-panel__secondary"
-            @click="createOpen = true"
+            @click="emit('createTask')"
           >
             <ListPlus :size="15" :stroke-width="1.8" aria-hidden="true" />
             {{ t('logGroup.createTask') }}
           </button>
         </div>
       </div>
-      <TaskCreateDialog
-        v-if="canCreateTask && !shownTask"
-        v-model:open="createOpen"
-        :project-id="projectId"
-        :initial-title="initialTitle"
-        :log-group-id="group.id"
-        @created="onTaskCreated"
-        @group-taken="onGroupTaken"
-      />
     </template>
   </aside>
 </template>
