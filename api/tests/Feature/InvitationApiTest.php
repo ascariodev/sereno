@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Events\ProjectMembersChanged;
 use App\Models\Invitation;
 use App\Models\Organization;
 use App\Models\Project;
@@ -11,6 +12,7 @@ use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
@@ -637,3 +639,25 @@ it('gives no project memberships to an invited admin or owner even when the pivo
 
     expect(DB::table('project_user')->count())->toBe(0);
 })->with(['admin', 'owner']);
+
+it('tells each assigned project once when the invitation is accepted', function () {
+    Event::fake([ProjectMembersChanged::class]);
+    $first = Project::factory()->create(['organization_id' => $this->organization->id]);
+    $second = Project::factory()->create(['organization_id' => $this->organization->id]);
+    $invitee = User::factory()->create(['email' => 'invitee@example.com']);
+    $invitation = Invitation::factory()->withPlainToken('plain')->create([
+        'organization_id' => $this->organization->id,
+        'invited_by' => $this->owner->id,
+        'email' => 'invitee@example.com',
+        'role' => 'member',
+    ]);
+    $invitation->projects()->attach([$first->id, $second->id]);
+    Sanctum::actingAs($invitee);
+
+    $this->postJson('/api/invitations/accept', ['token' => 'plain'])->assertOk();
+
+    Event::assertDispatchedTimes(ProjectMembersChanged::class, 2);
+    foreach ([$first, $second] as $project) {
+        Event::assertDispatched(ProjectMembersChanged::class, fn (ProjectMembersChanged $event) => $event->projectId === $project->id);
+    }
+});

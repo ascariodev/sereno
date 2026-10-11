@@ -203,3 +203,18 @@ it('does not tell the project anything when the assignment does not change', fun
 
     Event::assertNotDispatched(ProjectMembersChanged::class);
 });
+
+it('tells each project of the organization once when a member is removed from it', function () {
+    $other = Organization::factory()->create();
+    $other->addMember($this->member, [Role::Member]);
+    Project::factory()->for($other)->create()->addMember($this->member);
+    $unassigned = Project::factory()->for($this->organization)->create();
+
+    $this->organization->removeMember($this->member);
+
+    Event::assertDispatchedTimes(ProjectMembersChanged::class, 2);
+    foreach ([$this->project, $this->sibling] as $project) {
+        Event::assertDispatched(ProjectMembersChanged::class, fn (ProjectMembersChanged $event) => $event->projectId === $project->id);
+    }
+    Event::assertNotDispatched(ProjectMembersChanged::class, fn (ProjectMembersChanged $event) => $event->projectId === $unassigned->id);
+});

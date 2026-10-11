@@ -6,12 +6,14 @@ use App\Enums\Role;
 use App\Models\Channel;
 use App\Models\LogEvent;
 use App\Models\LogGroup;
+use App\Models\LogSource;
 use App\Models\Message;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
 use App\Support\LogPartitions;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -171,7 +173,32 @@ it('shows a group with its latest 50 events newest first without internal fields
         ->assertJsonMissingPath('data.events.0.log_group_id');
 
     expect(array_keys($response->json('data.events.0')))
-        ->toEqualCanonicalizing(['id', 'level', 'message', 'context', 'occurred_at', 'received_at']);
+        ->toEqualCanonicalizing(['id', 'level', 'message', 'context', 'occurred_at', 'received_at', 'source']);
+});
+
+it('names the source of each event without extra queries per event', function () {
+    $group = LogGroup::factory()->for($this->project)->create();
+    $source = LogSource::factory()->for($this->project)->create(['name' => 'api-prod']);
+    $first = insertGroupEvent($group, now()->startOfSecond()->subMinutes(5), 'with source');
+    $first->forceFill(['log_source_id' => $source->id])->save();
+    insertGroupEvent($group, now()->startOfSecond()->subMinutes(6), 'orphan');
+
+    $url = "/api/projects/{$this->project->id}/log-groups/{$group->id}";
+    $request = asGroupReader($this->users['member'], $this->organization);
+    $request->getJson($url)
+        ->assertJsonPath('data.events.0.source', 'api-prod')
+        ->assertJsonPath('data.events.1.source', null);
+
+    DB::enableQueryLog();
+    $request->getJson($url)->assertOk();
+    $queries = count(DB::getQueryLog());
+    foreach (range(1, 5) as $i) {
+        insertGroupEvent($group, now()->startOfSecond()->subMinutes(10 + $i), "more {$i}")
+            ->forceFill(['log_source_id' => $source->id])->save();
+    }
+    DB::flushQueryLog();
+    $request->getJson($url)->assertOk();
+    expect(count(DB::getQueryLog()))->toBe($queries);
 });
 
 it('omits events older than the retention window', function () {

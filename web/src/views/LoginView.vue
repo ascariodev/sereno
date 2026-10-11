@@ -119,7 +119,7 @@ async function submit(): Promise<void> {
             <p
               v-for="(message, index) in fieldErrors.email"
               :id="`login-email-error-${index}`"
-              :key="message"
+              :key="`${index}-${message}`"
               class="login__error"
               data-test="error-email"
             >
@@ -142,7 +142,7 @@ async function submit(): Promise<void> {
             <p
               v-for="(message, index) in fieldErrors.password"
               :id="`login-password-error-${index}`"
-              :key="message"
+              :key="`${index}-${message}`"
               class="login__error"
               data-test="error-password"
             >

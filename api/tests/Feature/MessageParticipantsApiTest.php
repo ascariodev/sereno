@@ -81,3 +81,19 @@ it('does not expose participants to a user outside the organization', function (
         ->getJson("/api/channels/{$this->channel->id}/messages")
         ->assertForbidden();
 });
+
+it('skips a reply author whose user row no longer exists', function () {
+    [$a, $gone] = User::factory()->count(2)->create();
+    $root = participantsMessage($this->channel);
+    participantsMessage($this->channel, $a->id, $root);
+    participantsMessage($this->channel, $gone->id, $root);
+
+    DB::transaction(function () use ($gone) {
+        DB::statement('SET LOCAL session_replication_role = replica');
+        DB::table('users')->where('id', $gone->id)->delete();
+    });
+
+    $data = participantsList()->assertOk()->json('data');
+
+    expect(collect($data)->keyBy('id')[$root]['recent_participants'])->toBe([['id' => $a->id, 'name' => $a->name]]);
+});

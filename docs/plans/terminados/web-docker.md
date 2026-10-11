@@ -219,4 +219,4 @@
   para no depender del umask del runner.
 - [x] M-11 (media, sonnet) — Conservar los assets del deploy anterior en `dist/assets/` (p. ej. borrar solo los de más
   de N deploys), para que una pestaña abierta con el `index.html` viejo no dé 404 al cargar rutas diferidas.
-- [ ] M-12 (baja, sonnet) — `.gitea/workflows/deploy-web.yml`: el `find` de poda de `dist/assets` falla con `set -e` si el directorio no existe; protegerlo con `[ -d ... ]` o `|| true`.
+- [x] M-12 (baja, sonnet) — `.gitea/workflows/deploy-web.yml`: el `find` de poda de `dist/assets` falla con `set -e` si el directorio no existe; protegerlo con `[ -d ... ]` o `|| true`.

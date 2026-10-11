@@ -73,7 +73,7 @@ type ChannelDeniedCallback = (organizationId: number, status: number | undefined
 
 let getToken: () => string | null | undefined = () => null
 let client: RealtimeClient | null = null
-const subscriptions = new Map<string, { client: RealtimeClient; callbacks: Set<Subscriber> }>()
+const subscriptions = new Map<string, { client: RealtimeClient; callbacks: Set<Subscriber>; events: string[] }>()
 let factory: () => RealtimeClient | null = createEchoClient
 const deniedCallbacks = new Set<ChannelDeniedCallback>()
 const authFailureStatuses = new Map<string, number>()
@@ -112,6 +112,7 @@ function subscribe(name: string, events: string[], handler: Subscriber, presence
   const current = client
   if (current === null) return () => {}
   let entry = subscriptions.get(name)
+  const openedEvents = entry?.events ?? []
   if (!entry || entry.client !== current) {
     const callbacks = new Set<Subscriber>()
     const channel = openChannel(current, name, presence)
@@ -129,10 +130,13 @@ function subscribe(name: string, events: string[], handler: Subscriber, presence
         }
       })
     }
-    entry = { client: current, callbacks }
+    entry = { client: current, callbacks, events: [...events] }
     subscriptions.set(name, entry)
     const created = entry
     channel?.error((payload) => handleSubscriptionError(name, created, payload))
+  }
+  else if (import.meta.env.DEV && events.some((event) => !openedEvents.includes(event))) {
+    console.warn(`Realtime channel "${name}" was opened listening to [${openedEvents.join(', ')}]; a later subscriber cannot add events.`)
   }
   const { callbacks } = entry
   const subscriber: Subscriber = handler

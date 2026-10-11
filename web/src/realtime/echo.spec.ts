@@ -34,6 +34,18 @@ describe('realtime', () => {
     setRealtimeTokenProvider(() => null)
   })
 
+  it('does not warn when a second subscriber of a channel asks for the same events', () => {
+    const { client } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const leaveFirst = subscribeToChannel(3, 7, {})
+    const leaveSecond = subscribeToChannel(3, 7, {})
+    expect(warn).not.toHaveBeenCalled()
+    leaveFirst()
+    leaveSecond()
+    warn.mockRestore()
+  })
+
   it('subscribes to the private channel and forwards message.created', () => {
     const { client, listeners } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)

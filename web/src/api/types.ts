@@ -54,6 +54,7 @@ export interface LogEvent {
   context: Record<string, unknown> | unknown[] | null
   occurred_at: string
   received_at: string
+  source?: string | null
 }
 
 export interface LogGroup {

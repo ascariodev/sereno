@@ -213,7 +213,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - [x] M-10 — `test_no_pisa_un_canal_definido_por_la_app` llama a `register()` a mano: definir el canal en
   `defineEnvironment` para seguir el orden real de arranque; y opcionalmente probar `vendor:publish --tag=sereno-config`.
   Complejidad: baja (sonnet).
-- [ ] M-11 — Con organización activa `null`, `clear()` deja `projects.loaded = false` y `IntegrationsView` mostraría
+- [x] M-11 — Con organización activa `null`, `clear()` deja `projects.loaded = false` y `IntegrationsView` mostraría
   "cargando" sin fin; hoy las rutas exigen organización. Complejidad: baja (sonnet).
 - [ ] M-12 — Si una recarga (cambio de proyecto u organización) cierra el diálogo de crear con la creación en vuelo,
   la fuente queda creada en el servidor y la key, que solo se ve una vez, se pierde: avisar o rotar. Caso raro.
@@ -221,5 +221,7 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
 - [ ] M-13 — Revocar es idempotente en el API (nunca 409 ni 422): `revokeConflict`, `revokeUnavailable`, la rama
   `revoke` de `unavailableKey` y el spec de revocar con 422 cubren un caso inalcanzable; quitarlos o dejarlos como
   defensa, a decidir. Complejidad: baja (sonnet).
-- [ ] M-14 — Paquete: test de precedencia del nivel (canal vacío con `sereno.level=error` da `Level::Error`) y test
+- [x] M-14 — Paquete: test de precedencia del nivel (canal vacío con `sereno.level=error` da `Level::Error`) y test
   que fije que un nivel inválido no vacío lanza. Complejidad: baja (sonnet).
+- [ ] M-15 — Paquete: un nivel inválido hoy lanza `UnhandledMatchError` (de `Level::fromName`); validar en
+  `CreateSerenoLogger` y lanzar `InvalidArgumentException` con el nombre del nivel. Complejidad: baja (sonnet).

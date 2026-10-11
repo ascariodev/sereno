@@ -56,6 +56,12 @@ describe('LogGroupPanel', () => {
     expect(event).not.toContain('older boom')
   })
 
+  it('shows the source of the latest event when it has one', () => {
+    expect(mountPanel().find('[data-test="event-source"]').exists()).toBe(false)
+    const events = [{ id: 2, level: 'error', message: 'x', context: null, occurred_at: '', received_at: '', source: 'api-prod' }]
+    expect(mountPanel({ group: group({ events }) }).find('[data-test="event-source"]').text()).toBe('Source api-prod')
+  })
+
   it('shows the sparkline of the last 24 h only when the series is available', async () => {
     const counts = Array.from({ length: 24 }, (_, index) => (index === 23 ? 4 : 0))
     const wrapper = mountPanel({ hourly: counts })

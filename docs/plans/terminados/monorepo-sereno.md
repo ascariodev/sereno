@@ -102,7 +102,7 @@
   `workspace-api` y `workspace-web` en Gitea, borrar o archivar `workspace-app`, y decidir si se borra el respaldo.
 
 ## Mejoras propuestas
-- [ ] M-1: renombrar `name` de `web/package.json` a `sereno-web` (toca también `package-lock.json`).
+- [x] M-1: renombrar `name` de `web/package.json` a `sereno-web` (toca también `package-lock.json`).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-2: versionar los hooks de graphify en `.githooks/` con `core.hooksPath` para que un clon nuevo los tenga.
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet

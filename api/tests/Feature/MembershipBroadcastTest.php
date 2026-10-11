@@ -91,6 +91,12 @@ it('broadcasts the new role to the affected user private channel when it changes
     });
 });
 
+it('does not broadcast a role change when the role is the same as the current one', function () {
+    $this->organization->changeMemberRole($this->member, Role::Member);
+
+    Event::assertNotDispatched(MembershipRoleChanged::class);
+});
+
 it('does not broadcast a role change when it would demote the last owner', function () {
     expect(fn () => $this->organization->changeMemberRole($this->owner, Role::Member))
         ->toThrow(LastOwnerException::class);

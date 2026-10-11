@@ -273,7 +273,7 @@ detalle del grupo, vista Log, Inicio, Login y layout móvil, sobre Reka UI envue
       Complejidad: media · Archivos: ~5 · Riesgo: contrato público → opus
 - [ ] M-4: lista de mensajes virtualizada (TanStack Virtual, ya viene con Reka) si la fase 25 no pasa.
       Complejidad: alta · Archivos: ~3 · Riesgo: ninguno → plan nuevo
-- [ ] M-5: nombre de la fuente en `LogEventResource` para mostrar «Fuente api-prod» en el panel.
+- [x] M-5: nombre de la fuente en `LogEventResource` para mostrar «Fuente api-prod» en el panel.
       Complejidad: baja · Archivos: ~3 · Riesgo: contrato público → sonnet
 - [x] M-6: barra lateral contraída (solo íconos con AppTooltip), como en el artboard Plan.
       Complejidad: baja · Archivos: ~3 · Riesgo: ninguno → sonnet
@@ -428,5 +428,5 @@ detalle del grupo, vista Log, Inicio, Login y layout móvil, sobre Reka UI envue
 - [x] M-58: `LogView.spec.ts`: el test "links the Channel and Log tabs" falló una vez al correr varios specs juntos (pasa suelto y en la suite); revisar el aislamiento del router y del store de organización entre tests. (No reproducido en 26 corridas; el test espera la navegación con `vi.waitFor` en vez de un solo `flushPromises`.)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 
-- [ ] M-59: `SystemNotice`: en la línea de `log.group_status_changed`, que el título del grupo sea un enlace que abra el panel (como en la tarjeta de aviso nuevo); hoy un test exige que la línea no tenga enlace.
+- [x] M-59: `SystemNotice`: en la línea de `log.group_status_changed`, que el título del grupo sea un enlace que abra el panel (como en la tarjeta de aviso nuevo); hoy un test exige que la línea no tenga enlace.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
