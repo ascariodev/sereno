@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12 (espera al usuario: publicar en Packagist)
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -105,7 +105,7 @@
 - **Archivos:** `web/src/components/LogSourceKeyDialog.vue`, i18n `en`/`es` (+ spec).
 - **Terminado cuando:** spec con la forma exacta de cada bloque copiado (L-51).
 
-### [ ] Fase 11 — Estado de conexión en el diálogo
+### [x] Fase 11 — Estado de conexión en el diálogo
 - **Alcance:** el diálogo recibe el estado de la fuente emitida y muestra "Esperando el primer evento…" con
   `aria-live` hasta que `last_used_at` deja de ser null, y entonces "Conectado". La vista pasa a `issuedSource` el
   `last_used_at` actualizado por el evento.
@@ -143,7 +143,10 @@
   la misma del plan). Las fases 12 y 13 esperan al usuario (publicación).
 
 ## Notas para la próxima sesión
-- Plan aprobado y en ejecución; worktrees creados (ver Decisiones).
+- Plan aprobado y en ejecución; worktrees creados (ver Decisiones). Fases 1 a 11 hechas; la rama del monorepo ya
+  se fusionó a `main` local una vez (346beb3). Retomar en la fase 12: el usuario publica el repo del paquete y lo
+  registra en Packagist; push de `main` y `v0.2.0` del paquete solo con su pedido (falta además el merge de
+  `feat/integracion-simple` a `main` del paquete).
 - Fase 1: `LICENSE` con titular genérico "2026 Sereno" (el usuario puede cambiarlo). README aún con el nombre viejo
   hasta la fase 5. Los commits del paquete van en su worktree; los del plan, en este.
 - Fase 2: `config/sereno.php` usa `env('SERENO_X', env('SERENO_LOG_X', default))`. Un `SERENO_KEY=` vacío tapa a
@@ -180,9 +183,8 @@
   paquete agrega `/api/ingest/events`). Claves i18n nuevas `keyDialog.install` y `copyInstall`.
 - Fase 11: código y specs revisados y commiteados (suite web 1337 en verde). La vista pasa al diálogo `shownSource`
   (computed: `issuedSource` con el `last_used_at` de su fila en `sources`); región `aria-live="polite"` estable con
-  `keyDialog.waiting`/`connected`; tokens `--level-info-*`. **Falta la prueba manual**: los contenedores corren el
-  checkout principal y la cola de `main` no conoce `LogSourceConnected`, así que requiere el merge a `main` (pedido del
-  usuario) y `docker compose restart queue`. La fase queda `[ ]` hasta hacerla.
+  `keyDialog.waiting`/`connected`; tokens `--level-info-*`. Prueba manual hecha tras el merge a `main` local (346beb3, sin push) y
+  `restart queue`: fuente nueva "Esperando el primer evento…", ingesta 202 con su key y "Conectado" sin recargar.
 
 ## Mejoras propuestas
 
