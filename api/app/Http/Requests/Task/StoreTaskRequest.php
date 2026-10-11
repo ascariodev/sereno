@@ -16,8 +16,6 @@ use Illuminate\Validation\Validator;
 
 class StoreTaskRequest extends FormRequest
 {
-    public const DESCRIPTION_MAX_LENGTH = 10000;
-
     /** Runs before the rules so a 422 never reveals members or log groups to outsiders. */
     public function authorize(): bool
     {
@@ -29,7 +27,7 @@ class StoreTaskRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'max:'.Task::TITLE_MAX_LENGTH, 'not_regex:/\x00/'],
-            'description' => ['nullable', 'string', 'max:'.self::DESCRIPTION_MAX_LENGTH, 'not_regex:/\x00/'],
+            'description' => ['nullable', 'string', 'max:'.Task::DESCRIPTION_MAX_LENGTH, 'not_regex:/\x00/'],
             'status' => ['nullable', Rule::enum(TaskStatus::class)],
             'assignee_id' => [
                 'nullable',

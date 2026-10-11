@@ -106,18 +106,12 @@ class TaskController extends Controller
 
     public function update(UpdateTaskRequest $request, Project $project, Task $task): TaskResource
     {
-        abort_unless($task->project_id === $project->id, 404);
-
         $data = $request->validated();
         $newAssigneeId = array_key_exists('assignee_id', $data) && $data['assignee_id'] !== null
             && (int) $data['assignee_id'] !== $task->assignee_id ? (int) $data['assignee_id'] : null;
 
         $apply = function () use ($task, $data) {
-            $task->fill(array_intersect_key($data, array_flip(['title', 'description'])));
-            if (array_key_exists('assignee_id', $data)) {
-                $task->assignee_id = $data['assignee_id'];
-            }
-            $task->save();
+            $task->fill($data)->save();
         };
 
         if ($newAssigneeId === null) {
