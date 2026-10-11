@@ -319,6 +319,12 @@ export interface LogSource {
   created_at: string
 }
 
+export interface LogSourceConnectedEvent {
+  id: number
+  project_id: number
+  last_used_at: string
+}
+
 /** Returned only when a key is issued (create, rotate): the plain `key` is never shown again. */
 export interface LogSourceWithKey extends LogSource {
   key: string

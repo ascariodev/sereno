@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -86,7 +86,7 @@
 - **Terminado cuando:** tests: primer uso emite (`Event::fake`), los siguientes no, tras rotar vuelve a emitir;
   `broadcastOn` es el canal del proyecto. Suite completa del API en verde (L-49).
 
-### [ ] Fase 8 — Suscripción a log_source.connected en la web
+### [x] Fase 8 — Suscripción a log_source.connected en la web
 - **Alcance:** `subscribeToProject` acepta `onLogSourceConnected(payload)`, con type guard de la forma (L-13); el fake
   de tiempo real lo soporta.
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/test/fakeRealtimeClient.ts`, `web/src/api/types.ts` (+ spec).
@@ -168,6 +168,9 @@
   `LogSourceResource`). El primer uso encola el broadcast: `LogIngestApiTest` afirma `assertNotPushed(IngestLogEvents)`.
   Incidente: las corridas de las fases 6 y 7 sin `DB_DATABASE=workspace_test` vaciaron la base de desarrollo; se
   reconstruyó con `migrate:fresh --seed` por pedido del usuario (L-54).
+- Fase 8: `ProjectSubscriptionHandlers.onLogSourceConnected?: (event: LogSourceConnectedEvent) => void`; tipo
+  `LogSourceConnectedEvent` en `api/types.ts`; constante `LOG_SOURCE_CONNECTED_EVENT`. El fake de tiempo real es
+  genérico (`canal|evento`) y no necesitó cambios.
 
 ## Mejoras propuestas
 
