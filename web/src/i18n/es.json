@@ -344,7 +344,8 @@
     "failed": "No se pudo subir el archivo.",
     "rateLimited": "Estás subiendo demasiado rápido. Inténtalo de nuevo en un momento.",
     "download": "Descargar",
-    "previewUnavailable": "La vista previa ya no está disponible."
+    "previewUnavailable": "La vista previa ya no está disponible.",
+    "openFailed": "No se pudo abrir el archivo. Puede que ya no esté disponible."
   },
   "mentions": {
     "title": "Menciones",

@@ -5,6 +5,7 @@ import { ApiError } from '../api/client'
 import { i18n } from '../i18n'
 import type { MessageAttachment } from '../api/types'
 import MessageAttachments from './MessageAttachments.vue'
+import { toast, toasts } from './ui/toast'
 
 const image: MessageAttachment = {
   id: 1, original_name: 'foto.png', mime: 'image/png', size: 2048, created_at: '2026-03-04T10:30:00Z', url: 'http://api/attachments/1?sig=a',
@@ -20,7 +21,10 @@ function render(attachments: MessageAttachment[]) {
 let renew: ReturnType<typeof vi.spyOn>
 
 describe('MessageAttachments', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    vi.restoreAllMocks()
+    toast.clear()
+  })
 
   beforeEach(() => {
     i18n.global.locale.value = 'en'
@@ -151,5 +155,81 @@ describe('MessageAttachments', () => {
     const fresh = { ...image, url: 'http://api/attachments/1?sig=new' }
     await w.setProps({ attachments: [fresh] })
     expect(w.get('img').attributes('src')).toBe(fresh.url)
+  })
+
+  describe('click', () => {
+    const fresh = { url: 'http://api/attachments/1?sig=fresh', expires_at: '2026-03-04T10:35:00Z' }
+
+    function fakeWindow() {
+      const win = { opener: {} as unknown, location: { href: '' }, close: vi.fn() }
+      const open = vi.spyOn(window, 'open').mockReturnValue(win as unknown as Window)
+      return { win, open }
+    }
+
+    it('opens a window in the gesture and points it to a fresh url', async () => {
+      renew.mockResolvedValue(fresh)
+      const { win, open } = fakeWindow()
+      const w = render([image])
+      await w.get('a').trigger('click')
+      expect(open).toHaveBeenCalledExactlyOnceWith('', '_blank')
+      expect(win.opener).toBeNull()
+      await flushPromises()
+      expect(renew).toHaveBeenCalledExactlyOnceWith(1)
+      expect(win.location.href).toBe(fresh.url)
+      expect(win.close).not.toHaveBeenCalled()
+    })
+
+    it('closes the window and shows a toast when the url cannot be renewed', async () => {
+      const { win } = fakeWindow()
+      const w = render([image])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(win.location.href).toBe('')
+      expect(win.close).toHaveBeenCalledOnce()
+      expect(toasts.value.map((item) => [item.kind, item.message])).toEqual([
+        ['error', 'Could not open the file. It may no longer be available.'],
+      ])
+    })
+
+    it('leaves native behaviour for modified clicks', async () => {
+      const { open } = fakeWindow()
+      const w = render([image])
+      const a = w.get('a')
+      await a.trigger('click', { ctrlKey: true })
+      await a.trigger('click', { metaKey: true })
+      await a.trigger('click', { shiftKey: true })
+      await a.trigger('click', { button: 1 })
+      expect(open).not.toHaveBeenCalled()
+      expect(renew).not.toHaveBeenCalled()
+    })
+
+    it('navigates to a fresh url from the download link', async () => {
+      renew.mockResolvedValue({ ...fresh, url: 'http://api/attachments/2?sig=fresh' })
+      const assign = vi.fn()
+      vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, assign } as Location)
+      const w = render([pdf])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(renew).toHaveBeenCalledExactlyOnceWith(2)
+      expect(assign).toHaveBeenCalledExactlyOnceWith('http://api/attachments/2?sig=fresh')
+    })
+
+    it('shows a toast when the download url cannot be renewed', async () => {
+      const assign = vi.fn()
+      vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, assign } as Location)
+      const w = render([pdf])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(assign).not.toHaveBeenCalled()
+      expect(toasts.value).toHaveLength(1)
+    })
+
+    it('uses the renewed url as the fallback href', async () => {
+      renew.mockResolvedValue({ ...fresh, url: 'http://api/attachments/1?sig=renewed' })
+      const w = render([image])
+      await w.get('img').trigger('error')
+      await flushPromises()
+      expect(w.get('a').attributes('href')).toBe('http://api/attachments/1?sig=renewed')
+    })
   })
 })

@@ -2,7 +2,7 @@
 
 **Objetivo:** que una URL firmada de un adjunto deje de servir poco después de que la persona pierde el acceso: la web
 pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el TTL baja de 60 a pocos minutos.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 
 ## Contexto mínimo
 - Apps afectadas: `api/` y `web/` (los commits van con `git` en la raíz del monorepo). Origen: acceso-proyectos M-2.
@@ -59,7 +59,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 
   `vue-tsc -b` limpio.
 
-### [ ] Fase 3 — Enlaces que piden una URL nueva al hacer clic
+### [x] Fase 3 — Enlaces que piden una URL nueva al hacer clic
 - **Alcance:**
   - El clic en la miniatura y en el enlace de descarga pide antes una URL fresca y abre esa.
   - La ventana se abre en el mismo gesto, antes del `await`, para no chocar con el bloqueador de popups.
@@ -105,10 +105,16 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
   por id (`retried`, `renewed`, `failed`) con la URL del store a la que se refieren: una URL nueva del store para el mismo
   id (p. ej. `MessageUpdated`) rearma el reintento y descarta la renovada (L-39). Una renovación que llega tras cambiar la
   URL del store se ignora (`from !== a.url`). Una sola renovación por URL del store.
+- 2026-10-11 (Fase 3) Clic en la miniatura: `window.open('', '_blank')` en el gesto, `opener = null`, y luego
+  `location.href` con la URL nueva; si `window.open` devolvió null, respaldo `window.open(url, '_blank', 'noopener')`.
+  El enlace de descarga hace `location.assign(url)` en la misma pestaña, como antes. Cualquier error cierra la ventana y
+  muestra el toast `attachments.openFailed`. Clic con ctrl, meta, shift, alt o botón distinto de 0 queda nativo (el medio
+  dispara `auxclick`). El `href` de respaldo de ambos enlaces usa `previewUrl(a)` (renovada si existe).
 
 ## Notas para la próxima sesión
-- Fases 1 y 2 hechas. Siguiente: fase 3; reutilizar `getAttachmentUrl`. El `href` estático sigue con `a.url` del store
-  (no `previewUrl(a)`): decidir en la fase 3 si el respaldo usa la renovada.
+- Fases 1 a 3 hechas. Siguiente: fase 4 [riesgo]. Pendiente de verificar en el navegador: bloqueador de popups y
+  descarga en la misma pestaña (solo hay specs con `window.open` y `location` simulados). El texto de `.env.example` lo
+  cambia el usuario.
 
 ## Mejoras propuestas
 </content>
@@ -122,3 +128,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
   entradas cuya URL del store ya cambió: tras un fallo y una URL nueva que carga bien sigue visible. Filtrar `failed`
   contra las URLs actuales (ya pasaba con el `Set`).
 - [ ] M-4 (baja, sonnet): extraer el tipo `{ url; expires_at }` de `getAttachmentUrl` a una interfaz en `web/src/api/types.ts`.
+- [ ] M-5 (baja, sonnet): en `MessageAttachments.vue`, si `window.open` devolvió null y el respaldo tras el `await`
+  también (Safari lo bloquea), mostrar un toast en vez de no hacer nada.
+- [ ] M-6 (baja, sonnet): distinguir el 404 de un error de red o 500 en el toast de apertura (hoy siempre "puede que ya
+  no esté disponible"); requiere una clave i18n nueva.

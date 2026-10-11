@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import type { MessageAttachment } from '../api/types'
 import { getAttachmentUrl } from '../api/messages'
 import { formatFileSize } from '../formatFileSize'
+import { toast } from './ui/toast'
 
 defineProps<{ attachments: MessageAttachment[] }>()
 
@@ -38,6 +39,36 @@ async function onPreviewError(a: MessageAttachment) {
     failed.set(a.id, a.url)
   }
 }
+
+function isPlainClick(event: MouseEvent): boolean {
+  return event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey
+}
+
+async function openFresh(event: MouseEvent, a: MessageAttachment) {
+  if (!isPlainClick(event)) return
+  event.preventDefault()
+  const win = window.open('', '_blank')
+  if (win) win.opener = null
+  try {
+    const { url } = await getAttachmentUrl(a.id)
+    if (win) win.location.href = url
+    else window.open(url, '_blank', 'noopener')
+  } catch {
+    win?.close()
+    toast.error(t('attachments.openFailed'))
+  }
+}
+
+async function downloadFresh(event: MouseEvent, a: MessageAttachment) {
+  if (!isPlainClick(event)) return
+  event.preventDefault()
+  try {
+    const { url } = await getAttachmentUrl(a.id)
+    window.location.assign(url)
+  } catch {
+    toast.error(t('attachments.openFailed'))
+  }
+}
 </script>
 
 <template>
@@ -45,7 +76,14 @@ async function onPreviewError(a: MessageAttachment) {
   <span class="message-attachments__sr" role="status">{{ notice }}</span>
   <ul class="message-attachments" :aria-label="t('attachments.list')">
     <li v-for="a in attachments" :key="a.id" class="message-attachment">
-      <a v-if="showsPreview(a)" class="message-attachment__thumb" :href="a.url" target="_blank" rel="noopener">
+      <a
+        v-if="showsPreview(a)"
+        class="message-attachment__thumb"
+        :href="previewUrl(a)"
+        target="_blank"
+        rel="noopener"
+        @click="openFresh($event, a)"
+      >
         <img :src="previewUrl(a)" :alt="a.original_name" loading="lazy" @error="onPreviewError(a)" />
       </a>
       <template v-else>
@@ -57,8 +95,9 @@ async function onPreviewError(a: MessageAttachment) {
           <span class="message-attachment__size">{{ formatFileSize(a.size) }}</span>
           <a
             class="message-attachment__download"
-            :href="a.url"
+            :href="previewUrl(a)"
             rel="noopener"
+            @click="downloadFresh($event, a)"
             :aria-label="`${t('attachments.download')}: ${a.original_name}`"
           >{{ t('attachments.download') }}</a>
         </div>
