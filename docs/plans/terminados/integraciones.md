@@ -223,5 +223,5 @@ ingesta con un paquete Composer reutilizable (`ascario/sereno-laravel`) extraíd
   defensa, a decidir. Decisión del usuario (2026-10-11): quitarlos. Complejidad: baja (sonnet).
 - [x] M-14 — Paquete: test de precedencia del nivel (canal vacío con `sereno.level=error` da `Level::Error`) y test
   que fije que un nivel inválido no vacío lanza. Complejidad: baja (sonnet).
-- [ ] M-15 — Paquete: un nivel inválido hoy lanza `UnhandledMatchError` (de `Level::fromName`); validar en
-  `CreateSerenoLogger` y lanzar `InvalidArgumentException` con el nombre del nivel. Complejidad: baja (sonnet).
+- [x] M-15 — Paquete: un nivel inválido hoy lanza `UnhandledMatchError` (de `Level::fromName`); validar en
+  `CreateSerenoLogger` y lanzar `InvalidArgumentException` con el nombre del nivel. Complejidad: baja (sonnet). Aplicada en sereno-laravel 1f13131.
