@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\LogGroup;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
@@ -108,4 +109,46 @@ it('makes the move wait for the project lock and for the column rows held on ano
         ->assertOk()
         ->assertJsonPath('data.status', 'in_progress')
         ->assertJsonPath('data.position', 5);
+});
+
+it('makes the move into done wait for the log group row that ingestion holds', function () {
+    $organization = Organization::factory()->create();
+    $user = User::factory()->create();
+    $this->concCreated['orgs'][] = $organization->id;
+    $this->concCreated['users'][] = $user->id;
+    $organization->users()->attach($user->id);
+    app(CurrentOrganization::class)->set($organization);
+
+    $project = Project::factory()->for($organization)->create(['tasks_resolve_log_groups' => true]);
+    $group = LogGroup::factory()->for($project)->create();
+    $task = concurrentTask($project, 'in_review', 1.0);
+    $task->log_group_id = $group->id;
+    $task->save();
+
+    Gate::before(fn () => true);
+    Sanctum::actingAs($user);
+    $this->withoutExceptionHandling();
+    $writer = DB::connection('conc_b');
+
+    // Ingestion's ON CONFLICT update holds the group row (NO KEY UPDATE) until it commits.
+    $writer->beginTransaction();
+    $writer->table('log_groups')->where('id', $group->id)->lock('for no key update')->first();
+
+    DB::statement("SET lock_timeout = '300ms'");
+    try {
+        concurrentMove($organization, $project, $task, ['status' => 'done']);
+        $this->fail('The move should have waited for the log group lock.');
+    } catch (QueryException $e) {
+        expect($e->getCode())->toBe('55P03');
+    } finally {
+        DB::statement('RESET lock_timeout');
+    }
+
+    expect(DB::table('tasks')->where('id', $task->id)->value('status'))->toBe('in_review')
+        ->and(DB::table('log_groups')->where('id', $group->id)->value('status'))->toBe('open');
+    $writer->rollBack();
+
+    concurrentMove($organization, $project, $task, ['status' => 'done'])
+        ->assertOk()
+        ->assertJsonPath('data.log_group.status', 'resolved');
 });

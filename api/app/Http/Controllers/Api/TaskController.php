@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\PostLogGroupStatusNotice;
+use App\Enums\LogGroupStatus;
 use App\Enums\TaskStatus;
 use App\Events\TaskAssigned;
 use App\Events\TaskCreated;
@@ -14,6 +16,7 @@ use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Requests\Task\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
 use App\Models\Channel;
+use App\Models\LogGroup;
 use App\Models\Message;
 use App\Models\Project;
 use App\Models\Task;
@@ -228,22 +231,35 @@ class TaskController extends Controller
         return response()->noContent();
     }
 
-    public function move(MoveTaskRequest $request, Project $project, Task $task): TaskResource
+    public function move(MoveTaskRequest $request, Project $project, Task $task, PostLogGroupStatusNotice $postGroupNotice): TaskResource
     {
         abort_unless($task->project_id === $project->id, 404);
 
         $status = $request->taskStatus();
         $beforeId = $request->beforeId();
         $afterId = $request->afterId();
+        $actor = $request->user();
 
         $renumbered = [];
 
-        $task = DB::transaction(function () use ($project, $task, $status, $beforeId, $afterId, &$renumbered) {
+        $task = DB::transaction(function () use ($project, $task, $status, $beforeId, $afterId, $actor, $postGroupNotice, &$renumbered) {
             // Same lock as store() takes with its UPDATE: creations and moves of the project are serialized, so no
             // task enters the target column while it is read. NO KEY keeps inserts that reference the project free.
-            $this->lockActiveProject($project, __('This project is archived and its tasks cannot be moved.'));
+            $projectRow = $this->lockActiveProject($project, __('This project is archived and its tasks cannot be moved.'));
+
+            // The group goes before the task: retention deletes groups and then nulls their tasks (group, then task),
+            // and ingestion's upsert holds only the group (project and source just FOR KEY SHARE, which this NO KEY
+            // project lock lets through), so neither can close a cycle with this transaction.
+            $group = $projectRow->tasks_resolve_log_groups && $status === TaskStatus::Done && $task->log_group_id !== null
+                ? LogGroup::query()
+                    ->whereKey($task->log_group_id)
+                    ->where('project_id', $project->id)
+                    ->lock('for no key update')
+                    ->first()
+                : null;
 
             $task = Task::query()->whereKey($task->id)->lockForUpdate()->firstOrFail();
+            $entersDone = $status === TaskStatus::Done && $task->status !== TaskStatus::Done;
 
             $column = Task::query()
                 ->where('project_id', $project->id)
@@ -278,6 +294,12 @@ class TaskController extends Controller
             $task->position = $position;
             $task->save();
 
+            if ($entersDone && $group?->status === LogGroupStatus::Open && $task->log_group_id === $group->id) {
+                $group->status = LogGroupStatus::Resolved;
+                $group->save();
+                $postGroupNotice($group, LogGroupStatus::Open, $actor);
+            }
+
             return $task;
         });
 
@@ -295,13 +317,18 @@ class TaskController extends Controller
      * Locks the project row and re-checks, now that archiving cannot interleave, that it is still active: the request
      * validated it before the transaction. NO KEY keeps inserts that reference the project free.
      */
-    private function lockActiveProject(Project $project, string $archivedMessage): void
+    private function lockActiveProject(Project $project, string $archivedMessage): object
     {
-        $row = DB::table('projects')->where('id', $project->id)->lock('for no key update')->first(['archived_at']);
+        $row = DB::table('projects')
+            ->where('id', $project->id)
+            ->lock('for no key update')
+            ->first(['archived_at', 'tasks_resolve_log_groups']);
 
         if ($row === null || $row->archived_at !== null) {
             throw ValidationException::withMessages(['project' => $archivedMessage]);
         }
+
+        return $row;
     }
 
     /**

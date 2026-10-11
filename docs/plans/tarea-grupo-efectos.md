@@ -2,7 +2,7 @@
 
 **Objetivo:** en los proyectos que lo activen, mover a Hecho una tarea creada desde un aviso resuelve su grupo de log, y
 si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. Origen: plan-tareas M-5 (y canales M-19).
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -52,7 +52,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
 - **Archivos:** `api/app/Http/Controllers/Api/LogGroupController.php`, la acción nueva.
 - **Terminado cuando:** `LogGroupApiTest` y `LogGroupTaskApiTest` pasan sin cambios, y pint.
 
-### [ ] Fase 3 — Hecho resuelve el grupo [riesgo]
+### [x] Fase 3 — Hecho resuelve el grupo [riesgo]
 - **Alcance:**
   - En `TaskController::move`, dentro de la transacción: si el proyecto tiene el ajuste, la tarea pasa de otro estado a
     `done` y su grupo está `open`, el grupo pasa a `resolved` y se publica `log.group_status_changed` con la acción de
@@ -119,9 +119,14 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
   `$attributes` default false, para que el POST devuelva false sin recargar.
 - 2026-10-11: el trabajo va en el worktree `feat/tarea-grupo-efectos`. Como los contenedores montan el checkout
   principal, los tests del API se corren con `.claude/worktrees/t.sh` (contenedor desechable con el api del worktree).
+- 2026-10-11 (fase 3): orden de bloqueos en `TaskController::move`: proyecto (NO KEY UPDATE), grupo (FOR NO KEY UPDATE,
+  no FOR UPDATE: serializa con la ingesta y el PATCH sin frenar los KEY SHARE de las FK), tarea (FOR UPDATE), columna.
+  Grupo antes que tarea por la retención (borra grupo y luego el `nullOnDelete` toca la tarea). El ajuste se lee de la
+  fila bloqueada del proyecto (`lockActiveProject` la devuelve). Resolver y avisar va después de guardar la tarea.
 
 ## Notas para la próxima sesión
-- Seguir con la fase 3. La acción es `App\Actions\PostLogGroupStatusNotice::__invoke(LogGroup $group, LogGroupStatus $previousStatus, User $actor)` (se resuelve con `app()` o por inyección). La web (fase 6) muestra el interruptor solo a owner/admin. Leer `docs/lecciones.md` (L-41 concurrencia, L-42 condiciones en el worker, L-49 suite completa
-  al tocar accesos o transacciones, L-13 guards de payload).
+- Seguir con la fase 4. En `LogGroupController::update` el estado previo se lee sin bloquear: para evaluar "de resolved
+  a open" bloquear el grupo (FOR NO KEY UPDATE) dentro de la transacción, sin tomar la tarea antes que el grupo.
+- Leer `docs/lecciones.md` (L-41 concurrencia, L-42 condiciones en el worker, L-49 suite completa, L-13 guards).
 
 ## Mejoras propuestas
