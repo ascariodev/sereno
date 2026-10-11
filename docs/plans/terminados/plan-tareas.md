@@ -265,7 +265,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   solapados de `PlanView.spec` y revisar el layout en el navegador a 1024 px y en móvil.
 - [x] M-22 (baja, sonnet): filtros: reindentar el `<template v-else>` de `PlanView.vue`, icono de actividad en
   "Desde avisos" (diseño) y reescribir un `?filter=` inválido.
-- [ ] M-23 (baja, sonnet): `TaskCreateDialog`: alternativa de foco cuando `document.activeElement` es `body` al abrir
+- [x] M-23 (baja, sonnet): `TaskCreateDialog`: alternativa de foco cuando `document.activeElement` es `body` al abrir
   (Safari no enfoca botones al hacer clic).
 - [x] M-24 (baja, sonnet): `TaskAside.spec`: sembrar usuario autenticado y restaurar `window.matchMedia`;
   `PlanView.spec`: borrado en vivo con el panel abierto quita `?task=` y conserva `?filter=`.

@@ -38,6 +38,13 @@ const fieldErrors = ref<Record<string, string[]>>({})
 const formError = ref<string | null>(null)
 let generation = 0
 let opener: HTMLElement | null = null
+let lastClicked: HTMLElement | null = null
+
+function rememberClick(event: Event): void {
+  lastClicked = event.target instanceof Element ? event.target.closest<HTMLElement>('button, a, [tabindex]') : null
+}
+
+document.addEventListener('click', rememberClick, true)
 
 const FIELDS = ['title', 'description', 'assignee_id'] as const
 type Field = (typeof FIELDS)[number]
@@ -71,7 +78,8 @@ watch(
   open,
   (value) => {
     if (value) {
-      opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+      const active = document.activeElement
+      opener = active instanceof HTMLElement && active !== document.body ? active : lastClicked
       reset()
       void directory.ensureLoaded(props.projectId)
       void nextTick(() => titleInput.value?.focus())
@@ -91,6 +99,7 @@ watch(
 )
 
 onUnmounted(() => {
+  document.removeEventListener('click', rememberClick, true)
   generation++
 })
 

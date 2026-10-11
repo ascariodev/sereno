@@ -97,6 +97,17 @@ describe('TaskCreateDialog', () => {
     expect(document.activeElement).toBe(wrapper.get('#opener').element)
   })
 
+  it('returns focus to the clicked button when the browser did not focus it (Safari)', async () => {
+    const { wrapper } = mountHost()
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    expect(document.activeElement).toBe(document.body)
+    await wrapper.get('#opener').trigger('click')
+    await flushPromises()
+    q<HTMLButtonElement>('[data-test=cancel]')!.click()
+    await flushPromises()
+    expect(document.activeElement).toBe(wrapper.get('#opener').element)
+  })
+
   it('rejects empty and too long values counting characters, not UTF-16 units', async () => {
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: task } as never)
     const { wrapper } = mountHost()
