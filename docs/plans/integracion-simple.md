@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -37,7 +37,7 @@
 - **Terminado cuando:** la suite pasa y `grep -ri ascario src tests composer.json` queda vacío (el README se rehace
   en la fase 5).
 
-### [ ] Fase 2 — Variables SERENO_KEY y SERENO_URL
+### [x] Fase 2 — Variables SERENO_KEY y SERENO_URL
 - **Alcance:** `config/sereno.php` lee `SERENO_KEY`, `SERENO_URL`, `SERENO_TIMEOUT`, `SERENO_LEVEL`,
   `SERENO_FALLBACK_CHANNEL`, con respaldo en las `SERENO_LOG_*` (compatibilidad con posveapi). `url` toma por defecto
   la constante `SerenoServiceProvider::DEFAULT_URL` (hoy `null`: hasta definir el dominio del SaaS, sin URL no envía).
@@ -141,8 +141,14 @@
 - Plan aprobado y en ejecución; worktrees creados (ver Decisiones).
 - Fase 1: `LICENSE` con titular genérico "2026 Sereno" (el usuario puede cambiarlo). README aún con el nombre viejo
   hasta la fase 5. Los commits del paquete van en su worktree; los del plan, en este.
+- Fase 2: `config/sereno.php` usa `env('SERENO_X', env('SERENO_LOG_X', default))`. Un `SERENO_KEY=` vacío tapa a
+  `SERENO_LOG_KEY` (env solo cae al respaldo si la variable no existe): `sereno:install` nunca escribe valores vacíos.
+  Con `DEFAULT_URL` null, `config('sereno.url')` es null: la fase 4 lo trata como "sin URL".
 
 ## Mejoras propuestas
 
 - M-1: Ordenar alfabéticamente los `use` de `tests/Unit/Logging/EventFormatterTest.php` (paquete; `Sereno\` quedó antes
   de `Monolog\`). Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+
+- M-2: Agregar `.gitattributes` al paquete (`* text=auto eol=lf`) para evitar ruido LF/CRLF en Windows.
+  Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
