@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -53,7 +53,7 @@
 - **Terminado cuando:** tests sobre un `.env` temporal: alta, reemplazo, `LOG_STACK` vacío, con otros canales, ya con
   `sereno`, y clave inválida.
 
-### [ ] Fase 4 — Evento de prueba al instalar
+### [x] Fase 4 — Evento de prueba al instalar
 - **Alcance:** `sereno:install` termina enviando un evento de prueba directo al endpoint de ingesta con la key y URL
   recién escritas y reporta el resultado: 202 conectado, 401 key inválida o revocada, error de red. Comando
   `sereno:test` con el mismo envío para usar después. `--no-test` lo omite.
@@ -148,6 +148,11 @@
   backtick); soporta `.env` en CRLF; `LOG_STACK` ausente se toma como `single`. Agrega `illuminate/console ^13.0`.
   Para la fase 4: el install pasa `$key` y `$url` directo al tester (la config del proceso no ve el `.env` recién
   escrito); `sereno:test` usa `config('sereno.key')` y `config('sereno.url')`. Mensajes de consola en inglés.
+- Fase 4: `ConnectionTester::test(?url, ?key)` envía `POST {url}/api/ingest/events` (Bearer) con un evento `info`
+  "Sereno connection test" armado por `EventFormatter`; estados `connected|unauthorized|no_url|no_key|failed`, timeout 5 s.
+  `sereno:test` sale FAILURE si no conecta; `sereno:install` sale SUCCESS aunque la prueba falle (el `.env` ya quedó
+  escrito): el README de la fase 5 lo dice, junto con `sereno:test` y `--no-test`. URL efectiva del install: `--url`,
+  luego `SERENO_URL` del `.env`, luego `config('sereno.url')`.
 
 ## Mejoras propuestas
 
@@ -159,3 +164,6 @@
 
 - M-3: `sereno:install` ignora comentarios en línea (`LOG_STACK="a,b" # nota`) y detecta `export NAME=` o espacios
   antes del `=` para no duplicar la variable. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+
+- M-4: Compartir `INGEST_PATH` entre `ConnectionTester` y `SerenoLogHandler` (paquete) y enviar la prueba con
+  `withoutRedirecting()` para que una redirección dé un mensaje claro. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
