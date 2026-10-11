@@ -6,6 +6,7 @@ import { createLogSource } from '../api/logSources'
 import type { LogSourceWithKey } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
 import AppDialog from './ui/AppDialog.vue'
+import { toast } from './ui/toast'
 
 const NAME_MAX_LENGTH = 255
 
@@ -78,7 +79,10 @@ async function submit(): Promise<void> {
   submitting.value = true
   try {
     const source = await createLogSource(props.projectId, trimmed)
-    if (current !== generation) return
+    if (current !== generation) {
+      toast.error(t('createLogSource.keyLost', { name: source.name }))
+      return
+    }
     open.value = false
     emit('created', source)
   } catch (error) {

@@ -166,6 +166,7 @@
     "nameTooLong": "El nombre admite como máximo {max} caracteres.",
     "forbidden": "No tienes permiso para crear fuentes de log.",
     "network": "No se pudo contactar con el servidor.",
+    "keyLost": "La fuente de log \"{name}\" se creó pero no se pudo mostrar su clave. Rota su clave desde la página de integraciones de su proyecto.",
     "failed": "No se pudo crear la fuente de log. Inténtalo de nuevo.",
     "cancel": "Cancelar",
     "submit": "Crear",

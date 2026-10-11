@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, ref } from 'vue'
 import { api, ApiError } from '../api/client'
 import { i18n } from '../i18n'
+import { toast } from './ui/toast'
 import CreateLogSourceDialog from './CreateLogSourceDialog.vue'
 
 enableAutoUnmount(afterEach)
@@ -102,15 +103,19 @@ describe('CreateLogSourceDialog', () => {
   it('does not emit or close when unmounted with the request pending', async () => {
     let resolve: (value: unknown) => void = () => undefined
     vi.spyOn(api, 'post').mockImplementation(() => new Promise((r) => (resolve = r)) as never)
+    const error = vi.spyOn(toast, 'error').mockReturnValue(1)
     const { mounted, open, onCreated } = mountHost()
     await flushPromises()
     await type('API')
     await submit()
+    expect(error).not.toHaveBeenCalled()
     mounted.value = false
     await flushPromises()
     resolve({ data: created })
     await flushPromises()
     expect(onCreated).not.toHaveBeenCalled()
     expect(open.value).toBe(true)
+    expect(error).toHaveBeenCalledTimes(1)
+    expect(error.mock.calls[0][0]).toContain('"API"')
   })
 })
