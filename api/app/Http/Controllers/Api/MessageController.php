@@ -20,7 +20,9 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class MessageController extends Controller
 {
@@ -143,7 +145,11 @@ class MessageController extends Controller
 
         $removed = [];
 
-        DB::transaction(function () use ($request, $channel, &$message, $mentions, $body, &$edited, &$removed) {
+        $removeIds = $request->validated('remove_attachment_ids', []);
+
+        $files = collect();
+
+        DB::transaction(function () use ($request, $channel, &$message, $mentions, $body, &$edited, &$removed, $removeIds, &$files) {
             // Same order as MessageDeletion (root, then reply). The row is reread after the lock: a delete or
             // another edit committed while waiting must not be overwritten with the stale bound model.
             if ($message->parent_id !== null) {
@@ -154,7 +160,16 @@ class MessageController extends Controller
             abort_if($locked === null, 404);
             $message = $locked;
 
-            if (($message->body ?? '') !== ($body ?? '')) {
+            if ($removeIds !== []) {
+                $files = MessageAttachment::query()->where('message_id', $message->id)->whereIn('id', $removeIds)->get(['id', 'disk', 'path']);
+                MessageAttachment::query()->whereIn('id', $files->pluck('id'))->delete();
+
+                if (($body ?? '') === '' && ! $message->attachments()->exists()) {
+                    throw ValidationException::withMessages(['body' => __('A message without text must keep at least one attachment.')]);
+                }
+            }
+
+            if (($message->body ?? '') !== ($body ?? '') || $files->isNotEmpty()) {
                 $edited = true;
                 $message->body = $body;
                 $message->edited_at = now();
@@ -163,6 +178,14 @@ class MessageController extends Controller
 
             $removed = $mentions->sync($message, $mentions->target($channel, $body, $request->user()->id))['removed'];
         });
+
+        foreach ($files as $file) {
+            try {
+                Storage::disk($file->disk)->delete($file->path);
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
 
         $message->load(self::RELATIONS);
         self::loadParticipants([$message]);

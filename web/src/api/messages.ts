@@ -27,8 +27,14 @@ export async function sendReply(
   return response.data
 }
 
-export async function updateMessage(channelId: number, messageId: number, body: string): Promise<Message> {
-  const response = await api.patch<DataEnvelope<Message>>(`/api/channels/${channelId}/messages/${messageId}`, { body })
+export async function updateMessage(
+  channelId: number,
+  messageId: number,
+  body: string,
+  removeAttachmentIds: number[] = [],
+): Promise<Message> {
+  const payload = removeAttachmentIds.length > 0 ? { body, remove_attachment_ids: removeAttachmentIds } : { body }
+  const response = await api.patch<DataEnvelope<Message>>(`/api/channels/${channelId}/messages/${messageId}`, payload)
   return response.data
 }
 

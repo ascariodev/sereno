@@ -174,6 +174,61 @@ describe('MessageEditor', () => {
     expect(patch).toHaveBeenCalledWith('/api/channels/7/messages/9', { body: '' })
   })
 
+  describe('removing attachments', () => {
+    const files = [
+      { id: 1, original_name: 'a.pdf', mime: 'application/pdf', size: 1, created_at: '', url: 'x' },
+      { id: 2, original_name: 'b.pdf', mime: 'application/pdf', size: 1, created_at: '', url: 'y' },
+    ]
+    const removeButtons = (wrapper: ReturnType<typeof mountEditor>['wrapper']) => wrapper.findAll('button[name="remove-attachment"]')
+
+    it('marks attachments, sends remove_attachment_ids and restores them when toggled back', async () => {
+      const patch = vi.spyOn(api, 'patch').mockResolvedValue({ data: { ...base, attachments: [files[1]] } } as never)
+      const { wrapper } = mountEditor({ attachments: files as never })
+      await removeButtons(wrapper)[0].trigger('click')
+      expect(removeButtons(wrapper)[0].text()).toBe('Keep')
+      await removeButtons(wrapper)[0].trigger('click')
+      expect(removeButtons(wrapper)[0].text()).toBe('Remove')
+      await removeButtons(wrapper)[0].trigger('click')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+      expect(patch).toHaveBeenCalledWith('/api/channels/7/messages/9', { body: 'hola', remove_attachment_ids: [1] })
+      expect(wrapper.emitted('done')).toHaveLength(1)
+    })
+
+    it('cancelling sends nothing', async () => {
+      const patch = vi.spyOn(api, 'patch').mockResolvedValue({ data: base } as never)
+      const { wrapper } = mountEditor({ attachments: files as never })
+      await removeButtons(wrapper)[0].trigger('click')
+      await wrapper.find('button[name="cancel-edit"]').trigger('click')
+      expect(patch).not.toHaveBeenCalled()
+      expect(wrapper.emitted('done')).toHaveLength(1)
+    })
+
+    it('does not let the last attachment be removed when there is no text', async () => {
+      const { wrapper, textarea } = mountEditor({ body: null, attachments: files as never })
+      await removeButtons(wrapper)[0].trigger('click')
+      expect(removeButtons(wrapper)[1].attributes('disabled')).toBeDefined()
+      expect(removeButtons(wrapper)[0].attributes('disabled')).toBeUndefined()
+      await removeButtons(wrapper)[0].trigger('click')
+      expect(removeButtons(wrapper)[1].attributes('disabled')).toBeUndefined()
+      await textarea().setValue('hi')
+      await removeButtons(wrapper)[0].trigger('click')
+      await removeButtons(wrapper)[1].trigger('click')
+      expect(wrapper.find('button[name="save-edit"]').attributes('disabled')).toBeUndefined()
+      await textarea().setValue('')
+      expect(wrapper.find('button[name="save-edit"]').attributes('disabled')).toBeDefined()
+    })
+
+    it('shows the 422 of the API when it rejects the removal', async () => {
+      vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(422, 'x', { body: ['Body required.'] }))
+      const { wrapper } = mountEditor({ attachments: files as never })
+      await removeButtons(wrapper)[0].trigger('click')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('Body required.')
+    })
+  })
+
   it('counts characters, not UTF-16 units, against the 4000 limit', async () => {
     const patch = vi.spyOn(api, 'patch').mockResolvedValue({ data: base } as never)
     const { wrapper, textarea } = mountEditor()
