@@ -123,8 +123,9 @@ Un solo grafo para `api/` y `web/`, fuera del repo: `../.graphify-workspace/work
 3. `graphify query "<término>"`: solo sin el nombre exacto (es difuso y trunca).
 4. `grep`: cadenas literales y lo que el grafo no tiene.
 
-Los hooks locales `post-commit`, `post-merge` y `post-checkout` (en `.git/hooks`, no versionados) actualizan el
-grafo solos (solo código, sin LLM; log en `graphify-out/.hook.log`). Cambios sin commit no están en el grafo. Para
+Los hooks `post-commit`, `post-merge` y `post-checkout` están versionados en `.githooks/`; un clon nuevo los activa con
+`git config core.hooksPath .githooks`. Actualizan el grafo solos, solo desde el checkout principal (en un worktree no
+hacen nada, y tampoco si graphify falta); solo código, sin LLM; log en `graphify-out/.hook.log`. Cambios sin commit no están en el grafo. Para
 reconstruir a mano (nunca `graphify update` ni `graphify hook install`, que escriben dentro del repo):
 `GRAPHIFY_OUT="$PWD/../.graphify-workspace/workspace/graphify-out" graphify extract "$PWD" --code-only --out ../.graphify-workspace/workspace`
 y luego `graphify cluster-only ../.graphify-workspace/workspace`. No instalar graphify si falta: avisar y seguir con `grep`.
