@@ -114,7 +114,13 @@ class Organization extends Model
             $losesProjectAccess = $role === Role::Member
                 && $user->hasAnyRole([Role::Owner->value, Role::Admin->value]);
 
+            $unchanged = $user->hasRole($role->value);
+
             $user->syncRoles([$role]);
+
+            if ($unchanged) {
+                return;
+            }
 
             MembershipRoleChanged::dispatch($user->id, $this->id, $role->value);
 
