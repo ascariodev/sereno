@@ -80,6 +80,9 @@
   desarrollo porque el `environment` del servicio ganaba a `phpunit.xml`. — aplicada en: pendiente
 - L-55: Si un evento en vivo se emite una sola vez (primer uso, transición), una recarga en vuelo no lo pisa con datos
   viejos: se fusiona conservando lo tocado después de lanzarla, con un spec del evento durante la recarga. — aplicada en: test (IntegrationsView.spec)
+- L-56: Un test de "falla al encolar" debe afirmar el efecto del fallo (`Exceptions::assertReported`), no solo que nada
+  revienta: con `QUEUE_CONNECTION=sync`, mockear `Queue` `push`/`later` no intercepta nada; hay que fallar en
+  `Queue::connection`. — aplicada en: test (MembershipBroadcastTest)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
