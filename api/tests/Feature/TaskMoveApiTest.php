@@ -240,3 +240,12 @@ it('rejects an archived project in the user language', function () {
         ->assertJsonPath('errors.project.0', 'Este proyecto está archivado y sus tareas no se pueden mover.');
     expect($this->task->fresh()->status->value)->toBe('todo');
 });
+
+it('rejects a project archived between validation and the transaction', function () {
+    archiveProjectBeforeLock($this->project);
+
+    moveTaskAs($this->member, $this->organization, $this->project, $this->task, ['status' => 'done'])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.project.0', 'This project is archived and its tasks cannot be moved.');
+    expect($this->task->fresh()->status->value)->toBe('todo');
+});

@@ -228,3 +228,13 @@ it('hides the project from another organization before validating', function () 
 it('requires authentication', function () {
     $this->postJson("/api/projects/{$this->project->id}/tasks", ['title' => 'A'])->assertUnauthorized();
 });
+
+it('rejects a project archived between validation and the transaction', function () {
+    archiveProjectBeforeLock($this->project);
+
+    storeTaskAs($this->member, $this->organization, $this->project, ['title' => 'A'])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.project.0', 'This project is archived and cannot have new tasks.');
+
+    expect(storedTasks($this->project))->toHaveCount(0);
+});

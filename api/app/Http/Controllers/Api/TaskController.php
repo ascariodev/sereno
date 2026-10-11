@@ -64,6 +64,7 @@ class TaskController extends Controller
         try {
             $task = DB::transaction(function () use ($request, $project, $status) {
                 $this->lockAssigneeAccess($project, $request->validated('assignee_id'));
+                $this->lockActiveProject($project, __('This project is archived and cannot have new tasks.'));
 
                 // Locks the project row until commit, so numbers and positions of the project are serialized.
                 $number = DB::selectOne(
@@ -114,18 +115,11 @@ class TaskController extends Controller
         $newAssigneeId = array_key_exists('assignee_id', $data) && $data['assignee_id'] !== null
             && (int) $data['assignee_id'] !== $task->assignee_id ? (int) $data['assignee_id'] : null;
 
-        $apply = function () use ($task, $data) {
+        DB::transaction(function () use ($project, $task, $data, $newAssigneeId) {
+            $this->lockAssigneeAccess($project, $newAssigneeId);
+            $this->lockActiveProject($project, __('This project is archived and its tasks cannot be edited.'));
             $task->fill($data)->save();
-        };
-
-        if ($newAssigneeId === null) {
-            $apply();
-        } else {
-            DB::transaction(function () use ($project, $newAssigneeId, $apply) {
-                $this->lockAssigneeAccess($project, $newAssigneeId);
-                $apply();
-            });
-        }
+        });
 
         $task->load(self::RELATIONS)->setRelation('project', $project);
         TaskUpdated::dispatch($task);
@@ -154,7 +148,7 @@ class TaskController extends Controller
         $task = DB::transaction(function () use ($project, $task, $status, $beforeId, $afterId) {
             // Same lock as store() takes with its UPDATE: creations and moves of the project are serialized, so no
             // task enters the target column while it is read. NO KEY keeps inserts that reference the project free.
-            DB::table('projects')->where('id', $project->id)->lock('for no key update')->first();
+            $this->lockActiveProject($project, __('This project is archived and its tasks cannot be moved.'));
 
             $task = Task::query()->whereKey($task->id)->lockForUpdate()->firstOrFail();
 
@@ -198,6 +192,19 @@ class TaskController extends Controller
         TaskUpdated::dispatch($task);
 
         return new TaskResource($task);
+    }
+
+    /**
+     * Locks the project row and re-checks, now that archiving cannot interleave, that it is still active: the request
+     * validated it before the transaction. NO KEY keeps inserts that reference the project free.
+     */
+    private function lockActiveProject(Project $project, string $archivedMessage): void
+    {
+        $row = DB::table('projects')->where('id', $project->id)->lock('for no key update')->first(['archived_at']);
+
+        if ($row === null || $row->archived_at !== null) {
+            throw ValidationException::withMessages(['project' => $archivedMessage]);
+        }
     }
 
     /**
