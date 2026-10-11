@@ -22,6 +22,12 @@ Reglas:
 - Fechas en UTC (`timestamp`).
 - Toda tabla de negocio: `organization_id` con FK `cascadeOnDelete` y el trait `BelongsToOrganization` en
   el modelo. Los únicos por tenant incluyen `organization_id` (p. ej. `unique(organization_id, key)`).
+- Ids: `$table->id()` (`bigint` secuencial) y FKs con `foreignId`; sin UUID ni ULID. El orden por id es parte
+  del diseño (cursores como `(channel_id, id DESC)` en `messages`) y ningún recurso se resuelve solo por id:
+  el aislamiento lo dan `organization_id`, las policies y las FKs compuestas; lo que debe ser inadivinable
+  (tokens de invitación, keys `wsk_...`, adjuntos) va aleatorio con hash o firmado. Si un cliente necesita
+  generar ids (móvil sin conexión, reintentos), se agrega una columna aparte (p. ej. `client_id` UUID con
+  único por usuario o UUIDv7 con `uuidv7()`) sin cambiar la PK.
 - JSON en columnas `jsonb`.
 - Toda función PL/pgSQL nueva lleva `SET search_path` y se borra en `down()` (`migrate:fresh` borra tablas,
   no funciones).
