@@ -69,6 +69,7 @@ describe('PlanView', () => {
     mockApi(() => new Promise((resolve) => (release = resolve)))
     const wrapper = await mountView()
     expect(wrapper.text()).toContain('Loading...')
+    expect(wrapper.find('.plan-view__board').exists()).toBe(false)
     release({ data: [] })
     await flushPromises()
     expect(wrapper.text()).not.toContain('Loading...')
@@ -99,6 +100,7 @@ describe('PlanView', () => {
     })
     const wrapper = await mountView()
     expect(wrapper.find('[role=alert]').text()).toContain('Could not load the tasks.')
+    expect(wrapper.find('.plan-view__board').exists()).toBe(false)
     fail = false
     await wrapper.find('button[name=retry]').trigger('click')
     await flushPromises()
@@ -171,20 +173,6 @@ describe('PlanView', () => {
       expect(second.text()).not.toContain('From a log notice')
     })
 
-    it('shows no board while loading', async () => {
-      mockApi(() => new Promise(() => {}))
-      const wrapper = await mountView()
-      expect(wrapper.text()).toContain('Loading...')
-      expect(wrapper.find('.plan-view__board').exists()).toBe(false)
-    })
-
-    it('hides the board while loading and on error', async () => {
-      mockApi(() => {
-        throw new ApiError(500, 'boom')
-      })
-      const wrapper = await mountView()
-      expect(wrapper.find('.plan-view__board').exists()).toBe(false)
-    })
   })
 
   describe('filters', () => {
@@ -227,6 +215,30 @@ describe('PlanView', () => {
       const wrapper = await mountView('/projects/5/plan?filter=bogus')
       expect(chips(wrapper)[0].attributes('aria-pressed')).toBe('true')
       expect(titles(wrapper)).toHaveLength(3)
+    })
+
+    it('rewrites an invalid filter with replace, keeping the other keys', async () => {
+      mockApi(data)
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      useAuthStore().$patch({ token: 't', user: { id: 1, name: 'Ana', email: 'a@b.c', locale: null } })
+      useOrganizationStore().$patch({ activeId: 1 })
+      const history = createMemoryHistory()
+      const router = createAppRouter(history)
+      await router.push('/projects/5/plan?filter=bogus&task=2&x=1')
+      const push = vi.spyOn(history, 'push')
+      const replace = vi.spyOn(history, 'replace')
+      mount(PlanView, { global: { plugins: [pinia, i18n, router] } })
+      await flushPromises()
+      expect(router.currentRoute.value.query).toEqual({ task: '2', x: '1' })
+      expect(push).not.toHaveBeenCalled()
+      expect(replace).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows the activity icon only on the from-notices chip', async () => {
+      mockApi(data)
+      const wrapper = await mountView('/projects/5/plan')
+      expect(chips(wrapper).map((c) => c.find('svg').exists())).toEqual([false, false, true])
     })
 
     it('writes the filter to the query keeping ?task= and without reloading', async () => {
@@ -406,6 +418,28 @@ describe('PlanView', () => {
       expect(post).toHaveBeenLastCalledWith('/api/projects/5/tasks/3/move', { status: 'todo', after_id: 2, before_id: 1 })
     })
 
+    it('blocks dragging a task while its menu move is in flight', async () => {
+      mockApi(data)
+      let release: (value: unknown) => void = () => {}
+      const post = vi.spyOn(api, 'post').mockImplementation(() => new Promise((resolve) => (release = resolve)) as never)
+      const wrapper = await mountView()
+      await pick(await openMenu(wrapper, 1), 'Move to Done')
+      const card = (id: number) => wrapper.get(`[data-task-id="${id}"]`).element
+      const start = (id: number) => {
+        const event = new Event('dragstart', { bubbles: true, cancelable: true })
+        Object.assign(event, { dataTransfer: { effectAllowed: '', setData: vi.fn() } })
+        card(id).dispatchEvent(event)
+        return event
+      }
+      expect(start(1).defaultPrevented).toBe(true)
+      expect(wrapper.get('[data-task-id="1"] button[name=move-task]').attributes('disabled')).toBeDefined()
+      expect(start(2).defaultPrevented).toBe(false)
+      release({ data: { ...mk(1, 'done', 5), updated_at: '2026-10-10T00:00:01.000000Z' } })
+      await flushPromises()
+      expect(post).toHaveBeenCalledTimes(1)
+      expect(start(1).defaultPrevented).toBe(false)
+    })
+
     it('shows a toast when the move fails', async () => {
       mockApi(data)
       vi.spyOn(api, 'post').mockRejectedValue(new ApiError(500, 'boom'))
@@ -552,6 +586,37 @@ describe('PlanView', () => {
       await flushPromises()
     })
 
+    it('leaves the drag state clean when dropped outside any column', async () => {
+      mockApi(data)
+      const post = vi.spyOn(api, 'post')
+      const wrapper = await mountView()
+      fire(card(wrapper, 1), 'dragstart')
+      fire(column(wrapper, 'done'), 'dragover', { clientY: 500 })
+      await flushPromises()
+      expect(wrapper.find('.plan-view__drop-line').exists()).toBe(true)
+      expect(wrapper.find('.plan-view__card--dragging').exists()).toBe(true)
+      fire(card(wrapper, 1), 'dragend')
+      await flushPromises()
+      expect(wrapper.find('.plan-view__drop-line').exists()).toBe(false)
+      expect(wrapper.find('.plan-view__card--dragging').exists()).toBe(false)
+      expect(wrapper.find('.plan-view__column--drop').exists()).toBe(false)
+      expect(post).not.toHaveBeenCalled()
+    })
+
+    it('disables the menu of a task while its drag move is in flight', async () => {
+      mockApi(data)
+      let release: (value: unknown) => void = () => {}
+      vi.spyOn(api, 'post').mockImplementation(() => new Promise((resolve) => (release = resolve)) as never)
+      const wrapper = await mountView()
+      await dragTo(wrapper, 1, 'done', 500)
+      const trigger = (id: number) => wrapper.get(`[data-task-id="${id}"] button[name=move-task]`)
+      expect(trigger(1).attributes('disabled')).toBeDefined()
+      expect(trigger(2).attributes('disabled')).toBeUndefined()
+      release({ data: { ...mk(1, 'done'), position: 5 } })
+      await flushPromises()
+      expect(trigger(1).attributes('disabled')).toBeUndefined()
+    })
+
     it('shows a toast when the move fails', async () => {
       mockApi(data)
       vi.spyOn(api, 'post').mockRejectedValue(new ApiError(403, 'no'))
@@ -615,6 +680,17 @@ describe('PlanView', () => {
       expect(wrapper.findAll('[data-task-id]')).toHaveLength(1)
     })
 
+    it('reloads and resubscribes when the active organization changes', async () => {
+      const fake = live()
+      const spy = mockApi(() => ({ data: [mk(1)] }))
+      await mountView()
+      useOrganizationStore().$patch({ activeId: 2 })
+      await flushPromises()
+      expect(taskCalls(spy)).toHaveLength(2)
+      expect(fake.client.leave).toHaveBeenCalledWith(NAME)
+      expect(fake.client.private).toHaveBeenCalledWith('organizations.2.projects.5')
+    })
+
     it('invalidates the member directory of the project when its members change', async () => {
       const fake = live()
       mockApi(() => ({ data: [] }))
@@ -671,6 +747,18 @@ describe('PlanView', () => {
       expect(post).not.toHaveBeenCalled()
       expect(wrapper.find('.plan-view__drop-line').exists()).toBe(false)
       expect(wrapper.findAll('[data-task-id]')).toHaveLength(1)
+    })
+
+    it('keeps ?filter= when a live delete closes the open panel', async () => {
+      const fake = live()
+      const group = { id: 9, level: 'error', title: 'g', status: 'open', events_count: 1 }
+      mockApi(() => ({ data: [mk(1, 'todo', { log_group: group }), mk(2, 'todo', { log_group: group })] }))
+      const wrapper = await mountView('/projects/5/plan?filter=from_notices&task=2')
+      fake.emit('.task.deleted', { id: 2, project_id: 5 })
+      await flushPromises()
+      const query = wrapper.router.currentRoute.value.query
+      expect(query.task).toBeUndefined()
+      expect(query.filter).toBe('from_notices')
     })
 
     it('reacts in the open panel: live edit, then live delete closes it', async () => {

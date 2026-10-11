@@ -11,12 +11,14 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['title', 'description', 'status', 'position'])]
+#[Fillable(['title', 'description', 'status', 'position', 'assignee_id'])]
 class Task extends Model
 {
     use BelongsToOrganization, EnsuresProjectInOrganization;
 
     public const TITLE_MAX_LENGTH = 200;
+
+    public const DESCRIPTION_MAX_LENGTH = 10000;
 
     protected function casts(): array
     {

@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { ArrowDown, ArrowRight, ArrowUp, Ellipsis } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { isTaskStatus, TASK_STATUSES, type Task, type TaskStatus } from '../api/types'
 import { useTasksStore } from '../stores/tasks'
 import AppMenu, { type AppMenuItem } from './ui/AppMenu.vue'
 import { toast } from './ui/toast'
-import { moveErrorMessage, moveNeighbours } from './taskMove'
+import { moveErrorMessage, movingTaskIds, moveNeighbours } from './taskMove'
 
 const props = defineProps<{ task: Task; readOnly?: boolean }>()
 const { t } = useI18n()
 const tasks = useTasksStore()
 
 const statusKey: Record<TaskStatus, string> = { todo: 'todo', in_progress: 'inProgress', in_review: 'inReview', done: 'done' }
-const moving = ref(false)
+const moving = computed(() => movingTaskIds.has(props.task.id))
 
 /** Always the full column: the API needs contiguous neighbours, so never `visibleColumns`. */
 const column = computed(() => tasks.columns[props.task.status] ?? [])
@@ -52,13 +52,14 @@ async function select(value: string): Promise<void> {
   } else {
     return
   }
-  moving.value = true
+  const id = props.task.id
+  movingTaskIds.add(id)
   try {
-    await tasks.move(props.task.project_id, props.task.id, input)
+    await tasks.move(props.task.project_id, id, input)
   } catch (caught) {
     toast.error(moveErrorMessage(caught, t))
   } finally {
-    moving.value = false
+    movingTaskIds.delete(id)
   }
 }
 </script>

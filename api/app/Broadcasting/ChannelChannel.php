@@ -2,6 +2,7 @@
 
 namespace App\Broadcasting;
 
+use App\Broadcasting\Concerns\ParsesPositiveId;
 use App\Models\Channel;
 use App\Models\Scopes\OrganizationScope;
 use App\Models\User;
@@ -13,6 +14,8 @@ use App\Support\ProjectAccess;
  */
 class ChannelChannel
 {
+    use ParsesPositiveId;
+
     public function join(User $user, string $organization, string $channel): bool
     {
         $organizationId = self::positiveId($organization);
@@ -37,16 +40,5 @@ class ChannelChannel
 
         return $found->project_id === null
             || ProjectAccess::canViewId($user, $organizationId, $found->project_id);
-    }
-
-    private static function positiveId(string $value): ?int
-    {
-        if (! ctype_digit($value)) {
-            return null;
-        }
-
-        $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-
-        return $id === false ? null : $id;
     }
 }

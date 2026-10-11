@@ -11,6 +11,7 @@ use App\Realtime\ConnectionTerminator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 
@@ -172,12 +173,13 @@ it('does not queue the connection cut when the role changes', function () {
 });
 
 it('does not fail the removal when queueing the cut fails', function () {
-    Queue::shouldReceive('push', 'later')->andThrow(new RuntimeException('queue down'));
-    Queue::makePartial();
+    Exceptions::fake();
+    Queue::shouldReceive('connection')->andThrow(new RuntimeException('queue down'));
 
     $this->organization->removeMember($this->member);
 
     expect($this->organization->users()->whereKey($this->member->id)->exists())->toBeFalse();
+    Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'queue down');
 });
 
 it('has the job ask the terminator to close the user connections and retry with backoff', function () {

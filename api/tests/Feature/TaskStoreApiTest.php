@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
@@ -19,6 +20,10 @@ beforeEach(function () {
     $this->other->addMember($this->outsider, [Role::Owner]);
     $this->project = Project::factory()->for($this->organization)->create(['key' => 'POSVE']);
     assignMembersToAllProjects();
+});
+
+afterEach(function () {
+    Task::flushEventListeners();
 });
 
 function storeTaskAs(User $user, Organization $organization, Project $project, array $payload)
@@ -107,11 +112,14 @@ it('rejects a log group that already has a task', function () {
 
     DB::flushQueryLog();
     DB::enableQueryLog();
-    storeTaskAs($this->member, $this->organization, $this->project, ['title' => 'B', 'log_group_id' => $group->id])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['log_group_id']);
-    $queries = collect(DB::getQueryLog())->pluck('query');
-    DB::disableQueryLog();
+    try {
+        storeTaskAs($this->member, $this->organization, $this->project, ['title' => 'B', 'log_group_id' => $group->id])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['log_group_id']);
+        $queries = collect(DB::getQueryLog())->pluck('query');
+    } finally {
+        DB::disableQueryLog();
+    }
 
     // The request rule stops it before the transaction, not the unique index.
     expect($queries->filter(fn (string $query) => str_starts_with($query, 'UPDATE projects')))->toBeEmpty()
@@ -153,6 +161,28 @@ it('answers 422 when another request links the same log group first', function (
         ->and($this->project->fresh()->last_task_number)->toBe(0);
 });
 
+it('rethrows unique violations other than the log group one', function () {
+    $organizationId = $this->organization->id;
+
+    Task::creating(function (Task $task) use ($organizationId) {
+        DB::table('tasks')->insert([
+            'organization_id' => $organizationId,
+            'project_id' => $task->project_id,
+            'number' => $task->number,
+            'title' => 'Same number',
+            'status' => 'todo',
+            'position' => 1.0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    });
+
+    $this->withoutExceptionHandling();
+
+    expect(fn () => storeTaskAs($this->member, $this->organization, $this->project, ['title' => 'B']))
+        ->toThrow(UniqueConstraintViolationException::class);
+});
+
 it('rejects a log group of another project or organization', function () {
     $sibling = Project::factory()->for($this->organization)->create();
     $sibling->addMember($this->member);
@@ -167,11 +197,15 @@ it('rejects a log group of another project or organization', function () {
     }
 });
 
-it('only assigns members of the organization', function () {
+it('only assigns existing members of the organization', function (string $case) {
+    $assigneeId = $case === 'missing' ? 999999 : $this->outsider->id;
+
     storeTaskAs($this->member, $this->organization, $this->project, [
-        'title' => 'A', 'assignee_id' => $this->outsider->id,
+        'title' => 'A', 'assignee_id' => $assigneeId,
     ])->assertUnprocessable()->assertJsonValidationErrors(['assignee_id']);
-});
+
+    expect(storedTasks($this->project))->toHaveCount(0);
+})->with(['outsider', 'missing']);
 
 it('validates title and status', function () {
     storeTaskAs($this->member, $this->organization, $this->project, [
@@ -195,7 +229,12 @@ it('rejects an archived project in the user language', function () {
 });
 
 it('hides the project from another organization before validating', function () {
-    storeTaskAs($this->outsider, $this->other, $this->project, ['title' => 'A'])->assertNotFound();
+    storeTaskAs($this->outsider, $this->other, $this->project, ['assignee_id' => $this->member->id])->assertNotFound();
+
+    expect(storedTasks($this->project))->toHaveCount(0);
+});
+
+it('forbids an outsider that sends the organization header of another one', function () {
     storeTaskAs($this->outsider, $this->organization, $this->project, ['assignee_id' => $this->member->id])
         ->assertForbidden();
 
@@ -204,4 +243,14 @@ it('hides the project from another organization before validating', function () 
 
 it('requires authentication', function () {
     $this->postJson("/api/projects/{$this->project->id}/tasks", ['title' => 'A'])->assertUnauthorized();
+});
+
+it('rejects a project archived between validation and the transaction', function () {
+    archiveProjectBeforeLock($this->project);
+
+    storeTaskAs($this->member, $this->organization, $this->project, ['title' => 'A'])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.project.0', 'This project is archived and cannot have new tasks.');
+
+    expect(storedTasks($this->project))->toHaveCount(0);
 });

@@ -114,8 +114,7 @@ function subscribe(name: string, events: string[], handler: Subscriber, presence
   let entry = subscriptions.get(name)
   if (!entry || entry.client !== current) {
     const callbacks = new Set<Subscriber>()
-    const channel = presence ? null : current.private(name)
-    if (presence) current.join(name)
+    const channel = openChannel(current, name, presence)
     for (const event of events) {
       channel?.listen(event, (data) => {
         if (!data) return
@@ -146,6 +145,16 @@ function subscribe(name: string, events: string[], handler: Subscriber, presence
   }
 }
 
+function openChannel(current: RealtimeClient, name: string, presence: boolean): ReturnType<RealtimeClient['private']> | null {
+  if (presence) {
+    current.join(name)
+    return null
+  }
+  return current.private(name)
+}
+
+const PRIVATE_CHANNEL_PREFIX = 'private-'
+
 function handleSubscriptionError(
   name: string,
   entry: { client: RealtimeClient },
@@ -155,7 +164,7 @@ function handleSubscriptionError(
   const organizationId = organizationIdOf(name)
   if (organizationId === null) return
   subscriptions.delete(name)
-  const authKey = `private-${name}`
+  const authKey = `${PRIVATE_CHANNEL_PREFIX}${name}`
   const authStatus = authFailureStatuses.get(authKey)
   authFailureStatuses.delete(authKey)
   entry.client.leave(name)

@@ -29,6 +29,10 @@ function ignoreApiError(error: unknown): void {
   if (!(error instanceof ApiError)) throw error
 }
 
+function reportUnexpected(error: unknown): void {
+  console.error(error)
+}
+
 export function useMembershipWatch(): void {
   const auth = useAuthStore()
   const organization = useOrganizationStore()
@@ -80,7 +84,7 @@ export function useMembershipWatch(): void {
       organization.load().catch(ignoreApiError)
       return
     }
-    void onForbidden(activeId)
+    onForbidden(activeId).catch(reportUnexpected)
   }
 
   function openProjectId(): number | null {
@@ -139,9 +143,9 @@ export function useMembershipWatch(): void {
     leaveSession = null
   }
 
-  api.setForbiddenHandler((organizationId) => void onForbidden(organizationId))
+  api.setForbiddenHandler((organizationId) => void onForbidden(organizationId).catch(reportUnexpected))
   const unsubscribeDenied = onChannelDenied((organizationId, status) => {
-    if (status === 403) void onForbidden(organizationId)
+    if (status === 403) void onForbidden(organizationId).catch(reportUnexpected)
   })
 
   watch(

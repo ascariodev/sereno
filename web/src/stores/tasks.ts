@@ -124,7 +124,10 @@ export const useTasksStore = defineStore('tasks', () => {
   function remove(event: TaskDeletedEvent): boolean {
     if (projectId.value === null || event.project_id !== projectId.value) return false
     tombstones.add(event.id)
-    if (tombstones.size > MAX_TOMBSTONES) tombstones.delete(tombstones.values().next().value as number)
+    if (tombstones.size > MAX_TOMBSTONES) {
+      const oldest = tombstones.values().next()
+      if (!oldest.done) tombstones.delete(oldest.value)
+    }
     const next = tasks.value.filter((task) => task.id !== event.id)
     if (next.length === tasks.value.length) return false
     tasks.value = next
@@ -245,7 +248,14 @@ export const useTasksStore = defineStore('tasks', () => {
 
   async function destroy(project: number, taskId: number): Promise<void> {
     const current = generation
-    await deleteTask(project, taskId)
+    try {
+      await deleteTask(project, taskId)
+    } catch (caught) {
+      if (caught instanceof ApiError && caught.status === 404 && current === generation) {
+        remove({ id: taskId, project_id: project })
+      }
+      throw caught
+    }
     if (current === generation) remove({ id: taskId, project_id: project })
   }
 

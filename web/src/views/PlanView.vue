@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus } from '@lucide/vue'
+import { Activity, Plus } from '@lucide/vue'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -39,10 +39,8 @@ const statusKey: Record<TaskStatus, string> = {
   done: 'done',
 }
 const filterKey: Record<TaskFilter, string> = { all: 'all', mine: 'mine', from_notices: 'fromNotices' }
-const activeFilter = computed<TaskFilter>(() => {
-  const raw = Array.isArray(route.query.filter) ? route.query.filter[0] : route.query.filter
-  return TASK_FILTERS.find((item) => item === raw) ?? 'all'
-})
+const rawFilter = computed(() => (Array.isArray(route.query.filter) ? route.query.filter[0] : route.query.filter))
+const activeFilter = computed<TaskFilter>(() => TASK_FILTERS.find((item) => item === rawFilter.value) ?? 'all')
 const canCreate = computed(() => project.value !== null && project.value.archived_at === null)
 const drag = useTaskDrag(() => projectId.value, () => canCreate.value)
 const createOpen = ref(false)
@@ -101,6 +99,16 @@ function joinRealtime(): void {
 
 watch(activeFilter, (value) => (tasks.filter = value), { immediate: true })
 watch(
+  rawFilter,
+  (raw) => {
+    if (raw === undefined || TASK_FILTERS.some((item) => item === raw)) return
+    const query = { ...route.query }
+    delete query.filter
+    void router.replace({ query })
+  },
+  { immediate: true },
+)
+watch(
   () => `${organization.activeId}:${projectId.value}`,
   joinRealtime,
   { immediate: true },
@@ -142,71 +150,72 @@ onUnmounted(() => {
       </p>
       <p v-else-if="showLoading">{{ t('common.loading') }}</p>
       <div v-else class="plan-view__layout">
-      <div class="plan-view__content">
-      <div class="plan-view__filters" role="group" :aria-label="t('plan.filters.label')">
-        <button
-          v-for="item in TASK_FILTERS"
-          :key="item"
-          type="button"
-          class="plan-view__chip"
-          :name="`filter-${item}`"
-          :aria-pressed="activeFilter === item"
-          @click="setFilter(item)"
-        >
-          {{ t(`plan.filters.${filterKey[item]}`) }}
-        </button>
-      </div>
-      <div class="plan-view__board" role="group" :aria-label="t('plan.board')">
-        <section
-          v-for="status in TASK_STATUSES"
-          :key="status"
-          class="plan-view__column"
-          :class="[`plan-view__column--${status}`, { 'plan-view__column--drop': drag.target.value?.status === status }]"
-          :aria-labelledby="`plan-column-${status}`"
-          @dragover="drag.over(status, $event)"
-          @dragleave="drag.leave(status, $event)"
-          @drop="drag.drop(status, $event)"
-        >
-          <header class="plan-view__column-head">
-            <span class="plan-view__dot" aria-hidden="true"></span>
-            <h2 :id="`plan-column-${status}`">{{ t(`plan.status.${statusKey[status]}`) }}</h2>
-            <span class="plan-view__count">{{ tasks.visibleColumns[status].length }}</span>
-          </header>
-          <p v-if="tasks.visibleColumns[status].length === 0" class="plan-view__empty">{{ t('plan.empty') }}</p>
-          <template v-for="task in tasks.visibleColumns[status]" :key="task.id">
-            <div v-if="drag.showsLine(status, task.id)" class="plan-view__drop-line" aria-hidden="true"></div>
-            <TaskCard
-              :task="task"
-              :read-only="!canCreate"
-              :data-task-id="task.id"
-              :class="{ 'plan-view__card--dragging': drag.dragging.value === task.id }"
-              @dragstart="drag.start(task, $event)"
-              @dragend="drag.end"
-            />
-          </template>
-          <div v-if="drag.showsLine(status, null)" class="plan-view__drop-line" aria-hidden="true"></div>
-          <button
-            v-if="canCreate"
-            type="button"
-            class="plan-view__add"
-            :name="`add-${status}`"
-            @click="openCreate(status)"
-          >
-            <Plus :size="14" aria-hidden="true" />
-            {{ t('plan.addTask') }}
-            <span class="sr-only">{{ t(`plan.status.${statusKey[status]}`) }}</span>
-          </button>
-        </section>
-      </div>
-      </div>
-      <TaskAside
-        v-if="taskId !== null"
-        class="plan-view__aside"
-        :project-id="projectId"
-        :task-id="taskId"
-        :read-only="!canCreate"
-        @close="closeTask"
-      />
+        <div class="plan-view__content">
+          <div class="plan-view__filters" role="group" :aria-label="t('plan.filters.label')">
+            <button
+              v-for="item in TASK_FILTERS"
+              :key="item"
+              type="button"
+              class="plan-view__chip"
+              :name="`filter-${item}`"
+              :aria-pressed="activeFilter === item"
+              @click="setFilter(item)"
+            >
+              <Activity v-if="item === 'from_notices'" :size="13" aria-hidden="true" />
+              {{ t(`plan.filters.${filterKey[item]}`) }}
+            </button>
+          </div>
+          <div class="plan-view__board" role="group" :aria-label="t('plan.board')">
+            <section
+              v-for="status in TASK_STATUSES"
+              :key="status"
+              class="plan-view__column"
+              :class="[`plan-view__column--${status}`, { 'plan-view__column--drop': drag.target.value?.status === status }]"
+              :aria-labelledby="`plan-column-${status}`"
+              @dragover="drag.over(status, $event)"
+              @dragleave="drag.leave(status, $event)"
+              @drop="drag.drop(status, $event)"
+            >
+              <header class="plan-view__column-head">
+                <span class="plan-view__dot" aria-hidden="true"></span>
+                <h2 :id="`plan-column-${status}`">{{ t(`plan.status.${statusKey[status]}`) }}</h2>
+                <span class="plan-view__count">{{ tasks.visibleColumns[status].length }}</span>
+              </header>
+              <p v-if="tasks.visibleColumns[status].length === 0" class="plan-view__empty">{{ t('plan.empty') }}</p>
+              <template v-for="task in tasks.visibleColumns[status]" :key="task.id">
+                <div v-if="drag.showsLine(status, task.id)" class="plan-view__drop-line" aria-hidden="true"></div>
+                <TaskCard
+                  :task="task"
+                  :read-only="!canCreate"
+                  :data-task-id="task.id"
+                  :class="{ 'plan-view__card--dragging': drag.dragging.value === task.id }"
+                  @dragstart="drag.start(task, $event)"
+                  @dragend="drag.end"
+                />
+              </template>
+              <div v-if="drag.showsLine(status, null)" class="plan-view__drop-line" aria-hidden="true"></div>
+              <button
+                v-if="canCreate"
+                type="button"
+                class="plan-view__add"
+                :name="`add-${status}`"
+                @click="openCreate(status)"
+              >
+                <Plus :size="14" aria-hidden="true" />
+                {{ t('plan.addTask') }}
+                <span class="sr-only">{{ t(`plan.status.${statusKey[status]}`) }}</span>
+              </button>
+            </section>
+          </div>
+        </div>
+        <TaskAside
+          v-if="taskId !== null"
+          class="plan-view__aside"
+          :project-id="projectId"
+          :task-id="taskId"
+          :read-only="!canCreate"
+          @close="closeTask"
+        />
       </div>
     </div>
     <TaskCreateDialog

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Project;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -37,5 +38,23 @@ function beforeOrganizationLock(string $lock, Closure $change): void
 
         $done = true;
         $change();
+    });
+}
+
+/**
+ * Archives the project right before the first query that locks its row: simulates archiving committed between the
+ * request's validation and its transaction.
+ */
+function archiveProjectBeforeLock(Project $project): void
+{
+    $done = false;
+
+    DB::beforeExecuting(function (string $query) use ($project, &$done) {
+        if ($done || ! str_contains($query, 'from "projects"') || ! str_ends_with($query, 'for no key update')) {
+            return;
+        }
+
+        $done = true;
+        DB::table('projects')->where('id', $project->id)->update(['archived_at' => now()]);
     });
 }

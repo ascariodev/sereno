@@ -232,44 +232,45 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - [ ] M-3 (media, sonnet): avisar al asignado por `users.{id}` (solo ids, L-38).
 - [ ] M-4 (media, sonnet): paginar o limitar la columna Hecho si crece.
 - [ ] M-5 (media, sonnet): efectos cruzados opcionales entre tarea y grupo (Hecho resuelve, reabierto avisa).
-- [ ] M-6 (baja, sonnet): test de `TaskPolicy` sin organización activa (falla cerrada en `viewAny` y `create`).
-- [ ] M-7 (baja, sonnet): orden por columna de `TaskController@index` con `orderByRaw` y bindings o un helper en `TaskStatus`, en vez de interpolar el `CASE`.
-- [ ] M-8 (baja, sonnet): `TaskStoreApiTest`: caso de `assignee_id` inexistente, separar 404 y 403 en dos `it`, query log
+- [x] M-6 (baja, sonnet): test de `TaskPolicy` sin organización activa (falla cerrada en `viewAny` y `create`).
+- [x] M-7 (baja, sonnet): orden por columna de `TaskController@index` con `orderByRaw` y bindings o un helper en `TaskStatus`, en vez de interpolar el `CASE`.
+- [x] M-8 (baja, sonnet): `TaskStoreApiTest`: caso de `assignee_id` inexistente, separar 404 y 403 en dos `it`, query log
   desactivado en `finally` y `Task::flushEventListeners()` explícito; `taskStatus()` con `$this->enum(...)`.
-- [ ] M-9 (baja, sonnet): crear, editar y mover revalidan dentro de la transacción que el proyecto no esté archivado
+- [x] M-9 (baja, sonnet): crear, editar y mover revalidan dentro de la transacción que el proyecto no esté archivado
   (carrera entre validar y archivar).
-- [ ] M-11 (baja, sonnet): `TaskMoveApiTest`: fijar el locale en el test que afirma `validation.not_in` y
+- [x] M-11 (baja, sonnet): `TaskMoveApiTest`: fijar el locale en el test que afirma `validation.not_in` y
   `validation.different`; test de concurrencia real de `move` (L-41) en vez del query log.
-- [ ] M-10 (baja, sonnet): `DESCRIPTION_MAX_LENGTH` a `Task` junto a `TITLE_MAX_LENGTH`; `assignee_id` en Fillable para
+- [x] M-10 (baja, sonnet): `DESCRIPTION_MAX_LENGTH` a `Task` junto a `TITLE_MAX_LENGTH`; `assignee_id` en Fillable para
   simplificar `TaskController@update`; 404 de tarea de otro proyecto antes de validar.
-- [ ] M-12 (baja, sonnet): `LogGroupTaskApiTest`: quitar el umbral arbitrario `toBeLessThan(12)`; basta el conteo
+- [x] M-12 (baja, sonnet): `LogGroupTaskApiTest`: quitar el umbral arbitrario `toBeLessThan(12)`; basta el conteo
   constante.
 - [ ] M-13 (media, sonnet): avisar en vivo al tablero de las tareas desasignadas al quitar un miembro (evento por
   proyecto afectado tras el commit).
-- [ ] M-14 (baja, sonnet): extraer `positiveId` (duplicado en `ProjectChannel` y `ChannelChannel`) a un helper
+- [x] M-14 (baja, sonnet): extraer `positiveId` (duplicado en `ProjectChannel` y `ChannelChannel`) a un helper
   compartido; en `BroadcastingAuthTest`, el proyecto del canal en el `beforeEach`.
 - [ ] M-15 (media, sonnet): `renumberColumn` emite `task.updated` por cada tarea renumerada (o un evento de columna),
   para que el tablero en vivo no quede desfasado.
-- [ ] M-16 (baja, sonnet): el `catch (UniqueConstraintViolationException)` de `TaskController@store` solo traduce a 422
+- [x] M-16 (baja, sonnet): el `catch (UniqueConstraintViolationException)` de `TaskController@store` solo traduce a 422
   la violación de `tasks_log_group_id_unique` y relanza las demás.
-- [ ] M-17 (baja, sonnet): base común para `TaskCreated` y `TaskUpdated`; test de que un delete con 404 o 403 no
+- [x] M-17 (baja, sonnet): base común para `TaskCreated` y `TaskUpdated`; test de que un delete con 404 o 403 no
   emite `TaskDeleted`.
-- [ ] M-18 (baja, sonnet): `TaskLogGroup.level` con el tipo de nivel de log existente; `createTask` arma el cuerpo
+- [x] M-18 (baja, sonnet): `TaskLogGroup.level` con el tipo de nivel de log existente; `createTask` arma el cuerpo
   solo con los campos definidos, como `updateTask`.
-- [ ] M-19 (baja, sonnet): `tasks` store: `destroy` quita la tarea si el API responde 404; con "Mías" y sin usuario
+- [x] M-19 (baja, sonnet): `tasks` store: `destroy` quita la tarea si el API responde 404; con "Mías" y sin usuario
   cargado, decidir qué mostrar; guard en vez de `as number` al olvidar el tombstone más viejo.
-- [ ] M-20 (baja, sonnet): `PlanView.spec`: test del cambio de organización; orden de imports de iconos en
+- [x] M-20 (baja, sonnet): `PlanView.spec`: test del cambio de organización; orden de imports de iconos en
   `ProjectHeader.vue`.
-- [ ] M-21 (baja, sonnet): tablero: token de sombra para la tarjeta (diseño `0 1px 2px`), `border-radius` de
+- [x] M-21 (baja, sonnet): tablero: token de sombra para la tarjeta (diseño `0 1px 2px`), `border-radius` de
   `.task-card` con token `--radius-*`, contraste de `--column-in-review` en oscuro, fusionar los tests de carga
   solapados de `PlanView.spec` y revisar el layout en el navegador a 1024 px y en móvil.
-- [ ] M-22 (baja, sonnet): filtros: reindentar el `<template v-else>` de `PlanView.vue`, icono de actividad en
+- [x] M-22 (baja, sonnet): filtros: reindentar el `<template v-else>` de `PlanView.vue`, icono de actividad en
   "Desde avisos" (diseño) y reescribir un `?filter=` inválido.
-- [ ] M-23 (baja, sonnet): `TaskCreateDialog`: alternativa de foco cuando `document.activeElement` es `body` al abrir
+- [x] M-23 (baja, sonnet): `TaskCreateDialog`: alternativa de foco cuando `document.activeElement` es `body` al abrir
   (Safari no enfoca botones al hacer clic).
-- [ ] M-24 (baja, sonnet): `TaskAside.spec`: sembrar usuario autenticado y restaurar `window.matchMedia`;
+- [x] M-24 (baja, sonnet): `TaskAside.spec`: sembrar usuario autenticado y restaurar `window.matchMedia`;
   `PlanView.spec`: borrado en vivo con el panel abierto quita `?task=` y conserva `?filter=`.
-- [ ] M-25 (baja, sonnet): `TaskCard`: `padding-right` en el título para que el botón del menú no lo tape, indentar el hijo del wrap y spec propio del `aria-label` y de `readOnly`.
-- [ ] M-26 (baja, sonnet): spec de `dragend` sin `drop` (soltar fuera) que deje el estado de arrastre limpio; y bloquear un movimiento por menú mientras hay uno por arrastre en vuelo (y viceversa).
-- [ ] M-27 (baja, sonnet): test de 422 por `log_group_id` en `LogGroupAside.spec` y, tras ese 422, mostrar el enlace a la tarea existente; conservar el diálogo abierto al cruzar el breakpoint del aside.
+- [x] M-25 (baja, sonnet): `TaskCard`: `padding-right` en el título para que el botón del menú no lo tape, indentar el hijo del wrap y spec propio del `aria-label` y de `readOnly`.
+- [x] M-26 (baja, sonnet): spec de `dragend` sin `drop` (soltar fuera) que deje el estado de arrastre limpio; y bloquear un movimiento por menú mientras hay uno por arrastre en vuelo (y viceversa).
+- [x] M-27 (baja, sonnet): test de 422 por `log_group_id` en `LogGroupAside.spec` y, tras ese 422, mostrar el enlace a la tarea existente; conservar el diálogo abierto al cruzar el breakpoint del aside.
 - [ ] M-28 (media, sonnet): que el payload de los avisos o el canal sepan la tarea del grupo (p. ej. `task` en el estado de grupos del canal) para no depender del estado del cliente; mostrar el enlace aunque el grupo esté resuelto; limpiar la entrada del mapa al borrar la tarea.
+- [ ] M-29 (baja, sonnet): `--column-in-review` (#E9A23B) en modo claro da 2.04:1 contra la columna (#F7F8FA), bajo el 3:1 de AA para indicadores; oscurecerlo solo en claro. Y decidir si `ProjectHeader`/`AppSegmented` usan `--shadow-card` o un token propio.

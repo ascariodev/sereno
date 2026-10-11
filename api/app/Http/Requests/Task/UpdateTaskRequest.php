@@ -15,14 +15,17 @@ class UpdateTaskRequest extends FormRequest
     /** Runs before the rules so a 422 never reveals members to outsiders. */
     public function authorize(): bool
     {
-        return Gate::authorize('update', $this->route('task'))->allowed();
+        $task = $this->route('task');
+        abort_unless($task->project_id === $this->route('project')->id, 404);
+
+        return Gate::authorize('update', $task)->allowed();
     }
 
     public function rules(): array
     {
         return [
             'title' => ['sometimes', 'required', 'string', 'max:'.Task::TITLE_MAX_LENGTH, 'not_regex:/\x00/'],
-            'description' => ['sometimes', 'nullable', 'string', 'max:'.StoreTaskRequest::DESCRIPTION_MAX_LENGTH, 'not_regex:/\x00/'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:'.Task::DESCRIPTION_MAX_LENGTH, 'not_regex:/\x00/'],
             'assignee_id' => [
                 'sometimes',
                 'nullable',

@@ -250,6 +250,21 @@ describe('tasks store', () => {
     expect(ids(store.tasks)).toEqual([2])
   })
 
+  it('removes the task and rethrows when the delete answers 404', async () => {
+    const store = await opened([task(1), task(2)])
+    vi.spyOn(api, 'delete').mockRejectedValueOnce(new ApiError(404, 'gone'))
+    await expect(store.destroy(7, 1)).rejects.toMatchObject({ status: 404 })
+    expect(ids(store.tasks)).toEqual([2])
+  })
+
+  it('shows nothing under Mine until the user is loaded, never every task', async () => {
+    const store = await opened([task(1, { assignee: { id: 3, name: 'Ana' } }), task(2)])
+    useAuthStore().user = null
+    store.filter = 'mine'
+    expect(store.visibleColumns.todo).toEqual([])
+    expect(ids(store.columns.todo)).toEqual([1, 2])
+  })
+
   it('filters by Mine with the current user and by From notices', async () => {
     const store = await opened([
       task(1, { assignee: { id: 3, name: 'Ana' } }),

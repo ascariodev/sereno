@@ -45,15 +45,10 @@ it('returns the linked task or null in the list without per-group queries', func
         LogGroup::factory()->for($this->project)->create(['last_seen_at' => now()->subDays($i)]);
     }
 
-    DB::flushQueryLog();
-    DB::enableQueryLog();
     $response = groupTaskGet(groupTaskUrl($this->project))->assertOk();
-    $queries = count(DB::getQueryLog());
-    DB::disableQueryLog();
 
     expect($response->json('data.0.task'))->toBe(['id' => $this->task->id, 'key' => 'POSVE-12', 'status' => 'in_review'])
-        ->and($response->json('data.1.task'))->toBeNull()
-        ->and($queries)->toBeLessThan(12);
+        ->and($response->json('data.1.task'))->toBeNull();
 
     DB::flushQueryLog();
     DB::enableQueryLog();

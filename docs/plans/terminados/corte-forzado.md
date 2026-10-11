@@ -65,12 +65,12 @@
 - Fase 6 hecha y verificada en vivo (usuario temporal creado y borrado): con `private-users.{id}` desuscrito a mano, el DELETE encola el corte, el socket cae (~3 s tras el evento), al reconectar `presence-sessions.{id}` da 200 y `private-organizations.3.channels.2` 403, un solo aviso "Ya no perteneces a Demo." y vuelta a proyectos. Además aparece el aviso existente "Reconectado". Detalle original de la fase: `onReconnect` con activa pasa por `revokeOnce(handleForbidden)` (sin activa o con salida propia, solo `load()`); `onChannelDenied` solo cuenta `status === 403` de la activa. Falta la verificación en vivo: necesita un segundo usuario de prueba miembro de Demo (escritura en la BD de desarrollo, pendiente de confirmación del usuario). Para simular el cliente que ignora el evento: desuscribir `private-users.<id>` desde la consola (instancia de pusher-js) o comentar `subscribeToUser` temporalmente. Leer `docs/lecciones.md` antes. Tras cambiar jobs o listeners: `docker compose restart queue`.
 
 ## Mejoras propuestas
-- [ ] M-1 (baja, sonnet): renombrar el helper global de Pest `authorizePresence` en `api/tests/Feature/BroadcastingAuthTest.php` a uno más específico (`authorizeSessionPresence`), por L-29.
-- [ ] M-2 (baja, sonnet): quitar el docblock `@return array{id: int}|false` de `api/app/Broadcasting/SessionChannel.php`, que repite la firma.
+- [x] M-1 (baja, sonnet): renombrar el helper global de Pest `authorizePresence` en `api/tests/Feature/BroadcastingAuthTest.php` a uno más específico (`authorizeSessionPresence`), por L-29.
+- [x] M-2 (baja, sonnet): quitar el docblock `@return array{id: int}|false` de `api/app/Broadcasting/SessionChannel.php`, que repite la firma.
 - [ ] M-3 (baja, sonnet): documentar `REVERB_CONNECT_TIMEOUT` y `REVERB_TIMEOUT` en `api/.env.example`.
-- [ ] M-4 (baja, sonnet): en el test de fallo de la cola de `api/tests/Feature/MembershipBroadcastTest.php`, afirmar también que se llamó a `report()` (hoy depende de que el driver llame a `later`).
-- [ ] M-5 (baja, sonnet): en `web/src/realtime/echo.ts` (`subscribe`), extraer a un helper la creación del canal (presence o private) en vez de mezclar las ramas con `channel?.listen` y un `if` aparte.
-- [ ] M-6 (baja, sonnet): en `web/src/realtime/echo.ts`, una constante o helper para el prefijo `private-` que comparten `createAuthorizer` y `handleSubscriptionError`.
-- [ ] M-7 (baja, sonnet): en `web/src/test/fakeRealtimeClient.ts`, guardar varios handlers de `error` por canal en vez de uno solo.
-- [ ] M-8 (baja, sonnet): spec en `web/src/realtime/useMembershipWatch.spec.ts` de cambio de usuario: suelta `sessions.<viejo>` y se une a `sessions.<nuevo>`.
-- [ ] M-9 (baja, sonnet): en `useMembershipWatch.ts`, capturar un rechazo inesperado de `onForbidden` (p. ej. si `router.replace` lanza) en los `void onForbidden(...)` para no dejar promesas sin manejar.
+- [x] M-4 (baja, sonnet): en el test de fallo de la cola de `api/tests/Feature/MembershipBroadcastTest.php`, afirmar también que se llamó a `report()` (hoy depende de que el driver llame a `later`).
+- [x] M-5 (baja, sonnet): en `web/src/realtime/echo.ts` (`subscribe`), extraer a un helper la creación del canal (presence o private) en vez de mezclar las ramas con `channel?.listen` y un `if` aparte.
+- [x] M-6 (baja, sonnet): en `web/src/realtime/echo.ts`, una constante o helper para el prefijo `private-` que comparten `createAuthorizer` y `handleSubscriptionError`.
+- [x] M-7 (baja, sonnet): en `web/src/test/fakeRealtimeClient.ts`, guardar varios handlers de `error` por canal en vez de uno solo.
+- [x] M-8 (baja, sonnet): spec en `web/src/realtime/useMembershipWatch.spec.ts` de cambio de usuario: suelta `sessions.<viejo>` y se une a `sessions.<nuevo>`.
+- [x] M-9 (baja, sonnet): en `useMembershipWatch.ts`, capturar un rechazo inesperado de `onForbidden` (p. ej. si `router.replace` lanza) en los `void onForbidden(...)` para no dejar promesas sin manejar.
