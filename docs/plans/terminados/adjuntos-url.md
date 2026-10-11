@@ -138,7 +138,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 - [x] M-3 (baja, sonnet): en `MessageAttachments.vue`, el aviso "ya no disponible" usa `failed.size > 0` y no descarta
   entradas cuya URL del store ya cambió: tras un fallo y una URL nueva que carga bien sigue visible. Filtrar `failed`
   contra las URLs actuales (ya pasaba con el `Set`).
-- [ ] M-4 (baja, sonnet): extraer el tipo `{ url; expires_at }` de `getAttachmentUrl` a una interfaz en `web/src/api/types.ts`.
+- [x] M-4 (baja, sonnet): extraer el tipo `{ url; expires_at }` de `getAttachmentUrl` a una interfaz en `web/src/api/types.ts`.
 - [ ] M-5 (baja, sonnet): en `MessageAttachments.vue`, si `window.open` devolvió null y el respaldo tras el `await`
   también (Safari lo bloquea), mostrar un toast en vez de no hacer nada.
 - [ ] M-6 (baja, sonnet): distinguir el 404 de un error de red o 500 en el toast de apertura (hoy siempre "puede que ya

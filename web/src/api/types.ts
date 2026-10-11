@@ -214,6 +214,13 @@ export interface MessageAttachment {
   url: string
 }
 
+/** Fresh signed download url for an attachment, from `getAttachmentUrl`. */
+export interface AttachmentUrl {
+  url: string
+  /** ISO timestamp. */
+  expires_at: string
+}
+
 export interface Message {
   id: number
   channel_id: number
