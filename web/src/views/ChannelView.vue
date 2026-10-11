@@ -486,7 +486,8 @@ defineExpose({ openThread })
   min-width: 0;
   min-height: 0;
 }
-.channel__panel {
+/* LogGroupAside renders a fragment, so this view's scope id never reaches its panel: match it with :deep. */
+.channel__layout > :deep(.channel__panel) {
   flex: 0 0 min(320px, 40%);
   min-height: 0;
   overflow-y: auto;
