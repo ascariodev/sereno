@@ -253,6 +253,7 @@
     "The file is empty.": "El archivo está vacío.",
     "The message to reply to does not exist in this channel.": "El mensaje al que responder no existe en este canal.",
     "A reply cannot have replies.": "Una respuesta no puede tener respuestas.",
+    "The message to reply to was deleted.": "El mensaje al que responder fue eliminado.",
     "Too many attempts. Please try again in :seconds seconds.": "Demasiados intentos. Inténtalo de nuevo en :seconds segundos.",
     "Unauthenticated.": "No autenticado.",
     "The request body is too large.": "El cuerpo de la petición es demasiado grande.",

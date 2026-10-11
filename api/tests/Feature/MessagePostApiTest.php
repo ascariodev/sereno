@@ -248,3 +248,15 @@ it('broadcasts the reply with its parent_id', function () {
     Event::assertDispatched(MessageCreated::class, fn ($e) => $e->message['parent_id'] === $root
         && $e->channelId === $this->channel->id);
 });
+
+it('rejects replying to a deleted root without replies but accepts one that still has replies', function () {
+    $bare = systemRootIn($this->channel);
+    $withReplies = systemRootIn($this->channel);
+    replyTo($this, $this->channel, $withReplies)->assertCreated();
+    DB::table('messages')->whereIn('id', [$bare, $withReplies])->update(['deleted_at' => now()]);
+
+    replyTo($this, $this->channel, $bare)
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.parent_id.0', 'The message to reply to was deleted.');
+    replyTo($this, $this->channel, $withReplies)->assertCreated();
+});

@@ -52,6 +52,8 @@ class StoreMessageRequest extends FormRequest
                     $validator->errors()->add('parent_id', __('The message to reply to does not exist in this channel.'));
                 } elseif ($parent->parent_id !== null) {
                     $validator->errors()->add('parent_id', __('A reply cannot have replies.'));
+                } elseif ($parent->deleted_at !== null && $parent->replies_count === 0) {
+                    $validator->errors()->add('parent_id', __('The message to reply to was deleted.'));
                 }
             },
         ];

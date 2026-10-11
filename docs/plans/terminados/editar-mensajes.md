@@ -175,7 +175,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 - [x] M-12 (baja, sonnet): al borrar una respuesta en vivo, recalcular `recent_participants` de la raíz (hoy lo corrige el siguiente snapshot).
 - [x] M-13 (baja, sonnet): si `message.deleted` de una raíz llega antes que su `message.created`, el marcador no aparece hasta el siguiente snapshot.
 - [x] M-14 (baja, sonnet): comentario en `stores/thread.ts` (`replace`) sobre `edits` de respuestas no cargadas (acotado por eventos, se limpia en `clear`).
-- [ ] M-15 (media, sonnet): decidir si la API rechaza responder a una raíz borrada sin respuestas (hoy la revive como marcador) y, si se rechaza, ocultar el composer del panel. Decisión del usuario (2026-10-11): rechazar (422) y ocultar el composer.
+- [x] M-15 (media, sonnet): decidir si la API rechaza responder a una raíz borrada sin respuestas (hoy la revive como marcador) y, si se rechaza, ocultar el composer del panel. Decisión del usuario (2026-10-11): rechazar (422) y ocultar el composer.
 - [x] M-16 (baja, sonnet): specs de `ChannelView` para eventos de otro canal y de otra raíz, y para una raíz borrada sin respuestas con el hilo abierto.
 - [x] M-17 (baja, sonnet): en `MentionsView.vue`, unificar con `v-if/v-else` o un computed el bloque repetido de `message.deleted_at`.
 - [x] M-18 (baja, sonnet): al cerrar el diálogo de borrado, devolver el foco al composer o a la lista (el ítem del menú que lo abrió desaparece y el foco cae en `body`); verificar en navegador.

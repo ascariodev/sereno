@@ -35,6 +35,7 @@ const rootMessage = computed<Message | null>(
     (thread.root?.id === props.rootId && thread.root.channel_id === props.channelId ? thread.root : null),
 )
 const repliesCount = computed(() => rootMessage.value?.replies_count ?? thread.replies.length)
+const rootDeletedWithoutReplies = computed(() => rootMessage.value?.deleted_at != null && repliesCount.value === 0)
 const notFound = computed(() => thread.error?.status === 404)
 const panel = ref<HTMLElement | null>(null)
 
@@ -93,7 +94,7 @@ function reload(): void {
           @load-older="thread.loadOlder()"
         />
         <p v-if="archived" class="thread-aside__archived">{{ t('thread.archived') }}</p>
-        <MessageComposer v-else :send="thread.send" :channel-id="channelId" :placeholder="t('thread.replyPlaceholder')"
+        <MessageComposer v-else-if="!rootDeletedWithoutReplies" :send="thread.send" :channel-id="channelId" :placeholder="t('thread.replyPlaceholder')"
           :editable="thread.replies"
           :draft="thread.draft"
           @update:draft="thread.setDraft"
