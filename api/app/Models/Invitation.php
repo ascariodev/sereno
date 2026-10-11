@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Role;
+use App\Events\ProjectMembersChanged;
 use App\Models\Concerns\BelongsToOrganization;
 use App\Models\Scopes\OrganizationScope;
 use Database\Factories\InvitationFactory;
@@ -115,6 +116,10 @@ class Invitation extends Model
             ->where('organization_id', $this->organization_id)
             ->whereIn('id', $this->projects()->withoutGlobalScopes()->select('projects.id'))
             ->get()
-            ->each(fn (Project $project) => $project->addMember($user));
+            ->each(function (Project $project) use ($user) {
+                if ($project->addMember($user)) {
+                    ProjectMembersChanged::dispatch($project);
+                }
+            });
     }
 }

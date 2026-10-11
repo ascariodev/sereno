@@ -6,6 +6,7 @@ use App\Enums\Locale;
 use App\Enums\Role;
 use App\Events\MembershipRevoked;
 use App\Events\MembershipRoleChanged;
+use App\Events\ProjectMembersChanged;
 use App\Exceptions\LastOwnerException;
 use App\Jobs\TerminateUserConnections;
 use Database\Factories\OrganizationFactory;
@@ -140,12 +141,23 @@ class Organization extends Model
             $user->syncRoles([]);
             $this->users()->detach($user->id);
 
+            $projectIds = DB::table('project_user')
+                ->where('organization_id', $this->id)
+                ->where('user_id', $user->id)
+                ->pluck('project_id');
+
             DB::table('project_user')
                 ->where('organization_id', $this->id)
                 ->where('user_id', $user->id)
                 ->delete();
 
             Task::unassignUser($this->id, $user->id);
+
+            Project::query()
+                ->withoutGlobalScopes()
+                ->whereIn('id', $projectIds)
+                ->get()
+                ->each(fn (Project $project) => ProjectMembersChanged::dispatch($project));
 
             MembershipRevoked::dispatch($user->id, $this->id);
             TerminateUserConnections::scheduleAfterCommit($user->id);
