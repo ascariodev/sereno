@@ -252,7 +252,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   para que el tablero en vivo no quede desfasado.
 - [x] M-16 (baja, sonnet): el `catch (UniqueConstraintViolationException)` de `TaskController@store` solo traduce a 422
   la violación de `tasks_log_group_id_unique` y relanza las demás.
-- [ ] M-17 (baja, sonnet): base común para `TaskCreated` y `TaskUpdated`; test de que un delete con 404 o 403 no
+- [x] M-17 (baja, sonnet): base común para `TaskCreated` y `TaskUpdated`; test de que un delete con 404 o 403 no
   emite `TaskDeleted`.
 - [ ] M-18 (baja, sonnet): `TaskLogGroup.level` con el tipo de nivel de log existente; `createTask` arma el cuerpo
   solo con los campos definidos, como `updateTask`.

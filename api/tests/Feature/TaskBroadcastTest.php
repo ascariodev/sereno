@@ -118,3 +118,11 @@ it('does not broadcast a delete the policy refuses', function () {
 
     Event::assertNotDispatched(TaskDeleted::class);
 });
+
+it('does not broadcast a delete of a task that does not exist', function () {
+    Event::fake([TaskDeleted::class]);
+
+    taskBroadcastCall($this, 'DELETE', '/999999')->assertNotFound();
+
+    Event::assertNotDispatched(TaskDeleted::class);
+});
