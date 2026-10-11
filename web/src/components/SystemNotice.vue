@@ -160,7 +160,9 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
         <b class="system-notice-line__actor">{{ actor }}</b>
       </template>
       <template v-if="changedTitle" #title>
-        <em class="system-notice-line__title">{{ changedTitle }}</em>
+        <em class="system-notice-line__title">
+          <a :href="`?group=${changed.log_group_id}`" @click.prevent="emit('select', changed.log_group_id)">{{ changedTitle }}</a>
+        </em>
       </template>
       <template #status>
         <b :class="`system-notice-line__status--${changedTone}`">{{ changedStatus }}</b>
@@ -324,6 +326,13 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
 }
 .system-notice-line__title {
   color: var(--ink);
+}
+.system-notice-line__title a {
+  color: inherit;
+  text-decoration: none;
+}
+.system-notice-line__title a:hover {
+  text-decoration: underline;
 }
 .system-notice-line__status--open { color: var(--status-open-fg); }
 .system-notice-line__status--resolved { color: var(--status-resolved-fg); }

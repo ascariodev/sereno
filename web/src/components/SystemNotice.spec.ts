@@ -145,6 +145,9 @@ describe('SystemNotice', () => {
     expect(wrapper.emitted('select')).toEqual([[5]])
     const line = mount(SystemNotice, { props: { message: message(changed, ana) }, global: { plugins: [i18n] } })
     expect(line.find('a').exists()).toBe(false)
+    const titled = mount(SystemNotice, { props: { message: message({ ...changed, title: 'Boom' }, ana) }, global: { plugins: [i18n] } })
+    await titled.find('a').trigger('click')
+    expect(titled.emitted('select')).toEqual([[5]])
   })
 
   it('falls back to the generic notice for an unknown or missing type', () => {
