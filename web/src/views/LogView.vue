@@ -392,7 +392,8 @@ function formatDate(value: string): string {
   min-width: 0;
   padding: var(--space-5) 28px 28px;
 }
-.log-view__panel {
+/* LogGroupAside renders a fragment, so this view's scope id never reaches its panel: match it with :deep. */
+.log-view__layout > :deep(.log-view__panel) {
   flex: 1 1 320px;
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
