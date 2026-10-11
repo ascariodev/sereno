@@ -3,7 +3,7 @@ import type { ConnectionStatus, RealtimeClient, RealtimePayload, SubscriptionErr
 
 export function createFakeRealtimeClient() {
   const listeners = new Map<string, (data: RealtimePayload) => void>()
-  const errorHandlers = new Map<string, (payload: SubscriptionErrorPayload) => void>()
+  const errorHandlers = new Map<string, ((payload: SubscriptionErrorPayload) => void)[]>()
   let status: ConnectionStatus = 'connecting'
   const statusListeners = new Set<(next: ConnectionStatus) => void>()
   const client = {
@@ -12,7 +12,7 @@ export function createFakeRealtimeClient() {
         listeners.set(`${name}|${event}`, callback)
       }),
       error: vi.fn((callback: (payload: SubscriptionErrorPayload) => void) => {
-        errorHandlers.set(name, callback)
+        errorHandlers.set(name, [...(errorHandlers.get(name) ?? []), callback])
       }),
     })),
     join: vi.fn((_name: string) => ({})),
@@ -28,6 +28,6 @@ export function createFakeRealtimeClient() {
     status = next
     statusListeners.forEach((listener) => listener(next))
   }
-  const rejectChannel = (name: string, payload: SubscriptionErrorPayload) => errorHandlers.get(name)?.(payload)
+  const rejectChannel = (name: string, payload: SubscriptionErrorPayload) => errorHandlers.get(name)?.forEach((handler) => handler(payload))
   return { client, listeners, setStatus, statusListeners, rejectChannel }
 }
