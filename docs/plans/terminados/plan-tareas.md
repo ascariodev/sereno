@@ -256,7 +256,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   emite `TaskDeleted`.
 - [x] M-18 (baja, sonnet): `TaskLogGroup.level` con el tipo de nivel de log existente; `createTask` arma el cuerpo
   solo con los campos definidos, como `updateTask`.
-- [ ] M-19 (baja, sonnet): `tasks` store: `destroy` quita la tarea si el API responde 404; con "Mías" y sin usuario
+- [x] M-19 (baja, sonnet): `tasks` store: `destroy` quita la tarea si el API responde 404; con "Mías" y sin usuario
   cargado, decidir qué mostrar; guard en vez de `as number` al olvidar el tombstone más viejo.
 - [ ] M-20 (baja, sonnet): `PlanView.spec`: test del cambio de organización; orden de imports de iconos en
   `ProjectHeader.vue`.
