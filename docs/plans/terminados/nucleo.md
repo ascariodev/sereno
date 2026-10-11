@@ -143,7 +143,7 @@
       Complejidad: alta · Archivos: 1-2 · Riesgo: seguridad → opus
 - [x] M-16: al aceptar, revalidar que quien invitó sigue siendo owner/admin de la organización.
       Complejidad: alta · Archivos: 1-2 · Riesgo: seguridad → opus
-- [ ] M-17: (parte de la cola hecha en log fase 2; falta el enlace a `workspace-web`) `InvitationNotification` con `ShouldQueue` cuando haya colas, y enlace a `workspace-web` en vez del token en texto cuando exista.
+- [x] M-17: (parte de la cola hecha en log fase 2; falta el enlace a `workspace-web`) `InvitationNotification` con `ShouldQueue` cuando haya colas, y enlace a `workspace-web` en vez del token en texto cuando exista. Ya aplicada (verificado 2026-10-11: ShouldQueue, ShouldBeEncrypted y enlace `{frontend_url}/invite/{token}`).
       Complejidad: media · Archivos: 1-2 · Riesgo: integración → sonnet
 - [x] M-18: separar en `ProjectPolicyTest` el caso de key repetida en otra organización (permitido) del de key repetida en la misma (falla).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
