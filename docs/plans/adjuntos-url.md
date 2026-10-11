@@ -7,7 +7,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 ## Contexto mínimo
 - Apps afectadas: `api/` y `web/` (los commits van con `git` en la raíz del monorepo). Origen: acceso-proyectos M-2.
 - Hoy: `MessageAttachment::downloadUrl()` firma `attachments.download` con TTL `config('chat.attachments.url_ttl_minutes')`
-  (60) redondeado hacia arriba a `URL_EXPIRY_STEP_SECONDS` (600) para que el navegador reuse la caché. La URL sale en
+  (60; 5 tras la fase 4) redondeado hacia arriba a `URL_EXPIRY_STEP_SECONDS` (600; 60 tras la fase 4) para que el navegador reuse la caché. La URL sale en
   `MessageAttachmentResource` (listados, hilos, menciones y payloads de `MessageCreated`, `MessageUpdated` y
   `MentionCreated`). La ruta `GET attachments/{attachment}` (`api/routes/api.php` ~L84) es pública con
   `signed:relative`; `AttachmentController::download` solo valida la firma y responde con
@@ -110,11 +110,17 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
   El enlace de descarga hace `location.assign(url)` en la misma pestaña, como antes. Cualquier error cierra la ventana y
   muestra el toast `attachments.openFailed`. Clic con ctrl, meta, shift, alt o botón distinto de 0 queda nativo (el medio
   dispara `auxclick`). El `href` de respaldo de ambos enlaces usa `previewUrl(a)` (renovada si existe).
+- 2026-10-11 (Fase 4) Default TTL 5 y paso 60 s. Con paso de 60 s todo TTL en minutos es múltiplo del paso: el caso
+  "ttl no múltiplo" pasa a "ttl distinto del default" (7). `Cache-Control: max-age` ya sale de `expires`: sin cambios.
+  `MessageAttachmentTest` solo exige TTL > 0, para no atarlo al `.env`.
 
 ## Notas para la próxima sesión
-- Fases 1 a 3 hechas. Siguiente: fase 4 [riesgo]. Pendiente de verificar en el navegador: bloqueador de popups y
-  descarga en la misma pestaña (solo hay specs con `window.open` y `location` simulados). El texto de `.env.example` lo
-  cambia el usuario.
+- Fase 4: código, tests (64) y pint hechos y revisados (LISTO), commiteados. Falta para cerrarla la verificación
+  manual en el navegador (TTL 1 min forzado: imagen vencida que se repinta, clic que abre; también bloqueador de popups y
+  descarga en la misma pestaña). Los contenedores montan el checkout principal: hace falta un API temporal del worktree
+  (otro puerto, `CHAT_ATTACHMENT_URL_TTL=1`, storage del checkout principal) y una Vite temporal del worktree apuntando a él.
+- El usuario cambia `api/.env.example:77` de `CHAT_ATTACHMENT_URL_TTL=60` a `5` (comentario sugerido: minutos; el
+  vencimiento se redondea hacia arriba al minuto y la web pide una URL nueva al vencer). Si producción define 60, bajarlo.
 
 ## Mejoras propuestas
 </content>

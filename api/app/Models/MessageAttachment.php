@@ -15,7 +15,7 @@ class MessageAttachment extends Model
     public const UPDATED_AT = null;
 
     // The expiry is rounded up to this step so the same file keeps the same url (and browser cache) for a while.
-    public const URL_EXPIRY_STEP_SECONDS = 600;
+    public const URL_EXPIRY_STEP_SECONDS = 60;
 
     protected $guarded = ['*'];
 

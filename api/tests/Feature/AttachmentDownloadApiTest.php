@@ -150,7 +150,7 @@ it('rounds the expiry up to the next step, never below the ttl', function (int $
     expect($expires % $step)->toBe(0)
         ->and($expires)->toBeGreaterThanOrEqual($minimum)
         ->and($expires - $minimum)->toBeLessThan($step);
-})->with(['on a boundary' => 0, 'just after' => 1, 'mid step' => 300, 'just before the next' => 599]);
+})->with(['on a boundary' => 0, 'just after' => 1, 'mid step' => 30, 'just before the next' => 59]);
 
 it('gives the same url within a step and a new one after it', function (?int $ttl) {
     if ($ttl !== null) {
@@ -171,13 +171,13 @@ it('gives the same url within a step and a new one after it', function (?int $tt
 
     $this->travelTo(now()->setTimestamp($start + $step));
     expect($attachment->downloadUrl())->not->toBe($first);
-})->with(['default ttl' => null, 'ttl not a multiple of the step' => 15]);
+})->with(['default ttl' => null, 'a ttl other than the default' => 7]);
 
 it('caches the file privately only while the url is valid', function () {
     $this->freezeTime();
     $attachment = downloadableAttachment($this);
     $url = $attachment->downloadUrl();
-    $this->travel(10)->minutes();
+    $this->travel(2)->minutes();
 
     $cache = fetchAttachment($url)->assertOk()->headers->get('Cache-Control');
     $seconds = attachmentUrlExpiry($url) - now()->getTimestamp();
