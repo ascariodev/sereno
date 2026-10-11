@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import { useRegistrationStatus } from '../composables/useRegistrationStatus'
+import AppButton from '../components/ui/AppButton.vue'
+import AppInput from '../components/ui/AppInput.vue'
 import AppSegmented from '../components/ui/AppSegmented.vue'
 import BrandMark from '../components/ui/BrandMark.vue'
 import { toast } from '../components/ui/toast'
@@ -22,22 +24,13 @@ const registerLocation = computed(() => {
   return redirect ? { name: 'register', query: { redirect } } : { name: 'register' }
 })
 
-const emailInput = ref<HTMLInputElement | null>(null)
+const emailInput = ref<InstanceType<typeof AppInput> | null>(null)
 const email = ref('')
 const password = ref('')
 const submitting = ref(false)
 const explicitLocale = ref<Locale | null>(null)
 const fieldErrors = ref<Record<string, string[]>>({})
 const formError = ref<string | null>(null)
-
-function errorIds(field: 'email' | 'password'): string[] {
-  return (fieldErrors.value[field] ?? []).map((_, index) => `login-${field}-error-${index}`)
-}
-
-function describedBy(field: 'email' | 'password'): string | undefined {
-  const ids = errorIds(field)
-  return ids.length ? ids.join(' ') : undefined
-}
 
 const languageOptions = [
   { value: 'es', label: 'ES', ariaLabel: LOCALE_LABELS.es, lang: 'es' },
@@ -103,58 +96,36 @@ async function submit(): Promise<void> {
             <p class="login__subtitle">{{ t('login.subtitle') }}</p>
           </div>
 
-          <div class="login__field">
-            <label for="login-email">{{ t('login.email') }}</label>
-            <input
-              id="login-email"
-              ref="emailInput"
-              v-model="email"
-              type="email"
-              name="email"
-              autocomplete="username"
-              required
-              :aria-invalid="describedBy('email') ? 'true' : undefined"
-              :aria-describedby="describedBy('email')"
-            />
-            <p
-              v-for="(message, index) in fieldErrors.email"
-              :id="`login-email-error-${index}`"
-              :key="`${index}-${message}`"
-              class="login__error"
-              data-test="error-email"
-            >
-              {{ message }}
-            </p>
-          </div>
+          <AppInput
+            id="login-email"
+            :label="t('login.email')"
+            ref="emailInput"
+            v-model="email"
+            type="email"
+            name="email"
+            autocomplete="username"
+            required
+            :errors="fieldErrors.email"
+            error-test="error-email"
+          />
 
-          <div class="login__field">
-            <label for="login-password">{{ t('login.password') }}</label>
-            <input
-              id="login-password"
-              v-model="password"
-              type="password"
-              name="password"
-              autocomplete="current-password"
-              required
-              :aria-invalid="describedBy('password') ? 'true' : undefined"
-              :aria-describedby="describedBy('password')"
-            />
-            <p
-              v-for="(message, index) in fieldErrors.password"
-              :id="`login-password-error-${index}`"
-              :key="`${index}-${message}`"
-              class="login__error"
-              data-test="error-password"
-            >
-              {{ message }}
-            </p>
-          </div>
+          <AppInput
+            id="login-password"
+            :label="t('login.password')"
+            v-model="password"
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            required
+            :errors="fieldErrors.password"
+            error-test="error-password"
+          />
 
           <p v-if="formError" class="login__error" role="alert" data-test="error-form">{{ formError }}</p>
 
-          <button class="login__submit" type="submit" :disabled="submitting">
+          <AppButton type="submit" :disabled="submitting">
             {{ submitting ? t('login.submitting') : t('login.submit') }}
-          </button>
+          </AppButton>
           <RouterLink v-if="registrationOpen" class="login__link" :to="registerLocation" data-test="register-link">
             {{ t('login.noAccount') }}
           </RouterLink>
@@ -232,45 +203,6 @@ async function submit(): Promise<void> {
   margin: 0;
   color: var(--ink-2);
   font-size: 15px;
-}
-.login__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.login__field label {
-  font-size: 13px;
-  font-weight: 600;
-}
-.login__field input {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--ink);
-}
-.login__field input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-.login__submit {
-  min-height: 46px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--ink);
-  color: var(--surface);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.login__submit:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.login__submit:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 .login__hint {
   margin: 0;

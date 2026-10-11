@@ -3,12 +3,12 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
+import AppButton from '../components/ui/AppButton.vue'
+import AppInput from '../components/ui/AppInput.vue'
 import BrandMark from '../components/ui/BrandMark.vue'
 import { useRegistrationStatus } from '../composables/useRegistrationStatus'
 import { safeRedirect } from '../router/safeRedirect'
 import { useAuthStore } from '../stores/auth'
-
-type Field = 'name' | 'email' | 'password'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -16,7 +16,7 @@ const router = useRouter()
 const route = useRoute()
 const { enabled, failed, ready, retry } = useRegistrationStatus()
 
-const nameInput = ref<HTMLInputElement | null>(null)
+const nameInput = ref<InstanceType<typeof AppInput> | null>(null)
 const name = ref('')
 const email = ref('')
 const password = ref('')
@@ -30,15 +30,6 @@ const loginLocation = computed(() => {
   const redirect = safeRedirect(route.query.redirect)
   return { name: 'login', query: redirect ? { redirect } : {} }
 })
-
-function errorIds(field: Field): string[] {
-  return (fieldErrors.value[field] ?? []).map((_, index) => `register-${field}-error-${index}`)
-}
-
-function describedBy(field: Field): string | undefined {
-  const ids = errorIds(field)
-  return ids.length ? ids.join(' ') : undefined
-}
 
 onMounted(async () => {
   const current = generation
@@ -104,7 +95,7 @@ async function submit(): Promise<void> {
     <div v-if="failed" class="register__panel" data-test="status-error">
       <h1>{{ t('register.title') }}</h1>
       <p class="register__error" role="alert">{{ t('register.statusError') }}</p>
-      <button class="register__submit" type="button" data-test="retry" @click="retryStatus">{{ t('register.retry') }}</button>
+      <AppButton type="button" data-test="retry" @click="retryStatus">{{ t('register.retry') }}</AppButton>
       <RouterLink class="register__link" :to="loginLocation">{{ t('register.toLogin') }}</RouterLink>
     </div>
 
@@ -119,93 +110,58 @@ async function submit(): Promise<void> {
     <form v-else-if="enabled" class="register__panel" novalidate data-test="register-form" @submit.prevent="submit">
       <h1>{{ t('register.title') }}</h1>
 
-      <div class="register__field">
-        <label for="register-name">{{ t('register.name') }}</label>
-        <input
-          id="register-name"
-          ref="nameInput"
-          v-model="name"
-          type="text"
-          name="name"
-          autocomplete="name"
-          required
-          :aria-invalid="describedBy('name') ? 'true' : undefined"
-          :aria-describedby="describedBy('name')"
-        />
-        <p
-          v-for="(message, index) in fieldErrors.name"
-          :id="`register-name-error-${index}`"
-          :key="message"
-          class="register__error"
-          data-test="error-name"
-        >
-          {{ message }}
-        </p>
-      </div>
+      <AppInput
+        id="register-name"
+        :label="t('register.name')"
+        ref="nameInput"
+        v-model="name"
+        type="text"
+        name="name"
+        autocomplete="name"
+        required
+        :errors="fieldErrors.name"
+        error-test="error-name"
+      />
 
-      <div class="register__field">
-        <label for="register-email">{{ t('register.email') }}</label>
-        <input
-          id="register-email"
-          v-model="email"
-          type="email"
-          name="email"
-          autocomplete="username"
-          required
-          :aria-invalid="describedBy('email') ? 'true' : undefined"
-          :aria-describedby="describedBy('email')"
-        />
-        <p
-          v-for="(message, index) in fieldErrors.email"
-          :id="`register-email-error-${index}`"
-          :key="message"
-          class="register__error"
-          data-test="error-email"
-        >
-          {{ message }}
-        </p>
-      </div>
+      <AppInput
+        id="register-email"
+        :label="t('register.email')"
+        v-model="email"
+        type="email"
+        name="email"
+        autocomplete="username"
+        required
+        :errors="fieldErrors.email"
+        error-test="error-email"
+      />
 
-      <div class="register__field">
-        <label for="register-password">{{ t('register.password') }}</label>
-        <input
-          id="register-password"
-          v-model="password"
-          type="password"
-          name="password"
-          autocomplete="new-password"
-          required
-          :aria-invalid="describedBy('password') ? 'true' : undefined"
-          :aria-describedby="describedBy('password')"
-        />
-        <p
-          v-for="(message, index) in fieldErrors.password"
-          :id="`register-password-error-${index}`"
-          :key="message"
-          class="register__error"
-          data-test="error-password"
-        >
-          {{ message }}
-        </p>
-      </div>
+      <AppInput
+        id="register-password"
+        :label="t('register.password')"
+        v-model="password"
+        type="password"
+        name="password"
+        autocomplete="new-password"
+        required
+        :errors="fieldErrors.password"
+        error-test="error-password"
+      />
 
-      <div class="register__field">
-        <label for="register-password-confirmation">{{ t('register.passwordConfirmation') }}</label>
-        <input
-          id="register-password-confirmation"
-          v-model="passwordConfirmation"
-          type="password"
-          name="password_confirmation"
-          autocomplete="new-password"
-          required
-        />
-      </div>
+      <AppInput
+        id="register-password-confirmation"
+        :label="t('register.passwordConfirmation')"
+        v-model="passwordConfirmation"
+        type="password"
+        name="password_confirmation"
+        autocomplete="new-password"
+        required
+      />
 
       <p v-if="formError" class="register__error" role="alert" data-test="error-form">{{ formError }}</p>
 
-      <button class="register__submit" type="submit" :disabled="submitting">
+      <AppButton type="submit" :disabled="submitting">
         {{ submitting ? t('register.submitting') : t('register.submit') }}
-      </button>
+      </AppButton>
       <RouterLink class="register__link" :to="loginLocation" data-test="login-link">
         {{ t('register.haveAccount') }}
       </RouterLink>
@@ -247,45 +203,6 @@ async function submit(): Promise<void> {
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.02em;
-}
-.register__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.register__field label {
-  font-size: 13px;
-  font-weight: 600;
-}
-.register__field input {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--ink);
-}
-.register__field input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-.register__submit {
-  min-height: 46px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--ink);
-  color: var(--surface);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.register__submit:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.register__submit:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 .register__link {
   color: var(--ink-2);
