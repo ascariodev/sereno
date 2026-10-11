@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
-import type { Message } from '../api/types'
+import type { Channel, Message } from '../api/types'
 import LogGroupAside from '../components/LogGroupAside.vue'
 import { resetGroupStatuses } from '../composables/useLogGroupStatuses'
 import { toast, toasts } from '../components/ui/toast'
@@ -40,6 +40,16 @@ const message = (id: number, kind: Message['kind'] = 'user'): Message => ({
 const channels = {
   data: [{ id: 7, project_id: 1, name: 'DEMO', archived_at: null, created_at: '', project: { id: 1, name: 'Demo', key: 'D' } }],
 }
+const channelDetailPath = /^\/api\/channels\/(\d+)$/
+const isChannels = (path: string) => path === '/api/channels' || channelDetailPath.test(path)
+
+function channelsResponse(path: string, list: { data: Channel[] }) {
+  const id = channelDetailPath.exec(path)?.[1]
+  if (id === undefined) return list
+  const found = list.data.find((item) => item.id === Number(id))
+  if (!found) throw new ApiError(404, 'Not found')
+  return { data: found }
+}
 
 async function mountView(path = '/channels/7', attach = false) {
   const pinia = createPinia()
@@ -55,14 +65,14 @@ async function mountView(path = '/channels/7', attach = false) {
 
 function mockApi(messages: (cursor?: unknown) => unknown) {
   return vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: { query?: { cursor?: unknown } }) => {
-    if (path === '/api/channels') return channels as never
+    if (isChannels(path)) return channelsResponse(path, channels) as never
     if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
     return (await messages(options?.query?.cursor)) as never
   })
 }
 
 function viewCalls(spy: { mock: { calls: unknown[][] } }) {
-  return spy.mock.calls.filter(([path, options]) => path !== '/api/projects' && !(path === '/api/channels' && !options))
+  return spy.mock.calls.filter(([path]) => path !== '/api/projects' && path !== '/api/channels')
 }
 
 function fakeRealtime() {
@@ -119,7 +129,7 @@ describe('ChannelView', () => {
 
   it('shows a hint when the channel details fail to load but keeps the history', async () => {
     vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') throw new ApiError(500, 'Server error')
+      if (isChannels(path)) throw new ApiError(500, 'Server error')
       return { data: [message(1)], meta: { next_cursor: null } } as never
     })
     const wrapper = await mountView()
@@ -130,11 +140,11 @@ describe('ChannelView', () => {
   it('ignores a stale channel request that fails after the organization changed', async () => {
     let rejectStale: (error: unknown) => void = () => {}
     let channelCalls = 0
-    vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: unknown) => {
-      if (path === '/api/channels' && options) {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/channels/7') {
         channelCalls++
         if (channelCalls === 1) return new Promise((_, reject) => (rejectStale = reject)) as never
-        return channels as never
+        return channelsResponse(path, channels) as never
       }
       return { data: [message(1)], meta: { next_cursor: null } } as never
     })
@@ -165,7 +175,7 @@ describe('ChannelView', () => {
 
   it('shows the project key and description from the projects store', async () => {
     vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') return channels as never
+      if (isChannels(path)) return channelsResponse(path, channels) as never
       if (path === '/api/projects') {
         const project = { id: 1, name: 'Demo', key: 'DMO', description: 'Full project description', archived_at: null, created_at: '', updated_at: '' }
         return { data: [project], meta: { last_page: 1 } } as never
@@ -186,17 +196,18 @@ describe('ChannelView', () => {
     expect(viewCalls(get).length).toBe(before + 2)
   })
 
-  it('shows the composer for an active channel and requests archived channels too', async () => {
+  it('shows the composer for an active channel and requests only that channel', async () => {
     const get = mockApi(() => ({ data: [message(1)], meta: { next_cursor: null } }))
     const wrapper = await mountView()
     expect(wrapper.find('textarea[name="body"]').exists()).toBe(true)
-    expect(get).toHaveBeenCalledWith('/api/channels', { query: { include_archived: 1 } })
+    expect(get).toHaveBeenCalledWith('/api/channels/7')
+    expect(get).not.toHaveBeenCalledWith('/api/channels', { query: { include_archived: 1 } })
   })
 
   it('hides the composer in an archived channel', async () => {
     vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') {
-        return { data: [{ ...channels.data[0], archived_at: '2026-01-01T00:00:00Z' }] } as never
+      if (isChannels(path)) {
+        return channelsResponse(path, { data: [{ ...channels.data[0], archived_at: '2026-01-01T00:00:00Z' }] }) as never
       }
       return { data: [message(1)], meta: { next_cursor: null } } as never
     })
@@ -269,14 +280,14 @@ describe('ChannelView', () => {
     const wrapper = await mountView()
     realtime.setStatus('connected')
     await flushPromises()
-    expect(viewCalls(spy).filter(([path]) => path !== '/api/channels')).toHaveLength(1)
+    expect(viewCalls(spy).filter(([path]) => !isChannels(String(path)))).toHaveLength(1)
     expect(toasts.value).toHaveLength(0)
 
     realtime.setStatus('connecting')
     realtime.setStatus('connected')
     await flushPromises()
     expect(toasts.value.map((item) => [item.kind, item.message])).toEqual([['success', 'Reconnected']])
-    expect(viewCalls(spy).filter(([path]) => path !== '/api/channels')).toHaveLength(2)
+    expect(viewCalls(spy).filter(([path]) => !isChannels(String(path)))).toHaveLength(2)
     expect(wrapper.findAll('li.message').map((li) => li.text())).toEqual([
       expect.stringContaining('body 1'),
       expect.stringContaining('body 2'),
@@ -370,7 +381,7 @@ describe('ChannelView group panel', () => {
 
   function mockGroups(messages: Message[]) {
     return vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') return channels as never
+      if (isChannels(path)) return channelsResponse(path, channels) as never
       if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
       const group = /log-groups\/(\d+)$/.exec(path)
       if (group) return detail(Number(group[1])) as never
@@ -409,7 +420,7 @@ describe('ChannelView group panel', () => {
   it('keeps the same panel element while the channel reloads', async () => {
     let failing = true
     vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') return channels as never
+      if (isChannels(path)) return channelsResponse(path, channels) as never
       if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
       const group = /log-groups\/(\d+)$/.exec(path)
       if (group) return detail(Number(group[1])) as never
@@ -435,7 +446,7 @@ describe('ChannelView group panel', () => {
 
     it('closes the panel when navigating to another channel and uses the new project afterwards', async () => {
       const spy = vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-        if (path === '/api/channels') return twoChannels as never
+        if (isChannels(path)) return channelsResponse(path, twoChannels) as never
         if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
         const group = /log-groups\/(\d+)$/.exec(path)
         if (group) return detail(Number(group[1])) as never
@@ -457,8 +468,8 @@ describe('ChannelView group panel', () => {
       let pendingChannels = false
       let release: (value: unknown) => void = () => {}
       vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-        if (path === '/api/channels') {
-          if (!pendingChannels) return channels as never
+        if (isChannels(path)) {
+          if (!pendingChannels || path === '/api/channels') return channelsResponse(path, channels) as never
           return (await new Promise<never>((resolve) => (release = resolve as (value: unknown) => void)))
         }
         if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
@@ -472,14 +483,14 @@ describe('ChannelView group panel', () => {
       useOrganizationStore().$patch({ activeId: 2 })
       await flushPromises()
       expect(wrapper.find('aside').exists()).toBe(false)
-      release(channels)
+      release({ data: channels.data[0] })
       await flushPromises()
     })
   })
 
   it('toasts and closes the panel replacing the history entry when the group is not found', async () => {
     vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') return channels as never
+      if (isChannels(path)) return channelsResponse(path, channels) as never
       if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
       if (/log-groups\/(\d+)$/.test(path)) throw new ApiError(404, 'Not found')
       return { data: [opened(1, 5)], meta: { next_cursor: null } } as never
@@ -575,7 +586,7 @@ describe('ChannelView thread panel', () => {
 
   function mockThread(replies: Message[] = [reply(2)]) {
     return vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') return channels as never
+      if (isChannels(path)) return channelsResponse(path, channels) as never
       if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
       if (repliesPath.test(path)) return { data: replies.slice().reverse(), meta: { next_cursor: null } } as never
       if (/log-groups\/\d+$/.test(path)) return { data: { id: 5, project_id: 1, level: 'error', title: 'Group 5', status: 'open', events_count: 1, first_seen_at: '', last_seen_at: '', events: [] } } as never
@@ -619,7 +630,7 @@ describe('ChannelView thread panel', () => {
 
   it('shows the jump-to-latest button when newer roots were left out and reloads without ?message=', async () => {
     const spy = vi.spyOn(api, 'get').mockImplementation(async (path: string, options?: { query?: Record<string, unknown> }) => {
-      if (path === '/api/channels') return channels as never
+      if (isChannels(path)) return channelsResponse(path, channels) as never
       if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
       return { data: [root], meta: { next_cursor: null, ...(options?.query?.around ? { has_newer: true } : {}) } } as never
     })
@@ -804,7 +815,7 @@ describe('ChannelView thread panel', () => {
       const realtime = fakeRealtime()
       const bare = { ...root, replies_count: 0 }
       vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-        if (path === '/api/channels') return channels as never
+        if (isChannels(path)) return channelsResponse(path, channels) as never
         if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
         if (repliesPath.test(path)) return { data: [], meta: { next_cursor: null, root: bare } } as never
         return { data: [bare], meta: { next_cursor: null } } as never
@@ -967,7 +978,7 @@ describe('ChannelView delete confirmation', () => {
 
   const threadMock = () =>
     vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') return channels as never
+      if (isChannels(path)) return channelsResponse(path, channels) as never
       if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
       if (/replies$/.test(path)) return { data: [reply], meta: { next_cursor: null } } as never
       return { data: [{ ...root, replies_count: 1 }], meta: { next_cursor: null } } as never
@@ -1072,7 +1083,7 @@ describe('ChannelView delete confirmation', () => {
 
   it('applies meta.root to both stores when deleting a reply from the open thread', async () => {
     const replies = vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') return channels as never
+      if (isChannels(path)) return channelsResponse(path, channels) as never
       if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
       if (/replies$/.test(path)) return { data: [reply], meta: { next_cursor: null } } as never
       return { data: [{ ...root, replies_count: 1 }], meta: { next_cursor: null } } as never
@@ -1098,7 +1109,7 @@ describe('ChannelView delete confirmation', () => {
       const bea = { id: 2, name: 'Bea' }
       const threadRoot = { ...root, replies_count: 2, recent_participants: [ana, bea] }
       vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-        if (path === '/api/channels') return channels as never
+        if (isChannels(path)) return channelsResponse(path, channels) as never
         if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
         if (/replies$/.test(path)) return { data: [reply], meta: { next_cursor: null, root: threadRoot } } as never
         return { data: [threadRoot], meta: { next_cursor: null } } as never
@@ -1215,7 +1226,7 @@ describe('ChannelView inline editor', () => {
     setRealtimeClientFactory(() => null)
     useThreadStore().clear()
     vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') return channels as never
+      if (isChannels(path)) return channelsResponse(path, channels) as never
       if (path === '/api/projects') return { data: [], meta: { last_page: 1 } } as never
       if (/\/replies$/.test(path)) return { data: [reply], meta: { next_cursor: null } } as never
       if (/\/api\/channels\/\d+\/members|\/api\/members/.test(path)) return { data: [], meta: { last_page: 1 } } as never
@@ -1330,7 +1341,7 @@ describe('ChannelView create task from a notice', () => {
 
   function mockGet(archived: string | null = null, group: unknown = { data: { id: 5, task: { id: 8, key: 'DMO-7', status: 'todo' } } }) {
     return vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
-      if (path === '/api/channels') return channels as never
+      if (isChannels(path)) return channelsResponse(path, channels) as never
       if (path === '/api/projects') return { data: [project(archived)], meta: { last_page: 1 } } as never
       if (/log-groups\/5$/.test(path)) return group as never
       return { data: [noticeMessage], meta: { next_cursor: null } } as never

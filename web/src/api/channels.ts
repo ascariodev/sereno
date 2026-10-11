@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { Channel, CursorPage } from './types'
+import type { Channel, CursorPage, DataEnvelope } from './types'
 
 export async function listAllChannels(options: { includeArchived?: boolean } = {}): Promise<Channel[]> {
   const all: Channel[] = []
@@ -16,4 +16,9 @@ export async function listAllChannels(options: { includeArchived?: boolean } = {
     cursor = page.meta?.next_cursor ?? null
   } while (cursor !== null)
   return all
+}
+
+export async function getChannel(id: number): Promise<Channel> {
+  const response = await api.get<DataEnvelope<Channel>>(`/api/channels/${id}`)
+  return response.data
 }

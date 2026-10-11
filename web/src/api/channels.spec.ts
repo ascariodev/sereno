@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { listAllChannels } from './channels'
+import { getChannel, listAllChannels } from './channels'
 import { api } from './client'
 
 const channel = (id: number) => ({ id, project_id: id, name: `c${id}` })
@@ -24,5 +24,15 @@ describe('listAllChannels', () => {
     const get = vi.spyOn(api, 'get').mockResolvedValue({ data: [], meta: { next_cursor: null } } as never)
     await listAllChannels()
     expect(get).toHaveBeenCalledWith('/api/channels', undefined)
+  })
+})
+
+describe('getChannel', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('requests a single channel and unwraps it', async () => {
+    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: channel(7) } as never)
+    expect(await getChannel(7)).toEqual(channel(7))
+    expect(get).toHaveBeenCalledWith('/api/channels/7')
   })
 })

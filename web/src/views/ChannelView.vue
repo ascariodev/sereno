@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onUnmounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { listAllChannels } from '../api/channels'
+import { getChannel } from '../api/channels'
 import { ApiError } from '../api/client'
 import { getLogGroup } from '../api/logGroups'
 import { deleteMessage } from '../api/messages'
@@ -102,14 +102,14 @@ const firstLoadFailed = computed(() => messages.error !== null && !notFound.valu
 
 async function loadChannel(id: number, current: number): Promise<void> {
   try {
-    const all = await listAllChannels({ includeArchived: true })
+    const found = await getChannel(id)
     if (current !== generation) return
-    channel.value = all.find((item) => item.id === id) ?? null
-    if (channel.value) panelProjectId.value = channel.value.project_id
-  } catch {
+    channel.value = found
+    panelProjectId.value = found.project_id
+  } catch (error) {
     if (current === generation) {
       channel.value = null
-      channelLoadFailed.value = true
+      channelLoadFailed.value = !(error instanceof ApiError && error.status === 404)
     }
   }
 }

@@ -198,5 +198,10 @@ resolverlo o ignorarlo con la API existente. (Paso 3 del MVP; hilos, menciones y
 - [x] M-24 — `BroadcastingAuthTest`: un usuario con `locale = es` y sin `Accept-Language` recibe `Content-Language: es`
   en `/broadcasting/auth`. Baja · sonnet.
 - [x] M-25 — `ChannelApiTest`: cursores con `id` fuera de bigint, negativo y float dan 422. Baja · sonnet.
-- [ ] M-26 — `ChannelView.loadChannel` recorre todos los canales (incluidos archivados) para encontrar uno: agregar
+- [x] M-26 — `ChannelView.loadChannel` recorre todos los canales (incluidos archivados) para encontrar uno: agregar
   `GET /api/channels/{id}` y usarlo. Media · sonnet.
+- [ ] M-27 — Los 404 por `denyAsNotFound` (`ChannelPolicy::view` y las que lo reutilizan, p. ej. `MessagePolicy`) responden
+  "Not Found" y un id inexistente "Resource not found." (render de `bootstrap/app.php`): un miembro distingue un canal o
+  mensaje de un proyecto sin acceso de uno inexistente. Unificar en el render (p. ej. que el 404 de autorización use el
+  mismo cuerpo) con un test que compare cuerpos en varios endpoints. `show` (M-26) y `attachments/{id}/url` ya lo hacen.
+  Alta (seguridad, varios endpoints) · opus.
