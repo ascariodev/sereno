@@ -1,7 +1,7 @@
 # Plan: texto-enriquecido
 
 **Objetivo:** la descripción de las tareas se escribe en Markdown con un editor con barra de formato y vista previa, y se muestra renderizada y saneada. El renderizador y el editor quedan reutilizables (los usan los comentarios del plan `comentarios-tareas`).
-**Estado:** pendiente · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -14,7 +14,7 @@
 
 ## Fases
 
-### [ ] Fase 1 — Renderizador Markdown seguro
+### [x] Fase 1 — Renderizador Markdown seguro
 - **Alcance:** instalar `markdown-it`, `@types/markdown-it` y `dompurify`; `renderMarkdown(source): string` con
   `html: false`, `linkify: true`, `breaks: true`; enlaces con `target="_blank" rel="noopener noreferrer"`; salida
   pasada por DOMPurify con lista blanca de etiquetas (p, br, strong, em, del, code, pre, blockquote, ul, ol, li, a,
@@ -45,12 +45,20 @@
 
 ## Decisiones
 - 2026-10-11 — Markdown guardado como texto plano, editor con barra y vista previa, render con markdown-it sin HTML + DOMPurify — elegido por el usuario; no hay migración de datos.
+- 2026-10-11 — Fase 1: markdown-it ^15.0.2, dompurify ^3.4.16 (trae sus tipos), @types/markdown-it ^14.2.0. Encabezados suben dos niveles con tope h4; `<s>` se mapea a `<del>`; `target`/`rel` de enlaces van en un hook `afterSanitizeAttributes` (DOMPurify quita `target` aunque esté permitido); las imágenes se eliminan. La salida termina en `
+`.
+- 2026-10-11 — El plan se ejecuta en el worktree `feat/texto-enriquecido`; npm corre con `docker run ... -v "$(pwd -W)/web:/app" -v workspace_web-node-modules:/app/node_modules node:24` porque el servicio `web` monta el checkout principal.
 
 ## Notas para la próxima sesión
 - Este plan va primero: `comentarios-tareas` reutiliza `MarkdownContent` y `MarkdownEditor`.
+- `renderMarkdown(source)` está en `web/src/markdown/renderMarkdown.ts`; el hook de DOMPurify es global (hoy es el único uso).
 
 ## Mejoras propuestas
 - [ ] M-1: Casillas de lista de tareas (`- [ ]`) que se marcan desde la vista renderizada.
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-2: La tarea creada desde un aviso de log arma su descripción en Markdown (nivel, conteo, bloque de código).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-3: Aislar el hook de DOMPurify (instancia propia `DOMPurify(window)` o `addHook`/`removeHook` alrededor de `sanitize`) para que no afecte a otros usos futuros.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-4: Simplificar `heading_close` en `renderMarkdown.ts` a `tokens[idx - 2].tag` (open, inline, close).
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
