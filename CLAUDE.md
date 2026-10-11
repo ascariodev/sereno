@@ -90,7 +90,9 @@ siempre desde la raíz, dentro de `web/` compose usa otro nombre de proyecto):
 9. Móvil, push y facturación SaaS.
 
 Transversal: Docker de desarrollo y stacks de producción del API y la web (plan `web-docker`) y deploy por Gitea
-(`.gitea/workflows/deploy-api.yml` y `deploy-web.yml`) hechos.
+(`.gitea/workflows/deploy-api.yml` y `deploy-web.yml`) hechos. Integración simple de sistemas Laravel (plan
+`integracion-simple`) hecha: paquete `ascariodev/sereno-laravel` en Packagist (repo hermano `../sereno-laravel`),
+`composer require` + `php artisan sereno:install <key>`, variables `SERENO_KEY`/`SERENO_URL`.
 
 (No confundir con las fases de un plan de `docs/plans/`.)
 
