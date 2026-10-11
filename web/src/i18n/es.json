@@ -397,6 +397,8 @@
     "eventsWord": "evento | eventos",
     "statusChanged": "{actor} marcó el grupo de logs como {status}",
     "statusChangedTitled": "{actor} marcó {title} como {status}",
+    "taskCreated": "{actor} creó la tarea {task} desde este grupo de logs",
+    "taskChip": "Tarea {key}",
     "actions": {
       "resolve": "Resolver",
       "ignore": "Ignorar",

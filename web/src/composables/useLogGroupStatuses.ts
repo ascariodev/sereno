@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { isLogGroupStatusChangedPayload } from '../api/types'
+import { isLogGroupStatusChangedPayload, isTaskCreatedFromGroupPayload } from '../api/types'
 import type { LogGroupStatus, LogGroupTask, Message } from '../api/types'
 
 const statuses = reactive(new Map<number, LogGroupStatus>())
@@ -15,6 +15,10 @@ export function setGroupStatus(groupId: number, status: LogGroupStatus): void {
 export function observeStatusMessage(message: Message): void {
   highestSeenId = Math.max(highestSeenId, message.id)
   const payload = message.payload
+  if (isTaskCreatedFromGroupPayload(payload)) {
+    tasks.set(payload.log_group_id, { id: payload.task_id, key: payload.task_key, status: payload.task_status })
+    return
+  }
   if (!isLogGroupStatusChangedPayload(payload)) return
   if ((lastMessageId.get(payload.log_group_id) ?? 0) >= message.id) return
   lastMessageId.set(payload.log_group_id, message.id)

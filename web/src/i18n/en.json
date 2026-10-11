@@ -397,6 +397,8 @@
     "eventsWord": "event | events",
     "statusChanged": "{actor} marked the log group as {status}",
     "statusChangedTitled": "{actor} marked {title} as {status}",
+    "taskCreated": "{actor} created task {task} from this log group",
+    "taskChip": "Task {key}",
     "actions": {
       "resolve": "Resolve",
       "ignore": "Ignore",

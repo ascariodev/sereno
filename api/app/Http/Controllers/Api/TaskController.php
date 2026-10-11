@@ -12,6 +12,8 @@ use App\Http\Requests\Task\MoveTaskRequest;
 use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Requests\Task\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
+use App\Models\Channel;
+use App\Models\Message;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
@@ -90,6 +92,11 @@ class TaskController extends Controller
                 $task->created_by = $request->user()->id;
                 $task->save();
 
+                if ($task->log_group_id !== null) {
+                    $task->setRelation('project', $project);
+                    $this->postTaskCreatedNotice($project, $task);
+                }
+
                 return $task;
             });
         } catch (UniqueConstraintViolationException $exception) {
@@ -107,6 +114,35 @@ class TaskController extends Controller
         TaskCreated::dispatch($task);
 
         return (new TaskResource($task))->response()->setStatusCode(201);
+    }
+
+    private function postTaskCreatedNotice(Project $project, Task $task): void
+    {
+        $channel = Channel::query()
+            ->where('project_id', $project->id)
+            ->whereNull('archived_at')
+            ->first();
+
+        if ($channel === null) {
+            return;
+        }
+
+        $message = new Message([
+            'kind' => Message::KIND_SYSTEM,
+            'payload' => [
+                'type' => 'task.created_from_group',
+                'log_group_id' => $task->log_group_id,
+                'task_id' => $task->id,
+                'task_key' => $task->key(),
+                'task_status' => $task->status->value,
+            ],
+        ]);
+        $message->forceFill([
+            'organization_id' => $task->organization_id,
+            'channel_id' => $channel->id,
+            'user_id' => $task->created_by,
+            'log_group_id' => $task->log_group_id,
+        ])->save();
     }
 
     public function update(UpdateTaskRequest $request, Project $project, Task $task): TaskResource

@@ -226,7 +226,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   listados (fase 3).
 
 ## Mejoras propuestas
-- [ ] M-1 (media, sonnet): mensaje de sistema en el canal al crear una tarea desde un aviso, y chip "Tarea POSVE-12"
+- [x] M-1 (media, sonnet): mensaje de sistema en el canal al crear una tarea desde un aviso, y chip "Tarea POSVE-12"
   en la tarjeta del aviso.
 - [ ] M-2 (alta, plan nuevo): comentarios en las tareas (contador del diseño).
 - [ ] M-3 (media, sonnet): avisar al asignado por `users.{id}` (solo ids, L-38).

@@ -4,7 +4,7 @@ import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { statusFrom, updateLogGroupStatus } from '../api/logGroups'
-import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
+import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload, isTaskCreatedFromGroupPayload } from '../api/types'
 import type { LogGroupStatus, Message } from '../api/types'
 import { levelTone as toneOf } from '../api/logLevels'
 import { hourlyCountsOf, requestHourlyCounts } from '../composables/useHourlyCounts'
@@ -32,6 +32,7 @@ const errorText = ref<string | null>(null)
 const payload = computed(() => props.message.payload)
 const opened = computed(() => (isLogGroupOpenedPayload(payload.value) ? payload.value : null))
 const changed = computed(() => (isLogGroupStatusChangedPayload(payload.value) ? payload.value : null))
+const taskCreated = computed(() => (isTaskCreatedFromGroupPayload(payload.value) ? payload.value : null))
 const groupId = computed(() => opened.value?.log_group_id ?? null)
 const sharedStatus = computed(() => statusOfGroup(groupId.value))
 const doneStatus = computed(() => (sharedStatus.value && sharedStatus.value !== 'open' ? sharedStatus.value : null))
@@ -102,6 +103,14 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
       <div class="system-notice__head">
         <LevelPill :level="opened.level" />
         <span :id="kindId" class="system-notice__kind">{{ kindLabel }}</span>
+        <RouterLink
+          v-if="groupTask && projectId !== undefined"
+          class="system-notice__task-chip"
+          data-test="notice-task-chip"
+          :to="{ name: 'project-plan', params: { projectId }, query: { task: String(groupTask.id) } }"
+        >
+          {{ t('notice.taskChip', { key: groupTask.key }) }}
+        </RouterLink>
         <time class="system-notice__time" :datetime="message.created_at" :title="fullDate">{{ shortTime }}</time>
       </div>
       <p class="system-notice__title">
@@ -170,6 +179,28 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
     </i18n-t>
     <time class="system-notice-line__time" :datetime="message.created_at" :title="fullDate">{{ shortTime }}</time>
   </div>
+  <div v-else-if="taskCreated" class="system-notice-line">
+    <span class="system-notice-line__icon system-notice-line__icon--task" aria-hidden="true">
+      <ListPlus :size="13" :stroke-width="2.4" />
+    </span>
+    <i18n-t keypath="notice.taskCreated" tag="span" scope="global">
+      <template #actor>
+        <b class="system-notice-line__actor">{{ actor }}</b>
+      </template>
+      <template #task>
+        <RouterLink
+          v-if="projectId !== undefined"
+          class="system-notice-line__task"
+          data-test="notice-task-created-link"
+          :to="{ name: 'project-plan', params: { projectId }, query: { task: String(taskCreated.task_id) } }"
+        >
+          {{ taskCreated.task_key }}
+        </RouterLink>
+        <b v-else class="system-notice-line__actor">{{ taskCreated.task_key }}</b>
+      </template>
+    </i18n-t>
+    <time class="system-notice-line__time" :datetime="message.created_at" :title="fullDate">{{ shortTime }}</time>
+  </div>
   <p v-else class="system-notice-generic">{{ t('channel.systemNotice') }}</p>
 </template>
 
@@ -222,6 +253,18 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
   margin-left: auto;
   font-size: 12px;
   color: var(--ink-3);
+}
+.system-notice__task-chip {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.system-notice__task-chip:hover {
+  text-decoration: underline;
 }
 .system-notice__title {
   margin: 0;
@@ -318,6 +361,11 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
 .system-notice-line__icon--open { background: var(--status-open-bg); color: var(--status-open-fg); }
 .system-notice-line__icon--resolved { background: var(--status-resolved-bg); color: var(--status-resolved-fg); }
 .system-notice-line__icon--ignored { background: var(--status-ignored-bg); color: var(--status-ignored-fg); }
+.system-notice-line__icon--task { background: var(--accent-soft); color: var(--ink); }
+.system-notice-line__task {
+  font-weight: 600;
+  color: var(--ink);
+}
 .system-notice-line b {
   font-weight: 600;
 }
