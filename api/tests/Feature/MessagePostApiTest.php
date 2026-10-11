@@ -260,3 +260,16 @@ it('rejects replying to a deleted root without replies but accepts one that stil
         ->assertJsonPath('errors.parent_id.0', 'The message to reply to was deleted.');
     replyTo($this, $this->channel, $withReplies)->assertCreated();
 });
+
+it('keeps microsecond precision in created_at and the root last_reply_at', function () {
+    $root = postingAs($this->users['admin'], $this->organization)
+        ->postJson("/api/channels/{$this->channel->id}/messages", ['body' => 'root'])
+        ->json('data.id');
+
+    $reply = replyTo($this, $this->channel, $root)->assertCreated()->json('data');
+
+    $stored = Message::withoutGlobalScopes()->find($root)->last_reply_at->toJSON();
+
+    expect($stored)->toBe($reply['created_at'])
+        ->and(Message::withoutGlobalScopes()->find($reply['id'])->created_at->toJSON())->toBe($reply['created_at']);
+});

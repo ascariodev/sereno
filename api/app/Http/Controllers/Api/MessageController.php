@@ -156,7 +156,7 @@ class MessageController extends Controller
             if ($parentId !== null) {
                 Message::query()->whereKey($parentId)->update([
                     'replies_count' => DB::raw('replies_count + 1'),
-                    'last_reply_at' => DB::raw('GREATEST(last_reply_at, '.DB::getPdo()->quote($message->created_at->format('Y-m-d H:i:s')).'::timestamp)'),
+                    'last_reply_at' => DB::raw('GREATEST(last_reply_at, '.DB::getPdo()->quote($message->created_at->format('Y-m-d H:i:s.u')).'::timestamp)'),
                 ]);
             }
 
@@ -201,7 +201,7 @@ class MessageController extends Controller
             if (($message->body ?? '') !== ($body ?? '') || $files->isNotEmpty()) {
                 $edited = true;
                 $message->body = $body;
-                $message->edited_at = now();
+                $message->edited_at = now()->startOfSecond();
                 $message->save();
             }
 

@@ -46,7 +46,7 @@ function destroyUserMessage(Channel $channel, User $author, ?string $body = 'tex
         $message->save();
         DB::table('messages')->where('id', $parent->id)->update([
             'replies_count' => DB::raw('replies_count + 1'),
-            'last_reply_at' => DB::raw('GREATEST(last_reply_at, '.DB::getPdo()->quote($message->created_at->format('Y-m-d H:i:s')).'::timestamp)'),
+            'last_reply_at' => DB::raw('GREATEST(last_reply_at, '.DB::getPdo()->quote($message->created_at->format('Y-m-d H:i:s.u')).'::timestamp)'),
         ]);
     }
 

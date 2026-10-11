@@ -45,7 +45,7 @@ class MessageDeletion
             MessageAttachment::query()->whereIn('id', $files->pluck('id'))->delete();
 
             $locked->body = null;
-            $locked->deleted_at = now();
+            $locked->deleted_at = now()->startOfSecond();
             $locked->save();
 
             if ($root !== null) {

@@ -81,7 +81,7 @@ function concurrencyCountReply(Message $root, object $reply): void
 {
     DB::connection('conc_b')->table('messages')->where('id', $root->id)->update([
         'replies_count' => DB::raw('replies_count + 1'),
-        'last_reply_at' => DB::raw('GREATEST(last_reply_at, '.DB::connection('conc_b')->getPdo()->quote($reply->created_at->format('Y-m-d H:i:s')).'::timestamp)'),
+        'last_reply_at' => DB::raw('GREATEST(last_reply_at, '.DB::connection('conc_b')->getPdo()->quote($reply->created_at->format('Y-m-d H:i:s.u')).'::timestamp)'),
     ]);
 }
 
