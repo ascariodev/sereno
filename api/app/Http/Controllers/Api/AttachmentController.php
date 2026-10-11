@@ -12,7 +12,6 @@ use finfo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -88,12 +87,11 @@ class AttachmentController extends Controller
 
         Gate::authorize('view', $attachment->channel);
 
-        $url = $attachment->downloadUrl();
-        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+        $signed = $attachment->signedDownload();
 
         return response()->json(['data' => [
-            'url' => $url,
-            'expires_at' => Carbon::createFromTimestampUTC((int) $query['expires'])->toIso8601String(),
+            'url' => $signed['url'],
+            'expires_at' => $signed['expires_at']->toIso8601String(),
         ]]);
     }
 

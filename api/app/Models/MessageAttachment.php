@@ -47,16 +47,25 @@ class MessageAttachment extends Model
      */
     public function downloadUrl(): string
     {
+        return $this->signedDownload()['url'];
+    }
+
+    /**
+     * @return array{url: string, expires_at: Carbon}
+     */
+    public function signedDownload(): array
+    {
         $earliest = now()->addMinutes(config('chat.attachments.url_ttl_minutes'))->getTimestamp();
         $step = self::URL_EXPIRY_STEP_SECONDS;
+        $expiresAt = Carbon::createFromTimestampUTC(intdiv($earliest + $step - 1, $step) * $step);
 
         $path = URL::temporarySignedRoute(
             'attachments.download',
-            Carbon::createFromTimestamp(intdiv($earliest + $step - 1, $step) * $step),
+            $expiresAt,
             ['attachment' => $this->id],
             absolute: false,
         );
 
-        return rtrim(config('app.url'), '/').$path;
+        return ['url' => rtrim(config('app.url'), '/').$path, 'expires_at' => $expiresAt];
     }
 }

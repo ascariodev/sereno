@@ -127,7 +127,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 ## Mejoras propuestas
 </content>
 </invoke>
-- [ ] M-1 (baja, sonnet): exponer el vencimiento desde `MessageAttachment` (p. ej. `downloadUrl()` que devuelva url y
+- [x] M-1 (baja, sonnet): exponer el vencimiento desde `MessageAttachment` (p. ej. `downloadUrl()` que devuelva url y
   vencimiento) en vez de parsear `expires` del query de la URL en `AttachmentController::url`.
 - [ ] M-2 (baja, sonnet): en `AttachmentUrlApiTest`, afirmar que los 404 (otra organización, huérfano, sin proyecto,
   borrado) tienen el mismo cuerpo. El `false` (403) de `ChannelPolicy::view` no se alcanza aquí: el adjunto se busca con
