@@ -1,5 +1,9 @@
+import { reactive } from 'vue'
 import { ApiError } from '../api/client'
 import type { Task } from '../api/types'
+
+/** Tasks with a move waiting for the API, shared by the menu and the drag so only one path moves a task at a time. */
+export const movingTaskIds = reactive(new Set<number>())
 
 /** Where the task lands: right above `beforeId`, right below `afterId`, or at the end of the column (`null`). */
 export type MoveAnchor = { beforeId: number } | { afterId: number } | null

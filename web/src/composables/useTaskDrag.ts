@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Task, TaskStatus } from '../api/types'
-import { moveErrorMessage, moveNeighbours, type MoveAnchor } from '../components/taskMove'
+import { moveErrorMessage, moveNeighbours, movingTaskIds, type MoveAnchor } from '../components/taskMove'
 import { toast } from '../components/ui/toast'
 import { useTasksStore } from '../stores/tasks'
 
@@ -45,7 +45,7 @@ export function useTaskDrag(projectId: () => number, canDrag: () => boolean) {
   }
 
   function start(task: Task, event: DragEvent): void {
-    if (!canDrag() || moving.value) {
+    if (!canDrag() || moving.value || movingTaskIds.has(task.id)) {
       event.preventDefault()
       return
     }
@@ -92,7 +92,7 @@ export function useTaskDrag(projectId: () => number, canDrag: () => boolean) {
     const drop = target.value?.status === status ? target.value : null
     const task = draggedTask()
     end()
-    if (!drop || !task || moving.value || !canDrag() || isSamePlace(task, drop)) return
+    if (!drop || !task || moving.value || movingTaskIds.has(task.id) || !canDrag() || isSamePlace(task, drop)) return
     let anchor: MoveAnchor
     if (drop.beforeId !== null) anchor = { beforeId: drop.beforeId }
     else {
@@ -101,12 +101,14 @@ export function useTaskDrag(projectId: () => number, canDrag: () => boolean) {
       anchor = last ? { afterId: last.id } : null
     }
     moving.value = true
+    movingTaskIds.add(task.id)
     try {
       await tasks.move(projectId(), task.id, { status, ...moveNeighbours(tasks.columns[status], task.id, anchor) })
     } catch (caught) {
       toast.error(moveErrorMessage(caught, t))
     } finally {
       moving.value = false
+      movingTaskIds.delete(task.id)
     }
   }
 

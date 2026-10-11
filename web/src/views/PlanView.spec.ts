@@ -418,6 +418,28 @@ describe('PlanView', () => {
       expect(post).toHaveBeenLastCalledWith('/api/projects/5/tasks/3/move', { status: 'todo', after_id: 2, before_id: 1 })
     })
 
+    it('blocks dragging a task while its menu move is in flight', async () => {
+      mockApi(data)
+      let release: (value: unknown) => void = () => {}
+      const post = vi.spyOn(api, 'post').mockImplementation(() => new Promise((resolve) => (release = resolve)) as never)
+      const wrapper = await mountView()
+      await pick(await openMenu(wrapper, 1), 'Move to Done')
+      const card = (id: number) => wrapper.get(`[data-task-id="${id}"]`).element
+      const start = (id: number) => {
+        const event = new Event('dragstart', { bubbles: true, cancelable: true })
+        Object.assign(event, { dataTransfer: { effectAllowed: '', setData: vi.fn() } })
+        card(id).dispatchEvent(event)
+        return event
+      }
+      expect(start(1).defaultPrevented).toBe(true)
+      expect(wrapper.get('[data-task-id="1"] button[name=move-task]').attributes('disabled')).toBeDefined()
+      expect(start(2).defaultPrevented).toBe(false)
+      release({ data: { ...mk(1, 'done', 5), updated_at: '2026-10-10T00:00:01.000000Z' } })
+      await flushPromises()
+      expect(post).toHaveBeenCalledTimes(1)
+      expect(start(1).defaultPrevented).toBe(false)
+    })
+
     it('shows a toast when the move fails', async () => {
       mockApi(data)
       vi.spyOn(api, 'post').mockRejectedValue(new ApiError(500, 'boom'))
@@ -562,6 +584,37 @@ describe('PlanView', () => {
       expect(post).toHaveBeenCalledTimes(1)
       release({ data: { ...mk(1, 'done'), position: 5 } })
       await flushPromises()
+    })
+
+    it('leaves the drag state clean when dropped outside any column', async () => {
+      mockApi(data)
+      const post = vi.spyOn(api, 'post')
+      const wrapper = await mountView()
+      fire(card(wrapper, 1), 'dragstart')
+      fire(column(wrapper, 'done'), 'dragover', { clientY: 500 })
+      await flushPromises()
+      expect(wrapper.find('.plan-view__drop-line').exists()).toBe(true)
+      expect(wrapper.find('.plan-view__card--dragging').exists()).toBe(true)
+      fire(card(wrapper, 1), 'dragend')
+      await flushPromises()
+      expect(wrapper.find('.plan-view__drop-line').exists()).toBe(false)
+      expect(wrapper.find('.plan-view__card--dragging').exists()).toBe(false)
+      expect(wrapper.find('.plan-view__column--drop').exists()).toBe(false)
+      expect(post).not.toHaveBeenCalled()
+    })
+
+    it('disables the menu of a task while its drag move is in flight', async () => {
+      mockApi(data)
+      let release: (value: unknown) => void = () => {}
+      vi.spyOn(api, 'post').mockImplementation(() => new Promise((resolve) => (release = resolve)) as never)
+      const wrapper = await mountView()
+      await dragTo(wrapper, 1, 'done', 500)
+      const trigger = (id: number) => wrapper.get(`[data-task-id="${id}"] button[name=move-task]`)
+      expect(trigger(1).attributes('disabled')).toBeDefined()
+      expect(trigger(2).attributes('disabled')).toBeUndefined()
+      release({ data: { ...mk(1, 'done'), position: 5 } })
+      await flushPromises()
+      expect(trigger(1).attributes('disabled')).toBeUndefined()
     })
 
     it('shows a toast when the move fails', async () => {
