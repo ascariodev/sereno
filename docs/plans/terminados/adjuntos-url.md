@@ -148,5 +148,5 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
   no esté disponible"); requiere una clave i18n nueva.
 - [x] M-7 (baja, sonnet): en `AttachmentUrlApiTest`, afirmar el 404 también en `es` (`Accept-Language`, "Recurso no
   encontrado.").
-- [ ] M-8 (baja, sonnet): en `MessageAttachments.spec.ts`, afirmar el texto del toast en el camino de descarga (404 →
+- [x] M-8 (baja, sonnet): en `MessageAttachments.spec.ts`, afirmar el texto del toast en el camino de descarga (404 →
   `attachments.openFailed`, red/500 → `attachments.openFailedRetry`); hoy solo se cuenta el toast.

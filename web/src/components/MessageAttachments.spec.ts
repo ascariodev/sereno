@@ -274,14 +274,19 @@ describe('MessageAttachments', () => {
       expect(assign).toHaveBeenCalledExactlyOnceWith('http://api/attachments/2?sig=fresh')
     })
 
-    it('shows a toast when the download url cannot be renewed', async () => {
+    it.each([
+      ['a 404', new ApiError(404, 'gone'), 'Could not open the file. It may no longer be available.'],
+      ['a network error', new TypeError('Failed to fetch'), 'Could not open the file. Check your connection and try again.'],
+      ['a 500', new ApiError(500, 'boom'), 'Could not open the file. Check your connection and try again.'],
+    ])('shows the matching toast when the download url cannot be renewed by %s', async (_label, error, message) => {
+      renew.mockRejectedValue(error)
       const assign = vi.fn()
       vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, assign } as Location)
       const w = render([pdf])
       await w.get('a').trigger('click')
       await flushPromises()
       expect(assign).not.toHaveBeenCalled()
-      expect(toasts.value).toHaveLength(1)
+      expect(toasts.value.map((item) => item.message)).toEqual([message])
     })
 
     it('uses the renewed url as the fallback href', async () => {
