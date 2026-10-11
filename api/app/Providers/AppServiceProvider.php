@@ -34,6 +34,8 @@ class AppServiceProvider extends ServiceProvider
 
     public const ATTACHMENT_DOWNLOADS_PER_MINUTE = 300;
 
+    public const ATTACHMENT_URLS_PER_MINUTE = 120;
+
     /**
      * Register any application services.
      */
@@ -89,6 +91,10 @@ class AppServiceProvider extends ServiceProvider
         // Per IP: the route has no user. Generous because a channel page loads every image at once.
         RateLimiter::for('attachment-downloads', fn (Request $request) => Limit::perMinute(self::ATTACHMENT_DOWNLOADS_PER_MINUTE)
             ->by('ip:'.$request->ip())
+            ->response($this->tooManyAttemptsResponse(...)));
+
+        RateLimiter::for('attachment-urls', fn (Request $request) => Limit::perMinute(self::ATTACHMENT_URLS_PER_MINUTE)
+            ->by('user:'.$request->user()->getKey())
             ->response($this->tooManyAttemptsResponse(...)));
 
         RateLimiter::for('mentions', fn (Request $request) => Limit::perMinute(self::MENTIONS_PER_MINUTE)

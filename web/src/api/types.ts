@@ -203,7 +203,7 @@ export function isLogGroupStatusChangedPayload(
   )
 }
 
-/** Attachment as returned by the API. `url` is signed and temporary; the upload response carries one that 404s until the attachment is sent in a message. */
+/** Attachment as returned by the API. `url` is signed and short-lived (the web renews it with `getAttachmentUrl`); the upload response carries one that 404s until the attachment is sent in a message. */
 export interface MessageAttachment {
   id: number
   original_name: string
@@ -212,6 +212,13 @@ export interface MessageAttachment {
   /** ISO timestamp. */
   created_at: string
   url: string
+}
+
+/** Fresh signed download url for an attachment, from `getAttachmentUrl`. */
+export interface AttachmentUrl {
+  url: string
+  /** ISO timestamp. */
+  expires_at: string
 }
 
 export interface Message {

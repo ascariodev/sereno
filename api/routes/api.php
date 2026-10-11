@@ -78,6 +78,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::post('channels/{channel}/messages', [MessageController::class, 'store'])->middleware('throttle:channel-messages');
     Route::patch('channels/{channel}/messages/{message}', [MessageController::class, 'update'])->whereNumber('message')->middleware('throttle:channel-messages');
     Route::delete('channels/{channel}/messages/{message}', [MessageController::class, 'destroy'])->whereNumber('message')->middleware('throttle:channel-messages');
+    Route::get('attachments/{attachment}/url', [AttachmentController::class, 'url'])->whereNumber('attachment')->middleware('throttle:attachment-urls');
     Route::post('channels/{channel}/attachments', [AttachmentController::class, 'store'])->middleware('throttle:chat-attachments');
 });
 

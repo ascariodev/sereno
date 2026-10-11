@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { DataEnvelope, DeleteMessageResponse, Message, RepliesPage } from './types'
+import type { AttachmentUrl, DataEnvelope, DeleteMessageResponse, Message, RepliesPage } from './types'
 
 export function listReplies(
   channelId: number,
@@ -40,4 +40,9 @@ export async function updateMessage(
 
 export function deleteMessage(channelId: number, messageId: number): Promise<DeleteMessageResponse> {
   return api.delete(`/api/channels/${channelId}/messages/${messageId}`)
+}
+
+export async function getAttachmentUrl(attachmentId: number): Promise<AttachmentUrl> {
+  const response = await api.get<DataEnvelope<AttachmentUrl>>(`/api/attachments/${attachmentId}/url`)
+  return response.data
 }

@@ -2,18 +2,85 @@
 import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { MessageAttachment } from '../api/types'
+import { ApiError } from '../api/client'
+import { getAttachmentUrl } from '../api/messages'
 import { formatFileSize } from '../formatFileSize'
+import { toast } from './ui/toast'
 
-defineProps<{ attachments: MessageAttachment[] }>()
+const props = defineProps<{ attachments: MessageAttachment[] }>()
 
 const { t } = useI18n()
 
 const PREVIEWABLE = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
-const failed = reactive(new Set<string>())
-const notice = computed(() => (failed.size > 0 ? t('attachments.previewUnavailable') : ''))
+// Keyed by attachment id and remembering the store url they refer to: a new url for the same id resets them.
+const retried = reactive(new Map<number, string>())
+const renewed = reactive(new Map<number, { from: string; url: string }>())
+const failed = reactive(new Map<number, string>())
+const notice = computed(() =>
+  props.attachments.some((a) => failed.get(a.id) === a.url) ? t('attachments.previewUnavailable') : '',
+)
+
+function previewUrl(a: MessageAttachment): string {
+  const r = renewed.get(a.id)
+  return r && r.from === a.url ? r.url : a.url
+}
 
 function showsPreview(a: MessageAttachment): boolean {
-  return PREVIEWABLE.includes(a.mime) && !failed.has(a.url)
+  return PREVIEWABLE.includes(a.mime) && failed.get(a.id) !== a.url
+}
+
+async function onPreviewError(a: MessageAttachment) {
+  if (retried.get(a.id) === a.url) {
+    failed.set(a.id, a.url)
+    return
+  }
+  retried.set(a.id, a.url)
+  try {
+    const { url } = await getAttachmentUrl(a.id)
+    renewed.set(a.id, { from: a.url, url })
+  } catch {
+    failed.set(a.id, a.url)
+  }
+}
+
+function isPlainClick(event: MouseEvent): boolean {
+  return event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey
+}
+
+function openErrorMessage(error: unknown): string {
+  return error instanceof ApiError && error.status === 404 ? t('attachments.openFailed') : t('attachments.openFailedRetry')
+}
+
+async function openFresh(event: MouseEvent, a: MessageAttachment) {
+  if (!isPlainClick(event)) return
+  event.preventDefault()
+  const win = window.open('', '_blank')
+  if (win) win.opener = null
+  try {
+    const { url } = await getAttachmentUrl(a.id)
+    if (win) {
+      win.location.href = url
+      return
+    }
+    // With 'noopener' the standard lets window.open return null for a window that did open, so null would not prove a block.
+    const fallback = window.open(url, '_blank')
+    if (fallback) fallback.opener = null
+    else toast.error(t('attachments.popupBlocked'))
+  } catch (error) {
+    win?.close()
+    toast.error(openErrorMessage(error))
+  }
+}
+
+async function downloadFresh(event: MouseEvent, a: MessageAttachment) {
+  if (!isPlainClick(event)) return
+  event.preventDefault()
+  try {
+    const { url } = await getAttachmentUrl(a.id)
+    window.location.assign(url)
+  } catch (error) {
+    toast.error(openErrorMessage(error))
+  }
 }
 </script>
 
@@ -22,8 +89,15 @@ function showsPreview(a: MessageAttachment): boolean {
   <span class="message-attachments__sr" role="status">{{ notice }}</span>
   <ul class="message-attachments" :aria-label="t('attachments.list')">
     <li v-for="a in attachments" :key="a.id" class="message-attachment">
-      <a v-if="showsPreview(a)" class="message-attachment__thumb" :href="a.url" target="_blank" rel="noopener">
-        <img :src="a.url" :alt="a.original_name" loading="lazy" @error="failed.add(a.url)" />
+      <a
+        v-if="showsPreview(a)"
+        class="message-attachment__thumb"
+        :href="previewUrl(a)"
+        target="_blank"
+        rel="noopener"
+        @click="openFresh($event, a)"
+      >
+        <img :src="previewUrl(a)" :alt="a.original_name" loading="lazy" @error="onPreviewError(a)" />
       </a>
       <template v-else>
         <p v-if="PREVIEWABLE.includes(a.mime)" class="message-attachment__note">
@@ -34,8 +108,9 @@ function showsPreview(a: MessageAttachment): boolean {
           <span class="message-attachment__size">{{ formatFileSize(a.size) }}</span>
           <a
             class="message-attachment__download"
-            :href="a.url"
+            :href="previewUrl(a)"
             rel="noopener"
+            @click="downloadFresh($event, a)"
             :aria-label="`${t('attachments.download')}: ${a.original_name}`"
           >{{ t('attachments.download') }}</a>
         </div>

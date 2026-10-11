@@ -1,8 +1,11 @@
-import { mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as messagesApi from '../api/messages'
+import { ApiError } from '../api/client'
 import { i18n } from '../i18n'
 import type { MessageAttachment } from '../api/types'
 import MessageAttachments from './MessageAttachments.vue'
+import { toast, toasts } from './ui/toast'
 
 const image: MessageAttachment = {
   id: 1, original_name: 'foto.png', mime: 'image/png', size: 2048, created_at: '2026-03-04T10:30:00Z', url: 'http://api/attachments/1?sig=a',
@@ -15,9 +18,17 @@ function render(attachments: MessageAttachment[]) {
   return mount(MessageAttachments, { props: { attachments }, global: { plugins: [i18n] } })
 }
 
+let renew: ReturnType<typeof vi.spyOn>
+
 describe('MessageAttachments', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    toast.clear()
+  })
+
   beforeEach(() => {
     i18n.global.locale.value = 'en'
+    renew = vi.spyOn(messagesApi, 'getAttachmentUrl').mockRejectedValue(new ApiError(404, 'gone'))
   })
 
   it('renders nothing without attachments', () => {
@@ -31,7 +42,9 @@ describe('MessageAttachments', () => {
     const w = render([image, { ...image, id: 3, url: 'http://api/attachments/3?sig=c' }])
     expect(w.get('[role="status"]').text()).toBe('')
     await w.findAll('img')[0].trigger('error')
+    await flushPromises()
     await w.get('img').trigger('error')
+    await flushPromises()
     expect(w.findAll('[role="status"]')).toHaveLength(1)
     expect(w.get('[role="status"]').text()).toBe('The preview is no longer available.')
   })
@@ -66,9 +79,10 @@ describe('MessageAttachments', () => {
     expect(w.text()).not.toContain('no longer available')
   })
 
-  it('falls back to the notice and file row when the image fails, without retrying', async () => {
+  it('falls back to the notice and file row when renewing the url fails', async () => {
     const w = render([image, pdf])
     await w.get('img').trigger('error')
+    await flushPromises()
     expect(w.find('img').exists()).toBe(false)
     expect(w.text()).toContain('The preview is no longer available.')
     expect(w.text()).toContain('foto.png')
@@ -81,9 +95,206 @@ describe('MessageAttachments', () => {
   it('retries the preview when the same attachment arrives with a new signed url', async () => {
     const w = render([image])
     await w.get('img').trigger('error')
+    await flushPromises()
     expect(w.find('img').exists()).toBe(false)
     const fresh = { ...image, url: 'http://api/attachments/1?sig=new' }
     await w.setProps({ attachments: [fresh] })
     expect(w.get('img').attributes('src')).toBe(fresh.url)
+  })
+
+  it('requests a new url on error and paints with it', async () => {
+    renew.mockResolvedValue({ url: 'http://api/attachments/1?sig=renewed', expires_at: '2026-03-04T10:35:00Z' })
+    const w = render([image])
+    await w.get('img').trigger('error')
+    await flushPromises()
+    expect(renew).toHaveBeenCalledExactlyOnceWith(1)
+    expect(w.get('img').attributes('src')).toBe('http://api/attachments/1?sig=renewed')
+    expect(w.get('[role="status"]').text()).toBe('')
+  })
+
+  it('keeps the failed state when the renewed url fails too, without looping', async () => {
+    renew.mockResolvedValue({ url: 'http://api/attachments/1?sig=renewed', expires_at: '2026-03-04T10:35:00Z' })
+    const w = render([image])
+    await w.get('img').trigger('error')
+    await flushPromises()
+    await w.get('img').trigger('error')
+    await flushPromises()
+    expect(w.find('img').exists()).toBe(false)
+    expect(w.text()).toContain('The preview is no longer available.')
+    expect(renew).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the failed state when the API answers 404', async () => {
+    const w = render([image])
+    await w.get('img').trigger('error')
+    await flushPromises()
+    expect(renew).toHaveBeenCalledTimes(1)
+    expect(w.find('img').exists()).toBe(false)
+    expect(w.text()).toContain('The preview is no longer available.')
+  })
+
+  it('retries again, once, when the store delivers a new url after a failure', async () => {
+    const w = render([image])
+    await w.get('img').trigger('error')
+    await flushPromises()
+    expect(w.find('img').exists()).toBe(false)
+    const fresh = { ...image, url: 'http://api/attachments/1?sig=new' }
+    await w.setProps({ attachments: [fresh] })
+    renew.mockResolvedValue({ url: 'http://api/attachments/1?sig=renewed2', expires_at: '2026-03-04T10:35:00Z' })
+    await w.get('img').trigger('error')
+    await flushPromises()
+    expect(renew).toHaveBeenCalledTimes(2)
+    expect(w.get('img').attributes('src')).toBe('http://api/attachments/1?sig=renewed2')
+  })
+
+  it('clears the notice when the store delivers a new url that loads', async () => {
+    const w = render([image])
+    await w.get('img').trigger('error')
+    await flushPromises()
+    expect(w.get('[role="status"]').text()).toBe('The preview is no longer available.')
+    await w.setProps({ attachments: [{ ...image, url: 'http://api/attachments/1?sig=new' }] })
+    expect(w.find('img').exists()).toBe(true)
+    expect(w.get('[role="status"]').text()).toBe('')
+  })
+
+  it('keeps the notice while another attachment still has a current failure', async () => {
+    const other = { ...image, id: 3, url: 'http://api/attachments/3?sig=c' }
+    const w = render([image, other])
+    await w.findAll('img')[0].trigger('error')
+    await flushPromises()
+    await w.get('img').trigger('error')
+    await flushPromises()
+    await w.setProps({ attachments: [{ ...image, url: 'http://api/attachments/1?sig=new' }, other] })
+    expect(w.get('img').attributes('src')).toBe('http://api/attachments/1?sig=new')
+    expect(w.get('[role="status"]').text()).toBe('The preview is no longer available.')
+  })
+
+  it('drops a renewed url when the store delivers a different one', async () => {
+    renew.mockResolvedValue({ url: 'http://api/attachments/1?sig=renewed', expires_at: '2026-03-04T10:35:00Z' })
+    const w = render([image])
+    await w.get('img').trigger('error')
+    await flushPromises()
+    const fresh = { ...image, url: 'http://api/attachments/1?sig=new' }
+    await w.setProps({ attachments: [fresh] })
+    expect(w.get('img').attributes('src')).toBe(fresh.url)
+  })
+
+  describe('click', () => {
+    const fresh = { url: 'http://api/attachments/1?sig=fresh', expires_at: '2026-03-04T10:35:00Z' }
+
+    function fakeWindow() {
+      const win = { opener: {} as unknown, location: { href: '' }, close: vi.fn() }
+      const open = vi.spyOn(window, 'open').mockReturnValue(win as unknown as Window)
+      return { win, open }
+    }
+
+    it('opens a window in the gesture and points it to a fresh url', async () => {
+      renew.mockResolvedValue(fresh)
+      const { win, open } = fakeWindow()
+      const w = render([image])
+      await w.get('a').trigger('click')
+      expect(open).toHaveBeenCalledExactlyOnceWith('', '_blank')
+      expect(win.opener).toBeNull()
+      await flushPromises()
+      expect(renew).toHaveBeenCalledExactlyOnceWith(1)
+      expect(win.location.href).toBe(fresh.url)
+      expect(win.close).not.toHaveBeenCalled()
+    })
+
+    it('closes the window and shows a toast when the url cannot be renewed', async () => {
+      const { win } = fakeWindow()
+      const w = render([image])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(win.location.href).toBe('')
+      expect(win.close).toHaveBeenCalledOnce()
+      expect(toasts.value.map((item) => [item.kind, item.message])).toEqual([
+        ['error', 'Could not open the file. It may no longer be available.'],
+      ])
+    })
+
+    it.each([
+      ['a network error', new TypeError('Failed to fetch')],
+      ['a 500', new ApiError(500, 'boom')],
+    ])('shows the retry toast on %s', async (_label, error) => {
+      renew.mockRejectedValue(error)
+      fakeWindow()
+      const w = render([image])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(toasts.value.map((item) => item.message)).toEqual([
+        'Could not open the file. Check your connection and try again.',
+      ])
+    })
+
+    it('shows a toast when the popup is blocked in the gesture and again after the request', async () => {
+      renew.mockResolvedValue(fresh)
+      const open = vi.spyOn(window, 'open').mockReturnValue(null)
+      const w = render([image])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(open).toHaveBeenNthCalledWith(2, fresh.url, '_blank')
+      expect(toasts.value.map((item) => [item.kind, item.message])).toEqual([
+        ['error', 'Your browser blocked the new tab. Allow pop-ups for this site and try again.'],
+      ])
+    })
+
+    it('opens the fallback window without a toast when only the gesture window was blocked', async () => {
+      renew.mockResolvedValue(fresh)
+      const win = { opener: {} as unknown }
+      const open = vi.spyOn(window, 'open').mockReturnValueOnce(null).mockReturnValueOnce(win as unknown as Window)
+      const w = render([image])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(open).toHaveBeenNthCalledWith(2, fresh.url, '_blank')
+      expect(win.opener).toBeNull()
+      expect(toasts.value).toHaveLength(0)
+    })
+
+    it('leaves native behaviour for modified clicks', async () => {
+      const { open } = fakeWindow()
+      const w = render([image])
+      const a = w.get('a')
+      await a.trigger('click', { ctrlKey: true })
+      await a.trigger('click', { metaKey: true })
+      await a.trigger('click', { shiftKey: true })
+      await a.trigger('click', { button: 1 })
+      expect(open).not.toHaveBeenCalled()
+      expect(renew).not.toHaveBeenCalled()
+    })
+
+    it('navigates to a fresh url from the download link', async () => {
+      renew.mockResolvedValue({ ...fresh, url: 'http://api/attachments/2?sig=fresh' })
+      const assign = vi.fn()
+      vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, assign } as Location)
+      const w = render([pdf])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(renew).toHaveBeenCalledExactlyOnceWith(2)
+      expect(assign).toHaveBeenCalledExactlyOnceWith('http://api/attachments/2?sig=fresh')
+    })
+
+    it.each([
+      ['a 404', new ApiError(404, 'gone'), 'Could not open the file. It may no longer be available.'],
+      ['a network error', new TypeError('Failed to fetch'), 'Could not open the file. Check your connection and try again.'],
+      ['a 500', new ApiError(500, 'boom'), 'Could not open the file. Check your connection and try again.'],
+    ])('shows the matching toast when the download url cannot be renewed by %s', async (_label, error, message) => {
+      renew.mockRejectedValue(error)
+      const assign = vi.fn()
+      vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, assign } as Location)
+      const w = render([pdf])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(assign).not.toHaveBeenCalled()
+      expect(toasts.value.map((item) => item.message)).toEqual([message])
+    })
+
+    it('uses the renewed url as the fallback href', async () => {
+      renew.mockResolvedValue({ ...fresh, url: 'http://api/attachments/1?sig=renewed' })
+      const w = render([image])
+      await w.get('img').trigger('error')
+      await flushPromises()
+      expect(w.get('a').attributes('href')).toBe('http://api/attachments/1?sig=renewed')
+    })
   })
 })

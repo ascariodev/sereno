@@ -344,7 +344,10 @@
     "failed": "Could not upload the file.",
     "rateLimited": "You are uploading too fast. Try again in a moment.",
     "download": "Download",
-    "previewUnavailable": "The preview is no longer available."
+    "previewUnavailable": "The preview is no longer available.",
+    "openFailed": "Could not open the file. It may no longer be available.",
+    "openFailedRetry": "Could not open the file. Check your connection and try again.",
+    "popupBlocked": "Your browser blocked the new tab. Allow pop-ups for this site and try again."
   },
   "mentions": {
     "title": "Mentions",

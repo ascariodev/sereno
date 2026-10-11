@@ -2,12 +2,12 @@
 
 **Objetivo:** que una URL firmada de un adjunto deje de servir poco después de que la persona pierde el acceso: la web
 pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el TTL baja de 60 a pocos minutos.
-**Estado:** en curso · Fase actual: 1
+**Estado:** terminado
 
 ## Contexto mínimo
 - Apps afectadas: `api/` y `web/` (los commits van con `git` en la raíz del monorepo). Origen: acceso-proyectos M-2.
 - Hoy: `MessageAttachment::downloadUrl()` firma `attachments.download` con TTL `config('chat.attachments.url_ttl_minutes')`
-  (60) redondeado hacia arriba a `URL_EXPIRY_STEP_SECONDS` (600) para que el navegador reuse la caché. La URL sale en
+  (60; 5 tras la fase 4) redondeado hacia arriba a `URL_EXPIRY_STEP_SECONDS` (600; 60 tras la fase 4) para que el navegador reuse la caché. La URL sale en
   `MessageAttachmentResource` (listados, hilos, menciones y payloads de `MessageCreated`, `MessageUpdated` y
   `MentionCreated`). La ruta `GET attachments/{attachment}` (`api/routes/api.php` ~L84) es pública con
   `signed:relative`; `AttachmentController::download` solo valida la firma y responde con
@@ -23,7 +23,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 
 ## Fases
 
-### [ ] Fase 1 — Endpoint que firma una URL nueva
+### [x] Fase 1 — Endpoint que firma una URL nueva
 - **Alcance:**
   - `GET /api/attachments/{attachment}/url` dentro del grupo `auth:sanctum` + `organization`, con throttle propio
     (`attachment-urls`, junto a los de `AppServiceProvider`).
@@ -42,7 +42,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 
   Pasan `AttachmentDownloadApiTest` y pint.
 
-### [ ] Fase 2 — Miniaturas que renuevan la URL vencida
+### [x] Fase 2 — Miniaturas que renuevan la URL vencida
 - **Alcance:**
   - `getAttachmentUrl(id)` en el cliente web.
   - En `MessageAttachments.vue`, el `@error` de la miniatura pide una URL nueva y reintenta una sola vez. El estado de
@@ -59,7 +59,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 
   `vue-tsc -b` limpio.
 
-### [ ] Fase 3 — Enlaces que piden una URL nueva al hacer clic
+### [x] Fase 3 — Enlaces que piden una URL nueva al hacer clic
 - **Alcance:**
   - El clic en la miniatura y en el enlace de descarga pide antes una URL fresca y abre esa.
   - La ventana se abre en el mismo gesto, antes del `await`, para no chocar con el bloqueador de popups.
@@ -73,7 +73,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 
   `vue-tsc -b` limpio.
 
-### [ ] Fase 4 — TTL corto [riesgo]
+### [x] Fase 4 — TTL corto [riesgo]
 - **Alcance:**
   - Bajar el default de `CHAT_ATTACHMENT_URL_TTL` a 5 min y `URL_EXPIRY_STEP_SECONDS` a 60 s, para que el redondeo
     no domine la validez.
@@ -95,11 +95,58 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 - 2026-10-11 (aprobado por el usuario): TTL de 5 min y paso de 60 s. El endpoint responde 404 (no 403) cuando
   no hay acceso, como `ChannelPolicy`. La ruta pública de descarga sigue validando solo la firma: el corte de acceso
   depende del TTL corto.
+- 2026-10-11: el plan se ejecuta en el worktree `.claude/worktrees/adjuntos-url` (rama `feat/adjuntos-url`). Los
+  tests corren con `docker run` sobre `workspace-php` (o `node:24`) montando el worktree, los volúmenes
+  `workspace_workspace_vendor` o `workspace_web-node-modules` y `api/.env` del checkout principal, red `workspace_default`.
+- 2026-10-11 (Fase 1) `GET /api/attachments/{attachment}/url` responde `{data:{url, expires_at}}`; `expires_at` es ISO8601
+  UTC tomado del parámetro `expires` de la URL firmada. Throttle `attachment-urls` de 120/min por usuario. `Message` no
+  usa SoftDeletes: el mensaje borrado se detecta con `deleted_at` y responde 404 con `abort`, antes del `Gate`.
+- 2026-10-11 (Fase 2) `getAttachmentUrl(id)` en `web/src/api/messages.ts`. `MessageAttachments.vue` guarda tres mapas
+  por id (`retried`, `renewed`, `failed`) con la URL del store a la que se refieren: una URL nueva del store para el mismo
+  id (p. ej. `MessageUpdated`) rearma el reintento y descarta la renovada (L-39). Una renovación que llega tras cambiar la
+  URL del store se ignora (`from !== a.url`). Una sola renovación por URL del store.
+- 2026-10-11 (Fase 3) Clic en la miniatura: `window.open('', '_blank')` en el gesto, `opener = null`, y luego
+  `location.href` con la URL nueva; si `window.open` devolvió null, respaldo `window.open(url, '_blank', 'noopener')`.
+  El enlace de descarga hace `location.assign(url)` en la misma pestaña, como antes. Cualquier error cierra la ventana y
+  muestra el toast `attachments.openFailed`. Clic con ctrl, meta, shift, alt o botón distinto de 0 queda nativo (el medio
+  dispara `auxclick`). El `href` de respaldo de ambos enlaces usa `previewUrl(a)` (renovada si existe).
+- 2026-10-11 (Fase 4) Default TTL 5 y paso 60 s. Con paso de 60 s todo TTL en minutos es múltiplo del paso: el caso
+  "ttl no múltiplo" pasa a "ttl distinto del default" (7). `Cache-Control: max-age` ya sale de `expires`: sin cambios.
+  `MessageAttachmentTest` solo exige TTL > 0, para no atarlo al `.env`.
+- 2026-10-11 (Fase 4) Verificado en el navegador con un API (8013, `CHAT_ATTACHMENT_URL_TTL=1`) y una Vite (5175)
+  temporales del worktree: una miniatura vencida (fuera de la carga diferida) falló, pidió `/url` y se repintó con la URL
+  nueva; un clic tras vencer abrió el archivo con una URL fresca (200). El panel del navegador devuelve null en
+  `window.open`, así que se probó el respaldo `window.open(url, '_blank', 'noopener')`, no la ventana abierta en el gesto.
+  Quedaron en la base de desarrollo, canal 1, un mensaje con `test.png` y 45 mensajes "relleno N".
+- 2026-10-11 (M-2, decisión del usuario) `AttachmentController::url` lanza `ModelNotFoundException` en todos sus 404
+  (huérfano, mensaje borrado, `Gate::denies` del canal): responden igual que un id inexistente ("Resource not found.",
+  render de `bootstrap/app.php`) y no filtran si el adjunto existe. `download` sigue con `abort(404, __('Not Found'))`.
+- 2026-10-11 (M-5) El respaldo tras el `await` es `window.open(url, '_blank')` sin `noopener`, con `opener = null` en la
+  misma tarea: con `noopener` el estándar devuelve null aunque abra. Solo un null ahí muestra el toast
+  `attachments.popupBlocked`. Reemplaza el respaldo con `noopener` de la Fase 3.
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1. Leer `docs/lecciones.md` (L-38 sobre payloads a `users.{id}`, L-49 sobre correr la suite al
-  restringir accesos, L-58 sobre enlaces directos).
+- Plan terminado: 4 fases. Suite API 1036 ok sobre el worktree. Falta el merge de `feat/adjuntos-url` a `main` (pedirlo).
+- El usuario cambia `api/.env.example:77` de `CHAT_ATTACHMENT_URL_TTL=60` a `5` (comentario sugerido: minutos; el
+  vencimiento se redondea hacia arriba al minuto y la web pide una URL nueva al vencer). Si producción define 60, bajarlo.
 
 ## Mejoras propuestas
 </content>
 </invoke>
+- [x] M-1 (baja, sonnet): exponer el vencimiento desde `MessageAttachment` (p. ej. `downloadUrl()` que devuelva url y
+  vencimiento) en vez de parsear `expires` del query de la URL en `AttachmentController::url`.
+- [x] M-2 (baja, sonnet): en `AttachmentUrlApiTest`, afirmar que los 404 (otra organización, huérfano, sin proyecto,
+  borrado) tienen el mismo cuerpo. El `false` (403) de `ChannelPolicy::view` no se alcanza aquí: el adjunto se busca con
+  el scope de organización y el middleware exige rol.
+- [x] M-3 (baja, sonnet): en `MessageAttachments.vue`, el aviso "ya no disponible" usa `failed.size > 0` y no descarta
+  entradas cuya URL del store ya cambió: tras un fallo y una URL nueva que carga bien sigue visible. Filtrar `failed`
+  contra las URLs actuales (ya pasaba con el `Set`).
+- [x] M-4 (baja, sonnet): extraer el tipo `{ url; expires_at }` de `getAttachmentUrl` a una interfaz en `web/src/api/types.ts`.
+- [x] M-5 (baja, sonnet): en `MessageAttachments.vue`, si `window.open` devolvió null y el respaldo tras el `await`
+  también (Safari lo bloquea), mostrar un toast en vez de no hacer nada.
+- [x] M-6 (baja, sonnet): distinguir el 404 de un error de red o 500 en el toast de apertura (hoy siempre "puede que ya
+  no esté disponible"); requiere una clave i18n nueva.
+- [x] M-7 (baja, sonnet): en `AttachmentUrlApiTest`, afirmar el 404 también en `es` (`Accept-Language`, "Recurso no
+  encontrado.").
+- [x] M-8 (baja, sonnet): en `MessageAttachments.spec.ts`, afirmar el texto del toast en el camino de descarga (404 →
+  `attachments.openFailed`, red/500 → `attachments.openFailedRetry`); hoy solo se cuenta el toast.
