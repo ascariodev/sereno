@@ -171,7 +171,7 @@ de un proyecto y cambiar su estado. (Paso 2 del MVP; los avisos a canales son el
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [x] M-3: que `SetLocale` no llame a `user('sanctum')` si el Bearer empieza con `wsk_` (hoy hace una consulta inútil a `personal_access_tokens` por cada petición de ingesta).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-4: limitar por IP los fallos de autenticación de ingesta (401 repetidos). Depende de M-21 de nucleo (TrustProxies).
+- [x] M-4: limitar por IP los fallos de autenticación de ingesta (401 repetidos). Depende de M-21 de nucleo (TrustProxies).
       Complejidad: media · Archivos: 2 · Riesgo: seguridad → opus
 - [ ] M-5: (prerrequisito del paso 5 del MVP, antes de conectar posveapi) ingesta idempotente (id de evento del cliente o un job por evento) para poder reintentar sin duplicar ni perder el resto del lote.
       Complejidad: alta · Archivos: 3-4 · Riesgo: BD y contrato público → opus
