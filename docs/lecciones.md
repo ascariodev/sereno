@@ -78,6 +78,8 @@
 - L-54: Antes de correr tests con un entorno nuevo (otro contenedor, `docker compose run`, variables inyectadas), se
   comprueba que apuntan a la base de test (`HealthTest` primero o `DB_DATABASE` forzada): `RefreshDatabase` vació la base de
   desarrollo porque el `environment` del servicio ganaba a `phpunit.xml`. — aplicada en: pendiente
+- L-55: Si un evento en vivo se emite una sola vez (primer uso, transición), una recarga en vuelo no lo pisa con datos
+  viejos: se fusiona conservando lo tocado después de lanzarla, con un spec del evento durante la recarga. — aplicada en: test (IntegrationsView.spec)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

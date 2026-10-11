@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require sereno/laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -92,7 +92,7 @@
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/test/fakeRealtimeClient.ts`, `web/src/api/types.ts` (+ spec).
 - **Terminado cuando:** spec de `echo` con payload válido e inválido.
 
-### [ ] Fase 9 — Integraciones en tiempo real
+### [x] Fase 9 — Integraciones en tiempo real
 - **Alcance:** `IntegrationsView` se suscribe al canal del proyecto (patrón de `PlanView`), actualiza `last_used_at`
   de la fila al recibir el evento, recarga en `onReconnect` y se desuscribe al cambiar de proyecto o desmontar.
 - **Archivos:** `web/src/views/IntegrationsView.vue` (+ spec).
@@ -171,6 +171,10 @@
 - Fase 8: `ProjectSubscriptionHandlers.onLogSourceConnected?: (event: LogSourceConnectedEvent) => void`; tipo
   `LogSourceConnectedEvent` en `api/types.ts`; constante `LOG_SOURCE_CONNECTED_EVENT`. El fake de tiempo real es
   genérico (`canal|evento`) y no necesitó cambios.
+- Fase 9: `IntegrationsView` se suscribe solo con permiso de gestión; `sources` es la fuente de verdad y
+  `applyConnected(event)` actualiza la fila por id. `onReconnect` usa `refresh()` silencioso (no `load()`, que cierra el
+  diálogo de la key) y fusiona: filas tocadas (`touchedAt`) después de lanzarlo conservan su valor local, porque el
+  evento sale una sola vez por key. Para la fase 11: `issuedSource` NO se actualiza todavía con el evento.
 
 ## Mejoras propuestas
 
