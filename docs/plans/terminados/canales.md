@@ -171,7 +171,7 @@ resolverlo o ignorarlo con la API existente. (Paso 3 del MVP; hilos, menciones y
   `user_id` sin restringir (FK `nullOnDelete` y actor en los avisos de la fase 11). Alta · opus.
 - [x] M-8 — `ChannelResource`: un resumen del proyecto (`id`, `name`, `key`) en vez del `ProjectResource` completo.
   Media (contrato público) · sonnet.
-- [ ] M-9 — Paginar `GET /api/channels` si crece el número de canales. Media (contrato público) · sonnet.
+- [x] M-9 — Paginar `GET /api/channels` si crece el número de canales. Media (contrato público) · sonnet.
 - [x] M-10 — Validar `cursor` de mensajes: uno mal formado hoy devuelve la primera página en vez de 422. Baja · sonnet.
 - [x] M-11 — Una petición a `api/*` sin token y sin `Accept: application/json` da 500 (`Route [login] not defined`;
   verificado con curl a `/api/channels`). Responder 401 JSON en todo `api/*` y simplificar `redirectGuestsTo` en
@@ -198,3 +198,5 @@ resolverlo o ignorarlo con la API existente. (Paso 3 del MVP; hilos, menciones y
 - [x] M-24 — `BroadcastingAuthTest`: un usuario con `locale = es` y sin `Accept-Language` recibe `Content-Language: es`
   en `/broadcasting/auth`. Baja · sonnet.
 - [x] M-25 — `ChannelApiTest`: cursores con `id` fuera de bigint, negativo y float dan 422. Baja · sonnet.
+- [ ] M-26 — `ChannelView.loadChannel` recorre todos los canales (incluidos archivados) para encontrar uno: agregar
+  `GET /api/channels/{id}` y usarlo. Media · sonnet.

@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { listAllChannels } from '../api/channels'
 import { api } from '../api/client'
 import { createProject, type CreateProjectInput } from '../api/projects'
-import type { Channel, Paginated, Project } from '../api/types'
+import type { Paginated, Project } from '../api/types'
 import { useOrganizationStore } from './organization'
 
 const PER_PAGE = 100
@@ -60,11 +61,11 @@ export const useProjectsStore = defineStore('projects', () => {
     try {
       const [loadedProjects, channels] = await Promise.all([
         fetchProjects(),
-        api.get<{ data: Channel[] }>('/api/channels'),
+        listAllChannels(),
       ])
       if (current !== generation) return
       projects.value = loadedProjects.filter((project) => project.archived_at === null)
-      channelByProject.value = Object.fromEntries(channels.data.map((channel) => [channel.project_id, channel.id]))
+      channelByProject.value = Object.fromEntries(channels.map((channel) => [channel.project_id, channel.id]))
       loaded.value = true
     } catch {
       if (current !== generation) return
