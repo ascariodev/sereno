@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, EyeOff, ListPlus, X } from '@lucide/vue'
+import { Check, EyeOff, ListPlus, Maximize2, Minimize2, X } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
@@ -20,8 +20,11 @@ const props = defineProps<{
   hourly?: number[] | null
   /** Shows the create-task button (false in an archived or unknown project). */
   canCreateTask?: boolean
+  /** Shows the button that toggles `expanded`; the layout owner decides what wider means. */
+  expandable?: boolean
+  expanded?: boolean
 }>()
-const emit = defineEmits<{ close: []; status: [status: LogGroupStatus]; createTask: [] }>()
+const emit = defineEmits<{ close: []; status: [status: LogGroupStatus]; createTask: []; toggleExpanded: [] }>()
 
 const { t, locale } = useI18n()
 
@@ -75,9 +78,23 @@ const eventText = computed(() => {
   <aside class="log-group-panel" tabindex="-1" :aria-label="t('logGroup.label')">
     <div class="log-group-panel__top">
       <span class="log-group-panel__heading">{{ t('logGroup.heading', { id: groupId }) }}</span>
-      <button type="button" name="close-group" class="log-group-panel__close" :aria-label="t('logGroup.close')" @click="emit('close')">
-        <X :size="16" :stroke-width="1.8" aria-hidden="true" />
-      </button>
+      <div class="log-group-panel__tools">
+        <button
+          v-if="expandable"
+          type="button"
+          name="toggle-expanded"
+          class="log-group-panel__close"
+          :aria-label="t(expanded ? 'logGroup.collapse' : 'logGroup.expand')"
+          :aria-pressed="expanded"
+          @click="emit('toggleExpanded')"
+        >
+          <Minimize2 v-if="expanded" :size="15" :stroke-width="1.8" aria-hidden="true" />
+          <Maximize2 v-else :size="15" :stroke-width="1.8" aria-hidden="true" />
+        </button>
+        <button type="button" name="close-group" class="log-group-panel__close" :aria-label="t('logGroup.close')" @click="emit('close')">
+          <X :size="16" :stroke-width="1.8" aria-hidden="true" />
+        </button>
+      </div>
     </div>
     <p v-if="loading" role="status">{{ t('common.loading') }}</p>
     <p v-else-if="loadError && !group" role="alert" class="log-group-panel__error">
@@ -182,6 +199,10 @@ const eventText = computed(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.log-group-panel__tools {
+  display: flex;
+  gap: 2px;
 }
 .log-group-panel__heading {
   font-size: 12px;

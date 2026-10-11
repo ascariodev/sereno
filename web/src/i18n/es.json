@@ -379,6 +379,8 @@
     "label": "Detalle del grupo de logs",
     "heading": "Grupo de logs #{id}",
     "close": "Cerrar detalle",
+    "expand": "Ampliar detalle",
+    "collapse": "Reducir detalle",
     "events": "Eventos",
     "firstSeen": "Primera vez",
     "lastSeen": "Última vez",

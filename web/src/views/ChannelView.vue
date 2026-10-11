@@ -39,6 +39,7 @@ const directory = useMemberDirectoryStore()
 const channel = ref<Channel | null>(null)
 const channelLoadFailed = ref(false)
 const panelRefresh = ref(0)
+const panelExpanded = ref(false)
 const editingMessageId = ref<number | null>(null)
 const deletingMessage = ref<Message | null>(null)
 const deleting = ref(false)
@@ -415,10 +416,13 @@ defineExpose({ openThread })
       </div>
       <LogGroupAside
         v-if="panelProjectId !== null && groupId !== null && threadId === null"
-        class="channel__panel"
+        :class="['channel__panel', { 'channel__panel--wide': panelExpanded }]"
         :project-id="panelProjectId"
         :group-id="groupId"
         :refresh-token="panelRefresh"
+        expandable
+        :expanded="panelExpanded"
+        @toggle-expanded="panelExpanded = !panelExpanded"
         @close="selectGroup(null, $event)"
         @status="projects.refreshCounts()"
       />
@@ -493,6 +497,9 @@ defineExpose({ openThread })
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
+}
+.channel__layout > :deep(.channel__panel--wide) {
+  flex-basis: min(760px, 60%);
 }
 .channel__title {
   margin: 0;
