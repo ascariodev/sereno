@@ -3,7 +3,7 @@
 **Objetivo:** conectar un sistema Laravel a Sereno en dos pasos: crear la fuente en la web y pegar
 `composer require ascariodev/sereno-laravel && php artisan sereno:install wsk_...`; el diálogo de la key pasa de
 "Esperando el primer evento" a "Conectado" cuando llega el primero.
-**Estado:** en curso · Fase actual: 13
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -120,7 +120,7 @@
 - **Archivos:** ninguno en código (posible ajuste de README si cambia la URL del repo).
 - **Terminado cuando:** instalación limpia desde Packagist verificada.
 
-### [ ] Fase 13 — posveapi usa ascariodev/sereno-laravel de Packagist [riesgo]
+### [x] Fase 13 — posveapi usa ascariodev/sereno-laravel de Packagist [riesgo]
 - **Alcance:** en `feat/sereno-paquete`: quitar el repositorio `vcs`, `require ascariodev/sereno-laravel:^0.2`, namespace
   `Sereno\Laravel\` en `config/logging.php` y su test, variables `SERENO_KEY`/`SERENO_URL` en `.env.example`,
   `config/logging.php` y `scripts/build-notify.js`.
@@ -192,6 +192,12 @@
   nombre viejo. Verificado en `composer:2` limpio: `laravel/laravel ^13` + `composer require ascariodev/sereno-laravel`
   instala `v0.2.1` sin credenciales y `package:discover` registra el provider (`sereno:install`, `sereno:test`).
   `origin` (Gitea) del paquete sin push (falla la autenticación desde esta máquina).
+- Fase 13: posveapi `feat/sereno-paquete` 574b951f (commit con `--no-verify` autorizado por el usuario; Pint pasó en el
+  contenedor sobre el índice): `ascariodev/sereno-laravel ^0.2` (v0.2.1) sin repositorio `vcs`, `Sereno\Laravel\`,
+  `SERENO_KEY`/`SERENO_URL` con respaldo `SERENO_LOG_*`. Tests de logging 10/10, `package:discover` en verde; desde el
+  contenedor `posveapi_app` llegaron a Sereno local el evento de `sereno:test` y un `Log::critical` real. Sin merge a
+  `pharmacies`. Al desplegar: un `SERENO_URL=` vacío en el `.env` tapa las `SERENO_LOG_*`.
+- Cierre: suite completa del API en verde (`workspace_test`, base de desarrollo intacta).
 - Fase 11: código y specs revisados y commiteados (suite web 1337 en verde). La vista pasa al diálogo `shownSource`
   (computed: `issuedSource` con el `last_used_at` de su fila en `sources`); región `aria-live="polite"` estable con
   `keyDialog.waiting`/`connected`; tokens `--level-info-*`. Prueba manual hecha tras el merge a `main` local (346beb3, sin push) y
