@@ -127,6 +127,53 @@ it('ignores archived_at in create and update requests', function () {
         ->assertJsonPath('data.archived_at', null);
 });
 
+it('exposes tasks_resolve_log_groups off by default and lets owner and admin toggle it', function () {
+    $project = Project::factory()->for($this->organization)->create();
+
+    asUser($this->users['admin'], $this->organization)
+        ->getJson("/api/projects/{$project->id}")
+        ->assertOk()
+        ->assertJsonPath('data.tasks_resolve_log_groups', false);
+
+    asUser($this->users['admin'], $this->organization)
+        ->patchJson("/api/projects/{$project->id}", ['tasks_resolve_log_groups' => true])
+        ->assertOk()
+        ->assertJsonPath('data.tasks_resolve_log_groups', true);
+    expect($project->fresh()->tasks_resolve_log_groups)->toBeTrue();
+
+    asUser($this->users['owner'], $this->organization)
+        ->patchJson("/api/projects/{$project->id}", ['name' => 'Renamed'])
+        ->assertOk()
+        ->assertJsonPath('data.tasks_resolve_log_groups', true);
+
+    asUser($this->users['owner'], $this->organization)
+        ->patchJson("/api/projects/{$project->id}", ['tasks_resolve_log_groups' => false])
+        ->assertOk()
+        ->assertJsonPath('data.tasks_resolve_log_groups', false);
+    expect($project->fresh()->tasks_resolve_log_groups)->toBeFalse();
+});
+
+it('rejects a non boolean tasks_resolve_log_groups and forbids members from changing it', function () {
+    $project = Project::factory()->for($this->organization)->create();
+
+    asUser($this->users['owner'], $this->organization)
+        ->patchJson("/api/projects/{$project->id}", ['tasks_resolve_log_groups' => 'maybe'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('tasks_resolve_log_groups');
+
+    asUser($this->users['member'], $this->organization)
+        ->patchJson("/api/projects/{$project->id}", ['tasks_resolve_log_groups' => true])
+        ->assertForbidden();
+    expect($project->fresh()->tasks_resolve_log_groups)->toBeFalse();
+});
+
+it('ignores tasks_resolve_log_groups on create', function () {
+    asUser($this->users['owner'], $this->organization)
+        ->postJson('/api/projects', ['name' => 'X', 'key' => 'XYZ', 'tasks_resolve_log_groups' => true])
+        ->assertCreated()
+        ->assertJsonPath('data.tasks_resolve_log_groups', false);
+});
+
 it('archives and unarchives, hiding archived projects unless requested', function () {
     $project = Project::factory()->for($this->organization)->create();
     $owner = $this->users['owner'];

@@ -35,7 +35,7 @@ class ProjectRequest extends FormRequest
         $project = $this->route('project');
         $required = $project instanceof Project ? 'sometimes' : 'required';
 
-        return [
+        $rules = [
             'name' => [$required, 'string', 'max:255'],
             'key' => [
                 $required, 'string', 'regex:/^[A-Z][A-Z0-9]{1,9}$/',
@@ -45,6 +45,12 @@ class ProjectRequest extends FormRequest
             ],
             'description' => ['nullable', 'string', 'max:5000'],
         ];
+
+        if ($project instanceof Project) {
+            $rules['tasks_resolve_log_groups'] = ['sometimes', 'boolean'];
+        }
+
+        return $rules;
     }
 
     public function messages(): array

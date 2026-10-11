@@ -2,7 +2,7 @@
 
 **Objetivo:** en los proyectos que lo activen, mover a Hecho una tarea creada desde un aviso resuelve su grupo de log, y
 si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. Origen: plan-tareas M-5 (y canales M-19).
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -30,7 +30,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
 
 ## Fases
 
-### [ ] Fase 1 — Ajuste por proyecto
+### [x] Fase 1 — Ajuste por proyecto
 - **Alcance:**
   - Migración con columna `projects.tasks_resolve_log_groups` boolean not null default false.
   - Cast en `Project`, campo en `ProjectResource` y validación `boolean` en `ProjectRequest`, solo en update.
@@ -114,9 +114,14 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
   grupo.
 - 2026-10-11: la fase 2 resuelve canales M-19 (sacar `postStatusNotice` a una acción), que ahora sí tiene un segundo
   punto de uso.
+- 2026-10-11 (fase 1): el ajuste lo cambia quien pasa `ProjectPolicy::update` (owner y admin; un member recibe 403).
+  Se valida `sometimes|boolean` solo en update (en create se ignora). `Project` lo tiene en Fillable y con
+  `$attributes` default false, para que el POST devuelva false sin recargar.
+- 2026-10-11: el trabajo va en el worktree `feat/tarea-grupo-efectos`. Como los contenedores montan el checkout
+  principal, los tests del API se corren con `.claude/worktrees/t.sh` (contenedor desechable con el api del worktree).
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1. Leer `docs/lecciones.md` (L-41 concurrencia, L-42 condiciones en el worker, L-49 suite completa
+- Seguir con la fase 2. La web (fase 6) muestra el interruptor solo a owner/admin. Leer `docs/lecciones.md` (L-41 concurrencia, L-42 condiciones en el worker, L-49 suite completa
   al tocar accesos o transacciones, L-13 guards de payload).
 
 ## Mejoras propuestas
