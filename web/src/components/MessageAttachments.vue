@@ -2,6 +2,7 @@
 import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { MessageAttachment } from '../api/types'
+import { ApiError } from '../api/client'
 import { getAttachmentUrl } from '../api/messages'
 import { formatFileSize } from '../formatFileSize'
 import { toast } from './ui/toast'
@@ -46,6 +47,10 @@ function isPlainClick(event: MouseEvent): boolean {
   return event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey
 }
 
+function openErrorMessage(error: unknown): string {
+  return error instanceof ApiError && error.status === 404 ? t('attachments.openFailed') : t('attachments.openFailedRetry')
+}
+
 async function openFresh(event: MouseEvent, a: MessageAttachment) {
   if (!isPlainClick(event)) return
   event.preventDefault()
@@ -61,9 +66,9 @@ async function openFresh(event: MouseEvent, a: MessageAttachment) {
     const fallback = window.open(url, '_blank')
     if (fallback) fallback.opener = null
     else toast.error(t('attachments.popupBlocked'))
-  } catch {
+  } catch (error) {
     win?.close()
-    toast.error(t('attachments.openFailed'))
+    toast.error(openErrorMessage(error))
   }
 }
 
@@ -73,8 +78,8 @@ async function downloadFresh(event: MouseEvent, a: MessageAttachment) {
   try {
     const { url } = await getAttachmentUrl(a.id)
     window.location.assign(url)
-  } catch {
-    toast.error(t('attachments.openFailed'))
+  } catch (error) {
+    toast.error(openErrorMessage(error))
   }
 }
 </script>

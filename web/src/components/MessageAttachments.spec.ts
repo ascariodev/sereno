@@ -213,6 +213,20 @@ describe('MessageAttachments', () => {
       ])
     })
 
+    it.each([
+      ['a network error', new TypeError('Failed to fetch')],
+      ['a 500', new ApiError(500, 'boom')],
+    ])('shows the retry toast on %s', async (_label, error) => {
+      renew.mockRejectedValue(error)
+      fakeWindow()
+      const w = render([image])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(toasts.value.map((item) => item.message)).toEqual([
+        'Could not open the file. Check your connection and try again.',
+      ])
+    })
+
     it('shows a toast when the popup is blocked in the gesture and again after the request', async () => {
       renew.mockResolvedValue(fresh)
       const open = vi.spyOn(window, 'open').mockReturnValue(null)

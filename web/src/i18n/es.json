@@ -346,6 +346,7 @@
     "download": "Descargar",
     "previewUnavailable": "La vista previa ya no está disponible.",
     "openFailed": "No se pudo abrir el archivo. Puede que ya no esté disponible.",
+    "openFailedRetry": "No se pudo abrir el archivo. Revisa tu conexión e inténtalo de nuevo.",
     "popupBlocked": "El navegador bloqueó la pestaña nueva. Permite las ventanas emergentes de este sitio e inténtalo de nuevo."
   },
   "mentions": {
