@@ -30,7 +30,7 @@ let fake: ReturnType<typeof createFakeRealtimeClient>
 async function mountWatch(remaining: unknown[] = [two]) {
   const pinia = createPinia()
   setActivePinia(pinia)
-  useAuthStore().$patch({ token: 'tok', user })
+  useAuthStore().$patch({ token: 'tok', user: { ...user } })
   const organization = useOrganizationStore()
   organization.$patch({ organizations: [one, two], activeId: 1, loaded: true })
   const get = vi.spyOn(api, 'get').mockResolvedValue({ data: remaining })
@@ -379,6 +379,14 @@ describe('useMembershipWatch', () => {
   it('joins the session channel', async () => {
     await mountWatch()
     expect(fake.client.join).toHaveBeenCalledWith('sessions.1')
+  })
+
+  it('on a user change leaves the old session channel and joins the new one', async () => {
+    await mountWatch()
+    useAuthStore().$patch({ user: { ...user, id: 2 } })
+    await flushPromises()
+    expect(fake.client.leave).toHaveBeenCalledWith('sessions.1')
+    expect(fake.client.join).toHaveBeenCalledWith('sessions.2')
   })
 
   it('unmounting drops the user and session channels, the reconnect and the denied listeners', async () => {

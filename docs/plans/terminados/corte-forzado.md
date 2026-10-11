@@ -72,5 +72,5 @@
 - [x] M-5 (baja, sonnet): en `web/src/realtime/echo.ts` (`subscribe`), extraer a un helper la creación del canal (presence o private) en vez de mezclar las ramas con `channel?.listen` y un `if` aparte.
 - [x] M-6 (baja, sonnet): en `web/src/realtime/echo.ts`, una constante o helper para el prefijo `private-` que comparten `createAuthorizer` y `handleSubscriptionError`.
 - [x] M-7 (baja, sonnet): en `web/src/test/fakeRealtimeClient.ts`, guardar varios handlers de `error` por canal en vez de uno solo.
-- [ ] M-8 (baja, sonnet): spec en `web/src/realtime/useMembershipWatch.spec.ts` de cambio de usuario: suelta `sessions.<viejo>` y se une a `sessions.<nuevo>`.
+- [x] M-8 (baja, sonnet): spec en `web/src/realtime/useMembershipWatch.spec.ts` de cambio de usuario: suelta `sessions.<viejo>` y se une a `sessions.<nuevo>`.
 - [ ] M-9 (baja, sonnet): en `useMembershipWatch.ts`, capturar un rechazo inesperado de `onForbidden` (p. ej. si `router.replace` lanza) en los `void onForbidden(...)` para no dejar promesas sin manejar.
