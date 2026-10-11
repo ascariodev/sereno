@@ -264,7 +264,8 @@ onUnmounted(() => {
   flex: 1 1 0;
   min-width: 0;
 }
-.plan-view__aside {
+/* TaskAside's root is a dynamic component, so this view's scope id never reaches its panel: match it with :deep. */
+.plan-view__layout > :deep(.plan-view__aside) {
   flex: 0 0 min(340px, 40%);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);

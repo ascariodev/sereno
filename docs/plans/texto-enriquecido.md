@@ -1,7 +1,7 @@
 # Plan: texto-enriquecido
 
 **Objetivo:** la descripción de las tareas se escribe en Markdown con un editor con barra de formato y vista previa, y se muestra renderizada y saneada. El renderizador y el editor quedan reutilizables (los usan los comentarios del plan `comentarios-tareas`).
-**Estado:** en curso · Fase actual: 4
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -37,7 +37,7 @@
 - **Terminado cuando:** specs de `markdownFormat` (selección vacía, multilínea, deshacer el formato) y del editor
   (barra, atajos, vista previa, límite con emojis).
 
-### [ ] Fase 4 — Editor Markdown en la tarea
+### [x] Fase 4 — Editor Markdown en la tarea
 - **Alcance:** `TaskAside` muestra la descripción renderizada y pasa a `MarkdownEditor` al editar (solo con permiso);
   `TaskCreateDialog` usa `MarkdownEditor`. Se conserva el flujo de guardado actual.
 - **Archivos:** `web/src/components/TaskAside.vue`, `web/src/components/TaskCreateDialog.vue`
@@ -49,7 +49,11 @@
 `.
 - 2026-10-11 — El plan se ejecuta en el worktree `feat/texto-enriquecido`; npm corre con `docker run ... -v "$(pwd -W)/web:/app" -v workspace_web-node-modules:/app/node_modules node:24` porque el servicio `web` monta el checkout principal.
 
+- 2026-10-11 — Fase 4: la descripción se ve renderizada y se edita con un botón "Editar/Agregar descripción" (no al hacer clic en el texto), con Cancelar que restaura el valor y limpia su error; un 422 en `description` reabre y enfoca el editor; el foco vuelve al botón solo tras guardar o cancelar (no al cambiar de tarea).
+- 2026-10-11 — Fase 4: la regla de ancho del panel de PlanView nunca se aplicaba (la raíz dinámica de TaskAside no recibe el scope id) y el panel cambiaba de ancho con el contenido; se corrigió con `.plan-view__layout > :deep(.plan-view__aside)`, mismo patrón que LogView.
+
 ## Notas para la próxima sesión
+- Retrabajo en fase 4: dos rondas de revisión (foco, Cancelar, specs) y el ancho del panel detectado solo en la revisión visual.
 - Retrabajo en fase 3: el cambio entre tipos de lista dejaba el prefijo anterior (`1. - a`); se corrigió quitando cualquier prefijo de bloque.
 - Este plan va primero: `comentarios-tareas` reutiliza `MarkdownContent` y `MarkdownEditor`.
 - Fase 3: `charCount` ahora se exporta de `taskLimits.ts`; TaskAside y TaskCreateDialog aún tienen copia local: la fase 4 las importa y borra las copias.

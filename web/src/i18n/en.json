@@ -491,6 +491,9 @@
     "fromNotice": "From a log notice"
   },
   "taskAside": {
+    "editDescription": "Edit description",
+    "addDescription": "Add description",
+    "noDescription": "No description.",
     "label": "Task details",
     "close": "Close details",
     "save": "Save changes",

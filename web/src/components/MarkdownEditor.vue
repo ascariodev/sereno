@@ -129,6 +129,7 @@ function onInput(event: Event) {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  min-width: 0;
 }
 .markdown-editor__head {
   display: flex;
@@ -167,6 +168,9 @@ function onInput(event: Event) {
   outline-offset: 1px;
 }
 .markdown-editor__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 10px;

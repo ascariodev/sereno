@@ -90,6 +90,7 @@
   elementos nuevos para cortar por ese lado, qué hacen los eventos en vivo que caen fuera del tramo, y que los
   enlaces directos (`?task=`, `?message=`) pidan al API lo que no está cargado en vez de dar "no encontrado". —
   aplicada en: plan-tareas M-4, chat M-2
+- L-59: Un estilo de una vista sobre la raíz de un componente hijo (ancho de un panel) se escribe con `:deep` desde un contenedor propio y se mide en el navegador: si la raíz es dinámica (`<component :is>`) o un fragmento, el scope id no llega y la regla no se aplica sin error (LogView, PlanView). — aplicada en: pendiente
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

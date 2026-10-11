@@ -128,6 +128,8 @@ describe('TaskCreateDialog', () => {
     expect(q('[data-test=error-title]')).not.toBeNull()
     expect(q('[data-test=error-description]')).not.toBeNull()
     expect(q('#task-create-description')!.getAttribute('aria-describedby')).toBe('task-create-description-error-0')
+    expect(q('#task-create-description')!.getAttribute('aria-invalid')).toBe('true')
+    expect(q('[data-test=tool-bold]')).not.toBeNull()
     expect(post).not.toHaveBeenCalled()
   })
 

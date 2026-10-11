@@ -491,6 +491,9 @@
     "fromNotice": "Desde un aviso de log"
   },
   "taskAside": {
+    "editDescription": "Editar descripción",
+    "addDescription": "Agregar descripción",
+    "noDescription": "Sin descripción.",
     "label": "Detalle de la tarea",
     "close": "Cerrar detalle",
     "save": "Guardar cambios",
