@@ -69,6 +69,7 @@ describe('PlanView', () => {
     mockApi(() => new Promise((resolve) => (release = resolve)))
     const wrapper = await mountView()
     expect(wrapper.text()).toContain('Loading...')
+    expect(wrapper.find('.plan-view__board').exists()).toBe(false)
     release({ data: [] })
     await flushPromises()
     expect(wrapper.text()).not.toContain('Loading...')
@@ -99,6 +100,7 @@ describe('PlanView', () => {
     })
     const wrapper = await mountView()
     expect(wrapper.find('[role=alert]').text()).toContain('Could not load the tasks.')
+    expect(wrapper.find('.plan-view__board').exists()).toBe(false)
     fail = false
     await wrapper.find('button[name=retry]').trigger('click')
     await flushPromises()
@@ -171,20 +173,6 @@ describe('PlanView', () => {
       expect(second.text()).not.toContain('From a log notice')
     })
 
-    it('shows no board while loading', async () => {
-      mockApi(() => new Promise(() => {}))
-      const wrapper = await mountView()
-      expect(wrapper.text()).toContain('Loading...')
-      expect(wrapper.find('.plan-view__board').exists()).toBe(false)
-    })
-
-    it('hides the board while loading and on error', async () => {
-      mockApi(() => {
-        throw new ApiError(500, 'boom')
-      })
-      const wrapper = await mountView()
-      expect(wrapper.find('.plan-view__board').exists()).toBe(false)
-    })
   })
 
   describe('filters', () => {

@@ -260,7 +260,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   cargado, decidir qué mostrar; guard en vez de `as number` al olvidar el tombstone más viejo.
 - [x] M-20 (baja, sonnet): `PlanView.spec`: test del cambio de organización; orden de imports de iconos en
   `ProjectHeader.vue`.
-- [ ] M-21 (baja, sonnet): tablero: token de sombra para la tarjeta (diseño `0 1px 2px`), `border-radius` de
+- [x] M-21 (baja, sonnet): tablero: token de sombra para la tarjeta (diseño `0 1px 2px`), `border-radius` de
   `.task-card` con token `--radius-*`, contraste de `--column-in-review` en oscuro, fusionar los tests de carga
   solapados de `PlanView.spec` y revisar el layout en el navegador a 1024 px y en móvil.
 - [ ] M-22 (baja, sonnet): filtros: reindentar el `<template v-else>` de `PlanView.vue`, icono de actividad en
@@ -273,3 +273,4 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - [ ] M-26 (baja, sonnet): spec de `dragend` sin `drop` (soltar fuera) que deje el estado de arrastre limpio; y bloquear un movimiento por menú mientras hay uno por arrastre en vuelo (y viceversa).
 - [ ] M-27 (baja, sonnet): test de 422 por `log_group_id` en `LogGroupAside.spec` y, tras ese 422, mostrar el enlace a la tarea existente; conservar el diálogo abierto al cruzar el breakpoint del aside.
 - [ ] M-28 (media, sonnet): que el payload de los avisos o el canal sepan la tarea del grupo (p. ej. `task` en el estado de grupos del canal) para no depender del estado del cliente; mostrar el enlace aunque el grupo esté resuelto; limpiar la entrada del mapa al borrar la tarea.
+- [ ] M-29 (baja, sonnet): `--column-in-review` (#E9A23B) en modo claro da 2.04:1 contra la columna (#F7F8FA), bajo el 3:1 de AA para indicadores; oscurecerlo solo en claro. Y decidir si `ProjectHeader`/`AppSegmented` usan `--shadow-card` o un token propio.

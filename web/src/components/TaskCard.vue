@@ -59,7 +59,8 @@ const assignee = computed(() => props.task.assignee ?? null)
   gap: 10px;
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   background: var(--surface);
   color: var(--ink);
   text-decoration: none;
