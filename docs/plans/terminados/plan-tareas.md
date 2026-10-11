@@ -242,7 +242,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   `validation.different`; test de concurrencia real de `move` (L-41) en vez del query log.
 - [ ] M-10 (baja, sonnet): `DESCRIPTION_MAX_LENGTH` a `Task` junto a `TITLE_MAX_LENGTH`; `assignee_id` en Fillable para
   simplificar `TaskController@update`; 404 de tarea de otro proyecto antes de validar.
-- [ ] M-12 (baja, sonnet): `LogGroupTaskApiTest`: quitar el umbral arbitrario `toBeLessThan(12)`; basta el conteo
+- [x] M-12 (baja, sonnet): `LogGroupTaskApiTest`: quitar el umbral arbitrario `toBeLessThan(12)`; basta el conteo
   constante.
 - [ ] M-13 (media, sonnet): avisar en vivo al tablero de las tareas desasignadas al quitar un miembro (evento por
   proyecto afectado tras el commit).
