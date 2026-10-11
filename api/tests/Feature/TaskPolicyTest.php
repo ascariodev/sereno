@@ -70,6 +70,14 @@ it('denies everything to a user from another organization', function () {
         ->and($gate->allows('delete', $this->task))->toBeFalse();
 });
 
+it('fails closed on viewAny and create without an active organization', function (string $role) {
+    app(CurrentOrganization::class)->set(null);
+    $gate = Gate::forUser($this->users[$role]);
+
+    expect($gate->allows('viewAny', Task::class))->toBeFalse()
+        ->and($gate->allows('create', Task::class))->toBeFalse();
+})->with(['member', 'admin', 'owner']);
+
 it('denies a task from another organization even to its own creator and admins', function () {
     $foreignProject = Project::factory()->for($this->other)->create();
     app(CurrentOrganization::class)->set($this->other);
