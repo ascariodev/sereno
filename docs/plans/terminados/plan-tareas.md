@@ -246,7 +246,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   constante.
 - [ ] M-13 (media, sonnet): avisar en vivo al tablero de las tareas desasignadas al quitar un miembro (evento por
   proyecto afectado tras el commit).
-- [ ] M-14 (baja, sonnet): extraer `positiveId` (duplicado en `ProjectChannel` y `ChannelChannel`) a un helper
+- [x] M-14 (baja, sonnet): extraer `positiveId` (duplicado en `ProjectChannel` y `ChannelChannel`) a un helper
   compartido; en `BroadcastingAuthTest`, el proyecto del canal en el `beforeEach`.
 - [ ] M-15 (media, sonnet): `renumberColumn` emite `task.updated` por cada tarea renumerada (o un evento de columna),
   para que el tablero en vivo no quede desfasado.

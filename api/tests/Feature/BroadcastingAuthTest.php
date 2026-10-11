@@ -26,7 +26,8 @@ beforeEach(function () {
     $this->outsider = User::factory()->create();
     $this->other->addMember($this->outsider, [Role::Owner]);
 
-    $this->channel = Channel::factory()->for(Project::factory()->for($this->organization))->create();
+    $this->project = Project::factory()->for($this->organization)->create();
+    $this->channel = Channel::factory()->for($this->project)->create();
     assignMembersToAllProjects();
 });
 
@@ -208,7 +209,7 @@ function projectChannelName(Organization $organization, Project $project): strin
 it('authorizes a member on the project channel without X-Organization-Id', function () {
     Sanctum::actingAs($this->member);
 
-    authorizeChannel(projectChannelName($this->organization, Project::withoutGlobalScopes()->findOrFail($this->channel->project_id)))
+    authorizeChannel(projectChannelName($this->organization, $this->project))
         ->assertOk()
         ->assertJsonStructure(['auth']);
 });
@@ -216,7 +217,7 @@ it('authorizes a member on the project channel without X-Organization-Id', funct
 it('rejects a non member on the project channel', function () {
     Sanctum::actingAs($this->outsider);
 
-    authorizeChannel(projectChannelName($this->organization, Project::withoutGlobalScopes()->findOrFail($this->channel->project_id)))->assertForbidden();
+    authorizeChannel(projectChannelName($this->organization, $this->project))->assertForbidden();
 });
 
 it('rejects a project of another organization on the project channel', function () {
@@ -253,7 +254,7 @@ it('rejects malformed project channel parameters', function (string $channelName
 ]);
 
 it('requires a token on the project channel', function () {
-    authorizeChannel(projectChannelName($this->organization, Project::withoutGlobalScopes()->findOrFail($this->channel->project_id)))
+    authorizeChannel(projectChannelName($this->organization, $this->project))
         ->assertUnauthorized()
         ->assertJsonPath('message', 'Unauthenticated.');
 });
@@ -264,13 +265,13 @@ it('rejects a member without access to the project on its channel and project ch
     Sanctum::actingAs($unassigned);
 
     authorizeChannel(channelName($this->organization, $this->channel))->assertForbidden();
-    authorizeChannel(projectChannelName($this->organization, Project::withoutGlobalScopes()->findOrFail($this->channel->project_id)))->assertForbidden();
+    authorizeChannel(projectChannelName($this->organization, $this->project))->assertForbidden();
 });
 
 it('authorizes a member once assigned to the project', function () {
     $newcomer = User::factory()->create();
     $this->organization->addMember($newcomer, [Role::Member]);
-    $project = Project::withoutGlobalScopes()->findOrFail($this->channel->project_id);
+    $project = $this->project;
     $project->addMember($newcomer);
     Sanctum::actingAs($newcomer);
 
@@ -284,7 +285,7 @@ it('authorizes owner and admin without project assignment', function (Role $role
     Sanctum::actingAs($user);
 
     authorizeChannel(channelName($this->organization, $this->channel))->assertOk();
-    authorizeChannel(projectChannelName($this->organization, Project::withoutGlobalScopes()->findOrFail($this->channel->project_id)))->assertOk();
+    authorizeChannel(projectChannelName($this->organization, $this->project))->assertOk();
 })->with([Role::Owner, Role::Admin]);
 
 it('authorizes any member of the organization on a channel without project', function () {
