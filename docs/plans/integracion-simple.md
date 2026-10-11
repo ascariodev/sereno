@@ -184,6 +184,9 @@
 - Mejoras M-1 a M-4 aplicadas en la rama `feat/integracion-simple` del paquete (commits f2822bb, 97add1e, f84c3f0,
   a1852f0 posteriores al tag local `v0.2.0` en 47da781: **mover el tag** al último commit antes de publicar, fase 12);
   M-5 en el monorepo.
+- Fase 12 en curso: `feat/integracion-simple` fusionada a `main` local del paquete (44159b7, suite 79 en verde) y tag
+  `v0.2.0` movido ahí. Sin push: `git ls-remote` a Gitea falla por autenticación desde esta máquina. Falta que el usuario
+  elija dónde queda público el repo, lo haga público, registre en Packagist y resuelva la autenticación del push.
 - Fase 11: código y specs revisados y commiteados (suite web 1337 en verde). La vista pasa al diálogo `shownSource`
   (computed: `issuedSource` con el `last_used_at` de su fila en `sources`); región `aria-live="polite"` estable con
   `keyDialog.waiting`/`connected`; tokens `--level-info-*`. Prueba manual hecha tras el merge a `main` local (346beb3, sin push) y
