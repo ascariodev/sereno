@@ -1,0 +1,19 @@
+#!/bin/sh
+# Actualiza el grafo de graphify en ../.graphify-workspace/<repo>/ (fuera del repo, sin LLM).
+# Solo corre en el checkout principal: el grafo sale de ahi, no de los worktrees.
+common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || exit 0
+repo=$(dirname "$common")
+[ "$(git rev-parse --show-toplevel 2>/dev/null)" = "$repo" ] || exit 0
+ws="$(dirname "$repo")/.graphify-workspace/$(basename "$repo")"
+[ -d "$ws/graphify-out" ] || exit 0
+if command -v graphify >/dev/null 2>&1; then
+  gfy="graphify"
+else
+  py="$HOME/AppData/Local/pipx/pipx/venvs/graphifyy/Scripts/python.exe"
+  [ -x "$py" ] || exit 0
+  gfy="$py -m graphify"
+fi
+export GRAPHIFY_OUT="$ws/graphify-out"
+{ $gfy extract "$repo" --code-only --out "$ws" && $gfy cluster-only "$ws"; } >"$ws/graphify-out/.hook.log" 2>&1 \
+  || echo "[graphify] no se pudo actualizar el grafo, ver $ws/graphify-out/.hook.log" >&2
+exit 0

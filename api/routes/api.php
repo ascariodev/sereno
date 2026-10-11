@@ -68,6 +68,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::delete('members/{user}', [MemberController::class, 'destroy']);
     Route::post('members/{user}/transfer-ownership', [MemberController::class, 'transferOwnership'])->whereNumber('user');
     Route::get('channels', [ChannelController::class, 'index']);
+    Route::get('channels/{channel}', [ChannelController::class, 'show'])->whereNumber('channel');
     Route::middleware('throttle:mentions')->group(function () {
         Route::get('mentions', [MentionController::class, 'index']);
         Route::post('mentions/read', [MentionController::class, 'read']);
