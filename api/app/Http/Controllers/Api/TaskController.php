@@ -36,15 +36,17 @@ class TaskController extends Controller
     {
         Gate::authorize('view', $project);
 
-        $order = 'CASE status';
-        foreach (TaskStatus::cases() as $index => $status) {
-            $order .= " WHEN '{$status->value}' THEN {$index}";
+        $cases = TaskStatus::cases();
+        $order = 'CASE status'.str_repeat(' WHEN ? THEN ?', count($cases)).' END';
+        $bindings = [];
+        foreach ($cases as $index => $status) {
+            array_push($bindings, $status->value, $index);
         }
 
         $tasks = Task::query()
             ->where('project_id', $project->id)
             ->with(self::RELATIONS)
-            ->orderByRaw($order.' END')
+            ->orderByRaw($order, $bindings)
             ->orderBy('position')
             ->orderBy('id')
             ->get();
