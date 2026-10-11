@@ -236,7 +236,9 @@ class TaskController extends Controller
         $beforeId = $request->beforeId();
         $afterId = $request->afterId();
 
-        $task = DB::transaction(function () use ($project, $task, $status, $beforeId, $afterId) {
+        $renumbered = [];
+
+        $task = DB::transaction(function () use ($project, $task, $status, $beforeId, $afterId, &$renumbered) {
             // Same lock as store() takes with its UPDATE: creations and moves of the project are serialized, so no
             // task enters the target column while it is read. NO KEY keeps inserts that reference the project free.
             $this->lockActiveProject($project, __('This project is archived and its tasks cannot be moved.'));
@@ -269,7 +271,7 @@ class TaskController extends Controller
                 || $position <= $previous->position
                 || $position >= $next->position
             )) {
-                $position = $this->renumberColumn($column, $slot);
+                $position = $this->renumberColumn($column, $slot, $renumbered);
             }
 
             $task->status = $status;
@@ -281,6 +283,10 @@ class TaskController extends Controller
 
         $task->load(self::RELATIONS)->setRelation('project', $project);
         TaskUpdated::dispatch($task);
+
+        Task::query()->with(self::RELATIONS)->whereKey($renumbered)->get()->each(
+            fn (Task $neighbor) => TaskUpdated::dispatch($neighbor->setRelation('project', $project))
+        );
 
         return new TaskResource($task);
     }
@@ -360,13 +366,15 @@ class TaskController extends Controller
      * Spreads the column over 1, 2, 3... leaving the moved task's slot free, and returns the position of that slot.
      *
      * @param  Collection<int, Task>  $column
+     * @param  list<int>  $renumbered  receives the ids whose position changed, so other clients get them in live
      */
-    private function renumberColumn(Collection $column, int $slot): float
+    private function renumberColumn(Collection $column, int $slot, array &$renumbered): float
     {
         foreach ($column as $index => $neighbor) {
             $position = (float) ($index < $slot ? $index + 1 : $index + 2);
             if ((float) $neighbor->position !== $position) {
                 DB::table('tasks')->where('id', $neighbor->id)->update(['position' => $position]);
+                $renumbered[] = $neighbor->id;
             }
         }
 

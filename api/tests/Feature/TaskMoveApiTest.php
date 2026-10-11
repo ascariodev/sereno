@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Events\TaskUpdated;
 use App\Models\LogGroup;
 use App\Models\Organization;
 use App\Models\Project;
@@ -8,6 +9,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -130,6 +132,23 @@ it('renumbers the column when the gap between neighbors is too small', function 
     'tiny gap' => [1e-12],
     'tied positions' => [0.0],
 ]);
+
+it('broadcasts the moved task and each renumbered neighbor with its new position', function () {
+    $a = columnTask($this->project, 'done', 1.0);
+    $b = columnTask($this->project, 'done', 1.0);
+    $c = columnTask($this->project, 'done', 7.5);
+    Event::fake([TaskUpdated::class]);
+
+    moveTaskAs($this->member, $this->organization, $this->project, $this->task, [
+        'status' => 'done', 'after_id' => $a->id, 'before_id' => $b->id,
+    ])->assertOk();
+
+    Event::assertDispatchedTimes(TaskUpdated::class, 3);
+    $positions = Event::dispatched(TaskUpdated::class)
+        ->mapWithKeys(fn (array $args) => [$args[0]->task['id'] => $args[0]->task['position']]);
+
+    expect($positions->all())->toEqual([$this->task->id => 2, $b->id => 3, $c->id => 4]);
+});
 
 it('rejects neighbors outside the target column, project or organization', function (string $case) {
     $neighbor = match ($case) {
