@@ -66,7 +66,7 @@
 
 ## Mejoras propuestas
 - [x] M-1 (baja, sonnet): renombrar el helper global de Pest `authorizePresence` en `api/tests/Feature/BroadcastingAuthTest.php` a uno más específico (`authorizeSessionPresence`), por L-29.
-- [ ] M-2 (baja, sonnet): quitar el docblock `@return array{id: int}|false` de `api/app/Broadcasting/SessionChannel.php`, que repite la firma.
+- [x] M-2 (baja, sonnet): quitar el docblock `@return array{id: int}|false` de `api/app/Broadcasting/SessionChannel.php`, que repite la firma.
 - [ ] M-3 (baja, sonnet): documentar `REVERB_CONNECT_TIMEOUT` y `REVERB_TIMEOUT` en `api/.env.example`.
 - [ ] M-4 (baja, sonnet): en el test de fallo de la cola de `api/tests/Feature/MembershipBroadcastTest.php`, afirmar también que se llamó a `report()` (hoy depende de que el driver llame a `later`).
 - [ ] M-5 (baja, sonnet): en `web/src/realtime/echo.ts` (`subscribe`), extraer a un helper la creación del canal (presence o private) en vez de mezclar las ramas con `channel?.listen` y un `if` aparte.
