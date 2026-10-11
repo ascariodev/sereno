@@ -1,7 +1,7 @@
 # Plan: texto-enriquecido
 
 **Objetivo:** la descripción de las tareas se escribe en Markdown con un editor con barra de formato y vista previa, y se muestra renderizada y saneada. El renderizador y el editor quedan reutilizables (los usan los comentarios del plan `comentarios-tareas`).
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -23,7 +23,7 @@
 - **Terminado cuando:** `renderMarkdown.spec.ts` cubre formato básico y vectores XSS (`<script>`, `<img onerror>`,
   `[x](javascript:...)`, `data:`), y typecheck y tests pasan.
 
-### [ ] Fase 2 — Componente MarkdownContent
+### [x] Fase 2 — Componente MarkdownContent
 - **Alcance:** `MarkdownContent.vue` (prop `source`) que pinta `renderMarkdown` con `v-html` y estilos de prosa
   con tokens del tema (código, citas, listas, enlaces). Texto vacío: no pinta nada.
 - **Archivos:** `web/src/components/MarkdownContent.vue`
@@ -51,6 +51,7 @@
 
 ## Notas para la próxima sesión
 - Este plan va primero: `comentarios-tareas` reutiliza `MarkdownContent` y `MarkdownEditor`.
+- `MarkdownContent` acepta `source: string | null | undefined` (se le pasa `description` directo) y no pinta nada si queda vacío; estilos con `:deep()` y tokens.
 - `renderMarkdown(source)` está en `web/src/markdown/renderMarkdown.ts`; el hook de DOMPurify es global (hoy es el único uso).
 
 ## Mejoras propuestas
