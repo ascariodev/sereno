@@ -509,6 +509,22 @@
     "deleteFailed": "Could not delete the task. Try again.",
     "failed": "Could not save the task. Try again."
   },
+  "markdownEditor": {
+    "write": "Write",
+    "preview": "Preview",
+    "modeLabel": "Editor mode",
+    "toolbar": "Formatting",
+    "bold": "Bold",
+    "italic": "Italic",
+    "heading": "Heading",
+    "bulletList": "Bulleted list",
+    "numberedList": "Numbered list",
+    "quote": "Quote",
+    "code": "Code",
+    "link": "Link",
+    "count": "{count} / {max}",
+    "previewEmpty": "Nothing to preview."
+  },
   "taskCreate": {
     "title": "New task",
     "titleLabel": "Title",

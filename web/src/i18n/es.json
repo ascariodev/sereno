@@ -509,6 +509,22 @@
     "deleteFailed": "No se pudo borrar la tarea. Inténtalo de nuevo.",
     "failed": "No se pudo guardar la tarea. Inténtalo de nuevo."
   },
+  "markdownEditor": {
+    "write": "Escribir",
+    "preview": "Vista previa",
+    "modeLabel": "Modo del editor",
+    "toolbar": "Formato",
+    "bold": "Negrita",
+    "italic": "Cursiva",
+    "heading": "Encabezado",
+    "bulletList": "Lista con viñetas",
+    "numberedList": "Lista numerada",
+    "quote": "Cita",
+    "code": "Código",
+    "link": "Enlace",
+    "count": "{count} / {max}",
+    "previewEmpty": "No hay nada que previsualizar."
+  },
   "taskCreate": {
     "title": "Nueva tarea",
     "titleLabel": "Título",

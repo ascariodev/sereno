@@ -1,7 +1,7 @@
 # Plan: texto-enriquecido
 
 **Objetivo:** la descripción de las tareas se escribe en Markdown con un editor con barra de formato y vista previa, y se muestra renderizada y saneada. El renderizador y el editor quedan reutilizables (los usan los comentarios del plan `comentarios-tareas`).
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -29,7 +29,7 @@
 - **Archivos:** `web/src/components/MarkdownContent.vue`
 - **Terminado cuando:** spec que monta Markdown y afirma la estructura y que el HTML peligroso no llega al DOM.
 
-### [ ] Fase 3 — Editor MarkdownEditor
+### [x] Fase 3 — Editor MarkdownEditor
 - **Alcance:** textarea con barra (negrita, cursiva, encabezado, lista, lista numerada, cita, código, enlace),
   atajos Ctrl+B/I/K, pestañas Escribir/Vista previa (usa `MarkdownContent`), contador de caracteres con `charCount`,
   `v-model`, `maxlength` y `readonly`. La lógica de envolver o prefijar la selección va en funciones puras.
@@ -50,7 +50,10 @@
 - 2026-10-11 — El plan se ejecuta en el worktree `feat/texto-enriquecido`; npm corre con `docker run ... -v "$(pwd -W)/web:/app" -v workspace_web-node-modules:/app/node_modules node:24` porque el servicio `web` monta el checkout principal.
 
 ## Notas para la próxima sesión
+- Retrabajo en fase 3: el cambio entre tipos de lista dejaba el prefijo anterior (`1. - a`); se corrigió quitando cualquier prefijo de bloque.
 - Este plan va primero: `comentarios-tareas` reutiliza `MarkdownContent` y `MarkdownEditor`.
+- Fase 3: `charCount` ahora se exporta de `taskLimits.ts`; TaskAside y TaskCreateDialog aún tienen copia local: la fase 4 las importa y borra las copias.
+- `MarkdownEditor` no usa `maxlength` nativo (UTF-16, L-11): la prop `maxLength` solo pinta el contador "n / max" y lo marca en error; el padre sigue validando y bloqueando el guardado. Props: `modelValue`, `maxLength`, `readonly`, `id`, `name`, `rows`, `ariaInvalid`, `ariaDescribedby` (van al textarea); el `label for` lo pone el padre. Textos en el bloque `markdownEditor` de i18n.
 - `MarkdownContent` acepta `source: string | null | undefined` (se le pasa `description` directo) y no pinta nada si queda vacío; estilos con `:deep()` y tokens.
 - `renderMarkdown(source)` está en `web/src/markdown/renderMarkdown.ts`; el hook de DOMPurify es global (hoy es el único uso).
 
@@ -63,3 +66,7 @@
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-4: Simplificar `heading_close` en `renderMarkdown.ts` a `tokens[idx - 2].tag` (open, inline, close).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-5: El formato desde la barra asigna `el.value` y rompe el historial de deshacer nativo del textarea (Ctrl+Z); usar `document.execCommand('insertText')` o un historial propio.
+      Complejidad: media · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-6: Tooltips y atajos del editor muestran "Ctrl+" también en Mac; mostrar "⌘" según la plataforma.
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → haiku
