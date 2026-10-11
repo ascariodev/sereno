@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
@@ -151,6 +152,28 @@ it('answers 422 when another request links the same log group first', function (
     expect($raced)->toBeTrue()
         ->and(storedTasks($this->project))->toHaveCount(0)
         ->and($this->project->fresh()->last_task_number)->toBe(0);
+});
+
+it('rethrows unique violations other than the log group one', function () {
+    $organizationId = $this->organization->id;
+
+    Task::creating(function (Task $task) use ($organizationId) {
+        DB::table('tasks')->insert([
+            'organization_id' => $organizationId,
+            'project_id' => $task->project_id,
+            'number' => $task->number,
+            'title' => 'Same number',
+            'status' => 'todo',
+            'position' => 1.0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    });
+
+    $this->withoutExceptionHandling();
+
+    expect(fn () => storeTaskAs($this->member, $this->organization, $this->project, ['title' => 'B']))
+        ->toThrow(UniqueConstraintViolationException::class);
 });
 
 it('rejects a log group of another project or organization', function () {

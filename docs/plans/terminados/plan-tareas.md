@@ -250,7 +250,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
   compartido; en `BroadcastingAuthTest`, el proyecto del canal en el `beforeEach`.
 - [ ] M-15 (media, sonnet): `renumberColumn` emite `task.updated` por cada tarea renumerada (o un evento de columna),
   para que el tablero en vivo no quede desfasado.
-- [ ] M-16 (baja, sonnet): el `catch (UniqueConstraintViolationException)` de `TaskController@store` solo traduce a 422
+- [x] M-16 (baja, sonnet): el `catch (UniqueConstraintViolationException)` de `TaskController@store` solo traduce a 422
   la violación de `tasks_log_group_id_unique` y relanza las demás.
 - [ ] M-17 (baja, sonnet): base común para `TaskCreated` y `TaskUpdated`; test de que un delete con 404 o 403 no
   emite `TaskDeleted`.

@@ -91,7 +91,11 @@ class TaskController extends Controller
 
                 return $task;
             });
-        } catch (UniqueConstraintViolationException) {
+        } catch (UniqueConstraintViolationException $exception) {
+            if (! str_contains($exception->getMessage(), 'tasks_log_group_id_unique')) {
+                throw $exception;
+            }
+
             // Another request linked the same log group between validation and insert.
             throw ValidationException::withMessages([
                 'log_group_id' => __('The log group already has a task.'),
