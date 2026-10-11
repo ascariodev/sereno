@@ -2,7 +2,7 @@
 
 **Objetivo:** que una URL firmada de un adjunto deje de servir poco después de que la persona pierde el acceso: la web
 pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el TTL baja de 60 a pocos minutos.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: cierre
 
 ## Contexto mínimo
 - Apps afectadas: `api/` y `web/` (los commits van con `git` en la raíz del monorepo). Origen: acceso-proyectos M-2.
@@ -73,7 +73,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 
   `vue-tsc -b` limpio.
 
-### [ ] Fase 4 — TTL corto [riesgo]
+### [x] Fase 4 — TTL corto [riesgo]
 - **Alcance:**
   - Bajar el default de `CHAT_ATTACHMENT_URL_TTL` a 5 min y `URL_EXPIRY_STEP_SECONDS` a 60 s, para que el redondeo
     no domine la validez.
@@ -113,12 +113,14 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 - 2026-10-11 (Fase 4) Default TTL 5 y paso 60 s. Con paso de 60 s todo TTL en minutos es múltiplo del paso: el caso
   "ttl no múltiplo" pasa a "ttl distinto del default" (7). `Cache-Control: max-age` ya sale de `expires`: sin cambios.
   `MessageAttachmentTest` solo exige TTL > 0, para no atarlo al `.env`.
+- 2026-10-11 (Fase 4) Verificado en el navegador con un API (8013, `CHAT_ATTACHMENT_URL_TTL=1`) y una Vite (5175)
+  temporales del worktree: una miniatura vencida (fuera de la carga diferida) falló, pidió `/url` y se repintó con la URL
+  nueva; un clic tras vencer abrió el archivo con una URL fresca (200). El panel del navegador devuelve null en
+  `window.open`, así que se probó el respaldo `window.open(url, '_blank', 'noopener')`, no la ventana abierta en el gesto.
+  Quedaron en la base de desarrollo, canal 1, un mensaje con `test.png` y 45 mensajes "relleno N".
 
 ## Notas para la próxima sesión
-- Fase 4: código, tests (64) y pint hechos y revisados (LISTO), commiteados. Falta para cerrarla la verificación
-  manual en el navegador (TTL 1 min forzado: imagen vencida que se repinta, clic que abre; también bloqueador de popups y
-  descarga en la misma pestaña). Los contenedores montan el checkout principal: hace falta un API temporal del worktree
-  (otro puerto, `CHAT_ATTACHMENT_URL_TTL=1`, storage del checkout principal) y una Vite temporal del worktree apuntando a él.
+- Fases 1 a 4 hechas. Falta la suite completa del API y cerrar el plan.
 - El usuario cambia `api/.env.example:77` de `CHAT_ATTACHMENT_URL_TTL=60` a `5` (comentario sugerido: minutos; el
   vencimiento se redondea hacia arriba al minuto y la web pide una URL nueva al vencer). Si producción define 60, bajarlo.
 
