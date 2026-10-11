@@ -147,6 +147,28 @@ describe('MessageAttachments', () => {
     expect(w.get('img').attributes('src')).toBe('http://api/attachments/1?sig=renewed2')
   })
 
+  it('clears the notice when the store delivers a new url that loads', async () => {
+    const w = render([image])
+    await w.get('img').trigger('error')
+    await flushPromises()
+    expect(w.get('[role="status"]').text()).toBe('The preview is no longer available.')
+    await w.setProps({ attachments: [{ ...image, url: 'http://api/attachments/1?sig=new' }] })
+    expect(w.find('img').exists()).toBe(true)
+    expect(w.get('[role="status"]').text()).toBe('')
+  })
+
+  it('keeps the notice while another attachment still has a current failure', async () => {
+    const other = { ...image, id: 3, url: 'http://api/attachments/3?sig=c' }
+    const w = render([image, other])
+    await w.findAll('img')[0].trigger('error')
+    await flushPromises()
+    await w.get('img').trigger('error')
+    await flushPromises()
+    await w.setProps({ attachments: [{ ...image, url: 'http://api/attachments/1?sig=new' }, other] })
+    expect(w.get('img').attributes('src')).toBe('http://api/attachments/1?sig=new')
+    expect(w.get('[role="status"]').text()).toBe('The preview is no longer available.')
+  })
+
   it('drops a renewed url when the store delivers a different one', async () => {
     renew.mockResolvedValue({ url: 'http://api/attachments/1?sig=renewed', expires_at: '2026-03-04T10:35:00Z' })
     const w = render([image])

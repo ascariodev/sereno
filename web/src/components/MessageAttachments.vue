@@ -6,7 +6,7 @@ import { getAttachmentUrl } from '../api/messages'
 import { formatFileSize } from '../formatFileSize'
 import { toast } from './ui/toast'
 
-defineProps<{ attachments: MessageAttachment[] }>()
+const props = defineProps<{ attachments: MessageAttachment[] }>()
 
 const { t } = useI18n()
 
@@ -15,7 +15,9 @@ const PREVIEWABLE = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 const retried = reactive(new Map<number, string>())
 const renewed = reactive(new Map<number, { from: string; url: string }>())
 const failed = reactive(new Map<number, string>())
-const notice = computed(() => (failed.size > 0 ? t('attachments.previewUnavailable') : ''))
+const notice = computed(() =>
+  props.attachments.some((a) => failed.get(a.id) === a.url) ? t('attachments.previewUnavailable') : '',
+)
 
 function previewUrl(a: MessageAttachment): string {
   const r = renewed.get(a.id)

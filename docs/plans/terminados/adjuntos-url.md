@@ -135,7 +135,7 @@ pide una URL nueva al API (que valida el acceso) cuando la guardada vence, y el 
 - [x] M-2 (baja, sonnet): en `AttachmentUrlApiTest`, afirmar que los 404 (otra organización, huérfano, sin proyecto,
   borrado) tienen el mismo cuerpo. El `false` (403) de `ChannelPolicy::view` no se alcanza aquí: el adjunto se busca con
   el scope de organización y el middleware exige rol.
-- [ ] M-3 (baja, sonnet): en `MessageAttachments.vue`, el aviso "ya no disponible" usa `failed.size > 0` y no descarta
+- [x] M-3 (baja, sonnet): en `MessageAttachments.vue`, el aviso "ya no disponible" usa `failed.size > 0` y no descarta
   entradas cuya URL del store ya cambió: tras un fallo y una URL nueva que carga bien sigue visible. Filtrar `failed`
   contra las URLs actuales (ya pasaba con el `Set`).
 - [ ] M-4 (baja, sonnet): extraer el tipo `{ url; expires_at }` de `getAttachmentUrl` a una interfaz en `web/src/api/types.ts`.
