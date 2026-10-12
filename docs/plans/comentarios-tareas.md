@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -31,7 +31,7 @@
 - **Archivos:** controlador, request, resource, policy, `api/routes/api.php`
 - **Terminado cuando:** tests de acceso (otro proyecto, otra organización, proyecto privado), validación y paginación.
 
-### [ ] Fase 3 — Evento TaskCommentCreated
+### [x] Fase 3 — Evento TaskCommentCreated
 - Broadcast `.task.comment.created` al canal del proyecto con el resource cargado igual que en index (L-37). 2 archivos.
 
 ### [ ] Fase 4 — Extraer la resolución de menciones [riesgo]
@@ -90,9 +90,13 @@
   ['user:id,name']`, que el evento de la fase 3 debe cargar igual (L-37). Los FormRequest comprueban que la tarea sea
   del proyecto (404) y luego autorizan, antes de validar. `TaskCommentPolicy` (`viewAny`, `view`, `create`) delega en
   `TaskPolicy::view`. Se puede comentar en proyectos archivados (el revisor no lo ve un riesgo).
+- 2026-10-12 (fase 3): `TaskCommentCreated(TaskComment $comment, int $projectId)` es `ShouldBroadcast` +
+  `ShouldDispatchAfterCommit`, independiente de `TaskSnapshotEvent`; payload `{comment: {...}}` serializado en el
+  constructor con `TaskCommentResource`. Las fases 5 y 8 deben cargar sus relaciones (menciones, adjuntos) en
+  `TaskCommentController::RELATIONS` (L-37). La web (fase 10) escucha `.task.comment.created`.
 
 ## Notas para la próxima sesión
-- Fases 1 y 2 hechas (tabla, modelo y API de listar/crear). Sigue la fase 3. El plan `notificaciones` escucha `TaskCommentCreated`.
+- Fases 1 a 3 hechas (tabla, API de listar/crear y evento). Sigue la fase 4 [riesgo]. Helper de tests API del coordinador: scratchpad `apitest.sh`. El plan `notificaciones` escucha `TaskCommentCreated`.
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\TaskCommentCreated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TaskComment\ListTaskCommentsRequest;
 use App\Http\Requests\TaskComment\StoreTaskCommentRequest;
@@ -32,6 +33,7 @@ class TaskCommentController extends Controller
         $comment->user_id = $request->user()->id;
         $comment->save();
         $comment->load(self::RELATIONS);
+        TaskCommentCreated::dispatch($comment, $project->id);
 
         return (new TaskCommentResource($comment))->response()->setStatusCode(201);
     }
