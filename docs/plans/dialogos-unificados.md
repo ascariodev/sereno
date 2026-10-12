@@ -3,7 +3,7 @@
 **Objetivo:** que los cinco diálogos de creación y gestión (CreateLogSource, Invite, OrganizationCreate, ProjectCreate,
 ProjectMembers) usen `AppButton`, `AppInput` y un `AppSelect` nuevo en vez de HTML crudo con CSS duplicado, sin cambiar
 su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -78,7 +78,7 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
 - **Terminado cuando:** `ProjectCreateDialog.spec` pasa sin cambios en los selectores, incluido el derivado de la key.
   `vue-tsc -b` limpio.
 
-### [ ] Fase 6 — Migrar InviteDialog [riesgo]
+### [x] Fase 6 — Migrar InviteDialog [riesgo]
 - **Alcance:**
   - Email con AppInput, rol con AppSelect, y los botones cancel, submit y retry con AppButton.
   - El fieldset de checkboxes por proyecto queda como está; solo se ajusta su CSS para convivir.
@@ -125,15 +125,18 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
 - 2026-10-12: AppLayout.spec tiene 6 fallos (menú de usuario y menciones) que ya existen en `main`; no son de este plan.
 - 2026-10-12: un campo que deriva otro valor al escribir usa `:model-value` + `@update:model-value` con su handler, no
   `@input` (con `inheritAttrs: false` caería en `$attrs` y su orden respecto del v-model no está garantizado).
+- 2026-10-12: InviteDialog.spec se escribió y pasó contra la versión anterior antes de migrar (11 tests). El rol usa
+  AppSelect con `@update:model-value="setRole"`; sus opciones solo cambian con `isOwner` y hay test de la vuelta a `member`.
+  Retry, cancel y submit son AppButton `md` (retry y cancel `secondary`).
 - 2026-10-12: el trabajo va en el worktree `.claude/worktrees/dialogos-unificados` (rama `feat/dialogos-unificados`). El
   servicio `web` monta el checkout principal: los tests del worktree corren en un contenedor `node:24` aparte que monta
   `web/` del worktree y el volumen `workspace_web-node-modules`.
 
 ## Notas para la próxima sesión
-- Fases 1 a 5 hechas. Sigue la fase 6 (InviteDialog, [riesgo]: primero el spec contra la versión actual). Leer
-  `docs/lecciones.md` (L-25, L-33, L-38, L-61). Ver en Decisiones cómo correr los tests web sobre el worktree.
+- Fases 1 a 6 hechas. Sigue la fase 7 (ProjectMembersDialog: AppSelect con `describedby` al error externo, remove en
+  `secondary`/`sm`). Leer `docs/lecciones.md` (L-25, L-33, L-38, L-61). Ver en Decisiones cómo correr los tests web.
 - Fase 8: el foco de los inputs migrados usa `outline-offset: 1px` (antes 2px); `secondary` con borde 1px; `md` sin
-  `font-size` fijo (M-1). El textarea de ProjectCreateDialog pasa a `min-height` 44px y `padding-block` 10px.
+  `font-size` fijo (M-1). El textarea de ProjectCreateDialog pasa a `min-height` 44px y `padding-block` 10px. En InviteDialog el retry pasa de padding 0 12px a 0 16px (fila del retry dentro del `<p role=alert>`).
 - Fases 6 y 7: si las opciones del select llegan async con `modelValue` ya fijado, AppSelect no reaplica `:value` al
   cambiar solo las opciones; comprobar que el valor mostrado coincide con el modelo (ver M-2).
 
@@ -146,3 +149,5 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
   no emite nada.
 - [ ] M-4 (media, sonnet): el `error-form` (`<p role="alert">` con `__error`) repite en cada diálogo el estilo de
   `.app-input__error`: extraer una clase o componente compartido (también `.proj-create__error`).
+- [ ] M-5 (baja, sonnet): InviteDialog.spec fija `store.loading = true` a mano en el test de retry; usar una carga
+  pendiente del store en vez de acoplarse a su estado interno.

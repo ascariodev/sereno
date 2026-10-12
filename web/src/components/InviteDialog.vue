@@ -6,7 +6,10 @@ import { createInvitation } from '../api/invitations'
 import type { Invitation, InvitationRole } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
+import AppButton from './ui/AppButton.vue'
 import AppDialog from './ui/AppDialog.vue'
+import AppInput from './ui/AppInput.vue'
+import AppSelect from './ui/AppSelect.vue'
 import { toast } from './ui/toast'
 
 const props = defineProps<{ isOwner: boolean }>()
@@ -17,7 +20,7 @@ const { t } = useI18n()
 const organization = useOrganizationStore()
 const projectsStore = useProjectsStore()
 
-const emailInput = ref<HTMLInputElement | null>(null)
+const emailInput = ref<InstanceType<typeof AppInput> | null>(null)
 const email = ref('')
 const role = ref<InvitationRole>('member')
 const projectIds = ref<number[]>([])
@@ -37,11 +40,6 @@ const dialogOpen = computed({
     open.value = value
   },
 })
-
-function describedBy(field: 'email' | 'role'): string | undefined {
-  const count = fieldErrors.value[field]?.length ?? 0
-  return count ? Array.from({ length: count }, (_, index) => `invite-${field}-error-${index}`).join(' ') : undefined
-}
 
 const projectErrors = computed(() =>
   Object.entries(fieldErrors.value)
@@ -75,6 +73,10 @@ watch(
     open.value = false
   },
 )
+
+function setRole(value: string): void {
+  role.value = value as InvitationRole
+}
 
 watch(roleOptions, (options) => {
   if (!options.includes(role.value)) role.value = 'member'
@@ -124,51 +126,30 @@ async function submit(): Promise<void> {
 <template>
   <AppDialog v-model:open="dialogOpen" :title="t('inviteDialog.title')" :close-label="t('inviteDialog.cancel')">
     <form class="invite-dialog" novalidate @submit.prevent="submit">
-      <div class="invite-dialog__field">
-        <label for="invite-email">{{ t('inviteDialog.email') }}</label>
-        <input
-          id="invite-email"
-          ref="emailInput"
-          v-model="email"
-          type="email"
-          name="email"
-          autocomplete="off"
-          required
-          :aria-invalid="describedBy('email') ? 'true' : undefined"
-          :aria-describedby="describedBy('email')"
-        />
-        <p
-          v-for="(message, index) in fieldErrors.email"
-          :id="`invite-email-error-${index}`"
-          :key="`${index}-${message}`"
-          class="invite-dialog__error"
-          data-test="error-email"
-        >
-          {{ message }}
-        </p>
-      </div>
+      <AppInput
+        id="invite-email"
+        ref="emailInput"
+        v-model="email"
+        :label="t('inviteDialog.email')"
+        :errors="fieldErrors.email"
+        error-test="error-email"
+        type="email"
+        name="email"
+        autocomplete="off"
+        required
+      />
 
-      <div class="invite-dialog__field">
-        <label for="invite-role">{{ t('inviteDialog.role') }}</label>
-        <select
-          id="invite-role"
-          v-model="role"
-          name="role"
-          :aria-invalid="describedBy('role') ? 'true' : undefined"
-          :aria-describedby="describedBy('role')"
-        >
-          <option v-for="option in roleOptions" :key="option" :value="option">{{ t(`invite.roles.${option}`) }}</option>
-        </select>
-        <p
-          v-for="(message, index) in fieldErrors.role"
-          :id="`invite-role-error-${index}`"
-          :key="`${index}-${message}`"
-          class="invite-dialog__error"
-          data-test="error-role"
-        >
-          {{ message }}
-        </p>
-      </div>
+      <AppSelect
+        id="invite-role"
+        :model-value="role"
+        :label="t('inviteDialog.role')"
+        :errors="fieldErrors.role"
+        error-test="error-role"
+        name="role"
+        @update:model-value="setRole"
+      >
+        <option v-for="option in roleOptions" :key="option" :value="option">{{ t(`invite.roles.${option}`) }}</option>
+      </AppSelect>
 
       <p
         v-if="role === 'member' && projectsStore.failed"
@@ -177,9 +158,16 @@ async function submit(): Promise<void> {
         data-test="projects-failed"
       >
         {{ t('projects.loadFailed') }}
-        <button type="button" class="invite-dialog__retry" data-test="projects-retry" :disabled="projectsStore.loading" @click="projectsStore.refresh()">
+        <AppButton
+          type="button"
+          variant="secondary"
+          size="md"
+          data-test="projects-retry"
+          :disabled="projectsStore.loading"
+          @click="projectsStore.refresh()"
+        >
           {{ t('common.retry') }}
-        </button>
+        </AppButton>
       </p>
 
       <fieldset
@@ -216,12 +204,12 @@ async function submit(): Promise<void> {
       <p v-if="formError" class="invite-dialog__error" role="alert" data-test="error-form">{{ formError }}</p>
 
       <div class="invite-dialog__actions">
-        <button type="button" class="invite-dialog__cancel" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">
+        <AppButton type="button" variant="secondary" size="md" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">
           {{ t('inviteDialog.cancel') }}
-        </button>
-        <button type="submit" class="invite-dialog__submit" data-test="submit" :disabled="submitting">
+        </AppButton>
+        <AppButton type="submit" size="md" data-test="submit" :disabled="submitting">
           {{ submitting ? t('inviteDialog.sending') : t('inviteDialog.submit') }}
-        </button>
+        </AppButton>
       </div>
     </form>
   </AppDialog>
@@ -232,37 +220,6 @@ async function submit(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-
-.invite-dialog__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.invite-dialog__field label {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.invite-dialog__field input,
-.invite-dialog__field select {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-}
-
-.invite-dialog__field input:focus-visible,
-.invite-dialog__field select:focus-visible,
-.invite-dialog__retry:focus-visible,
-.invite-dialog__cancel:focus-visible,
-.invite-dialog__submit:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .invite-dialog__projects {
@@ -316,47 +273,10 @@ async function submit(): Promise<void> {
   font-size: 13px;
 }
 
-.invite-dialog__retry {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  cursor: pointer;
-}
-
 .invite-dialog__actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 4px;
-}
-
-.invite-dialog__cancel,
-.invite-dialog__submit {
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.invite-dialog__submit {
-  border-color: transparent;
-  background: var(--ink);
-  color: var(--surface);
-}
-
-.invite-dialog__retry:disabled,
-.invite-dialog__cancel:disabled,
-.invite-dialog__submit:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 </style>
