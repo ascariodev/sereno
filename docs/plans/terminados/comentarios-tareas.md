@@ -170,7 +170,7 @@
       Complejidad: baja · Archivos: 3 · Riesgo: contrato público → sonnet
 - [x] M-3: `database.md`: referencia cruzada al nuevo único de `tasks` en su entrada y revisar la línea "Futuro: policy,
       API y eventos de tareas", desfasada. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-4: Test directo de `TaskCommentPolicy::view` (hoy sin ruta que lo use) cuando exista editar o borrar.
+- [x] M-4: Test directo de `TaskCommentPolicy::view` (hoy sin ruta que lo use) cuando exista editar o borrar.
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-5: Docblock de `AttachmentStorage::download` que diga que depende de `expires` de una ruta firmada para el
       `max-age`. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
