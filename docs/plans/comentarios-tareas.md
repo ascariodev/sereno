@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -41,7 +41,7 @@
 ### [x] Fase 5 — Menciones en comentarios
 - Tabla `task_comment_mentions`, se guardan al crear, el resource devuelve `mentions [{id, name}]`. Unos 4 archivos.
 
-### [ ] Fase 6 — Extraer el almacenamiento de adjuntos [riesgo]
+### [x] Fase 6 — Extraer el almacenamiento de adjuntos [riesgo]
 - Pasar a una clase de soporte el guardado, nombre original, mime y la descarga en stream de `AttachmentController`.
   Tests del chat sin cambios. 2 archivos.
 
@@ -103,9 +103,14 @@
   `(task_comment_id, user_id)`, sin `read_at`. `RELATIONS = ['user:id,name', 'mentionedUsers']`; el resource devuelve
   `mentions [{id, name}]` por id. `store` guarda comentario y menciones en `DB::transaction` (corrección de la revisión).
   `$max` reusa `chat.mentions.max_per_message`. No hay notificación de mención (llega con el plan `notificaciones`).
+- 2026-10-12 (fase 6): `App\Support\AttachmentStorage` (estática): `store(UploadedFile, disk, directory)` devuelve
+  `{path, original_name, mime, size}` y lanza `RuntimeException` si falla; `download(Request, disk, path, mime, name,
+  label)` da 404 si falta el archivo, las mismas cabeceras y lee `expires` de la query (ruta firmada). El controlador
+  sigue creando la fila, borrando el archivo si falla el `save()` y buscando el adjunto: la fase 7 repite esos pasos.
+  Suite completa del API sin fallos.
 
 ## Notas para la próxima sesión
-- Fases 1 a 5 hechas (tabla, API, evento, MentionTargets y menciones). Sigue la fase 6 [riesgo].
+- Fases 1 a 6 hechas (tabla, API, evento, MentionTargets, menciones y AttachmentStorage). Sigue la fase 7 [riesgo].
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
@@ -116,3 +121,5 @@
       API y eventos de tareas", desfasada. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-4: Test directo de `TaskCommentPolicy::view` (hoy sin ruta que lo use) cuando exista editar o borrar.
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [ ] M-5: Docblock de `AttachmentStorage::download` que diga que depende de `expires` de una ruta firmada para el
+      `max-age`. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
