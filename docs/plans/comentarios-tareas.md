@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -18,7 +18,7 @@
 
 ## Fases
 
-### [ ] Fase 1 — Tabla task_comments
+### [x] Fase 1 — Tabla task_comments
 - **Alcance:** migración `task_comments` (organization_id, task_id con FK compuesta `(task_id, organization_id)` y
   cascade, user_id nullable con `nullOnDelete`, body text, timestamps; índice `(task_id, id)`), modelo con
   `BelongsToOrganization`, relación `Task::comments()`, factory; sección "Modelo de datos" de `.claude/rules/database.md`.
@@ -81,12 +81,18 @@
   API, desde la raíz del checkout principal (solo lectura), con
   `WT="$(cd .claude/worktrees/comentarios-tareas/api && pwd -W)" && MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps -T -e APP_KEY="base64:$(head -c 32 /dev/urandom | base64)" -e DB_DATABASE=workspace_test -v "$WT:/var/www/api" api php artisan test --compact <archivos>`
   (igual con `./vendor/bin/pint --test -q`). Nunca leer ni montar `.env` (L-52).
+- 2026-10-12 (fase 1): la migración añade `tasks_id_organization_id_unique (id, organization_id)`, destino de la FK
+  compuesta; fases futuras con FK compuesta hacia `tasks` se apoyan en él. `task_id` no tiene FK simple. No hay
+  `TaskFactory`: `TaskComment::factory()->forTask($task)` fija `task_id` y `organization_id`. `TaskComment` lleva solo
+  `body` en Fillable y `BODY_MAX_LENGTH = 10000` para el FormRequest de la fase 2.
 
 ## Notas para la próxima sesión
-- Empezar después de terminar `texto-enriquecido`. El plan `notificaciones` escucha `TaskCommentCreated`.
+- Fase 1 hecha (tabla y modelo). Sigue la fase 2. El plan `notificaciones` escucha `TaskCommentCreated`.
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
       Complejidad: media · Archivos: 5 · Riesgo: contrato público → opus
 - [ ] M-2: Contador de comentarios en `TaskCard`.
       Complejidad: baja · Archivos: 3 · Riesgo: contrato público → sonnet
+- [ ] M-3: `database.md`: referencia cruzada al nuevo único de `tasks` en su entrada y revisar la línea "Futuro: policy,
+      API y eventos de tareas", desfasada. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
