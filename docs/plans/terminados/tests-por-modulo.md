@@ -3,7 +3,7 @@
 **Objetivo:** `api/tests/Feature` repartido en `Core/`, `Log/`, `Chat/` y `Plan/`, sin perder ni duplicar ningún test, y
 la convención documentada para que los tests nuevos caigan en su carpeta. Origen: M-6 de
 `docs/plans/terminados/comentarios-tareas.md` (alejarse del truncado de descubrimiento de L-64).
-**Estado:** en curso · Fase actual: 6
+**Estado:** terminado
 
 
 ## Contexto mínimo
