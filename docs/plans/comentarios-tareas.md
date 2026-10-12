@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 12
+**Estado:** en curso · Fase actual: 13
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -62,7 +62,7 @@
 ### [x] Fase 11 — Menciones en MarkdownContent (web)
 - Regla de markdown-it que pinta `<@id>` como chip con el nombre de `mentions` (igual que `MessageBody`). 2 archivos.
 
-### [ ] Fase 12 — Autocompletado de menciones en MarkdownEditor (web) [riesgo]
+### [x] Fase 12 — Autocompletado de menciones en MarkdownEditor (web) [riesgo]
 - Conectar `useMentionInput`/`useMentionKeyboard` al editor como opción; hoy están pensados para el compositor del chat. 2-3 archivos.
 
 ### [ ] Fase 13 — Comentarios en el panel de la tarea (web)
@@ -140,9 +140,16 @@
   quita salvo en el chip exacto (`html: false` impide escribirlo a mano). `MarkdownContent` tiene props opcionales
   `mentions` y `ownUserId`; sin `mentions` el render no cambia. Usa `i18n.global.t` (reactivo al idioma) para
   `channel.unknownMention`. La fase 13 pasa `:mentions` y `:own-user-id`.
+- 2026-10-12 (fase 12): `MarkdownEditor` tiene la prop opcional `mentions?: MarkdownMentionOptions` (`{members,
+  excludeUserId?, ensureLoaded?}`); sin ella no cambia nada. Con ella `modelValue` lleva `<@id>`, el campo muestra
+  `@Nombre` y el contador cuenta el serializado (L-11); la vista previa pasa `:mentions`. Escape con la lista abierta no
+  llega al padre; Ctrl+Enter con la lista abierta elige la mención. La fase 13 pasa `:mentions="{ members:
+  directory.membersOf(projectId), excludeUserId: auth.user?.id, ensureLoaded: () => directory.ensureLoaded(projectId) }"`
+  y carga los miembros al abrir el panel (el `watch` del editor no reacciona a `members`). La lista de sugerencias va en
+  el flujo bajo el textarea: revisar el layout en el navegador en la fase 13.
 
 ## Notas para la próxima sesión
-- Fases 1 a 11 hechas (API completa; web: cliente, store y chip de mención). Sigue la fase 12 [riesgo]. Helpers de verificación del coordinador en el scratchpad (`apitest.sh`, `webtest.sh`).
+- Fases 1 a 12 hechas (API completa; web: cliente, store, chip y autocompletado). Sigue la fase 13. Helpers de verificación del coordinador en el scratchpad (`apitest.sh`, `webtest.sh`).
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
@@ -170,3 +177,9 @@
       para `\<@1>` (sin chip). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-12: Unificar la resolución de menciones de `MessageBody.vue` y la regla de `renderMarkdown`.
       Complejidad: media · Archivos: 3-4 · sin riesgo → sonnet
+- [ ] M-13: `MarkdownEditor`: el `watch` que pinta `@Nombre` depende también de `mentions.members`, para que un valor
+      con `<@id>` montado antes de cargar los miembros se repinte. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
+- [ ] M-14: `MarkdownEditor`: deshacer (Ctrl+Z) un formato que envolvía una mención la deja como `@Nombre` sin token;
+      conservar las menciones al reconciliar tras deshacer. Complejidad: media · Archivos: 2 · sin riesgo → sonnet
+- [ ] M-15: `MarkdownEditor`: `position: relative` en la raíz para el texto solo para lectores.
+      Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
