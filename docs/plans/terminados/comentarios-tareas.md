@@ -168,7 +168,7 @@
       Complejidad: media · Archivos: 5 · Riesgo: contrato público → opus
 - [ ] M-2: Contador de comentarios en `TaskCard`.
       Complejidad: baja · Archivos: 3 · Riesgo: contrato público → sonnet
-- [ ] M-3: `database.md`: referencia cruzada al nuevo único de `tasks` en su entrada y revisar la línea "Futuro: policy,
+- [x] M-3: `database.md`: referencia cruzada al nuevo único de `tasks` en su entrada y revisar la línea "Futuro: policy,
       API y eventos de tareas", desfasada. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-4: Test directo de `TaskCommentPolicy::view` (hoy sin ruta que lo use) cuando exista editar o borrar.
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
