@@ -526,6 +526,7 @@
     "newLabel": "Add a comment",
     "send": "Comment",
     "sending": "Sending...",
+    "sent": "Comment sent.",
     "sendFailed": "Could not send the comment. Try again.",
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "network": "Could not reach the server.",

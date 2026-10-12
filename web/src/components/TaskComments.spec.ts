@@ -119,6 +119,22 @@ describe('TaskComments', () => {
     expect(wrapper.findAll('[data-test="comment"]')).toHaveLength(1)
     expect(wrapper.get('textarea').element.value).toBe('')
     expect(wrapper.find('[data-test="comment-error"]').exists()).toBe(false)
+    expect(wrapper.get('[data-test="comment-sent-status"]').text()).toBe('Comment sent.')
+  })
+
+  it('exposes status roles and names the section and list from the heading', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([]))
+    const wrapper = mountComments()
+    expect(wrapper.get('[data-test="comments-loading"]').attributes('role')).toBe('status')
+    await flushPromises()
+    expect(wrapper.get('[data-test="comments-empty"]').attributes('role')).toBe('status')
+    const headingId = wrapper.get('h2').attributes('id')
+    expect(wrapper.get('section').attributes('aria-labelledby')).toBe(headingId)
+    expect(wrapper.get('section').attributes('aria-label')).toBeUndefined()
+    vi.spyOn(api, 'get').mockResolvedValue(page([comment(1)]))
+    const other = mountComments()
+    await flushPromises()
+    expect(other.get('ul').attributes('aria-labelledby')).toBe(other.get('h2').attributes('id'))
   })
 
   it('disables the composer while sending', async () => {

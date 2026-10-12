@@ -30,6 +30,8 @@ const sending = ref(false)
 const formError = ref<string | null>(null)
 const picker = ref<HTMLInputElement | null>(null)
 const fileIdPrefix = useId()
+const headingId = `${fileIdPrefix}-heading`
+const sentNotice = ref('')
 // Keyed by the upload path: changing task drops the items and discards uploads still in flight (L-10).
 const uploads = useAttachmentUploads(() => taskAttachmentsPath(props.projectId, props.taskId))
 let sendToken = 0
@@ -41,6 +43,7 @@ watch(
     draft.value = ''
     sending.value = false
     formError.value = null
+    sentNotice.value = ''
     void store.open(props.projectId, props.taskId)
   },
   { immediate: true },
@@ -138,12 +141,14 @@ async function submit(): Promise<void> {
   if (!canSend.value) return
   const token = ++sendToken
   formError.value = null
+  sentNotice.value = ''
   sending.value = true
   const sentIds = [...uploads.attachmentIds.value]
   try {
     await store.send(draft.value.trim(), sentIds)
     if (token !== sendToken) return
     draft.value = ''
+    sentNotice.value = t('taskComments.sent')
     for (const item of [...uploads.items.value]) {
       if (item.status === 'error' || (item.attachment && sentIds.includes(item.attachment.id))) uploads.remove(item.key)
     }
@@ -161,17 +166,17 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <section class="task-comments" :aria-label="t('taskComments.heading')" data-test="task-comments">
-    <h2 class="task-comments__heading">{{ t('taskComments.heading') }}</h2>
+  <section class="task-comments" :aria-labelledby="headingId" data-test="task-comments">
+    <h2 :id="headingId" class="task-comments__heading">{{ t('taskComments.heading') }}</h2>
 
-    <p v-if="store.loading" class="task-comments__note" data-test="comments-loading">{{ t('common.loading') }}</p>
+    <p v-if="store.loading" role="status" class="task-comments__note" data-test="comments-loading">{{ t('common.loading') }}</p>
 
     <div v-else-if="store.error" class="task-comments__error" data-test="comments-error">
       <AppFormError>{{ t('taskComments.loadFailed') }}</AppFormError>
       <button type="button" class="task-comments__button" data-test="comments-retry" @click="retry">{{ t('common.retry') }}</button>
     </div>
 
-    <p v-if="empty" class="task-comments__note" data-test="comments-empty">{{ t('taskComments.empty') }}</p>
+    <p v-if="empty" role="status" class="task-comments__note" data-test="comments-empty">{{ t('taskComments.empty') }}</p>
 
     <button
       v-if="store.nextCursor !== null && !store.loading"
@@ -184,7 +189,7 @@ async function submit(): Promise<void> {
       {{ store.loadingMore ? t('common.loading') : t('taskComments.loadOlder') }}
     </button>
 
-    <ul v-if="store.comments.length > 0" class="task-comments__list">
+    <ul v-if="store.comments.length > 0" class="task-comments__list" :aria-labelledby="headingId">
       <li v-for="comment in store.comments" :key="comment.id" class="task-comments__item" data-test="comment">
         <AppAvatar v-if="comment.user" :name="comment.user.name" :id="comment.user.id" :size="28" />
         <div class="task-comments__main">
@@ -255,6 +260,7 @@ async function submit(): Promise<void> {
         </li>
       </ul>
       <span class="task-comments__sr" role="status" data-test="comment-upload-status">{{ uploadStatus }}</span>
+      <span class="task-comments__sr" role="status" data-test="comment-sent-status">{{ sentNotice }}</span>
       <AppFormError v-if="formError" data-test="comment-error">{{ formError }}</AppFormError>
       <div class="task-comments__actions">
         <input
