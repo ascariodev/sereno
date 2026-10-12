@@ -1,5 +1,5 @@
 import { enableAutoUnmount, mount } from '@vue/test-utils'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import { i18n } from '../i18n'
 import MarkdownEditor from './MarkdownEditor.vue'
@@ -160,5 +160,76 @@ describe('MarkdownEditor', () => {
     expect(textarea.attributes('name')).toBe('description')
     expect(textarea.attributes('aria-invalid')).toBe('true')
     expect(textarea.attributes('aria-describedby')).toBe('err')
+  })
+
+  describe('undo history', () => {
+    afterEach(() => {
+      Reflect.deleteProperty(document, 'execCommand')
+    })
+
+    function mockExecCommand(handler: (command: string, text?: string) => boolean) {
+      const spy = vi.fn((command: string, _ui?: boolean, text?: string) => handler(command, text))
+      Object.defineProperty(document, 'execCommand', { value: spy, configurable: true, writable: true })
+      return spy
+    }
+
+    function typeInto(command: string, text = '') {
+      const el = document.activeElement as HTMLTextAreaElement
+      const { selectionStart, selectionEnd, value } = el
+      el.value = value.slice(0, selectionStart) + (command === 'delete' ? '' : text) + value.slice(selectionEnd)
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+      return true
+    }
+
+    it('inserts the changed range through execCommand, emits once and keeps the selection', async () => {
+      const wrapper = mountEditor('say hello')
+      const el = select(wrapper, 4, 9)
+      const spy = mockExecCommand(typeInto)
+
+      await wrapper.find('[data-test=tool-bold]').trigger('click')
+      await nextTick()
+
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(spy.mock.calls[0]).toEqual(['insertText', false, '**hello**'])
+      expect(wrapper.emitted('update:modelValue')).toEqual([['say **hello**']])
+      expect([el.selectionStart, el.selectionEnd]).toEqual([6, 11])
+    })
+
+    it('uses a single insertion for multi-line formatting', async () => {
+      const wrapper = mountEditor('a\nb')
+      const el = select(wrapper, 0, 3)
+      const spy = mockExecCommand(typeInto)
+
+      await wrapper.find('[data-test=tool-bulletList]').trigger('click')
+      await nextTick()
+
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(wrapper.emitted('update:modelValue')).toEqual([['- a\n- b']])
+      expect(el.value).toBe('- a\n- b')
+    })
+
+    it('falls back to assigning the value when execCommand returns false', async () => {
+      const wrapper = mountEditor('say hello')
+      const el = select(wrapper, 4, 9)
+      const spy = mockExecCommand(() => false)
+
+      await wrapper.find('[data-test=tool-bold]').trigger('click')
+      await nextTick()
+
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(wrapper.emitted('update:modelValue')).toEqual([['say **hello**']])
+      expect(el.value).toBe('say **hello**')
+      expect([el.selectionStart, el.selectionEnd]).toEqual([6, 11])
+    })
+
+    it('falls back when execCommand does not exist', async () => {
+      const wrapper = mountEditor('word')
+      select(wrapper, 0, 4)
+      expect(typeof document.execCommand).not.toBe('function')
+
+      await wrapper.find('[data-test=tool-bold]').trigger('click')
+
+      expect(wrapper.emitted('update:modelValue')).toEqual([['**word**']])
+    })
   })
 })

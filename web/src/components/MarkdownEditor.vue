@@ -54,11 +54,26 @@ function tooltipText(action: { key: string; shortcut?: string }) {
   return action.shortcut ? `${name} (${isApple ? '⌘' : 'Ctrl+'}${action.shortcut})` : name
 }
 
+function replaceThroughHistory(el: HTMLTextAreaElement, next: string): boolean {
+  if (typeof document.execCommand !== 'function') return false
+  const current = el.value
+  let prefix = 0
+  const shared = Math.min(current.length, next.length)
+  while (prefix < shared && current[prefix] === next[prefix]) prefix++
+  let suffix = 0
+  while (suffix < shared - prefix && current[current.length - 1 - suffix] === next[next.length - 1 - suffix]) suffix++
+  if (prefix + suffix === current.length && prefix + suffix === next.length) return true
+  const inserted = next.slice(prefix, next.length - suffix)
+  el.setSelectionRange(prefix, current.length - suffix)
+  return inserted === '' ? document.execCommand('delete') : document.execCommand('insertText', false, inserted)
+}
+
 async function apply(run: Action) {
   const el = textarea.value
   if (!el || props.readonly) return
   const edit = run(el.value, el.selectionStart, el.selectionEnd)
-  emit('update:modelValue', edit.value)
+  el.focus()
+  if (!replaceThroughHistory(el, edit.value)) emit('update:modelValue', edit.value)
   await nextTick()
   el.focus()
   el.setSelectionRange(edit.selectionStart, edit.selectionEnd)
