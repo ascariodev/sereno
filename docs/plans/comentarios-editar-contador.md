@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 13
+**Estado:** en curso · Fase actual: 14
 
 
 ## Contexto mínimo
@@ -109,7 +109,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - **Terminado cuando:** specs del editor (guardar, cancelar, menciones conservadas, quitar adjunto, error) y de
   `TaskComments` (botón solo en propios, etiqueta editado).
 
-### [ ] Fase 13 — Borrar desde el panel
+### [x] Fase 13 — Borrar desde el panel
 - **Alcance:** acción "Borrar" en propios y, para owner/admin, en todos; diálogo de confirmación (`AppDialog`); error
   visible con `AppFormError`.
 - **Archivos:** `web/src/components/TaskComments.vue`, `web/src/i18n/en.json`, `web/src/i18n/es.json`.
@@ -138,6 +138,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - Fase 10 hecha: `updateTaskComment`/`deleteTaskComment`; store `update(comment)` (descarta si el conocido tiene edición más nueva o el entrante no trae `edited_at`) y `remove(id)`. `validComment` no exige `edited_at`: la fase 11 debe exigirlo (string|null).
 - Fase 11 hecha: echo escucha `task.comment.updated` y `task.comment.deleted`; `validComment` exige `edited_at`. Faltan solo las fases de UI (12 editor, 13 borrar).
 - Fase 12 hecha: `TaskCommentEditor` en línea; botón Borrar de la fase 13 va en la fila de meta junto a "Editar" (`.task-comments__edit`). Retrabajo de foco: L-65.
+- Fase 13 hecha: borrar desde el panel con confirmación; foco al vecino tras borrar (L-65 ampliada). Plan completo.
 
 ## Mejoras propuestas
 - [ ] M-1: `docs/lecciones.md` tiene L-37 a L-40 repetidas (líneas ~50-57); quitar el duplicado. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet

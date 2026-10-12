@@ -539,7 +539,15 @@
     "saving": "Guardando...",
     "editForbidden": "No puedes editar este comentario.",
     "editGone": "El comentario ya no existe.",
-    "editFailed": "No se pudieron guardar los cambios."
+    "editFailed": "No se pudieron guardar los cambios.",
+    "delete": "Borrar",
+    "deleteNamed": "Borrar comentario de {name}",
+    "deleteTitle": "Borrar comentario",
+    "deleteConfirm": "Este comentario se borrará para todos. No se puede deshacer.",
+    "deleteCancel": "Cancelar",
+    "deleting": "Borrando...",
+    "deleteForbidden": "No puedes borrar este comentario.",
+    "deleteFailed": "No se pudo borrar el comentario."
   },
   "markdownEditor": {
     "write": "Escribir",
