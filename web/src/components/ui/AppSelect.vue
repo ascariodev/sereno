@@ -76,6 +76,10 @@ defineExpose({ focus: () => field.value?.focus() })
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+.app-select select:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 .app-select__error {
   margin: 0;
   color: var(--level-error-fg);

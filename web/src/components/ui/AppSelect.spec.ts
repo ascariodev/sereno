@@ -70,6 +70,17 @@ describe('AppSelect', () => {
     expect(wrapper.get('select').element.value).toBe('b')
   })
 
+  it('passes disabled to the select through attrs', () => {
+    const wrapper = mount(AppSelect, { props: base, attrs: { disabled: true }, slots: { default: options } })
+    expect(wrapper.get('select').attributes('disabled')).toBeDefined()
+  })
+
+  it('does not emit when the model value matches no option', async () => {
+    const wrapper = mount(AppSelect, { props: { ...base, modelValue: 'zzz' }, slots: { default: options } })
+    await wrapper.setProps({ modelValue: 'yyy' })
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+  })
+
   it('focus() focuses the select', () => {
     const wrapper = mount(AppSelect, { props: base, slots: { default: options }, attachTo: document.body })
     ;(wrapper.vm as unknown as { focus: () => void }).focus()
