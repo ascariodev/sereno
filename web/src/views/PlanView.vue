@@ -143,6 +143,11 @@ function joinRealtime(): void {
       comments.insert(comment)
       if (count !== undefined) tasks.setCommentsCount(comment.task_id, count)
     },
+    onTaskCommentUpdated: (comment) => comments.update(comment),
+    onTaskCommentDeleted: ({ id, task_id: taskId, comments_count: count }) => {
+      comments.remove(id)
+      tasks.setCommentsCount(taskId, count)
+    },
     onMembersChanged: (id) => directory.invalidate(id),
   })
   unsubscribeReconnect = onReconnect(() => {

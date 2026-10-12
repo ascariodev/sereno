@@ -26,6 +26,8 @@ import {
   subscribeToProject,
   subscribeToUser,
   TASK_COMMENT_CREATED_EVENT,
+  TASK_COMMENT_DELETED_EVENT,
+  TASK_COMMENT_UPDATED_EVENT,
   TASK_CREATED_EVENT,
   TASK_DELETED_EVENT,
   TASK_UPDATED_EVENT,
@@ -138,7 +140,7 @@ describe('realtime', () => {
     const leaveFirst = subscribeToProject(3, 5, { onTaskCommentCreated: (comment) => first.push(comment.id) })
     const leaveSecond = subscribeToProject(3, 5, { onTaskCommentCreated: (comment) => second.push(comment.id) })
     const emit = (data: object) => listeners.get(`${name}|${TASK_COMMENT_CREATED_EVENT}`)?.(data)
-    const comment = { id: 4, task_id: 9, body: 'hi', user: null, mentions: [], attachments: [], created_at: '2026-10-12T10:00:00.000000Z' }
+    const comment = { id: 4, task_id: 9, body: 'hi', user: null, mentions: [], attachments: [], created_at: '2026-10-12T10:00:00.000000Z', edited_at: null }
 
     emit({ comment })
     emit({ comment: { ...comment, id: '5' } })
@@ -148,6 +150,7 @@ describe('realtime', () => {
     emit({ comment: { ...comment, attachments: 'x' } })
     emit({ comment: { ...comment, created_at: undefined } })
     emit({ comment: { ...comment, user: undefined } })
+    emit({ comment: { ...comment, edited_at: undefined } })
     emit({ comment: { ...comment, user: { id: 'x', name: 'A' } } })
     emit({ comment: { ...comment, mentions: [null] } })
     emit({ comment: { ...comment, mentions: [{ id: 1 }] } })
@@ -172,13 +175,46 @@ describe('realtime', () => {
     expect(client.leave).toHaveBeenCalledWith(name)
   })
 
+  it('forwards task.comment.updated and task.comment.deleted only when well-formed and stops after unsubscribe', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const updated: Array<[number, string | null]> = []
+    const deleted: object[] = []
+    const leave = subscribeToProject(3, 5, {
+      onTaskCommentUpdated: (comment) => updated.push([comment.id, comment.edited_at]),
+      onTaskCommentDeleted: (event) => deleted.push(event),
+    })
+    const name = 'organizations.3.projects.5'
+    const emitUpdated = (data: object) => listeners.get(`${name}|${TASK_COMMENT_UPDATED_EVENT}`)?.(data)
+    const emitDeleted = (data: object) => listeners.get(`${name}|${TASK_COMMENT_DELETED_EVENT}`)?.(data)
+    const comment = { id: 4, task_id: 9, body: 'hi', user: null, mentions: [], attachments: [], created_at: '2026-10-12T10:00:00.000000Z', edited_at: '2026-10-12T11:00:00.000000Z' }
+
+    emitUpdated({ comment })
+    emitUpdated({ comment: { ...comment, edited_at: undefined } })
+    emitUpdated({ comment: { ...comment, edited_at: 5 } })
+    emitUpdated({})
+    emitDeleted({ id: 4, task_id: 9, comments_count: 2 })
+    emitDeleted({ id: '4', task_id: 9, comments_count: 2 })
+    emitDeleted({ id: 4, task_id: 9 })
+    emitDeleted({ id: 4, comments_count: 2 })
+
+    expect(updated).toEqual([[4, '2026-10-12T11:00:00.000000Z']])
+    expect(deleted).toEqual([{ id: 4, task_id: 9, comments_count: 2 }])
+    leave()
+    expect(client.leave).toHaveBeenCalledWith(name)
+    emitUpdated({ comment })
+    emitDeleted({ id: 4, task_id: 9, comments_count: 2 })
+    expect(updated).toHaveLength(1)
+    expect(deleted).toHaveLength(1)
+  })
+
   it('passes comments_count of task.comment.created only when it is a number', () => {
     const { client, listeners } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
     const received: Array<number | undefined> = []
     const leave = subscribeToProject(3, 5, { onTaskCommentCreated: (_comment, count) => received.push(count) })
     const emit = (data: object) => listeners.get(`organizations.3.projects.5|${TASK_COMMENT_CREATED_EVENT}`)?.(data)
-    const comment = { id: 4, task_id: 9, body: 'hi', user: null, mentions: [], attachments: [], created_at: '2026-10-12T10:00:00.000000Z' }
+    const comment = { id: 4, task_id: 9, body: 'hi', user: null, mentions: [], attachments: [], created_at: '2026-10-12T10:00:00.000000Z', edited_at: null }
 
     emit({ comment, comments_count: 3 })
     emit({ comment, comments_count: '3' })

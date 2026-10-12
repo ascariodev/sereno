@@ -16,6 +16,8 @@ export const TASK_CREATED_EVENT = '.task.created'
 export const TASK_UPDATED_EVENT = '.task.updated'
 export const TASK_DELETED_EVENT = '.task.deleted'
 export const TASK_COMMENT_CREATED_EVENT = '.task.comment.created'
+export const TASK_COMMENT_UPDATED_EVENT = '.task.comment.updated'
+export const TASK_COMMENT_DELETED_EVENT = '.task.comment.deleted'
 export const PROJECT_MEMBERS_CHANGED_EVENT = '.project.members_changed'
 export const LOG_SOURCE_CONNECTED_EVENT = '.log_source.connected'
 export const ORGANIZATION_MEMBERS_CHANGED_EVENT = '.organization.members_changed'
@@ -253,6 +255,8 @@ export interface ProjectSubscriptionHandlers {
   onTaskUpdated?: (task: Task) => void
   onTaskDeleted?: (event: TaskDeletedEvent) => void
   onTaskCommentCreated?: (comment: TaskComment, commentsCount?: number) => void
+  onTaskCommentUpdated?: (comment: TaskComment) => void
+  onTaskCommentDeleted?: (event: { id: number; task_id: number; comments_count: number }) => void
   onMembersChanged?: (projectId: number) => void
   onLogSourceConnected?: (event: LogSourceConnectedEvent) => void
 }
@@ -273,6 +277,7 @@ function validComment(comment: Partial<TaskComment> | undefined): comment is Tas
     typeof comment.task_id === 'number' &&
     typeof comment.body === 'string' &&
     typeof comment.created_at === 'string' &&
+    (comment.edited_at === null || typeof comment.edited_at === 'string') &&
     (comment.user === null || (isRecord(comment.user) && typeof comment.user.id === 'number' && typeof comment.user.name === 'string')) &&
     Array.isArray(comment.mentions) &&
     comment.mentions.every((m) => isRecord(m) && typeof m.id === 'number' && typeof m.name === 'string') &&
@@ -297,6 +302,8 @@ export function subscribeToProject(
     onTaskUpdated = () => {},
     onTaskDeleted = () => {},
     onTaskCommentCreated = () => {},
+    onTaskCommentUpdated = () => {},
+    onTaskCommentDeleted = () => {},
     onMembersChanged = () => {},
     onLogSourceConnected = () => {},
   } = handlers
@@ -305,6 +312,8 @@ export function subscribeToProject(
     TASK_UPDATED_EVENT,
     TASK_DELETED_EVENT,
     TASK_COMMENT_CREATED_EVENT,
+    TASK_COMMENT_UPDATED_EVENT,
+    TASK_COMMENT_DELETED_EVENT,
     PROJECT_MEMBERS_CHANGED_EVENT,
     LOG_SOURCE_CONNECTED_EVENT,
   ]
@@ -322,6 +331,17 @@ export function subscribeToProject(
     if (event === TASK_COMMENT_CREATED_EVENT) {
       if (validComment(data.comment)) {
         onTaskCommentCreated(data.comment, typeof data.comments_count === 'number' ? data.comments_count : undefined)
+      }
+      return
+    }
+    if (event === TASK_COMMENT_UPDATED_EVENT) {
+      if (validComment(data.comment)) onTaskCommentUpdated(data.comment)
+      return
+    }
+    if (event === TASK_COMMENT_DELETED_EVENT) {
+      const { id, task_id: taskId, comments_count: count } = data
+      if (typeof id === 'number' && typeof taskId === 'number' && typeof count === 'number') {
+        onTaskCommentDeleted({ id, task_id: taskId, comments_count: count })
       }
       return
     }

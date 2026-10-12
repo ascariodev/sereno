@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12
 
 
 ## Contexto mínimo
@@ -94,7 +94,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - **Archivos:** `web/src/api/types.ts`, `web/src/api/taskComments.ts`, `web/src/stores/taskComments.ts`.
 - **Terminado cuando:** specs del cliente y del store.
 
-### [ ] Fase 11 — Eventos en vivo de edición y borrado
+### [x] Fase 11 — Eventos en vivo de edición y borrado
 - **Alcance:** `echo.ts` escucha `task.comment.updated` y `task.comment.deleted` (con validadores); `PlanView` los
   conecta al store de comentarios y el borrado también al contador de la tarea.
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/views/PlanView.vue`.
@@ -136,6 +136,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - Fase 8 hecha: `remove_attachment_ids` en el PATCH; body sigue obligatorio (igual que store); archivos borrados en afterCommit con try/report (patrón reutilizable en fase 9).
 - Fase 9 hecha (API completo): DELETE comentarios, evento `task.comment.deleted` `{id, task_id, comments_count}` (la web valida los tres como number).
 - Fase 10 hecha: `updateTaskComment`/`deleteTaskComment`; store `update(comment)` (descarta si el conocido tiene edición más nueva o el entrante no trae `edited_at`) y `remove(id)`. `validComment` no exige `edited_at`: la fase 11 debe exigirlo (string|null).
+- Fase 11 hecha: echo escucha `task.comment.updated` y `task.comment.deleted`; `validComment` exige `edited_at`. Faltan solo las fases de UI (12 editor, 13 borrar).
 
 ## Mejoras propuestas
 - [ ] M-1: `docs/lecciones.md` tiene L-37 a L-40 repetidas (líneas ~50-57); quitar el duplicado. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
