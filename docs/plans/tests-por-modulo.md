@@ -3,7 +3,7 @@
 **Objetivo:** `api/tests/Feature` repartido en `Core/`, `Log/`, `Chat/` y `Plan/`, sin perder ni duplicar ningún test, y
 la convención documentada para que los tests nuevos caigan en su carpeta. Origen: M-6 de
 `docs/plans/terminados/comentarios-tareas.md` (alejarse del truncado de descubrimiento de L-64).
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 
 
 ## Contexto mínimo
@@ -29,7 +29,7 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 - **Terminado cuando:** la cuenta de `--list-tests` es igual a la base, `Plan/` lista lo esperado y la suite completa
   da el mismo total sin fallos.
 
-### [ ] Fase 2 — Mover los tests de Log
+### [x] Fase 2 — Mover los tests de Log
 - **Alcance:** `CreateLogSourceCommand`, `RotateLogSourceKeyCommand`, `LogEvent*`, `LogGroup*` (incluido
   `LogGroupTaskApi`, cuyo punto de entrada es el grupo de log), `LogIngestApi`, `LogMaintenance`, `LogProjectAccess`,
   `LogSource*` y `PostLogGroupNotice` (16) a `tests/Feature/Log/`.
@@ -66,6 +66,7 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 
 ## Notas para la próxima sesión
 - Fase 1 hecha (26 archivos movidos, cuenta idéntica). Cuenta base en Decisiones. `LogGroupTaskApiTest` sigue en `Feature/` y va a Log en la fase 2.
+- Fase 2 hecha (16 a `Log/`, cuenta idéntica). Siguiente: Chat (28).
   `CLAUDE.md`: puede chocar con la fase 5 al mergear.
 
 ## Mejoras propuestas
