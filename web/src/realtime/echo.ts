@@ -32,6 +32,7 @@ export interface RealtimePayload {
   root?: MessageDeletedEvent['root']
   task?: Partial<Task>
   comment?: Partial<TaskComment>
+  comments_count?: unknown
   project_id?: number
   task_id?: number
   granted?: boolean
@@ -251,7 +252,7 @@ export interface ProjectSubscriptionHandlers {
   onTaskCreated?: (task: Task) => void
   onTaskUpdated?: (task: Task) => void
   onTaskDeleted?: (event: TaskDeletedEvent) => void
-  onTaskCommentCreated?: (comment: TaskComment) => void
+  onTaskCommentCreated?: (comment: TaskComment, commentsCount?: number) => void
   onMembersChanged?: (projectId: number) => void
   onLogSourceConnected?: (event: LogSourceConnectedEvent) => void
 }
@@ -319,7 +320,9 @@ export function subscribeToProject(
       return
     }
     if (event === TASK_COMMENT_CREATED_EVENT) {
-      if (validComment(data.comment)) onTaskCommentCreated(data.comment)
+      if (validComment(data.comment)) {
+        onTaskCommentCreated(data.comment, typeof data.comments_count === 'number' ? data.comments_count : undefined)
+      }
       return
     }
     if (event === TASK_DELETED_EVENT) {

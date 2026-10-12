@@ -139,7 +139,10 @@ function joinRealtime(): void {
     onTaskCreated: (task) => tasks.insert(task),
     onTaskUpdated: (task) => tasks.replace(task),
     onTaskDeleted: (event) => tasks.remove(event),
-    onTaskCommentCreated: (comment) => comments.insert(comment),
+    onTaskCommentCreated: (comment, count) => {
+      comments.insert(comment)
+      if (count !== undefined) tasks.setCommentsCount(comment.task_id, count)
+    },
     onMembersChanged: (id) => directory.invalidate(id),
   })
   unsubscribeReconnect = onReconnect(() => {

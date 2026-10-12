@@ -172,6 +172,22 @@ describe('realtime', () => {
     expect(client.leave).toHaveBeenCalledWith(name)
   })
 
+  it('passes comments_count of task.comment.created only when it is a number', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const received: Array<number | undefined> = []
+    const leave = subscribeToProject(3, 5, { onTaskCommentCreated: (_comment, count) => received.push(count) })
+    const emit = (data: object) => listeners.get(`organizations.3.projects.5|${TASK_COMMENT_CREATED_EVENT}`)?.(data)
+    const comment = { id: 4, task_id: 9, body: 'hi', user: null, mentions: [], attachments: [], created_at: '2026-10-12T10:00:00.000000Z' }
+
+    emit({ comment, comments_count: 3 })
+    emit({ comment, comments_count: '3' })
+    emit({ comment })
+
+    expect(received).toEqual([3, undefined, undefined])
+    leave()
+  })
+
   it('forwards project.members_changed on the project and channel channels only with a numeric project id', () => {
     const { client, listeners } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)

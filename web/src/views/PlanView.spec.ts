@@ -729,6 +729,20 @@ describe('PlanView', () => {
       expect(spy.mock.calls.filter(([path]) => String(path).endsWith('/comments')).length).toBe(before + 1)
     })
 
+    it('applies comments_count of a live comment to the task without a reload', async () => {
+      const fake = live()
+      mockApi(() => ({ data: [mk(1)] }))
+      fake.setStatus('connected')
+      await mountView()
+      const comment = { id: 4, task_id: 1, body: 'x', user: null, mentions: [], attachments: [], created_at: new Date().toISOString() }
+      fake.emit('.task.comment.created', { comment, comments_count: 4 })
+      await flushPromises()
+      expect(useTasksStore().find(1)?.comments_count).toBe(4)
+      fake.emit('.task.comment.created', { comment: { ...comment, id: 5 } })
+      await flushPromises()
+      expect(useTasksStore().find(1)?.comments_count).toBe(4)
+    })
+
     it('reloads and resubscribes when the active organization changes', async () => {
       const fake = live()
       const spy = mockApi(() => ({ data: [mk(1)] }))

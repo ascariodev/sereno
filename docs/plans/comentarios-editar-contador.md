@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 
 
 ## Contexto mínimo
@@ -46,7 +46,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - **Archivos:** `web/src/api/types.ts`, `web/src/components/TaskCard.vue`, `web/src/i18n/en.json`, `web/src/i18n/es.json`.
 - **Terminado cuando:** `TaskCard.spec.ts` cubre 0 (oculto), 1 y N.
 
-### [ ] Fase 4 — Contador en vivo desde los eventos de comentario
+### [x] Fase 4 — Contador en vivo desde los eventos de comentario
 - **Alcance:** `echo.ts` valida y entrega `comments_count` del evento; el store de tareas aplica el valor absoluto a la
   tarea (`setCommentsCount`, sin tocar `updated_at`); `PlanView` lo conecta.
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/stores/tasks.ts`, `web/src/views/PlanView.vue`.
@@ -129,6 +129,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - Fase 1 hecha: el conteo se declara en `TaskController::counts()` (closure sin scopes globales); reutilizarlo en las fases 2 y 9.
 - Fase 2 hecha: payload de `task.comment.created` = `{comment, comments_count}` (hermanos)...
 - Fase 3 hecha: `Task.comments_count?` opcional en el tipo; TaskCard lo muestra si > 0.
+- Fase 4 hecha: `onTaskCommentCreated(comment, commentsCount?)`; `tasks.setCommentsCount`. Contador en vivo completo (fases 1-4).
 
 ## Mejoras propuestas
 - [ ] M-1: `docs/lecciones.md` tiene L-37 a L-40 repetidas (líneas ~50-57); quitar el duplicado. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
