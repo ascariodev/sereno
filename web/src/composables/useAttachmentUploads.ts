@@ -40,7 +40,7 @@ export function useAttachmentUploads(
   const files = new Map<number, File>()
   const controllers = new Map<number, AbortController>()
   let nextKey = 1
-  // Bumped by reset and channel changes: a late response from an older round is dropped (L-10, L-32).
+  // Bumped by reset and target changes (channel or endpoint): a late response from an older round is dropped (L-10, L-32).
   let generation = 0
 
   const busy = computed(() => items.value.some((item) => item.status === 'uploading'))
@@ -72,7 +72,8 @@ export function useAttachmentUploads(
   function messageFor(error: unknown, file: File | undefined): { message: string; retryable: boolean } {
     if (error instanceof ApiError) {
       if (error.status === 422) {
-        const detail = error.errors.file?.[0] ?? error.errors.channel?.[0]
+        // `channel` only comes from the chat endpoint (archived); the task endpoint only fails on `file`.
+        const detail =error.errors.file?.[0] ?? error.errors.channel?.[0]
         return { message: detail ?? t('attachments.failed'), retryable: false }
       }
       if (error.status === 413) {

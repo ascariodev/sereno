@@ -202,6 +202,6 @@
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
 - [x] M-18: Texto propio para el exceso de adjuntos en comentarios (`attachments.tooMany` dice "por mensaje").
       Complejidad: baja · Archivos: 3 · sin riesgo → sonnet
-- [ ] M-19: Actualizar en `useAttachmentUploads.ts` los comentarios "channel changes" y la rama `error.errors.channel`,
+- [x] M-19: Actualizar en `useAttachmentUploads.ts` los comentarios "channel changes" y la rama `error.errors.channel`,
       que ahora sirven a dos destinos. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [x] M-20: `\<@1>` escrito por el usuario genera chip (la regla core `mentions` de `renderMarkdown.ts` ve el texto tras el escape); respetar el escape y fijarlo con spec. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
