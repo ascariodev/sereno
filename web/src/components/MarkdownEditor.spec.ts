@@ -277,4 +277,187 @@ describe('MarkdownEditor', () => {
       expect(wrapper.emitted('update:modelValue')).toEqual([['**word**']])
     })
   })
+
+  describe('mentions', () => {
+    const members = [
+      { id: 1, name: 'Me Myself', email: 'me@example.com' },
+      { id: 2, name: 'Ana Pérez', email: 'ana@example.com' },
+      { id: 3, name: 'Bruno Díaz', email: 'bruno@example.com' },
+      { id: 4, name: 'Andrés Gil', email: 'andres@example.com' },
+    ]
+
+    function mountWithMentions(modelValue = '', extra: Record<string, unknown> = {}) {
+      return mountEditor(modelValue, { mentions: { members, excludeUserId: 1, ...extra } })
+    }
+
+    async function type(wrapper: ReturnType<typeof mountEditor>, value: string) {
+      await wrapper.find('textarea').setValue(value)
+    }
+
+    function optionNames(wrapper: ReturnType<typeof mountEditor>) {
+      return wrapper.findAll('[role=option]').map((o) => o.find('span').text())
+    }
+
+    it('has no suggestion list nor combobox role without the prop', async () => {
+      const wrapper = mountEditor()
+
+      await type(wrapper, 'hi @an')
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.attributes('role')).toBeUndefined()
+      expect(textarea.attributes('aria-expanded')).toBeUndefined()
+      expect(wrapper.find('[role=listbox]').exists()).toBe(false)
+      expect(wrapper.find('[role=status]').exists()).toBe(false)
+      expect(wrapper.emitted('update:modelValue')).toEqual([['hi @an']])
+    })
+
+    it('opens an accessible list on @ like the chat composer and loads the members', async () => {
+      const ensureLoaded = vi.fn()
+      const wrapper = mountWithMentions('', { ensureLoaded })
+      const textarea = wrapper.find('textarea')
+      expect(textarea.attributes('role')).toBe('combobox')
+      expect(textarea.attributes('aria-expanded')).toBe('false')
+      expect(textarea.attributes('aria-activedescendant')).toBeUndefined()
+
+      await type(wrapper, 'hi @')
+
+      const list = wrapper.find('[role=listbox]')
+      expect(list.isVisible()).toBe(true)
+      expect(list.attributes('aria-label')).toBe('Mention suggestions')
+      expect(textarea.attributes('aria-expanded')).toBe('true')
+      expect(textarea.attributes('aria-autocomplete')).toBe('list')
+      expect(textarea.attributes('aria-haspopup')).toBe('listbox')
+      expect(textarea.attributes('aria-controls')).toBe(list.attributes('id'))
+      expect(optionNames(wrapper)).toEqual(['Ana Pérez', 'Bruno Díaz', 'Andrés Gil'])
+      const options = wrapper.findAll('[role=option]')
+      expect(textarea.attributes('aria-activedescendant')).toBe(options[0].attributes('id'))
+      expect(options.map((o) => o.attributes('aria-selected'))).toEqual(['true', 'false', 'false'])
+      expect(wrapper.find('[role=status]').text()).toContain('3 suggestions available')
+      expect(ensureLoaded).toHaveBeenCalled()
+    })
+
+    it('filters the list by the typed name, ignoring accents', async () => {
+      const wrapper = mountWithMentions()
+
+      await type(wrapper, '@andre')
+
+      expect(optionNames(wrapper)).toEqual(['Andrés Gil'])
+    })
+
+    it('chooses with the arrows and Enter, emitting the token and showing the name', async () => {
+      const wrapper = mountWithMentions()
+      await type(wrapper, 'hi @')
+      const textarea = wrapper.find('textarea')
+
+      await textarea.trigger('keydown', { key: 'ArrowDown' })
+      expect(textarea.attributes('aria-activedescendant')).toBe(wrapper.findAll('[role=option]')[1].attributes('id'))
+      await textarea.trigger('keydown', { key: 'ArrowUp' })
+      await textarea.trigger('keydown', { key: 'ArrowUp' })
+      const enter = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true })
+      textarea.element.dispatchEvent(enter)
+      await nextTick()
+
+      expect(enter.defaultPrevented).toBe(true)
+      expect((textarea.element as HTMLTextAreaElement).value).toBe('hi @Andrés Gil ')
+      expect(wrapper.props('modelValue')).toBe('hi <@4> ')
+      expect(wrapper.find('[role=listbox]').isVisible()).toBe(false)
+      expect(textarea.attributes('aria-expanded')).toBe('false')
+    })
+
+    it('chooses with Tab', async () => {
+      const wrapper = mountWithMentions()
+      await type(wrapper, '@br')
+
+      await wrapper.find('textarea').trigger('keydown', { key: 'Tab' })
+
+      expect(wrapper.props('modelValue')).toBe('<@3> ')
+    })
+
+    it('chooses with a click', async () => {
+      const wrapper = mountWithMentions()
+      await type(wrapper, 'cc @')
+
+      await wrapper.findAll('[role=option]')[1].trigger('click')
+
+      expect(wrapper.props('modelValue')).toBe('cc <@3> ')
+      expect((wrapper.find('textarea').element as HTMLTextAreaElement).value).toBe('cc @Bruno Díaz ')
+    })
+
+    it('closes on Escape without letting it reach a dialog', async () => {
+      const wrapper = mountWithMentions()
+      const outside = vi.fn()
+      wrapper.element.addEventListener('keydown', outside)
+      await type(wrapper, '@a')
+      expect(wrapper.find('[role=listbox]').isVisible()).toBe(true)
+
+      await wrapper.find('textarea').trigger('keydown', { key: 'Escape' })
+
+      expect(wrapper.find('[role=listbox]').isVisible()).toBe(false)
+      expect(wrapper.find('textarea').attributes('aria-expanded')).toBe('false')
+      expect(outside).not.toHaveBeenCalled()
+      expect(wrapper.props('modelValue')).toBe('@a')
+    })
+
+    it('leaves Enter, arrows, Tab and Escape alone while the list is closed', async () => {
+      const wrapper = mountWithMentions()
+      const outside = vi.fn()
+      wrapper.element.addEventListener('keydown', outside)
+      await type(wrapper, 'plain')
+      const textarea = wrapper.find('textarea').element
+
+      for (const key of ['Enter', 'ArrowDown', 'Tab', 'Escape']) {
+        const event = new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true })
+        textarea.dispatchEvent(event)
+        expect(event.defaultPrevented).toBe(false)
+      }
+      expect(outside).toHaveBeenCalledTimes(4)
+    })
+
+    it('keeps the formatting shortcuts and the mention when wrapping it', async () => {
+      const wrapper = mountWithMentions()
+      await type(wrapper, '@an')
+      await wrapper.find('textarea').trigger('keydown', { key: 'Enter' })
+      await nextTick()
+      select(wrapper, 0, 10)
+
+      await wrapper.find('textarea').trigger('keydown', { key: 'b', ctrlKey: true })
+
+      expect(wrapper.props('modelValue')).toBe('**<@2>** ')
+    })
+
+    it('keeps the mentions moved by a line format and drops one the edit splits', async () => {
+      const wrapper = mountWithMentions('hi <@2> and <@3>')
+      select(wrapper, 0, 0)
+
+      await wrapper.find('[data-test=tool-bulletList]').trigger('click')
+      expect(wrapper.props('modelValue')).toBe('- hi <@2> and <@3>')
+
+      select(wrapper, 7, 9)
+      await wrapper.find('[data-test=tool-italic]').trigger('click')
+
+      expect(wrapper.props('modelValue')).toBe('- hi @A_na_ Pérez and <@3>')
+    })
+
+    it('shows known tokens of the model value as names and follows a reset from the parent', async () => {
+      const wrapper = mountWithMentions('see <@2> and <@99>')
+      const textarea = wrapper.find('textarea').element as HTMLTextAreaElement
+      expect(textarea.value).toBe('see @Ana Pérez and <@99>')
+
+      await wrapper.setProps({ modelValue: '' })
+
+      expect(textarea.value).toBe('')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    })
+
+    it('renders the chosen mention as a chip in the preview', async () => {
+      const wrapper = mountWithMentions()
+      await type(wrapper, '@bru')
+      await wrapper.find('textarea').trigger('keydown', { key: 'Enter' })
+
+      await wrapper.findAll('.app-segmented button')[1].trigger('click')
+
+      expect(wrapper.find('[data-test=preview] .mention-chip').text()).toBe('@Bruno Díaz')
+      expect(wrapper.find('[role=listbox]').isVisible()).toBe(false)
+    })
+  })
 })

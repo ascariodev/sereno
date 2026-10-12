@@ -25,6 +25,7 @@ import {
   subscribeToOrganizationMembers,
   subscribeToProject,
   subscribeToUser,
+  TASK_COMMENT_CREATED_EVENT,
   TASK_CREATED_EVENT,
   TASK_DELETED_EVENT,
   TASK_UPDATED_EVENT,
@@ -122,6 +123,34 @@ describe('realtime', () => {
     expect(other).toEqual([2])
     expect(deleted).toEqual([{ id: 3, project_id: 5 }])
 
+    leaveFirst()
+    expect(client.leave).not.toHaveBeenCalled()
+    leaveSecond()
+    expect(client.leave).toHaveBeenCalledWith(name)
+  })
+
+  it('forwards task.comment.created of the project channel only with a well-formed comment, sharing the channel by reference count', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const name = 'organizations.3.projects.5'
+    const first: number[] = []
+    const second: number[] = []
+    const leaveFirst = subscribeToProject(3, 5, { onTaskCommentCreated: (comment) => first.push(comment.id) })
+    const leaveSecond = subscribeToProject(3, 5, { onTaskCommentCreated: (comment) => second.push(comment.id) })
+    const emit = (data: object) => listeners.get(`${name}|${TASK_COMMENT_CREATED_EVENT}`)?.(data)
+    const comment = { id: 4, task_id: 9, body: 'hi', user: null, mentions: [], attachments: [], created_at: '2026-10-12T10:00:00.000000Z' }
+
+    emit({ comment })
+    emit({ comment: { ...comment, id: '5' } })
+    emit({ comment: { ...comment, task_id: undefined } })
+    emit({ comment: { ...comment, body: null } })
+    emit({ comment: { ...comment, mentions: undefined } })
+    emit({ comment: { ...comment, attachments: 'x' } })
+    emit({ comment: { ...comment, created_at: undefined } })
+    emit({})
+
+    expect(first).toEqual([4])
+    expect(second).toEqual([4])
     leaveFirst()
     expect(client.leave).not.toHaveBeenCalled()
     leaveSecond()

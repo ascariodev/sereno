@@ -15,6 +15,7 @@ import AppDialog from './ui/AppDialog.vue'
 import AppFormError from './ui/AppFormError.vue'
 import LevelPill from './ui/LevelPill.vue'
 import ProjectKey from './ui/ProjectKey.vue'
+import TaskComments from './TaskComments.vue'
 import TaskMoveMenu from './TaskMoveMenu.vue'
 import { toast } from './ui/toast'
 
@@ -432,6 +433,8 @@ async function confirmDelete(): Promise<void> {
           <span class="sr-only">{{ t('taskAside.openNotice') }}</span>
         </RouterLink>
       </div>
+
+      <TaskComments :project-id="projectId" :task-id="taskId" />
     </section>
     <AppDialog v-model:open="confirmOpen" :title="t('taskAside.deleteTitle')" :close-label="t('taskAside.cancel')">
       <p data-test="delete-text">{{ t('taskAside.deleteConfirm', { key: task.key }) }}</p>

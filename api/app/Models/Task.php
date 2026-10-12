@@ -10,6 +10,7 @@ use App\Models\Concerns\EnsuresProjectInOrganization;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['title', 'description', 'status', 'position', 'assignee_id'])]
 class Task extends Model
@@ -81,5 +82,10 @@ class Task extends Model
     public function logGroup(): BelongsTo
     {
         return $this->belongsTo(LogGroup::class);
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(TaskComment::class);
     }
 }

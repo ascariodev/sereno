@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\DeleteTask;
 use App\Actions\PostLogGroupStatusNotice;
 use App\Enums\LogGroupStatus;
 use App\Enums\TaskStatus;
@@ -221,11 +222,11 @@ class TaskController extends Controller
         TaskAssigned::dispatch($task->assignee_id, $task->organization_id, $task->project_id, $task->id);
     }
 
-    public function destroy(DeleteTaskRequest $request, Project $project, Task $task): Response
+    public function destroy(DeleteTaskRequest $request, Project $project, Task $task, DeleteTask $deleteTask): Response
     {
         abort_unless($task->project_id === $project->id, 404);
 
-        $task->delete();
+        $deleteTask($task);
         TaskDeleted::dispatch($task);
 
         return response()->noContent();

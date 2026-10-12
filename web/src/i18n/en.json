@@ -518,6 +518,19 @@
     "deleteFailed": "Could not delete the task. Try again.",
     "failed": "Could not save the task. Try again."
   },
+  "taskComments": {
+    "heading": "Comments",
+    "empty": "No comments yet.",
+    "loadOlder": "Load earlier comments",
+    "loadFailed": "Could not load the comments.",
+    "newLabel": "Add a comment",
+    "send": "Comment",
+    "sending": "Sending...",
+    "sendFailed": "Could not send the comment. Try again.",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "deletedUser": "deleted user"
+  },
   "markdownEditor": {
     "write": "Write",
     "preview": "Preview",

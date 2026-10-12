@@ -339,6 +339,18 @@ export interface AcceptedInvitation {
   organization_id: number
 }
 
+/** Comment of a task. `user` is null once the author is deleted; `mentions` and `attachments` are lists ordered by id. */
+export interface TaskComment {
+  id: number
+  task_id: number
+  body: string
+  user: Pick<User, 'id' | 'name'> | null
+  mentions: { id: number; name: string }[]
+  attachments: MessageAttachment[]
+  /** ISO timestamp. */
+  created_at: string
+}
+
 export interface DataEnvelope<T> {
   data: T
 }
