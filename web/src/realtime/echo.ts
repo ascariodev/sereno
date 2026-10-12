@@ -272,9 +272,18 @@ function validComment(comment: Partial<TaskComment> | undefined): comment is Tas
     typeof comment.task_id === 'number' &&
     typeof comment.body === 'string' &&
     typeof comment.created_at === 'string' &&
+    (comment.user === null || (isRecord(comment.user) && typeof comment.user.id === 'number' && typeof comment.user.name === 'string')) &&
     Array.isArray(comment.mentions) &&
-    Array.isArray(comment.attachments)
+    comment.mentions.every((m) => isRecord(m) && typeof m.id === 'number' && typeof m.name === 'string') &&
+    Array.isArray(comment.attachments) &&
+    comment.attachments.every(
+      (a) => isRecord(a) && typeof a.id === 'number' && typeof a.original_name === 'string' && typeof a.url === 'string',
+    )
   )
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }
 
 export function subscribeToProject(

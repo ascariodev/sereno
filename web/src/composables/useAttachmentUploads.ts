@@ -30,16 +30,17 @@ const t = (key: string, params: Record<string, unknown> = {}): string =>
  */
 export function useAttachmentUploads(
   target: () => number | string,
-  options: { maxFiles?: number; maxBytes?: number } = {},
+  options: { maxFiles?: number; maxBytes?: number; tooManyKey?: string } = {},
 ) {
   const maxFiles = options.maxFiles ?? ATTACHMENT_MAX_PER_MESSAGE
   const maxBytes = options.maxBytes ?? ATTACHMENT_MAX_SIZE_BYTES
+  const tooManyKey = options.tooManyKey ?? 'attachments.tooMany'
 
   const items = ref<UploadItem[]>([])
   const files = new Map<number, File>()
   const controllers = new Map<number, AbortController>()
   let nextKey = 1
-  // Bumped by reset and channel changes: a late response from an older round is dropped (L-10, L-32).
+  // Bumped by reset and target changes (channel or endpoint): a late response from an older round is dropped (L-10, L-32).
   let generation = 0
 
   const busy = computed(() => items.value.some((item) => item.status === 'uploading'))
@@ -71,7 +72,8 @@ export function useAttachmentUploads(
   function messageFor(error: unknown, file: File | undefined): { message: string; retryable: boolean } {
     if (error instanceof ApiError) {
       if (error.status === 422) {
-        const detail = error.errors.file?.[0] ?? error.errors.channel?.[0]
+        // `channel` only comes from the chat endpoint (archived); the task endpoint only fails on `file`.
+        const detail =error.errors.file?.[0] ?? error.errors.channel?.[0]
         return { message: detail ?? t('attachments.failed'), retryable: false }
       }
       if (error.status === 413) {
@@ -126,7 +128,7 @@ export function useAttachmentUploads(
         continue
       }
       if (activeCount() >= maxFiles) {
-        items.value.push(rejected(file, t('attachments.tooMany', { max: maxFiles })))
+        items.value.push(rejected(file, t(tooManyKey, { max: maxFiles })))
         continue
       }
       const key = nextKey++
@@ -148,7 +150,7 @@ export function useAttachmentUploads(
     const item = find(key)
     if (!item || item.status !== 'error' || !item.retryable || !files.has(key)) return
     if (activeCount() >= maxFiles) {
-      item.error = t('attachments.tooMany', { max: maxFiles })
+      item.error = t(tooManyKey, { max: maxFiles })
       item.retryable = false
       return
     }

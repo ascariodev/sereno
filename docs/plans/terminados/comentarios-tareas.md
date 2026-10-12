@@ -165,42 +165,46 @@
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
-      Complejidad: media · Archivos: 5 · Riesgo: contrato público → opus
+      Complejidad: alta · Archivos: >5 · Riesgo: contrato público → plan propio (junto con M-2; el borrado afecta al contador)
 - [ ] M-2: Contador de comentarios en `TaskCard`.
-      Complejidad: baja · Archivos: 3 · Riesgo: contrato público → sonnet
-- [ ] M-3: `database.md`: referencia cruzada al nuevo único de `tasks` en su entrada y revisar la línea "Futuro: policy,
+      Complejidad: alta · Archivos: ~10 · Riesgo: contrato público → plan propio. Hallazgos: `unassignUser` corre sin
+      organización activa, así que el `withCount` debe quitar el scope de `TaskComment` y declararse en un solo lugar;
+      `TaskCommentCreated` llega también a quien envía, por lo que el evento debería traer `comments_count` contado tras
+      el commit y la web aplicar max(actual, recibido). División propuesta: M-2a API (5 archivos), M-2b web (4 + i18n).
+- [x] M-3: `database.md`: referencia cruzada al nuevo único de `tasks` en su entrada y revisar la línea "Futuro: policy,
       API y eventos de tareas", desfasada. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-4: Test directo de `TaskCommentPolicy::view` (hoy sin ruta que lo use) cuando exista editar o borrar.
+- [x] M-4: Test directo de `TaskCommentPolicy::view` (hoy sin ruta que lo use) cuando exista editar o borrar.
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-5: Docblock de `AttachmentStorage::download` que diga que depende de `expires` de una ruta firmada para el
+- [x] M-5: Docblock de `AttachmentStorage::download` que diga que depende de `expires` de una ruta firmada para el
       `max-age`. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-6: Repartir `api/tests/Feature` en subcarpetas por módulo (Chat, Log, Plan, Core) para alejarse del umbral que
       trunca el descubrimiento de Pest en el montaje de Docker. Decisión del usuario. Complejidad: alta (más de 5
       archivos, mueve toda la suite) → convertir en plan
-- [ ] M-7: Compartir `signedDownload()` y `URL_EXPIRY_STEP_SECONDS` entre `MessageAttachment` y `TaskCommentAttachment`
+- [x] M-7: Compartir `signedDownload()` y `URL_EXPIRY_STEP_SECONDS` entre `MessageAttachment` y `TaskCommentAttachment`
       (trait). Complejidad: baja · Archivos: 2-3 · sin riesgo → sonnet
-- [ ] M-8: Test de descarga y URL nueva de un adjunto de comentario cuyo archivo falta en disco (404).
+- [x] M-8: Test de descarga y URL nueva de un adjunto de comentario cuyo archivo falta en disco (404).
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-9: Acortar los docblocks y comentarios de `App\Actions\DeleteTask` a lo no obvio (convención de comentarios
+- [x] M-9: Acortar los docblocks y comentarios de `App\Actions\DeleteTask` a lo no obvio (convención de comentarios
       mínimos). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-10: `validComment` (echo.ts) valida también la forma de `user` y de los elementos de `mentions` y `attachments`.
+- [x] M-10: `validComment` (echo.ts) valida también la forma de `user` y de los elementos de `mentions` y `attachments`.
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
-- [ ] M-11: Specs de `MarkdownContent` para un `<span class="mention-chip">` escrito por el usuario (sale como texto) y
+- [x] M-11: Specs de `MarkdownContent` para un `<span class="mention-chip">` escrito por el usuario (sale como texto) y
       para `\<@1>` (sin chip). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-12: Unificar la resolución de menciones de `MessageBody.vue` y la regla de `renderMarkdown`.
+- [x] M-12: Unificar la resolución de menciones de `MessageBody.vue` y la regla de `renderMarkdown`.
       Complejidad: media · Archivos: 3-4 · sin riesgo → sonnet
-- [ ] M-13: `MarkdownEditor`: el `watch` que pinta `@Nombre` depende también de `mentions.members`, para que un valor
+- [x] M-13: `MarkdownEditor`: el `watch` que pinta `@Nombre` depende también de `mentions.members`, para que un valor
       con `<@id>` montado antes de cargar los miembros se repinte. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
-- [ ] M-14: `MarkdownEditor`: deshacer (Ctrl+Z) un formato que envolvía una mención la deja como `@Nombre` sin token;
+- [x] M-14: `MarkdownEditor`: deshacer (Ctrl+Z) un formato que envolvía una mención la deja como `@Nombre` sin token;
       conservar las menciones al reconciliar tras deshacer. Complejidad: media · Archivos: 2 · sin riesgo → sonnet
-- [ ] M-15: `MarkdownEditor`: `position: relative` en la raíz para el texto solo para lectores.
+- [x] M-15: `MarkdownEditor`: `position: relative` en la raíz para el texto solo para lectores.
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-16: Accesibilidad de `TaskComments`: región `role="status"` que anuncie el comentario enviado, `role="status"`
+- [x] M-16: Accesibilidad de `TaskComments`: región `role="status"` que anuncie el comentario enviado, `role="status"`
       en "Cargando" y vacío, `aria-labelledby` al `<h2>` en vez de `aria-label` repetido y nombre en la `<ul>`.
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
-- [ ] M-17: Llevar a la vista el comentario recién enviado (scroll) en `TaskComments`.
+- [x] M-17: Llevar a la vista el comentario recién enviado (scroll) en `TaskComments`.
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
-- [ ] M-18: Texto propio para el exceso de adjuntos en comentarios (`attachments.tooMany` dice "por mensaje").
+- [x] M-18: Texto propio para el exceso de adjuntos en comentarios (`attachments.tooMany` dice "por mensaje").
       Complejidad: baja · Archivos: 3 · sin riesgo → sonnet
-- [ ] M-19: Actualizar en `useAttachmentUploads.ts` los comentarios "channel changes" y la rama `error.errors.channel`,
+- [x] M-19: Actualizar en `useAttachmentUploads.ts` los comentarios "channel changes" y la rama `error.errors.channel`,
       que ahora sirven a dos destinos. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [x] M-20: `\<@1>` escrito por el usuario genera chip (la regla core `mentions` de `renderMarkdown.ts` ve el texto tras el escape); respetar el escape y fijarlo con spec. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet

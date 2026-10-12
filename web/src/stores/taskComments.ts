@@ -140,12 +140,13 @@ export const useTaskCommentsStore = defineStore('taskComments', () => {
   }
 
   /** Posts a comment on the open task; API errors propagate to the composer. */
-  async function send(body: string, attachmentIds: number[] = []): Promise<void> {
-    if (projectId.value === null || taskId.value === null) return
+  async function send(body: string, attachmentIds: number[] = []): Promise<number | null> {
+    if (projectId.value === null || taskId.value === null) return null
     const current = generation
     const comment = await createTaskComment(projectId.value, taskId.value, body, attachmentIds)
-    if (current !== generation) return
+    if (current !== generation) return null
     insert(comment)
+    return comment.id
   }
 
   return { projectId, taskId, comments, nextCursor, loading, loadingMore, error, open, loadOlder, refresh, insert, send, clear }

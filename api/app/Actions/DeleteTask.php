@@ -8,18 +8,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
-/**
- * Deletes the task (comments and attachment rows go by cascade) and, after the commit, the comment attachment files
- * and the task directory. On a rollback nothing leaves the disk; a file missed here is swept by
- * `chat:prune-attachments` once it has no row.
- */
+/** Files are deleted after the commit; any missed is swept by `chat:prune-attachments`. */
 class DeleteTask
 {
     public function __invoke(Task $task): void
     {
         DB::transaction(function () use ($task) {
-            // FOR UPDATE waits for uploads in flight (their FK holds a key-share lock on the task), so their rows are
-            // read below; a later upload fails its FK and removes its own file.
+            // Waits for uploads in flight (FK key-share lock) so their rows are read below.
             $locked = Task::query()->whereKey($task->id)->lockForUpdate()->first();
             if ($locked === null) {
                 return;

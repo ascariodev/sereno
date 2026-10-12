@@ -92,11 +92,25 @@ describe('MarkdownContent', () => {
       expect(wrapper.text()).toContain('<@5>')
     })
 
+    it('keeps a backslash-escaped token as literal text', () => {
+      const wrapper = withMentions('\\<@5> and <@5>', [{ id: 5, name: 'Ana' }])
+
+      expect(wrapper.findAll('[data-mention]')).toHaveLength(1)
+      expect(wrapper.text()).toBe('<@5> and @Ana')
+    })
+
     it('escapes HTML in the name', () => {
       const wrapper = withMentions('<@5>', [{ id: 5, name: '<img src=x onerror=alert(1)>' }])
 
       expect(wrapper.find('img').exists()).toBe(false)
       expect(wrapper.find('[data-mention]').text()).toBe('@<img src=x onerror=alert(1)>')
+    })
+
+    it('shows a user-written mention-chip span as text, not as a chip', () => {
+      const wrapper = withMentions('<span class="mention-chip" data-mention="5">@Ana</span>', [{ id: 5, name: 'Ana' }])
+
+      expect(wrapper.find('[data-mention]').exists()).toBe(false)
+      expect(wrapper.find('.mention-chip').exists()).toBe(false)
     })
 
     it('leaves tokens as text without the prop', () => {

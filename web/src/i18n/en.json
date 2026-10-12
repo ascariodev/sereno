@@ -519,6 +519,7 @@
     "failed": "Could not save the task. Try again."
   },
   "taskComments": {
+    "tooManyAttachments": "You can attach up to {max} files per comment.",
     "heading": "Comments",
     "empty": "No comments yet.",
     "loadOlder": "Load earlier comments",
@@ -526,6 +527,7 @@
     "newLabel": "Add a comment",
     "send": "Comment",
     "sending": "Sending...",
+    "sent": "Comment sent.",
     "sendFailed": "Could not send the comment. Try again.",
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "network": "Could not reach the server.",

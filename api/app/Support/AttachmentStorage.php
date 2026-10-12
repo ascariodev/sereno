@@ -52,7 +52,8 @@ class AttachmentStorage
 
     /**
      * Streams a stored file with headers that keep the browser from running it. A missing file is a 404;
-     * `$label` names the attachment in the report when the file cannot be opened.
+     * `$label` names the attachment in the report when the file cannot be opened. The `max-age` comes from the
+     * `expires` query parameter, so the route must be signed (temporary signed URL); without it the cache is 0.
      */
     public static function download(Request $request, string $diskName, string $path, string $mime, string $name, string $label): StreamedResponse
     {

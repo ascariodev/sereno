@@ -3,19 +3,15 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToOrganization;
+use App\Models\Concerns\HasSignedDownload;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\URL;
 
 class MessageAttachment extends Model
 {
-    use BelongsToOrganization;
+    use BelongsToOrganization, HasSignedDownload;
 
     public const UPDATED_AT = null;
-
-    // The expiry is rounded up to this step so the same file keeps the same url (and browser cache) for a while.
-    public const URL_EXPIRY_STEP_SECONDS = 60;
 
     protected $guarded = ['*'];
 
@@ -41,31 +37,8 @@ class MessageAttachment extends Model
         return $this->belongsTo(User::class, 'uploaded_by');
     }
 
-    /**
-     * The signature covers only the path and query, so it validates the same behind the proxy whatever host or
-     * scheme the request arrives with; the host always comes from APP_URL, also in the queue worker.
-     */
-    public function downloadUrl(): string
+    protected function downloadRouteName(): string
     {
-        return $this->signedDownload()['url'];
-    }
-
-    /**
-     * @return array{url: string, expires_at: Carbon}
-     */
-    public function signedDownload(): array
-    {
-        $earliest = now()->addMinutes(config('chat.attachments.url_ttl_minutes'))->getTimestamp();
-        $step = self::URL_EXPIRY_STEP_SECONDS;
-        $expiresAt = Carbon::createFromTimestampUTC(intdiv($earliest + $step - 1, $step) * $step);
-
-        $path = URL::temporarySignedRoute(
-            'attachments.download',
-            $expiresAt,
-            ['attachment' => $this->id],
-            absolute: false,
-        );
-
-        return ['url' => rtrim(config('app.url'), '/').$path, 'expires_at' => $expiresAt];
+        return 'attachments.download';
     }
 }
