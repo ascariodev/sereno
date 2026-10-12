@@ -8,7 +8,8 @@ effort: low
 
 Aplica las mejoras de `## Mejoras propuestas` de un plan. Argumentos: $ARGUMENTS
 
-**Qué plan:** el nombrado en los argumentos (búscalo en `docs/plans/` y en `docs/plans/terminados/`);
+**Qué plan:** el nombrado en los argumentos (búscalo en `docs/plans/` y en `docs/plans/terminados/`; si no está, sigue
+la regla de planes fuera de `main` de CLAUDE.md);
 si no se nombra, el plan con el que se trabajó en esta sesión o, si no hay, el más reciente con mejoras
 pendientes (`- [ ] M-`). Si hay dudas, pregunta.
 **Qué mejoras:** las indicadas (`M-1 M-3`), las de un nivel (`baja`, `media`) o todas las pendientes.
