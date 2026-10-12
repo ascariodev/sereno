@@ -233,6 +233,7 @@ describe('MarkdownEditor', () => {
       expect(spy).toHaveBeenCalledTimes(1)
       expect(wrapper.emitted('update:modelValue')).toEqual([['say **hello**']])
       expect(el.value).toBe('say **hello**')
+      expect([el.selectionStart, el.selectionEnd]).toEqual([6, 11])
     })
 
     it('computes the changed range after an emoji', async () => {
@@ -247,6 +248,23 @@ describe('MarkdownEditor', () => {
       expect(spy.mock.calls[0]).toEqual(['insertText', false, '**hola**'])
       expect(wrapper.emitted('update:modelValue')).toEqual([['😀 **hola**']])
       expect([el.selectionStart, el.selectionEnd]).toEqual([5, 9])
+    })
+
+    it('keeps the changed range on code point boundaries for emojis sharing the high surrogate', async () => {
+      const wrapper = mountEditor('\u{1F600}\u{1F601}')
+      const el = select(wrapper, 1, 3)
+      const ranges: number[][] = []
+      const spy = mockExecCommand((command, text) => {
+        ranges.push([el.selectionStart, el.selectionEnd])
+        return typeInto(command, text)
+      })
+
+      await wrapper.find('[data-test=tool-bold]').trigger('click')
+      await nextTick()
+
+      expect(ranges).toEqual([[0, 4]])
+      expect(spy.mock.calls[0]).toEqual(['insertText', false, '\ud83d**\ude00\ud83d**\ude01'])
+      expect(el.value).toBe('\ud83d**\ude00\ud83d**\ude01')
     })
 
     it('falls back when execCommand does not exist', async () => {

@@ -80,7 +80,7 @@
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-9: En `TaskAside`, el patrón `if (current !== generation) return` tras un `await` deja `submitting` en true si otra operación reemplazó a la actual (previo a M-1); revisar que siempre se libere.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-10: En `MarkdownEditor.vue` (~58-62) el prefijo y sufijo comunes de `replaceThroughHistory` se calculan por unidades UTF-16: un cambio que parta un par sustituto puede dar un rango a mitad de carácter. Ajustar a límites de punto de código, con spec; y añadir al spec del fallback la aserción de selección final.
+- [x] M-10: En `MarkdownEditor.vue` (~58-62) el prefijo y sufijo comunes de `replaceThroughHistory` se calculan por unidades UTF-16: un cambio que parta un par sustituto puede dar un rango a mitad de carácter. Ajustar a límites de punto de código, con spec; y añadir al spec del fallback la aserción de selección final.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-11: En `TaskAside`, un guardado concurrente con 404 se suprime si hay un borrado en vuelo que luego falla con 403 (el panel queda abierto sobre una tarea inexistente); y falta spec del borrado con éxito con guardado pendiente. Caso muy improbable.
+- [x] M-11: En `TaskAside`, un guardado concurrente con 404 se suprime si hay un borrado en vuelo que luego falla con 403 (el panel queda abierto sobre una tarea inexistente); y falta spec del borrado con éxito con guardado pendiente. Caso muy improbable.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

@@ -54,14 +54,32 @@ function tooltipText(action: { key: string; shortcut?: string }) {
   return action.shortcut ? `${name} (${isApple ? '⌘' : 'Ctrl+'}${action.shortcut})` : name
 }
 
+const isHighSurrogate = (code: number) => code >= 0xd800 && code <= 0xdbff
+const isLowSurrogate = (code: number) => code >= 0xdc00 && code <= 0xdfff
+
 function replaceThroughHistory(el: HTMLTextAreaElement, next: string): boolean {
   if (typeof document.execCommand !== 'function') return false
   const current = el.value
   let prefix = 0
   const shared = Math.min(current.length, next.length)
   while (prefix < shared && current[prefix] === next[prefix]) prefix++
+  if (
+    prefix > 0 &&
+    isHighSurrogate(current.charCodeAt(prefix - 1)) &&
+    (isLowSurrogate(current.charCodeAt(prefix)) || isLowSurrogate(next.charCodeAt(prefix)))
+  ) {
+    prefix--
+  }
   let suffix = 0
   while (suffix < shared - prefix && current[current.length - 1 - suffix] === next[next.length - 1 - suffix]) suffix++
+  if (
+    suffix > 0 &&
+    isLowSurrogate(current.charCodeAt(current.length - suffix)) &&
+    (isHighSurrogate(current.charCodeAt(current.length - suffix - 1)) ||
+      isHighSurrogate(next.charCodeAt(next.length - suffix - 1)))
+  ) {
+    suffix--
+  }
   if (prefix + suffix === current.length && prefix + suffix === next.length) return true
   const inserted = next.slice(prefix, next.length - suffix)
   el.setSelectionRange(prefix, current.length - suffix)
