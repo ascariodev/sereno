@@ -42,6 +42,7 @@ const confirmOpen = ref(false)
 const deleting = ref(false)
 let generation = 0
 let closed = false
+let notFoundHandled = false
 let snapshot = { title: '', description: '', assigneeId: null as number | null }
 
 const FIELDS = ['title', 'description', 'assignee_id'] as const
@@ -122,6 +123,7 @@ watch(
   () => props.taskId,
   () => {
     closed = false
+    notFoundHandled = false
     resetForm()
   },
 )
@@ -135,7 +137,8 @@ watch(
 )
 
 function notFound(): void {
-  if (closed) return
+  if (notFoundHandled) return
+  notFoundHandled = true
   closed = true
   toast.error(t('taskAside.notFound'))
   emit('close', true)
@@ -150,7 +153,7 @@ watch(
     if (!lookedUp) {
       lookedUp = true
       void tasks.ensure(props.projectId, props.taskId).then((found) => {
-        if (!found && !task.value) notFound()
+        if (!found && !task.value && !closed) notFound()
       })
       return
     }
@@ -225,11 +228,7 @@ async function submit(): Promise<void> {
       fieldErrors.value = error.errors
       if (!FIELDS.some((field) => error.errors[field]?.length)) formError.value = error.message
     } else if (error.status === 404) {
-      if (!closed) {
-        closed = true
-        toast.error(t('taskAside.notFound'))
-        emit('close', true)
-      }
+      notFound()
     } else if (error.status === 429) {
       formError.value = t('taskCreate.tooManyAttempts')
     } else if (error.status === 0) {
@@ -262,11 +261,7 @@ async function toggleTask(lineIndex: number): Promise<void> {
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
     if (error.status === 404) {
-      if (!closed) {
-        closed = true
-        toast.error(t('taskAside.notFound'))
-        emit('close', true)
-      }
+      notFound()
     } else if (error.status === 422) toast.error(error.message)
     else if (error.status === 429) toast.error(t('taskCreate.tooManyAttempts'))
     else if (error.status === 0) toast.error(t('taskCreate.network'))
@@ -291,10 +286,10 @@ async function confirmDelete(): Promise<void> {
     if (current !== generation) return
     confirmOpen.value = false
     if (error.status === 404) {
-      toast.error(t('taskAside.notFound'))
-      emit('close', true)
+      notFound()
       return
     }
+    if (notFoundHandled) return
     closed = false
     if (error.status === 403) toast.error(t('taskAside.deleteForbidden'))
     else if (error.status === 422) toast.error(error.message)

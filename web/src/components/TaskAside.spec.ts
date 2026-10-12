@@ -499,6 +499,46 @@ describe('TaskAside', () => {
       expect(q('[data-test="description-view"]')!.getAttribute('aria-busy')).toBeNull()
     })
 
+    it('a save 404 while a delete is pending closes once even if the delete then fails with 403', async () => {
+      let rejectSave!: (e: unknown) => void
+      let rejectDelete!: (e: unknown) => void
+      vi.spyOn(tasksApi, 'updateTask').mockReturnValue(new Promise<Task>((_, r) => (rejectSave = r)))
+      vi.spyOn(tasksApi, 'deleteTask').mockReturnValue(new Promise<void>((_, r) => (rejectDelete = r)))
+      const error = vi.spyOn(toast, 'error')
+      const wrapper = (await mountAside()).wrapper
+      q<HTMLFormElement>('form')!.dispatchEvent(new Event('submit', { cancelable: true }))
+      await flushPromises()
+      q<HTMLButtonElement>('[data-test="delete"]')!.click()
+      await flushPromises()
+      confirmBtn().click()
+      await flushPromises()
+      rejectSave(new ApiError(404, 'gone', {}))
+      await flushPromises()
+      rejectDelete(new ApiError(403, 'no', {}))
+      await flushPromises()
+      expect(error).toHaveBeenCalledTimes(1)
+      expect(error).toHaveBeenCalledWith('This task no longer exists.')
+      expect(wrapper.emitted('close')).toEqual([[true]])
+    })
+
+    it('a pending save resolving after a successful delete is harmless', async () => {
+      let resolveSave!: (task: Task) => void
+      vi.spyOn(tasksApi, 'updateTask').mockReturnValue(new Promise<Task>((r) => (resolveSave = r)))
+      vi.spyOn(tasksApi, 'deleteTask').mockResolvedValue()
+      const error = vi.spyOn(toast, 'error')
+      const wrapper = (await mountAside()).wrapper
+      q<HTMLFormElement>('form')!.dispatchEvent(new Event('submit', { cancelable: true }))
+      await flushPromises()
+      q<HTMLButtonElement>('[data-test="delete"]')!.click()
+      await flushPromises()
+      confirmBtn().click()
+      await flushPromises()
+      resolveSave({ ...base, updated_at: '2026-01-02T00:00:00.000000Z' })
+      await flushPromises()
+      expect(error).not.toHaveBeenCalled()
+      expect(wrapper.emitted('close')).toEqual([[true]])
+    })
+
     it('a 403 keeps the panel open and shows a toast', async () => {
       vi.spyOn(tasksApi, 'deleteTask').mockRejectedValue(new ApiError(403, 'no', {}))
       const error = vi.spyOn(toast, 'error')
