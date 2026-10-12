@@ -99,6 +99,13 @@ describe('MarkdownContent', () => {
       expect(wrapper.find('[data-mention]').text()).toBe('@<img src=x onerror=alert(1)>')
     })
 
+    it('shows a user-written mention-chip span as text, not as a chip', () => {
+      const wrapper = withMentions('<span class="mention-chip" data-mention="5">@Ana</span>', [{ id: 5, name: 'Ana' }])
+
+      expect(wrapper.find('[data-mention]').exists()).toBe(false)
+      expect(wrapper.find('.mention-chip').exists()).toBe(false)
+    })
+
     it('leaves tokens as text without the prop', () => {
       const wrapper = withMentions('hi <@5>')
 

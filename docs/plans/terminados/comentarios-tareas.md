@@ -185,7 +185,7 @@
       mínimos). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [x] M-10: `validComment` (echo.ts) valida también la forma de `user` y de los elementos de `mentions` y `attachments`.
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
-- [ ] M-11: Specs de `MarkdownContent` para un `<span class="mention-chip">` escrito por el usuario (sale como texto) y
+- [x] M-11: Specs de `MarkdownContent` para un `<span class="mention-chip">` escrito por el usuario (sale como texto) y
       para `\<@1>` (sin chip). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-12: Unificar la resolución de menciones de `MessageBody.vue` y la regla de `renderMarkdown`.
       Complejidad: media · Archivos: 3-4 · sin riesgo → sonnet
@@ -204,3 +204,4 @@
       Complejidad: baja · Archivos: 3 · sin riesgo → sonnet
 - [ ] M-19: Actualizar en `useAttachmentUploads.ts` los comentarios "channel changes" y la rama `error.errors.channel`,
       que ahora sirven a dos destinos. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [ ] M-20: `\<@1>` escrito por el usuario genera chip (la regla core `mentions` de `renderMarkdown.ts` ve el texto tras el escape); respetar el escape y fijarlo con spec. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
