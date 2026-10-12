@@ -82,7 +82,7 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
   `docs/plans/terminados/texto-enriquecido.md`.
 
 ## Mejoras propuestas
-- [ ] M-1: Test de que cambiar `initialDescription` con el diálogo abierto no pisa lo editado
+- [x] M-1: Test de que cambiar `initialDescription` con el diálogo abierto no pisa lo editado
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-2: Test en LogGroupAside que refresca el grupo con el diálogo abierto y afirma que la descripción editada se conserva
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
