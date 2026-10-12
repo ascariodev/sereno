@@ -318,6 +318,7 @@ describe('InviteView', () => {
 
       expect(wrapper.find('[data-test=email-taken-hint]').exists()).toBe(false)
       expect(wrapper.find('#invite-email').attributes('aria-invalid')).toBeUndefined()
+      expect(wrapper.find('#invite-email').attributes('aria-describedby')).toBeUndefined()
 
       await fill(wrapper)
 

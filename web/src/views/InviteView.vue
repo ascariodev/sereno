@@ -278,7 +278,7 @@ async function signOut(): Promise<void> {
             :model-value="preview.email"
             :errors="fieldErrors.email"
             error-test="error-email"
-            describedby-extra="invite-email-hint"
+            :describedby="fieldErrors.email?.length ? 'invite-email-hint' : undefined"
           >
             <p v-if="fieldErrors.email?.length" id="invite-email-hint" class="invite__error" data-test="email-taken-hint">
               {{ t('invite.emailTaken') }}

@@ -1,18 +1,47 @@
+<script setup lang="ts">
+withDefaults(
+  defineProps<{
+    variant?: 'primary' | 'secondary'
+    size?: 'lg' | 'md' | 'sm'
+  }>(),
+  { variant: 'primary', size: 'lg' },
+)
+</script>
+
 <template>
-  <button class="app-button"><slot /></button>
+  <button :class="['app-button', `app-button--${variant}`, `app-button--${size}`]"><slot /></button>
 </template>
 
 <style scoped>
 .app-button {
-  min-height: 46px;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 10px;
-  background: var(--ink);
-  color: var(--surface);
   font: inherit;
-  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+}
+.app-button--primary {
+  background: var(--ink);
+  color: var(--surface);
+}
+.app-button--secondary {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink);
+}
+.app-button--lg {
+  min-height: 46px;
+  font-size: 15px;
+}
+.app-button--md {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 14px;
+}
+.app-button--sm {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 13px;
 }
 .app-button:disabled {
   opacity: 0.6;

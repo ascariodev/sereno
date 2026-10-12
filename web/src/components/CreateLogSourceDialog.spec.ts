@@ -87,7 +87,7 @@ describe('CreateLogSourceDialog', () => {
     expect(errors.map((el) => el.textContent?.trim())).toEqual(['Taken.', 'Archived.'])
     const input = q<HTMLInputElement>('#log-source-name')!
     expect(input.getAttribute('aria-invalid')).toBe('true')
-    expect(input.getAttribute('aria-describedby')).toBe(errors.map((el) => el.id).join(' '))
+    expect(input.getAttribute('aria-describedby')).toBe(['log-source-name-hint', ...errors.map((el) => el.id)].join(' '))
     expect(q('[data-test=error-form]')).toBeNull()
   })
 
