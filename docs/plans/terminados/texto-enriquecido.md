@@ -68,7 +68,7 @@
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-3: Aislar el hook de DOMPurify (instancia propia `DOMPurify(window)` o `addHook`/`removeHook` alrededor de `sanitize`) para que no afecte a otros usos futuros.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-4: Simplificar `heading_close` en `renderMarkdown.ts` a `tokens[idx - 2].tag` (open, inline, close).
+- [x] M-4: Simplificar `heading_close` en `renderMarkdown.ts` a `tokens[idx - 2].tag` (open, inline, close).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-5: El formato desde la barra asigna `el.value` y rompe el historial de deshacer nativo del textarea (Ctrl+Z); usar `document.execCommand('insertText')` o un historial propio.
       Complejidad: media · Archivos: 2 · Riesgo: ninguno → sonnet

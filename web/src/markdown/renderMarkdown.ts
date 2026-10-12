@@ -13,8 +13,7 @@ md.renderer.rules.heading_open = (tokens, idx, options, _env, self) => {
   return self.renderToken(tokens, idx, options)
 }
 md.renderer.rules.heading_close = (tokens, idx, options, _env, self) => {
-  const open = tokens.slice(0, idx).reverse().find((t) => t.type === 'heading_open')
-  if (open) tokens[idx].tag = open.tag
+  tokens[idx].tag = tokens[idx - 2].tag
   return self.renderToken(tokens, idx, options)
 }
 
