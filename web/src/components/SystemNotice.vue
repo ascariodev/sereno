@@ -11,6 +11,7 @@ import { hourlyCountsOf, requestHourlyCounts } from '../composables/useHourlyCou
 import { setGroupStatus, statusOfGroup, taskOfGroup } from '../composables/useLogGroupStatuses'
 import LevelPill from './ui/LevelPill.vue'
 import Sparkline from './ui/Sparkline.vue'
+import NoticeTaskRef from './NoticeTaskRef.vue'
 import ThreadSummary from './ThreadSummary.vue'
 
 const STRONG_LEVELS = ['critical', 'alert', 'emergency']
@@ -189,15 +190,7 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
         <b class="system-notice-line__actor">{{ actor }}</b>
       </template>
       <template #task>
-        <RouterLink
-          v-if="projectId !== undefined"
-          class="system-notice-line__task"
-          data-test="notice-task-created-link"
-          :to="{ name: 'project-plan', params: { projectId }, query: { task: String(taskCreated.task_id) } }"
-        >
-          {{ taskCreated.task_key }}
-        </RouterLink>
-        <b v-else class="system-notice-line__actor">{{ taskCreated.task_key }}</b>
+        <NoticeTaskRef data-test="notice-task-created-link" :project-id="projectId" :task-id="taskCreated.task_id" :task-key="taskCreated.task_key" />
       </template>
     </i18n-t>
     <time class="system-notice-line__time" :datetime="message.created_at" :title="fullDate">{{ shortTime }}</time>
@@ -208,15 +201,7 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
     </span>
     <i18n-t keypath="notice.taskGroupReopened" tag="span" scope="global">
       <template #task>
-        <RouterLink
-          v-if="projectId !== undefined"
-          class="system-notice-line__task"
-          data-test="notice-task-reopened-link"
-          :to="{ name: 'project-plan', params: { projectId }, query: { task: String(taskReopened.task_id) } }"
-        >
-          {{ taskReopened.task_key }}
-        </RouterLink>
-        <b v-else class="system-notice-line__actor">{{ taskReopened.task_key }}</b>
+        <NoticeTaskRef data-test="notice-task-reopened-link" :project-id="projectId" :task-id="taskReopened.task_id" :task-key="taskReopened.task_key" />
       </template>
     </i18n-t>
     <time class="system-notice-line__time" :datetime="message.created_at" :title="fullDate">{{ shortTime }}</time>

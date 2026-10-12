@@ -143,7 +143,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
 - [x] M-1 (baja, sonnet): en `LogGroupController::update`, no reasignar el parámetro enlazado `$group` con el
   resultado de `DB::transaction` (usar otro nombre) y recortar los comentarios largos del controlador y de
   `PostTaskGroupReopenedNotice`.
-- [ ] M-2 (baja, sonnet): en `SystemNotice.vue`, extraer el chip a la tarea (`RouterLink` o `<b>` sin proyecto),
+- [x] M-2 (baja, sonnet): en `SystemNotice.vue`, extraer el chip a la tarea (`RouterLink` o `<b>` sin proyecto),
   repetido en `task.created_from_group` y `task.group_reopened`; de paso, el `<b>` sin proyecto no debería usar la clase
   `system-notice-line__actor`.
 - [ ] M-3 (media, sonnet): en el store de proyectos, que un `load()` o `refresh()` que empezó antes de un `update` no
