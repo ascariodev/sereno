@@ -6,7 +6,8 @@ import type { Task, TaskStatus } from '../api/types'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { useTasksStore } from '../stores/tasks'
-import { TASK_DESCRIPTION_MAX_LENGTH, TASK_TITLE_MAX_LENGTH } from './taskLimits'
+import { charCount, TASK_DESCRIPTION_MAX_LENGTH, TASK_TITLE_MAX_LENGTH } from './taskLimits'
+import MarkdownEditor from './MarkdownEditor.vue'
 import AppDialog from './ui/AppDialog.vue'
 
 const props = withDefaults(
@@ -56,8 +57,6 @@ const dialogOpen = computed({
     open.value = value
   },
 })
-
-const charCount = (value: string) => [...value].length
 
 function describedBy(field: Field): string | undefined {
   const count = fieldErrors.value[field]?.length ?? 0
@@ -196,14 +195,14 @@ async function submit(): Promise<void> {
 
       <div class="task-create__field">
         <label for="task-create-description">{{ t('taskCreate.descriptionLabel') }}</label>
-        <textarea
+        <MarkdownEditor
           id="task-create-description"
           v-model="description"
           name="description"
-          rows="4"
+          :rows="4"
           :aria-invalid="describedBy('description') ? 'true' : undefined"
           :aria-describedby="describedBy('description')"
-        ></textarea>
+        />
         <p
           v-for="(message, index) in fieldErrors.description"
           :id="`task-create-description-error-${index}`"

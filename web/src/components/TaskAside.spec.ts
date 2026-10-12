@@ -79,6 +79,8 @@ describe('TaskAside', () => {
     expect(q<HTMLInputElement>('#task-aside-title')!.value).toBe('Fix it')
     expect(q<HTMLButtonElement>('[data-test="submit"]')!.disabled).toBe(true)
     await type('#task-aside-title', ' New ')
+    q<HTMLButtonElement>('[data-test="edit-description"]')!.click()
+    await flushPromises()
     await type('#task-aside-description', '')
     const select = q<HTMLSelectElement>('#task-aside-assignee')!
     select.value = '3'
@@ -129,12 +131,225 @@ describe('TaskAside', () => {
     expect(q<HTMLSelectElement>('#task-aside-assignee')!.value).toBe('4')
   })
 
+  it('shows the description as rendered Markdown and edits it with the editor', async () => {
+    const spy = vi.spyOn(tasksApi, 'updateTask').mockResolvedValue({ ...base, description: '**Bold** <script>x</script>', updated_at: '2026-01-02T00:00:00.000000Z' })
+    await mountAside({ ...base, description: '**Bold** <img src=x onerror=alert(1)>' })
+    expect(q('[data-test="description-view"] strong')!.textContent).toBe('Bold')
+    expect(q('[data-test="description-view"] img')).toBeNull()
+    expect(q('#task-aside-description')).toBeNull()
+    q<HTMLButtonElement>('[data-test="edit-description"]')!.click()
+    await flushPromises()
+    expect(q<HTMLTextAreaElement>('#task-aside-description')!.value).toBe('**Bold** <img src=x onerror=alert(1)>')
+    expect(q('[data-test="tool-bold"]')).not.toBeNull()
+    await type('#task-aside-description', '**Bold** <script>x</script>')
+    await submit()
+    expect(spy).toHaveBeenCalledWith(5, 9, { title: 'Fix it', description: '**Bold** <script>x</script>', assigneeId: null })
+    expect(q('#task-aside-description')).toBeNull()
+    expect(q('[data-test="description-view"] strong')).not.toBeNull()
+  })
+
+  it('blocks a description over the limit counted in characters and links the error', async () => {
+    const spy = vi.spyOn(tasksApi, 'updateTask').mockResolvedValue(base)
+    await mountAside()
+    q<HTMLButtonElement>('[data-test="edit-description"]')!.click()
+    await flushPromises()
+    await type('#task-aside-description', '😀'.repeat(10001))
+    await submit()
+    expect(spy).not.toHaveBeenCalled()
+    expect(q('[data-test="error-description"]')).not.toBeNull()
+    expect(q('#task-aside-description')!.getAttribute('aria-invalid')).toBe('true')
+    expect(q('#task-aside-description')!.getAttribute('aria-describedby')).toBe('task-aside-description-error-0')
+  })
+
+  it('moves focus into the editor on open and back to the edit button on cancel, restoring the value', async () => {
+    await mountAside()
+    q<HTMLButtonElement>('[data-test="edit-description"]')!.click()
+    await flushPromises()
+    expect(document.activeElement).toBe(q('#task-aside-description'))
+    await type('#task-aside-description', 'changed')
+    q<HTMLButtonElement>('[data-test="cancel-description"]')!.click()
+    await flushPromises()
+    expect(q('#task-aside-description')).toBeNull()
+    expect(document.activeElement).toBe(q('[data-test="edit-description"]'))
+    expect(q('[data-test="description-view"]')!.textContent).toContain('Details')
+    expect(q<HTMLButtonElement>('[data-test="submit"]')!.disabled).toBe(true)
+  })
+
+  it('returns focus to the edit button after a successful save', async () => {
+    vi.spyOn(tasksApi, 'updateTask').mockResolvedValue({ ...base, description: 'New text', updated_at: '2026-01-02T00:00:00.000000Z' })
+    await mountAside()
+    q<HTMLButtonElement>('[data-test="edit-description"]')!.click()
+    await flushPromises()
+    await type('#task-aside-description', 'New text')
+    await submit()
+    expect(document.activeElement).toBe(q('[data-test="edit-description"]'))
+  })
+
+  it('reopens and focuses the editor on a 422 for description', async () => {
+    vi.spyOn(tasksApi, 'updateTask').mockRejectedValue(new ApiError(422, 'bad', { description: ['Too long'] }))
+    await mountAside()
+    q<HTMLButtonElement>('[data-test="edit-description"]')!.click()
+    await flushPromises()
+    await type('#task-aside-description', 'x')
+    q<HTMLButtonElement>('[data-test="cancel-description"]')!.click()
+    await flushPromises()
+    await type('#task-aside-title', 'Other')
+    await submit()
+    expect(q('#task-aside-description')).not.toBeNull()
+    expect(document.activeElement).toBe(q('#task-aside-description'))
+    expect(q('#task-aside-description')!.getAttribute('aria-describedby')).toBe('task-aside-description-error-0')
+  })
+
+  it('closes the editor on cancel even with a description error and clears it', async () => {
+    await mountAside()
+    q<HTMLButtonElement>('[data-test="edit-description"]')!.click()
+    await flushPromises()
+    await type('#task-aside-description', '😀'.repeat(10001))
+    await submit()
+    expect(q('[data-test="error-description"]')).not.toBeNull()
+    q<HTMLButtonElement>('[data-test="cancel-description"]')!.click()
+    await flushPromises()
+    expect(q('#task-aside-description')).toBeNull()
+    expect(q('[data-test="error-description"]')).toBeNull()
+    expect(document.activeElement).toBe(q('#task-aside-description-edit'))
+  })
+
+  it('does not steal focus on a task change after saving only the title', async () => {
+    vi.spyOn(tasksApi, 'updateTask').mockResolvedValue({ ...base, title: 'Renamed', updated_at: '2026-01-02T00:00:00.000000Z' })
+    const { wrapper, store } = await mountAside()
+    store.insert({ ...base, id: 10, key: 'P-2', number: 2, title: 'Other task' })
+    await type('#task-aside-title', 'Renamed')
+    await submit()
+    q<HTMLButtonElement>('[data-test="edit-description"]')!.click()
+    await flushPromises()
+    await wrapper.setProps({ taskId: 10 })
+    await flushPromises()
+    expect(q('#task-aside-description')).toBeNull()
+    expect(document.activeElement).not.toBe(q('[data-test="edit-description"]'))
+  })
+
+  it('closes the editor when the task changes', async () => {
+    const { wrapper, store } = await mountAside()
+    store.insert({ ...base, id: 10, key: 'P-2', number: 2, title: 'Other task' })
+    q<HTMLButtonElement>('[data-test="edit-description"]')!.click()
+    await flushPromises()
+    expect(q('#task-aside-description')).not.toBeNull()
+    await wrapper.setProps({ taskId: 10 })
+    await flushPromises()
+    expect(q('#task-aside-description')).toBeNull()
+    expect(document.activeElement).not.toBe(q('[data-test="edit-description"]'))
+  })
+
+  it('offers to add a description when there is none', async () => {
+    await mountAside({ ...base, description: null })
+    expect(q('[data-test="description-empty"]')).not.toBeNull()
+    expect(q('[data-test="edit-description"]')).not.toBeNull()
+  })
+
+  describe('task list', () => {
+    const withTasks = { ...base, description: 'Todo\n\n- [ ] one\n- [x] two' }
+    const box = (index: number) => document.body.querySelectorAll<HTMLInputElement>('[data-test="description-view"] input')[index]
+    async function check(index: number) {
+      box(index).click()
+      await flushPromises()
+    }
+
+    it('saves the toggled description and reflects it', async () => {
+      const spy = vi.spyOn(tasksApi, 'updateTask').mockResolvedValue({ ...withTasks, description: 'Todo\n\n- [x] one\n- [x] two', updated_at: '2026-01-02T00:00:00.000000Z' })
+      await mountAside(withTasks)
+      box(0).focus()
+      await check(0)
+      expect(spy).toHaveBeenCalledWith(5, 9, { title: 'Fix it', description: 'Todo\n\n- [x] one\n- [x] two', assigneeId: null })
+      expect(box(0).checked).toBe(true)
+      expect(document.activeElement).toBe(box(0))
+      expect(q<HTMLButtonElement>('[data-test="submit"]')!.disabled).toBe(true)
+    })
+
+    it('leaves the boxes disabled and saves nothing when read-only', async () => {
+      const spy = vi.spyOn(tasksApi, 'updateTask').mockResolvedValue(withTasks)
+      await mountAside(withTasks, { readOnly: true })
+      expect(box(0).disabled).toBe(true)
+      await check(0)
+      expect(spy).not.toHaveBeenCalled()
+    })
+
+    it('keeps the old state and reports the failure on error', async () => {
+      const spy = vi.spyOn(tasksApi, 'updateTask').mockRejectedValue(new ApiError(0, 'net', {}))
+      const error = vi.spyOn(toast, 'error')
+      await mountAside(withTasks)
+      await check(0)
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(error).toHaveBeenCalled()
+      expect(box(0).checked).toBe(false)
+      expect(box(0).disabled).toBe(false)
+    })
+
+    function pendingUpdate() {
+      let resolve!: (task: Task) => void
+      const spy = vi.spyOn(tasksApi, 'updateTask').mockImplementation(() => new Promise<Task>((done) => { resolve = done }))
+      return { spy, resolve: (task: Task) => resolve(task) }
+    }
+    const saved = { ...withTasks, description: 'Todo\n\n- [x] one\n- [x] two', updated_at: '2026-01-02T00:00:00.000000Z' }
+
+    it('discards a second click while saving, marks the description busy and reverts the box', async () => {
+      const { spy, resolve } = pendingUpdate()
+      await mountAside(withTasks)
+      const view = () => q('[data-test="description-view"]')!
+      expect(view().hasAttribute('aria-busy')).toBe(false)
+      await check(0)
+      expect(view().getAttribute('aria-busy')).toBe('true')
+      expect(box(0).disabled).toBe(false)
+      await check(1)
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(box(1).checked).toBe(true)
+      resolve(saved)
+      await flushPromises()
+      expect(view().hasAttribute('aria-busy')).toBe(false)
+      expect(box(0).checked).toBe(true)
+    })
+
+    it('disables the edit button while saving', async () => {
+      const { resolve } = pendingUpdate()
+      await mountAside(withTasks)
+      await check(0)
+      expect(q<HTMLButtonElement>('[data-test="edit-description"]')!.disabled).toBe(true)
+      resolve(saved)
+      await flushPromises()
+      expect(q<HTMLButtonElement>('[data-test="edit-description"]')!.disabled).toBe(false)
+    })
+
+    it('does not overwrite an open editor draft when the save resolves', async () => {
+      const { resolve } = pendingUpdate()
+      const { wrapper } = await mountAside(withTasks)
+      await check(0)
+      ;(wrapper.vm as unknown as { fieldErrors: Record<string, string[]> }).fieldErrors = { description: ['x'] }
+      await flushPromises()
+      await type('#task-aside-description', 'draft')
+      resolve(saved)
+      await flushPromises()
+      expect(q<HTMLTextAreaElement>('#task-aside-description')!.value).toBe('draft')
+    })
+
+    it('does not show boxes while the editor is open, so an unsaved edit is not overwritten', async () => {
+      const spy = vi.spyOn(tasksApi, 'updateTask').mockResolvedValue(withTasks)
+      await mountAside(withTasks)
+      q<HTMLButtonElement>('[data-test="edit-description"]')!.click()
+      await flushPromises()
+      await type('#task-aside-description', 'draft')
+      expect(box(0)).toBeUndefined()
+      expect(spy).not.toHaveBeenCalled()
+    })
+  })
+
   it('is read-only when the project is archived', async () => {
     const spy = vi.spyOn(tasksApi, 'updateTask').mockResolvedValue(base)
     await mountAside(base, { readOnly: true })
     expect(q('[data-test="read-only"]')).not.toBeNull()
     expect(q<HTMLInputElement>('#task-aside-title')!.readOnly).toBe(true)
     expect(q<HTMLSelectElement>('#task-aside-assignee')!.disabled).toBe(true)
+    expect(q('[data-test="description-view"]')).not.toBeNull()
+    expect(q('[data-test="edit-description"]')).toBeNull()
+    expect(q('#task-aside-description')).toBeNull()
     expect(q('[data-test="submit"]')).toBeNull()
     await submit()
     expect(spy).not.toHaveBeenCalled()
@@ -265,6 +480,23 @@ describe('TaskAside', () => {
       expect(spy).toHaveBeenCalledTimes(1)
       resolve()
       await flushPromises()
+    })
+
+    it('releases the saving state when a delete started meanwhile fails', async () => {
+      let resolveSave!: (task: Task) => void
+      vi.spyOn(tasksApi, 'updateTask').mockReturnValue(new Promise<Task>((r) => (resolveSave = r)))
+      vi.spyOn(tasksApi, 'deleteTask').mockRejectedValue(new ApiError(403, 'no', {}))
+      await mountAside()
+      q<HTMLFormElement>('form')!.dispatchEvent(new Event('submit', { cancelable: true }))
+      await flushPromises()
+      expect(q('[data-test="description-view"]')!.getAttribute('aria-busy')).toBe('true')
+      q<HTMLButtonElement>('[data-test="delete"]')!.click()
+      await flushPromises()
+      confirmBtn().click()
+      await flushPromises()
+      resolveSave({ ...base, updated_at: '2026-01-02T00:00:00.000000Z' })
+      await flushPromises()
+      expect(q('[data-test="description-view"]')!.getAttribute('aria-busy')).toBeNull()
     })
 
     it('a 403 keeps the panel open and shows a toast', async () => {

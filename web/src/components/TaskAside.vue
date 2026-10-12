@@ -7,7 +7,10 @@ import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { useTasksStore } from '../stores/tasks'
-import { TASK_DESCRIPTION_MAX_LENGTH, TASK_TITLE_MAX_LENGTH } from './taskLimits'
+import { charCount, TASK_DESCRIPTION_MAX_LENGTH, TASK_TITLE_MAX_LENGTH } from './taskLimits'
+import MarkdownContent from './MarkdownContent.vue'
+import MarkdownEditor from './MarkdownEditor.vue'
+import { toggleTaskItem } from '../markdown/toggleTaskItem'
 import AppDialog from './ui/AppDialog.vue'
 import LevelPill from './ui/LevelPill.vue'
 import ProjectKey from './ui/ProjectKey.vue'
@@ -44,7 +47,29 @@ let snapshot = { title: '', description: '', assigneeId: null as number | null }
 const FIELDS = ['title', 'description', 'assignee_id'] as const
 type Field = (typeof FIELDS)[number]
 
-const charCount = (value: string) => [...value].length
+const editingDescription = ref(false)
+const showDescriptionEditor = computed(() => !props.readOnly && (editingDescription.value || !!fieldErrors.value.description?.length))
+
+let returnFocusToEdit = false
+
+function closeDescriptionEditor(): void {
+  if (showDescriptionEditor.value) returnFocusToEdit = true
+  editingDescription.value = false
+}
+
+function cancelDescription(): void {
+  description.value = snapshot.description
+  fieldErrors.value = { ...fieldErrors.value, description: [] }
+  closeDescriptionEditor()
+}
+
+watch(showDescriptionEditor, async (visible) => {
+  const focusEdit = !visible && returnFocusToEdit
+  returnFocusToEdit = false
+  if (!visible && !focusEdit) return
+  await nextTick()
+  document.getElementById(visible ? 'task-aside-description' : 'task-aside-description-edit')?.focus()
+})
 const dirty = computed(
   () => title.value !== snapshot.title || description.value !== snapshot.description || assigneeId.value !== snapshot.assigneeId,
 )
@@ -87,6 +112,7 @@ function resetForm(): void {
   confirmOpen.value = false
   fieldErrors.value = {}
   formError.value = null
+  editingDescription.value = false
 }
 
 fill()
@@ -178,7 +204,7 @@ async function submit(): Promise<void> {
   const local = validate()
   fieldErrors.value = local
   if (Object.keys(local).length > 0) return
-  const current = ++generation
+  const current = generation
   submitting.value = true
   try {
     const saved = await tasks.update(props.projectId, props.taskId, {
@@ -191,6 +217,7 @@ async function submit(): Promise<void> {
     title.value = snapshot.title
     description.value = snapshot.description
     assigneeId.value = snapshot.assigneeId
+    closeDescriptionEditor()
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
@@ -215,9 +242,43 @@ async function submit(): Promise<void> {
   }
 }
 
+async function toggleTask(lineIndex: number): Promise<void> {
+  if (submitting.value || props.readOnly || !task.value || showDescriptionEditor.value) return
+  const next = toggleTaskItem(snapshot.description, lineIndex)
+  if (next === snapshot.description) return
+  formError.value = null
+  const current = generation
+  submitting.value = true
+  try {
+    const saved = await tasks.update(props.projectId, props.taskId, {
+      title: snapshot.title,
+      description: next,
+      assigneeId: snapshot.assigneeId,
+    })
+    if (current !== generation) return
+    snapshot = { title: saved.title, description: saved.description ?? '', assigneeId: saved.assignee?.id ?? null }
+    if (!showDescriptionEditor.value) description.value = snapshot.description
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error
+    if (current !== generation) return
+    if (error.status === 404) {
+      if (!closed) {
+        closed = true
+        toast.error(t('taskAside.notFound'))
+        emit('close', true)
+      }
+    } else if (error.status === 422) toast.error(error.message)
+    else if (error.status === 429) toast.error(t('taskCreate.tooManyAttempts'))
+    else if (error.status === 0) toast.error(t('taskCreate.network'))
+    else toast.error(t('taskAside.failed'))
+  } finally {
+    if (current === generation) submitting.value = false
+  }
+}
+
 async function confirmDelete(): Promise<void> {
   if (deleting.value || !canDelete.value) return
-  const current = ++generation
+  const current = generation
   deleting.value = true
   closed = true
   try {
@@ -293,16 +354,29 @@ async function confirmDelete(): Promise<void> {
         </div>
 
         <div class="task-aside__field">
-          <label for="task-aside-description">{{ t('taskCreate.descriptionLabel') }}</label>
-          <textarea
+          <label v-if="showDescriptionEditor" for="task-aside-description">{{ t('taskCreate.descriptionLabel') }}</label>
+          <span v-else id="task-aside-description-label" class="task-aside__label">{{ t('taskCreate.descriptionLabel') }}</span>
+          <MarkdownEditor
+            v-if="showDescriptionEditor"
             id="task-aside-description"
             v-model="description"
             name="description"
-            rows="6"
-            :readonly="readOnly"
+            :rows="6"
             :aria-invalid="describedBy('description') ? 'true' : undefined"
             :aria-describedby="describedBy('description')"
-          ></textarea>
+          />
+          <button v-if="showDescriptionEditor" type="button" class="task-aside__secondary-button" data-test="cancel-description" @click="cancelDescription">
+            {{ t('taskAside.cancel') }}
+          </button>
+          <template v-else>
+            <div v-if="description.trim() !== ''" class="task-aside__description" data-test="description-view" :aria-busy="submitting ? 'true' : undefined" role="group" aria-labelledby="task-aside-description-label">
+              <MarkdownContent :source="description" :interactive="!readOnly" @toggle="toggleTask" />
+            </div>
+            <p v-else class="task-aside__note" data-test="description-empty">{{ t('taskAside.noDescription') }}</p>
+            <button v-if="!readOnly" type="button" id="task-aside-description-edit" class="task-aside__secondary-button" data-test="edit-description" :disabled="submitting" @click="editingDescription = true">
+              {{ t(description.trim() === '' ? 'taskAside.addDescription' : 'taskAside.editDescription') }}
+            </button>
+          </template>
           <p
             v-for="(message, index) in fieldErrors.description"
             :id="`task-aside-description-error-${index}`"
@@ -425,13 +499,13 @@ async function confirmDelete(): Promise<void> {
   flex-direction: column;
   gap: 6px;
 }
-.task-aside__field label {
+.task-aside__field label,
+.task-aside__label {
   font-size: 13px;
   font-weight: 600;
 }
 .task-aside__field input,
-.task-aside__field select,
-.task-aside__field textarea {
+.task-aside__field select {
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -443,13 +517,8 @@ async function confirmDelete(): Promise<void> {
 .task-aside__field select {
   min-height: 44px;
 }
-.task-aside__field textarea {
-  padding: 10px 12px;
-  resize: vertical;
-}
 .task-aside__field input:focus-visible,
 .task-aside__field select:focus-visible,
-.task-aside__field textarea:focus-visible,
 .task-aside__close:focus-visible,
 .task-aside__delete:focus-visible,
 .task-aside__cancel:focus-visible,
@@ -463,6 +532,24 @@ async function confirmDelete(): Promise<void> {
   margin: 0;
   color: var(--level-error-fg);
   font-size: 13px;
+}
+.task-aside__description {
+  margin-bottom: var(--space-2);
+}
+.task-aside__secondary-button {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.task-aside__secondary-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .task-aside__save {
   align-self: flex-end;
