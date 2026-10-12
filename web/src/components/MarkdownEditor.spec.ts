@@ -222,6 +222,33 @@ describe('MarkdownEditor', () => {
       expect([el.selectionStart, el.selectionEnd]).toEqual([6, 11])
     })
 
+    it('falls back with a single emission when execCommand returns true without changing the value', async () => {
+      const wrapper = mountEditor('say hello')
+      const el = select(wrapper, 4, 9)
+      const spy = mockExecCommand(() => true)
+
+      await wrapper.find('[data-test=tool-bold]').trigger('click')
+      await nextTick()
+
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(wrapper.emitted('update:modelValue')).toEqual([['say **hello**']])
+      expect(el.value).toBe('say **hello**')
+    })
+
+    it('computes the changed range after an emoji', async () => {
+      const wrapper = mountEditor('😀 hola')
+      const el = select(wrapper, 3, 7)
+      const spy = mockExecCommand(typeInto)
+
+      await wrapper.find('[data-test=tool-bold]').trigger('click')
+      await nextTick()
+
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(spy.mock.calls[0]).toEqual(['insertText', false, '**hola**'])
+      expect(wrapper.emitted('update:modelValue')).toEqual([['😀 **hola**']])
+      expect([el.selectionStart, el.selectionEnd]).toEqual([5, 9])
+    })
+
     it('falls back when execCommand does not exist', async () => {
       const wrapper = mountEditor('word')
       select(wrapper, 0, 4)

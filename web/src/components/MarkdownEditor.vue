@@ -65,7 +65,8 @@ function replaceThroughHistory(el: HTMLTextAreaElement, next: string): boolean {
   if (prefix + suffix === current.length && prefix + suffix === next.length) return true
   const inserted = next.slice(prefix, next.length - suffix)
   el.setSelectionRange(prefix, current.length - suffix)
-  return inserted === '' ? document.execCommand('delete') : document.execCommand('insertText', false, inserted)
+  const handled = inserted === '' ? document.execCommand('delete') : document.execCommand('insertText', false, inserted)
+  return handled && el.value === next
 }
 
 async function apply(run: Action) {
