@@ -52,7 +52,7 @@ const taskId = computed(() => {
   return typeof raw === 'string' && /^[1-9]\d*$/.test(raw) ? Number(raw) : null
 })
 const showLoading = computed(() => validId.value && loadError.value === null && tasks.loading)
-const canEditSettings = computed(() => project.value !== null && (organization.isOwner || organization.isAdmin))
+const canEditSettings = computed(() => project.value !== null && organization.canCreateProject)
 const pendingResolveGroups = ref<boolean | null>(null)
 const savingResolveGroups = ref(false)
 const resolveGroupsChecked = computed(() => pendingResolveGroups.value ?? project.value?.tasks_resolve_log_groups ?? false)
@@ -62,6 +62,15 @@ function resetSettingState(): void {
   settingGeneration++
   pendingResolveGroups.value = null
   savingResolveGroups.value = false
+}
+
+function onResolveGroupsChange(event: Event): void {
+  const input = event.target as HTMLInputElement
+  if (savingResolveGroups.value) {
+    input.checked = resolveGroupsChecked.value
+    return
+  }
+  void toggleResolveGroups(input.checked)
 }
 
 async function toggleResolveGroups(value: boolean): Promise<void> {
@@ -180,9 +189,9 @@ onUnmounted(() => {
             role="switch"
             name="tasks-resolve-log-groups"
             :checked="resolveGroupsChecked"
-            :disabled="savingResolveGroups"
+            :aria-disabled="savingResolveGroups ? 'true' : undefined"
             :aria-busy="savingResolveGroups ? 'true' : undefined"
-            @change="toggleResolveGroups(($event.target as HTMLInputElement).checked)"
+            @change="onResolveGroupsChange"
           />
           <span>{{ t('plan.resolveGroupsSetting.label') }}</span>
         </label>

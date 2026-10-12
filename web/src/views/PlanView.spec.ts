@@ -808,10 +808,18 @@ describe('PlanView', () => {
     const toggle = 'input[name="tasks-resolve-log-groups"]'
     const projectFive = () => useProjectsStore().projects.find((item) => item.id === 5)
 
-    it('is hidden for a member and shown for an admin or owner', async () => {
+    it('is hidden for a member', async () => {
       mockApi()
       expect((await mountView('/projects/5/plan', ['member'])).find(toggle).exists()).toBe(false)
+    })
+
+    it('is shown for an admin', async () => {
+      mockApi()
       expect((await mountView('/projects/5/plan', ['admin'])).find(toggle).exists()).toBe(true)
+    })
+
+    it('is shown for an owner as a switch with its label', async () => {
+      mockApi()
       const owner = await mountView('/projects/5/plan', ['owner'])
       const input = owner.get(toggle)
       expect(input.attributes('role')).toBe('switch')
@@ -826,14 +834,24 @@ describe('PlanView', () => {
       const wrapper = await mountView('/projects/5/plan', ['admin'])
       await wrapper.get(toggle).setValue(true)
       expect(patch).toHaveBeenCalledWith('/api/projects/5', { tasks_resolve_log_groups: true })
-      expect(wrapper.get(toggle).attributes('disabled')).toBeDefined()
+      expect(wrapper.get(toggle).attributes('aria-disabled')).toBe('true')
       expect((wrapper.get(toggle).element as HTMLInputElement).checked).toBe(true)
       expect(wrapper.get(toggle).attributes('aria-busy')).toBe('true')
       release({ data: { ...project(5, 'POSVE'), tasks_resolve_log_groups: true } })
       await flushPromises()
       expect(projectFive()?.tasks_resolve_log_groups).toBe(true)
-      expect(wrapper.get(toggle).attributes('disabled')).toBeUndefined()
+      expect(wrapper.get(toggle).attributes('aria-disabled')).toBeUndefined()
       expect(wrapper.get(toggle).attributes('aria-busy')).toBeUndefined()
+      expect((wrapper.get(toggle).element as HTMLInputElement).checked).toBe(true)
+    })
+
+    it('ignores a change while saving and keeps the displayed value', async () => {
+      mockApi()
+      const patch = vi.spyOn(api, 'patch').mockImplementation(() => new Promise(() => {}) as never)
+      const wrapper = await mountView('/projects/5/plan', ['admin'])
+      await wrapper.get(toggle).setValue(true)
+      await wrapper.get(toggle).setValue(false)
+      expect(patch).toHaveBeenCalledTimes(1)
       expect((wrapper.get(toggle).element as HTMLInputElement).checked).toBe(true)
     })
 
@@ -845,7 +863,7 @@ describe('PlanView', () => {
       await wrapper.get(toggle).setValue(true)
       await flushPromises()
       expect((wrapper.get(toggle).element as HTMLInputElement).checked).toBe(false)
-      expect(wrapper.get(toggle).attributes('disabled')).toBeUndefined()
+      expect(wrapper.get(toggle).attributes('aria-disabled')).toBeUndefined()
       expect(projectFive()?.tasks_resolve_log_groups).toBe(false)
       expect(error).toHaveBeenCalledWith('Could not change the setting. Try again.')
     })
@@ -870,7 +888,7 @@ describe('PlanView', () => {
       await wrapper.get(toggle).setValue(true)
       await wrapper.router.push('/projects/6/plan')
       await flushPromises()
-      expect(wrapper.get(toggle).attributes('disabled')).toBeUndefined()
+      expect(wrapper.get(toggle).attributes('aria-disabled')).toBeUndefined()
       expect((wrapper.get(toggle).element as HTMLInputElement).checked).toBe(false)
       fail(new ApiError(500, 'boom'))
       await flushPromises()
