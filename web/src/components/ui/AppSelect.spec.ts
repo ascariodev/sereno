@@ -44,6 +44,13 @@ describe('AppSelect', () => {
     expect(select.attributes('aria-invalid')).toBeUndefined()
   })
 
+  it('invalid forces aria-invalid without errors, and is absent otherwise', () => {
+    const invalid = mount(AppSelect, { props: { ...base, invalid: true }, slots: { default: options } })
+    expect(invalid.get('select').attributes('aria-invalid')).toBe('true')
+    const plain = mount(AppSelect, { props: { ...base, invalid: false }, slots: { default: options } })
+    expect(plain.get('select').attributes('aria-invalid')).toBeUndefined()
+  })
+
   it('has no aria attributes without errors or describedby', () => {
     const wrapper = mount(AppSelect, { props: base, slots: { default: options } })
     expect(wrapper.get('select').attributes('aria-describedby')).toBeUndefined()

@@ -10,6 +10,7 @@ const props = defineProps<{
   errors?: string[]
   errorTest?: string
   describedby?: string
+  invalid?: boolean
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
@@ -34,7 +35,7 @@ defineExpose({ focus: () => field.value?.focus() })
       ref="field"
       v-bind="$attrs"
       :value="modelValue"
-      :aria-invalid="errorIds.length ? 'true' : undefined"
+      :aria-invalid="invalid || errorIds.length ? 'true' : undefined"
       :aria-describedby="describedBy"
       @change="onChange"
     >

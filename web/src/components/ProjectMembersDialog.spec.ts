@@ -98,6 +98,8 @@ describe('ProjectMembersDialog', () => {
     post.mockRejectedValue(new ApiError(422, 'Not allowed.', { user_id: ['Not allowed.'] }))
     await openDialog(wrapper)
     const select = q<HTMLSelectElement>('#project-members-select')!
+    expect(select.getAttribute('aria-invalid')).toBeNull()
+    expect(select.getAttribute('aria-describedby')).toBeNull()
     select.value = '3'
     select.dispatchEvent(new Event('change'))
     await flushPromises()
@@ -105,6 +107,7 @@ describe('ProjectMembersDialog', () => {
     await flushPromises()
     expect(q('[data-test=action-error]')?.textContent).toContain('Not allowed.')
     expect(q('#project-members-select')?.getAttribute('aria-describedby')).toBe('project-members-error')
+    expect(q('#project-members-select')?.getAttribute('aria-invalid')).toBe('true')
   })
 
   it('reloads the list on a 404 when assigning', async () => {

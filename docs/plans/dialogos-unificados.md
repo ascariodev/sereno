@@ -3,7 +3,7 @@
 **Objetivo:** que los cinco diálogos de creación y gestión (CreateLogSource, Invite, OrganizationCreate, ProjectCreate,
 ProjectMembers) usen `AppButton`, `AppInput` y un `AppSelect` nuevo en vez de HTML crudo con CSS duplicado, sin cambiar
 su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -89,7 +89,7 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
     errores por campo con sus ids, error general, retry de la carga de proyectos y foco al abrir.
   - `InvitationsView.spec` pasa. `vue-tsc -b` limpio.
 
-### [ ] Fase 7 — Migrar ProjectMembersDialog
+### [x] Fase 7 — Migrar ProjectMembersDialog
 - **Alcance:**
   - El select pasa a AppSelect, con `describedby` hacia el error externo.
   - Asignar, retry y remove pasan a AppButton (remove en `secondary`/`sm`, conservando `aria-label`).
@@ -128,15 +128,20 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
 - 2026-10-12: InviteDialog.spec se escribió y pasó contra la versión anterior antes de migrar (11 tests). El rol usa
   AppSelect con `@update:model-value="setRole"`; sus opciones solo cambian con `isOwner` y hay test de la vuelta a `member`.
   Retry, cancel y submit son AppButton `md` (retry y cancel `secondary`).
+- 2026-10-12: AppSelect suma la prop `invalid` (fuerza `aria-invalid` con un error externo); ProjectMembersDialog la usa con
+  `!!actionError` y pasa `describedby` solo con el error. `selectedId` es string (AppSelect emite strings) y la asignación
+  sigue enviando el id numérico. AppSelect va en un wrapper propio `project-members__field` (`flex:1`): un `class` sobre
+  AppInput/AppSelect cae en el control interno por `inheritAttrs: false`. Assign `md`; retry y remove `secondary`/`sm`.
 - 2026-10-12: el trabajo va en el worktree `.claude/worktrees/dialogos-unificados` (rama `feat/dialogos-unificados`). El
   servicio `web` monta el checkout principal: los tests del worktree corren en un contenedor `node:24` aparte que monta
   `web/` del worktree y el volumen `workspace_web-node-modules`.
 
 ## Notas para la próxima sesión
-- Fases 1 a 6 hechas. Sigue la fase 7 (ProjectMembersDialog: AppSelect con `describedby` al error externo, remove en
-  `secondary`/`sm`). Leer `docs/lecciones.md` (L-25, L-33, L-38, L-61). Ver en Decisiones cómo correr los tests web.
+- Fases 1 a 7 hechas. Sigue la fase 8 (verificación visual de los cinco diálogos, claro/oscuro, escritorio/móvil). El
+  servicio `web` sirve el checkout principal: para ver el worktree hace falta otro Vite sobre él (otro puerto) o mergear.
 - Fase 8: el foco de los inputs migrados usa `outline-offset: 1px` (antes 2px); `secondary` con borde 1px; `md` sin
-  `font-size` fijo (M-1). El textarea de ProjectCreateDialog pasa a `min-height` 44px y `padding-block` 10px. En InviteDialog el retry pasa de padding 0 12px a 0 16px (fila del retry dentro del `<p role=alert>`).
+  `font-size` fijo (M-1). El textarea de ProjectCreateDialog pasa a `min-height` 44px y `padding-block` 10px. En InviteDialog el retry pasa de padding 0 12px a 0 16px (fila del retry dentro del `<p role=alert>`). ProjectMembersDialog: remove y retry a `sm` (32px, 13px), retry
+  secundario; el select debe llenar el wrapper junto al botón; sin candidatos, label y texto en la misma línea.
 - Fases 6 y 7: si las opciones del select llegan async con `modelValue` ya fijado, AppSelect no reaplica `:value` al
   cambiar solo las opciones; comprobar que el valor mostrado coincide con el modelo (ver M-2).
 

@@ -8,7 +8,9 @@ import type { Member } from '../api/types'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import AppAvatar from './ui/AppAvatar.vue'
+import AppButton from './ui/AppButton.vue'
 import AppDialog from './ui/AppDialog.vue'
+import AppSelect from './ui/AppSelect.vue'
 import { toast } from './ui/toast'
 
 const props = defineProps<{ projectId: number }>()
@@ -22,7 +24,7 @@ const projectMembers = ref<Member[]>([])
 const organizationMembers = ref<Member[]>([])
 const loading = ref(false)
 const failed = ref(false)
-const selectedId = ref<number | ''>('')
+const selectedId = ref('')
 const busy = ref(false)
 const actionError = ref<string | null>(null)
 let generation = 0
@@ -72,7 +74,7 @@ function failureMessage(error: ApiError, fallbackKey: string): string {
 }
 
 async function assign(): Promise<void> {
-  const target = candidates.value.find((m) => m.id === selectedId.value)
+  const target = candidates.value.find((m) => String(m.id) === selectedId.value)
   if (!target || busy.value) return
   const current = generation
   busy.value = true
@@ -140,7 +142,7 @@ onUnmounted(() => {
       <p v-if="loading" data-test="loading">{{ t('common.loading') }}</p>
       <p v-else-if="failed" role="alert" data-test="load-failed">
         {{ t('projectMembers.loadFailed') }}
-        <button type="button" name="retry" @click="load()">{{ t('common.retry') }}</button>
+        <AppButton type="button" variant="secondary" size="sm" name="retry" @click="load()">{{ t('common.retry') }}</AppButton>
       </p>
       <template v-else>
         <ul class="project-members__list">
@@ -150,42 +152,46 @@ onUnmounted(() => {
               <strong data-test="name">{{ member.name }}</strong>
               <span class="project-members__email">{{ member.email }}</span>
             </div>
-            <button
+            <AppButton
               v-if="member.role === 'member'"
               type="button"
-              class="project-members__remove"
+              variant="secondary"
+              size="sm"
               data-test="remove"
               :aria-label="t('projectMembers.removeFor', { name: member.name })"
               :disabled="busy"
               @click="unassign(member)"
             >
               {{ t('projectMembers.remove') }}
-            </button>
+            </AppButton>
             <span v-else class="project-members__always" data-test="always">{{ t('projectMembers.alwaysSees') }}</span>
           </li>
         </ul>
 
         <form class="project-members__add" novalidate @submit.prevent="assign">
-          <label for="project-members-select">{{ t('projectMembers.add') }}</label>
           <p v-if="candidates.length === 0" class="project-members__none" data-test="no-candidates">
+            <span class="project-members__label">{{ t('projectMembers.add') }}</span>
             {{ t('projectMembers.noCandidates') }}
           </p>
           <div v-else class="project-members__row">
-            <select
-              id="project-members-select"
-              v-model="selectedId"
-              name="user"
-              :aria-invalid="actionError ? 'true' : undefined"
-              :aria-describedby="actionError ? 'project-members-error' : undefined"
-            >
-              <option value="" disabled>{{ t('projectMembers.choose') }}</option>
-              <option v-for="candidate in candidates" :key="candidate.id" :value="candidate.id">
-                {{ candidate.name }} ({{ candidate.email }})
-              </option>
-            </select>
-            <button type="submit" class="project-members__submit" data-test="assign" :disabled="busy || selectedId === ''">
+            <div class="project-members__field">
+              <AppSelect
+                id="project-members-select"
+                v-model="selectedId"
+                :label="t('projectMembers.add')"
+                :describedby="actionError ? 'project-members-error' : undefined"
+                :invalid="!!actionError"
+                name="user"
+              >
+                <option value="" disabled>{{ t('projectMembers.choose') }}</option>
+                <option v-for="candidate in candidates" :key="candidate.id" :value="String(candidate.id)">
+                  {{ candidate.name }} ({{ candidate.email }})
+                </option>
+              </AppSelect>
+            </div>
+            <AppButton type="submit" size="md" data-test="assign" :disabled="busy || selectedId === ''">
               {{ t('projectMembers.assign') }}
-            </button>
+            </AppButton>
           </div>
         </form>
         <p v-if="actionError" id="project-members-error" class="project-members__error" role="alert" data-test="action-error">
@@ -245,58 +251,23 @@ onUnmounted(() => {
   gap: 6px;
 }
 
-.project-members__add label {
+.project-members__label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ink);
   font-size: 13px;
   font-weight: 600;
 }
 
 .project-members__row {
   display: flex;
+  align-items: flex-end;
   gap: 8px;
 }
 
-.project-members__row select {
+.project-members__field {
   flex: 1;
   min-width: 0;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-}
-
-.project-members__remove,
-.project-members__submit {
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.project-members__submit {
-  border-color: transparent;
-  background: var(--ink);
-  color: var(--surface);
-}
-
-.project-members__remove:disabled,
-.project-members__submit:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.project-members__row select:focus-visible,
-.project-members__remove:focus-visible,
-.project-members__submit:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .project-members__error {
