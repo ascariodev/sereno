@@ -3,7 +3,7 @@
 **Objetivo:** `api/tests/Feature` repartido en `Core/`, `Log/`, `Chat/` y `Plan/`, sin perder ni duplicar ningún test, y
 la convención documentada para que los tests nuevos caigan en su carpeta. Origen: M-6 de
 `docs/plans/terminados/comentarios-tareas.md` (alejarse del truncado de descubrimiento de L-64).
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 
 
 ## Contexto mínimo
@@ -22,7 +22,7 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 
 ## Fases
 
-### [ ] Fase 1 — Mover los tests de Plan [riesgo]
+### [x] Fase 1 — Mover los tests de Plan [riesgo]
 - **Alcance:** `Task*Test.php` (13) a `tests/Feature/Plan/` y `TaskComments/` a `tests/Feature/Plan/TaskComments/`.
   Registrar en "Decisiones" la cuenta base de `--list-tests` y del total de la suite antes de mover.
 - **Archivos:** solo tests movidos.
@@ -62,9 +62,10 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 - 2026-10-12 — Cuatro carpetas (`Core`, `Log`, `Chat`, `Plan`), las de M-6; `TaskComments` queda dentro de `Plan`.
 - 2026-10-12 — Una fase por módulo: si el montaje trunca o un test se pierde, el corte queda acotado a una carpeta.
 - 2026-10-12 — Los planes terminados no se actualizan: son históricos y citan las rutas de su momento.
+- 2026-10-12 — Cuenta base (fase 1): LISTED=1182; la suite reporta 1179 tests (warnings + passed) y 5034 aserciones. Cada fase debe dar exactamente esos números. La línea `Tests:` trae la palabra "warnings" (falta .env en el contenedor): no filtrar con `grep -vi warn`.
 
 ## Notas para la próxima sesión
-- Arrancar por la fase 1 tomando la cuenta base. El worktree `planes-tareas-notificaciones` tiene su propia copia de
+- Fase 1 hecha (26 archivos movidos, cuenta idéntica). Cuenta base en Decisiones. `LogGroupTaskApiTest` sigue en `Feature/` y va a Log en la fase 2.
   `CLAUDE.md`: puede chocar con la fase 5 al mergear.
 
 ## Mejoras propuestas
