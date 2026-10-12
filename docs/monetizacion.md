@@ -37,6 +37,29 @@ Híbrido: por usuario activo más por volumen de log.
 
 El límite de historial es la palanca de conversión más probada (es lo que más empuja a pagar en Slack).
 
+### Precios propuestos (hipótesis, octubre 2026)
+
+En dólares, por usuario activo al mes. Ajustar cuando haya datos del costo real por organización.
+
+| | Free | Team | Business |
+|---|---|---|---|
+| Precio anual | 0 $ | 8 $ | 14 $ |
+| Precio mensual | 0 $ | 10 $ | 16 $ |
+| Usuarios | hasta 5 | ilimitados (posible mínimo de 3) | ilimitados |
+| Proyectos | 3 | ilimitados | ilimitados |
+| Fuentes de log | 1 por proyecto | según cupo de eventos | según cupo de eventos |
+| Retención de log | 7 días | 30 días | 90 días |
+| Adjuntos | 1 GB en total | 10 GB por usuario | 10 GB por usuario o más |
+
+Referencia de mercado (2026, tarifas de terceros, verificar antes de publicar precios): Slack Pro unos
+7,25 $ anual, Linear Basic unos 10 $ anual. Un equipo que usa ambos paga unos 17 $ por persona, y Sereno
+reemplaza los dos más los avisos de log.
+
+- La comisión fija de Paddle (0,50 $) pesa en cobros chicos: un equipo de 2 pagando mensual pierde cerca
+  del 7,5%. Empujar el pago anual (unos dos meses gratis) y considerar el mínimo de usuarios en Team.
+- Paddle permite precios por país: bajar la tarifa en regiones de menor poder adquisitivo sin tocar código.
+- Precio de lanzamiento: descuento fijo de por vida para los primeros clientes, a cambio de opiniones.
+
 ## Complementos
 
 - Retención extra de log.
@@ -61,17 +84,30 @@ La facturación es el paso 9 del MVP, pero estas piezas abaratan mucho llegar ah
 
 ## Pasarela de pago
 
-- Laravel Cashier soporta Stripe y Paddle.
-- Si se vende a otros países, Paddle o Lemon Squeezy actúan como comerciante registrado y gestionan los
-  impuestos de cada país. Stripe da más control pero deja los impuestos a cargo propio.
+**Decidido: Paddle** como comerciante registrado (merchant of record), con Laravel Cashier Paddle.
+
+- Se vende a todo el mundo desde una cuenta en España. Paddle cobra en moneda local, ofrece los métodos de
+  pago de cada país, declara los impuestos de todos ellos y paga a la cuenta española. La única obligación
+  fiscal propia queda en España (alta como autónomo o sociedad, a confirmar con un gestor).
+- Integrar no cuesta nada (sin alta ni cuota mensual); comisión de unos 5% + 0,50 $ por transacción.
+- Descartados por ahora: Stripe directo (los impuestos de cada país quedan a cargo propio; Stripe Tax
+  calcula pero no da de alta ni declara), Lemon Squeezy (mismo modelo que Paddle, futuro incierto tras
+  comprarla Stripe) y Stripe Managed Payments (su comerciante registrado, en vista previa privada a
+  octubre 2026).
+- Móvil: Apple y Google pueden exigir sus compras integradas (15 a 30%) para suscripciones digitales. Lo
+  habitual en SaaS de equipos es cobrar solo desde la web y que la app solo inicie sesión.
+- Al implementarlo: suscripción por organización gestionada por el `owner`, webhooks de Paddle y pantalla
+  de facturación en la web.
 
 ## Preguntas abiertas
 
-- Precios concretos de cada plan: revisar tarifas actuales de Slack, Sentry, Better Stack y Linear.
-- Mercado inicial (país, moneda) y si eso define Stripe o Paddle.
-- Si el plan Free limita usuarios o solo historial y log.
+- Precios definitivos: la propuesta de arriba no compara aún con Sentry ni Better Stack, y falta fijar el
+  cupo de eventos de log de cada plan y el precio del excedente.
+- Si el plan Free limita usuarios (la propuesta pone 5) o solo historial y log.
 - Cuándo meter la medición de uso: ¿antes del paso 3 o junto con él?
 
 ## Registro de decisiones
 
 <!-- Formato: AAAA-MM-DD: decisión. Motivo. -->
+- 2026-10-12: pasarela Paddle, para comenzar y ver cómo va. Venta a todo el mundo sin gestionar los
+  impuestos de cada país.
