@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 
 
 ## Contexto mínimo
@@ -65,7 +65,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - **Archivos:** `api/app/Policies/TaskCommentPolicy.php`.
 - **Terminado cuando:** `TaskCommentPolicyTest` cubre autor, otro miembro, admin, owner y otra organización.
 
-### [ ] Fase 7 — Editar el cuerpo con resincronización de menciones [riesgo]
+### [x] Fase 7 — Editar el cuerpo con resincronización de menciones [riesgo]
 - **Alcance:** `PATCH projects/{project}/tasks/{task}/comments/{comment}` (404 si no es de la tarea), cuerpo validado
   como en `store`; transacción con `lockForUpdate`; menciones sincronizadas (insertar nuevas, borrar quitadas) con
   `MentionTargets`; `edited_at` solo si el cuerpo cambió; evento `TaskCommentUpdated` (`task.comment.updated`).
@@ -132,6 +132,8 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - Fase 4 hecha: `onTaskCommentCreated(comment, commentsCount?)`; `tasks.setCommentsCount`. Contador en vivo completo (fases 1-4).
 - Fase 5 hecha: `task_comments.edited_at` + recurso. Tras la migración, correr `php artisan migrate` en la base de desarrollo.
 - Fase 6 hecha: `TaskCommentPolicy::update` (autor) y `delete` (autor, owner, admin); devuelven la respuesta de `inspect view` de la tarea (404 sin acceso).
+- Fase 7 hecha: PATCH comentarios; `syncMentions($comment,$task,$authorId,?$currentIds)` sin eventos; `TaskCommentUpdated` `{comment}`. `UpdateTaskCommentRequest` exige `body`: en la fase 8 revisar el caso de comentario sin texto al quitar adjuntos.
 
 ## Mejoras propuestas
 - [ ] M-1: `docs/lecciones.md` tiene L-37 a L-40 repetidas (líneas ~50-57); quitar el duplicado. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [ ] M-2: Test de `max_per_message` y exclusión del autor en la edición de comentarios; acortar los PHPDoc de `syncMentions` y `update`. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
