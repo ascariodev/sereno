@@ -75,7 +75,8 @@ accesibilidad. Origen: dialogos-unificados M-4.
   monta `web/` del worktree y el volumen `workspace_web-node-modules` (ver plan dialogos-unificados).
 
 ## Mejoras propuestas
-- [ ] M-1 (baja, sonnet): en InviteView, `.invite__card .invite__error` repite `font-size: 13px`, que AppFormError ya
-  trae; basta el `color`.
+- [x] M-1 (descartada): en InviteView, `.invite__card .invite__error` repite `font-size: 13px`, que AppFormError ya
+  trae; basta el `color`. No aplica: `email-taken-hint` usa la misma regla y no es un AppFormError, así que
+  necesita ese `font-size: 13px`.
 - [ ] M-2 (baja, sonnet): bajar la especificidad de las reglas de vista sobre `p` (o usar `:where()`) para que
   AppFormError no necesite la clase de la vista como parche. Solo si el caso de InviteView se repite.
