@@ -191,7 +191,7 @@
       Complejidad: media · Archivos: 3-4 · sin riesgo → sonnet
 - [x] M-13: `MarkdownEditor`: el `watch` que pinta `@Nombre` depende también de `mentions.members`, para que un valor
       con `<@id>` montado antes de cargar los miembros se repinte. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
-- [ ] M-14: `MarkdownEditor`: deshacer (Ctrl+Z) un formato que envolvía una mención la deja como `@Nombre` sin token;
+- [x] M-14: `MarkdownEditor`: deshacer (Ctrl+Z) un formato que envolvía una mención la deja como `@Nombre` sin token;
       conservar las menciones al reconciliar tras deshacer. Complejidad: media · Archivos: 2 · sin riesgo → sonnet
 - [x] M-15: `MarkdownEditor`: `position: relative` en la raíz para el texto solo para lectores.
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet

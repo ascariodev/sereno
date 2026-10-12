@@ -448,6 +448,37 @@ describe('MarkdownEditor', () => {
       expect(wrapper.props('modelValue')).toBe('- hi @A_na_ Pérez and <@3>')
     })
 
+    it('restores the mention when undoing and redoing a format that wrapped it', async () => {
+      const wrapper = mountWithMentions('<@2>')
+      const el = select(wrapper, 0, 10)
+
+      await wrapper.find('[data-test=tool-bold]').trigger('click')
+      expect(wrapper.props('modelValue')).toBe('**<@2>**')
+
+      el.value = '@Ana Pérez'
+      await wrapper.find('textarea').trigger('input')
+      expect(wrapper.props('modelValue')).toBe('<@2>')
+      await wrapper.findAll('.app-segmented button')[1].trigger('click')
+      expect(wrapper.find('[data-test=preview] .mention-chip').text()).toBe('@Ana Pérez')
+      await wrapper.findAll('.app-segmented button')[0].trigger('click')
+
+      el.value = '**@Ana Pérez**'
+      await wrapper.find('textarea').trigger('input')
+      expect(wrapper.props('modelValue')).toBe('**<@2>**')
+    })
+
+    it('does not restore a mention from the format history after an external reset', async () => {
+      const wrapper = mountWithMentions('<@2>')
+      const el = select(wrapper, 0, 10)
+      await wrapper.find('[data-test=tool-bold]').trigger('click')
+
+      await wrapper.setProps({ modelValue: '' })
+      el.value = '@Ana Pérez'
+      await wrapper.find('textarea').trigger('input')
+
+      expect(wrapper.props('modelValue')).toBe('@Ana Pérez')
+    })
+
     it('shows known tokens of the model value as names and follows a reset from the parent', async () => {
       const wrapper = mountWithMentions('see <@2> and <@99>')
       const textarea = wrapper.find('textarea').element as HTMLTextAreaElement

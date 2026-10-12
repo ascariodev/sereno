@@ -42,6 +42,14 @@ const mode = ref('write')
 const textarea = ref<HTMLTextAreaElement | null>(null)
 const listId = useId()
 
+interface FormatStep {
+  before: { text: string; mentions: readonly InsertedMention[] }
+  after: { text: string; mentions: readonly InsertedMention[] }
+}
+
+const MAX_FORMAT_STEPS = 50
+const formatSteps: FormatStep[] = []
+
 const mentionsEnabled = computed(() => props.mentions !== undefined)
 const mention = useMentionInput({
   members: () => props.mentions?.members ?? [],
@@ -70,6 +78,7 @@ watch(
   ([value, members], previous) => {
     if (value === null) return
     if (value === mention.serialized.value && members === previous?.[1]) return
+    formatSteps.length = 0
     const known = [...mention.mentions.value, ...(props.mentions?.members ?? [])]
     mention.restore(parseMentionDraft(value, known))
   },
@@ -162,16 +171,34 @@ function mentionsAfter(run: Action, value: string, start: number, end: number, n
   return kept
 }
 
+function rememberFormat(step: FormatStep) {
+  if (step.before.text === step.after.text) return
+  formatSteps.push(step)
+  if (formatSteps.length > MAX_FORMAT_STEPS) formatSteps.shift()
+}
+
+function mentionsForHistoryStep(current: string, next: string): readonly InsertedMention[] | null {
+  for (let i = formatSteps.length - 1; i >= 0; i--) {
+    const { before, after } = formatSteps[i]
+    if (current === after.text && next === before.text) return before.mentions
+    if (current === before.text && next === after.text) return after.mentions
+  }
+  return null
+}
+
 async function apply(run: Action) {
   const el = textarea.value
   if (!el || props.readonly) return
   const { selectionStart, selectionEnd } = el
   const edit = run(el.value, selectionStart, selectionEnd)
   const kept = mentionsEnabled.value ? mentionsAfter(run, el.value, selectionStart, selectionEnd, edit.value) : []
+  const before = { text: mention.text.value, mentions: mention.mentions.value }
   el.focus()
   const replaced = replaceThroughHistory(el, edit.value)
-  if (mentionsEnabled.value) mention.restore({ text: edit.value, mentions: kept })
-  else if (!replaced) emit('update:modelValue', edit.value)
+  if (mentionsEnabled.value) {
+    mention.restore({ text: edit.value, mentions: kept })
+    rememberFormat({ before, after: { text: edit.value, mentions: kept } })
+  } else if (!replaced) emit('update:modelValue', edit.value)
   await nextTick()
   el.focus()
   el.setSelectionRange(edit.selectionStart, edit.selectionEnd)
@@ -188,8 +215,11 @@ function onKeydown(event: KeyboardEvent) {
 
 function onInput(event: Event) {
   const el = event.target as HTMLTextAreaElement
-  if (mentionsEnabled.value) mention.update(el.value, el.selectionStart)
-  else emit('update:modelValue', el.value)
+  if (mentionsEnabled.value) {
+    const restored = mentionsForHistoryStep(mention.text.value, el.value)
+    if (restored) mention.restore({ text: el.value, mentions: restored })
+    else mention.update(el.value, el.selectionStart)
+  } else emit('update:modelValue', el.value)
 }
 
 function onCaretMove() {
