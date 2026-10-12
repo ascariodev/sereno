@@ -1,7 +1,7 @@
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h, ref } from 'vue'
+import { defineComponent, h, reactive, ref } from 'vue'
 import { api, ApiError } from '../api/client'
 import { i18n } from '../i18n'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
@@ -192,5 +192,19 @@ describe('TaskCreateDialog', () => {
     expect(q<HTMLTextAreaElement>('#task-create-description')!.value).toBe('- **Level:** Error')
     await submit()
     expect(post).toHaveBeenCalledWith('/api/projects/5/tasks', expect.objectContaining({ description: '- **Level:** Error' }))
+  })
+
+  it('keeps the edited description when initialDescription changes while open, and uses the new one on reopen', async () => {
+    const props = reactive({ initialTitle: 'Boom', initialDescription: 'first' })
+    const { wrapper, open } = mountHost(props)
+    await openIt(wrapper)
+    await type('#task-create-description', 'edited')
+    props.initialDescription = 'second'
+    await flushPromises()
+    expect(q<HTMLTextAreaElement>('#task-create-description')!.value).toBe('edited')
+    open.value = false
+    await flushPromises()
+    await openIt(wrapper)
+    expect(q<HTMLTextAreaElement>('#task-create-description')!.value).toBe('second')
   })
 })

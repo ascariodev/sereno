@@ -1376,11 +1376,33 @@ describe('ChannelView create task from a notice', () => {
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: task } as never)
     const wrapper = await mountView('/channels/7', true)
     await submitDialog(wrapper)
-    expect(post).toHaveBeenCalledWith('/api/projects/1/tasks', expect.objectContaining({ title: 'Group 5', log_group_id: 5 }))
+    expect(post).toHaveBeenCalledWith('/api/projects/1/tasks', expect.objectContaining({ title: 'Group 5', log_group_id: 5, description: expect.stringContaining('- **Events:** 2') }))
     const link = wrapper.get('[data-test=notice-task-link]')
     expect(link.text()).toBe('View DMO-1')
     expect(link.attributes('href')).toContain('task=9')
     expect(wrapper.find('button[name=create-task]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('truncates a notice title over 200 characters in the task title and keeps it whole in the description', async () => {
+    const longTitle = 'x'.repeat(250)
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (isChannels(path)) return channelsResponse(path, channels) as never
+      if (path === '/api/projects') return { data: [project(null)], meta: { last_page: 1 } } as never
+      if (/log-groups\/5$/.test(path)) return { data: { id: 5, task: null } } as never
+      return { data: [{ ...noticeMessage, payload: { ...noticeMessage.payload, title: longTitle } }], meta: { next_cursor: null } } as never
+    })
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: task } as never)
+    const wrapper = await mountView('/channels/7', true)
+    await wrapper.find('button[name=create-task]').trigger('click')
+    await flushPromises()
+    const form = q('form.task-create') as HTMLFormElement
+    form.dispatchEvent(new Event('submit', { cancelable: true }))
+    await flushPromises()
+    expect(post).toHaveBeenCalledWith('/api/projects/1/tasks', expect.objectContaining({
+      title: 'x'.repeat(200),
+      description: expect.stringContaining(longTitle),
+    }))
     wrapper.unmount()
   })
 

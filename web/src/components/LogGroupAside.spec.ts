@@ -419,6 +419,24 @@ describe('LogGroupAside', () => {
       expect(area().value).toContain('First event msg')
     })
 
+    it('keeps the edited description when the group refreshes with other data', async () => {
+      fakeMatchMedia(false)
+      mountAside()
+      await flushPromises()
+      await wrapper!.find('button[name=create-task]').trigger('click')
+      await flushPromises()
+      const area = () => document.body.querySelector<HTMLTextAreaElement>('#task-create-description')!
+      area().value = 'My edited description'
+      area().dispatchEvent(new Event('input'))
+      vi.mocked(api.get).mockResolvedValue({
+        data: { ...loaded.data, events_count: 8, events: [{ id: 2, level: 'error', message: 'Other event msg', context: null, occurred_at: '', received_at: '' }] },
+      } as never)
+      await wrapper!.setProps({ refreshToken: 1 })
+      await flushPromises()
+      expect(groupCalls()).toBe(2)
+      expect(area().value).toBe('My edited description')
+    })
+
     it('prefills at most 200 characters of the title', async () => {
       fakeMatchMedia(false)
       vi.mocked(api.get).mockResolvedValue({ data: { ...loaded.data, title: 'é'.repeat(250) } } as never)

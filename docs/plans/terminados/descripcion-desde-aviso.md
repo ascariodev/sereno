@@ -82,9 +82,9 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
   `docs/plans/terminados/texto-enriquecido.md`.
 
 ## Mejoras propuestas
-- [ ] M-1: Test de que cambiar `initialDescription` con el diálogo abierto no pisa lo editado
+- [x] M-1: Test de que cambiar `initialDescription` con el diálogo abierto no pisa lo editado
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-2: Test en LogGroupAside que refresca el grupo con el diálogo abierto y afirma que la descripción editada se conserva
+- [x] M-2: Test en LogGroupAside que refresca el grupo con el diálogo abierto y afirma que la descripción editada se conserva
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-3: En ChannelView.spec afirmar la descripción en el cuerpo del POST y cubrir un título de más de 200 caracteres (título recortado, descripción completa)
+- [x] M-3: En ChannelView.spec afirmar la descripción en el cuerpo del POST y cubrir un título de más de 200 caracteres (título recortado, descripción completa)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
