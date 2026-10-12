@@ -22,6 +22,8 @@ class TaskCommentResource extends JsonResource
                 ->sortBy('id')
                 ->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])
                 ->values()),
+            'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->sortBy('id')
+                ->map(fn ($attachment) => (new TaskCommentAttachmentResource($attachment))->resolve($request))->values()->all()),
             'created_at' => $this->created_at,
         ];
     }

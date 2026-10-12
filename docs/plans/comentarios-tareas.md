@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -49,7 +49,7 @@
 - Tabla `task_comment_attachments` (comment_id nulo hasta enlazarlo), subida en `.../tasks/{task}/attachments`,
   descarga firmada, límites de `config/chat.php`. Unos 5 archivos.
 
-### [ ] Fase 8 — Enlazar adjuntos al comentario
+### [x] Fase 8 — Enlazar adjuntos al comentario
 - `attachment_ids` al crear (solo del mismo autor y tarea, sin enlazar), resource con URLs firmadas, la poda de huérfanos
   cubre la tabla nueva. Unos 4 archivos.
 
@@ -118,9 +118,16 @@
 - 2026-10-12 (fase 7): los tests de comentarios viven en `api/tests/Feature/TaskComments/`. El montaje de Docker Desktop
   truncaba en silencio el listado de `tests/Feature` (Pest descubría 8 tests y salía con 0) al pasar de cierto tamaño de
   nombres. Tras agregar tests se comprueba `php vendor/bin/pest --list-tests | wc -l` (hoy 1124).
+- 2026-10-12 (fase 8): `attachment_ids` al crear con el patrón del chat: validación en el request (misma tarea, mismo
+  autor, sin enlazar; mensaje único que no revela la causa) y enlazado con `lockForUpdate` + `UPDATE ... whereNull` en la
+  misma transacción (422 y rollback si no coinciden). Tope `chat.attachments.max_per_message`. `body` sigue requerido
+  aunque haya adjuntos. `RELATIONS` incluye `attachments`; el resource devuelve siempre `attachments [{id,
+  original_name, mime, size, created_at, url}]`. `chat:prune-attachments` poda también `task_comment_attachments`
+  (`STORAGE_ROOTS = ['chat','tasks']`), con la misma ventana `orphan_hours`: un adjunto de comentario subido y no
+  enviado en esa ventana se pierde, igual que en el chat.
 
 ## Notas para la próxima sesión
-- Fases 1 a 7 hechas (hasta subida y descarga de adjuntos). Sigue la fase 8. Ojo con la nota de la fase 7 sobre `tests/Feature`.
+- Fases 1 a 8 hechas (API de comentarios, menciones y adjuntos completa). Sigue la fase 9 [riesgo]. Ojo con la nota de la fase 7 sobre `tests/Feature`.
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.

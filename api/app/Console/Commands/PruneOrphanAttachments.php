@@ -4,10 +4,12 @@ namespace App\Console\Commands;
 
 use App\Models\MessageAttachment;
 use App\Models\Scopes\OrganizationScope;
+use App\Models\TaskCommentAttachment;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
@@ -19,6 +21,8 @@ class PruneOrphanAttachments extends Command
     public const BATCH_SIZE = 200;
 
     public const MIN_ORPHAN_HOURS = 1;
+
+    private const STORAGE_ROOTS = ['chat', 'tasks'];
 
     public function handle(): int
     {
@@ -35,7 +39,8 @@ class PruneOrphanAttachments extends Command
 
         $cutoff = now()->subHours($hours);
 
-        $rows = $this->pruneRows($cutoff);
+        $rows = $this->pruneRows(MessageAttachment::class, 'message_id', $cutoff)
+            + $this->pruneRows(TaskCommentAttachment::class, 'task_comment_id', $cutoff);
         $files = $this->pruneStrayFiles($cutoff);
 
         $this->components->info("Deleted {$rows} orphan attachments and {$files} stray files.");
@@ -43,14 +48,15 @@ class PruneOrphanAttachments extends Command
         return self::SUCCESS;
     }
 
-    private function pruneRows(Carbon $cutoff): int
+    /** @param  class-string<Model>  $model */
+    private function pruneRows(string $model, string $linkColumn, Carbon $cutoff): int
     {
         $deleted = 0;
         $lastId = 0;
 
         // Across organizations on purpose: there is no active tenant in a scheduled command.
-        $orphans = fn () => MessageAttachment::withoutGlobalScope(OrganizationScope::class)
-            ->whereNull('message_id')
+        $orphans = fn () => $model::withoutGlobalScope(OrganizationScope::class)
+            ->whereNull($linkColumn)
             ->where('created_at', '<', $cutoff);
 
         do {
@@ -87,11 +93,15 @@ class PruneOrphanAttachments extends Command
         $deleted = 0;
 
         foreach ($this->pathChunks($storage) as $paths) {
-            $known = MessageAttachment::withoutGlobalScope(OrganizationScope::class)
-                ->where('disk', $disk)
-                ->whereIn('path', $paths)
-                ->pluck('path')
-                ->all();
+            $known = [];
+
+            foreach ([MessageAttachment::class, TaskCommentAttachment::class] as $model) {
+                $known = [...$known, ...$model::withoutGlobalScope(OrganizationScope::class)
+                    ->where('disk', $disk)
+                    ->whereIn('path', $paths)
+                    ->pluck('path')
+                    ->all()];
+            }
 
             foreach (array_diff($paths, $known) as $path) {
                 try {
@@ -117,21 +127,19 @@ class PruneOrphanAttachments extends Command
      */
     private function pathChunks(Filesystem $storage): \Generator
     {
-        $roots = ['chat'];
+        foreach (self::STORAGE_ROOTS as $topRoot) {
+            $roots = [$topRoot, ...$storage->directories($topRoot)];
 
-        foreach ($storage->directories('chat') as $organizationDir) {
-            $roots[] = $organizationDir;
-        }
+            foreach ($roots as $root) {
+                yield from array_chunk($storage->files($root), self::BATCH_SIZE);
 
-        foreach ($roots as $root) {
-            yield from array_chunk($storage->files($root), self::BATCH_SIZE);
+                if ($root === $topRoot) {
+                    continue;
+                }
 
-            if ($root === 'chat') {
-                continue;
-            }
-
-            foreach ($storage->directories($root) as $channelDir) {
-                yield from array_chunk($storage->allFiles($channelDir), self::BATCH_SIZE);
+                foreach ($storage->directories($root) as $ownerDir) {
+                    yield from array_chunk($storage->allFiles($ownerDir), self::BATCH_SIZE);
+                }
             }
         }
     }
