@@ -55,3 +55,19 @@ it('does not broadcast when validation fails', function () {
 
     Event::assertNotDispatched(TaskCommentCreated::class);
 });
+
+it('broadcasts the mentions like the response', function () {
+    Event::fake([TaskCommentCreated::class]);
+    $mentioned = User::factory()->create(['name' => 'Ana']);
+    $this->organization->addMember($mentioned, [Role::Member]);
+    $this->project->addMember($mentioned);
+
+    $response = broadcastCommentCall($this, ['body' => "Hi <@{$mentioned->id}>"])->assertCreated();
+
+    Event::assertDispatched(TaskCommentCreated::class, function (TaskCommentCreated $event) use ($mentioned, $response) {
+        $comment = json_decode(json_encode($event->broadcastWith()['comment']), true);
+
+        return $comment['mentions'] === [['id' => $mentioned->id, 'name' => 'Ana']]
+            && $comment === $response->json('data');
+    });
+});

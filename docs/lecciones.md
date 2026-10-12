@@ -96,6 +96,7 @@
 - L-59: Un listener en cola que avisa de un estado ("se reabrió") vuelve a comprobar en el worker que ese estado sigue vigente: otra operación puede revertirlo mientras el job espera. — aplicada en: test (TaskGroupReopenedNoticeTest)
 - L-61: Un id que se pasa a `aria-describedby` de forma fija apunta a un elemento que existe en todos los estados: si el elemento tiene `v-if`, el id se pasa con la misma condición, y el spec afirma el atributo también en el caso sin el elemento. — aplicada en: test (InviteView.spec)
 - L-62: Un `class` o atributo ARIA puesto sobre un componente con `inheritAttrs: false` cae en el control interno, no en la raíz: el CSS scoped del padre no lo alcanza (envolver en un elemento propio) y un `aria-*` lo puede pisar el componente (darle una prop). — aplicada en: test (ProjectMembersDialog.spec)
+- L-63: Un endpoint que guarda un registro y sus filas hijas (menciones, adjuntos) lo hace en un `DB::transaction`, como `MessageController`, con un test que fuerza el fallo de las hijas y afirma que no queda el registro. — aplicada en: test (TaskCommentMentionsTest)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable(['body'])]
 class TaskComment extends Model
@@ -25,5 +26,10 @@ class TaskComment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function mentionedUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'task_comment_mentions')->select(['users.id', 'users.name']);
     }
 }

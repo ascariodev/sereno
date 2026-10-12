@@ -18,6 +18,10 @@ class TaskCommentResource extends JsonResource
             'user' => $this->whenLoaded('user', fn () => $this->user
                 ? ['id' => $this->user->id, 'name' => $this->user->name]
                 : null),
+            'mentions' => $this->whenLoaded('mentionedUsers', fn () => $this->mentionedUsers
+                ->sortBy('id')
+                ->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])
+                ->values()),
             'created_at' => $this->created_at,
         ];
     }

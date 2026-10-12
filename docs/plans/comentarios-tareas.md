@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -38,7 +38,7 @@
 - Sacar de `MessageMentions::target` la parte que resuelve `<@id>` a miembros con acceso al proyecto, para reusarla sin
   canal. Refactor del chat: la suite completa del API pasa sin cambios. 2 archivos.
 
-### [ ] Fase 5 — Menciones en comentarios
+### [x] Fase 5 — Menciones en comentarios
 - Tabla `task_comment_mentions`, se guardan al crear, el resource devuelve `mentions [{id, name}]`. Unos 4 archivos.
 
 ### [ ] Fase 6 — Extraer el almacenamiento de adjuntos [riesgo]
@@ -98,9 +98,14 @@
   ?int $projectId, int $max): Collection<User>` (estática); `MessageMentions::target` delega en ella con
   `chat.mentions.max_per_message`. La fase 5 la llama con el `project_id` de la tarea y decide el `$max` de los
   comentarios (reusar esa clave o crear otra). Suite completa del API sin fallos.
+- 2026-10-12 (fase 5): `task_comment_mentions` con FK compuesta `(task_comment_id, organization_id)` hacia el nuevo único
+  `task_comments_id_organization_id_unique` (la fase 8 puede apoyarse en él); `user_id` FK simple con cascade, único
+  `(task_comment_id, user_id)`, sin `read_at`. `RELATIONS = ['user:id,name', 'mentionedUsers']`; el resource devuelve
+  `mentions [{id, name}]` por id. `store` guarda comentario y menciones en `DB::transaction` (corrección de la revisión).
+  `$max` reusa `chat.mentions.max_per_message`. No hay notificación de mención (llega con el plan `notificaciones`).
 
 ## Notas para la próxima sesión
-- Fases 1 a 4 hechas (tabla, API de listar/crear, evento y MentionTargets). Sigue la fase 5.
+- Fases 1 a 5 hechas (tabla, API, evento, MentionTargets y menciones). Sigue la fase 6 [riesgo].
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
