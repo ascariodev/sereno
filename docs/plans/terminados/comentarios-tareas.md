@@ -172,7 +172,7 @@
       API y eventos de tareas", desfasada. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [x] M-4: Test directo de `TaskCommentPolicy::view` (hoy sin ruta que lo use) cuando exista editar o borrar.
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-5: Docblock de `AttachmentStorage::download` que diga que depende de `expires` de una ruta firmada para el
+- [x] M-5: Docblock de `AttachmentStorage::download` que diga que depende de `expires` de una ruta firmada para el
       `max-age`. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-6: Repartir `api/tests/Feature` en subcarpetas por módulo (Chat, Log, Plan, Core) para alejarse del umbral que
       trunca el descubrimiento de Pest en el montaje de Docker. Decisión del usuario. Complejidad: alta (más de 5
