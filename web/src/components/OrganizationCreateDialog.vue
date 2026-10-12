@@ -6,6 +6,7 @@ import type { Organization } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
 import AppButton from './ui/AppButton.vue'
 import AppDialog from './ui/AppDialog.vue'
+import AppFormError from './ui/AppFormError.vue'
 import AppInput from './ui/AppInput.vue'
 import { toast } from './ui/toast'
 
@@ -127,7 +128,7 @@ async function submit(): Promise<void> {
         required
       />
 
-      <p v-if="formError" class="org-create__error" role="alert" data-test="error-form">{{ formError }}</p>
+      <AppFormError v-if="formError" data-test="error-form">{{ formError }}</AppFormError>
 
       <div class="org-create__actions">
         <AppButton type="button" variant="secondary" size="md" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">
@@ -146,11 +147,6 @@ async function submit(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-.org-create__error {
-  margin: 0;
-  color: var(--level-error-fg);
-  font-size: 13px;
 }
 .org-create__actions {
   display: flex;

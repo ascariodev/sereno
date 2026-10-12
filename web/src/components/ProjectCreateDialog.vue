@@ -7,6 +7,7 @@ import type { Project } from '../api/types'
 import { useProjectsStore } from '../stores/projects'
 import AppButton from './ui/AppButton.vue'
 import AppDialog from './ui/AppDialog.vue'
+import AppFormError from './ui/AppFormError.vue'
 import AppInput from './ui/AppInput.vue'
 import { toast } from './ui/toast'
 
@@ -203,7 +204,7 @@ async function submit(): Promise<void> {
         :rows="3"
       />
 
-      <p v-if="formError" class="proj-create__error" role="alert" data-test="error-form">{{ formError }}</p>
+      <AppFormError v-if="formError" data-test="error-form">{{ formError }}</AppFormError>
 
       <div class="proj-create__actions">
         <AppButton type="button" variant="secondary" size="md" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">
@@ -222,11 +223,6 @@ async function submit(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-.proj-create__error {
-  margin: 0;
-  color: var(--level-error-fg);
-  font-size: 13px;
 }
 .proj-create__actions {
   display: flex;

@@ -8,6 +8,7 @@ import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import AppButton from './ui/AppButton.vue'
 import AppDialog from './ui/AppDialog.vue'
+import AppFormError from './ui/AppFormError.vue'
 import AppInput from './ui/AppInput.vue'
 import AppSelect from './ui/AppSelect.vue'
 import { toast } from './ui/toast'
@@ -201,7 +202,7 @@ async function submit(): Promise<void> {
         </p>
       </fieldset>
 
-      <p v-if="formError" class="invite-dialog__error" role="alert" data-test="error-form">{{ formError }}</p>
+      <AppFormError v-if="formError" data-test="error-form">{{ formError }}</AppFormError>
 
       <div class="invite-dialog__actions">
         <AppButton type="button" variant="secondary" size="md" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">

@@ -7,6 +7,7 @@ import type { LogSourceWithKey } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
 import AppButton from './ui/AppButton.vue'
 import AppDialog from './ui/AppDialog.vue'
+import AppFormError from './ui/AppFormError.vue'
 import AppInput from './ui/AppInput.vue'
 import { toast } from './ui/toast'
 
@@ -121,7 +122,7 @@ async function submit(): Promise<void> {
         <template #hint>{{ t('createLogSource.nameHint') }}</template>
       </AppInput>
 
-      <p v-if="formError" class="create-source__error" role="alert" data-test="error-form">{{ formError }}</p>
+      <AppFormError v-if="formError" data-test="error-form">{{ formError }}</AppFormError>
 
       <div class="create-source__actions">
         <AppButton type="button" variant="secondary" size="md" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">
@@ -140,12 +141,6 @@ async function submit(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-
-.create-source__error {
-  margin: 0;
-  color: var(--level-error-fg);
-  font-size: 13px;
 }
 
 .create-source__actions {

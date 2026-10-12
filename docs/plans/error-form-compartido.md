@@ -3,7 +3,7 @@
 **Objetivo:** que el error general de los formularios (`<p role="alert" data-test="error-form">`, hoy con una clase
 `__error` y el mismo CSS copiado en nueve archivos) sea un componente base `AppFormError`, sin cambiar su aspecto ni su
 accesibilidad. Origen: dialogos-unificados M-4.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -31,7 +31,7 @@ accesibilidad. Origen: dialogos-unificados M-4.
 - **Terminado cuando:** el spec cubre `role="alert"`, el slot, que `data-test` y `id` llegan al `<p>` y la clase.
   `vue-tsc -b` limpio.
 
-### [ ] Fase 2 — Migrar los diálogos de creación
+### [x] Fase 2 — Migrar los diálogos de creación
 - **Alcance:** CreateLogSourceDialog, InviteDialog, OrganizationCreateDialog y ProjectCreateDialog usan AppFormError para
   el `error-form`. Se borra el CSS `__error` donde ya no lo usa nada (en InviteDialog se queda).
 - **Archivos:** los cuatro `.vue`.
@@ -63,7 +63,7 @@ accesibilidad. Origen: dialogos-unificados M-4.
   del padre caen en el `<p>`.
 
 ## Notas para la próxima sesión
-- Fase 1 hecha: `web/src/components/ui/AppFormError.vue`. Sigue la fase 2. AppLayout.spec tiene 6 fallos que ya existen en `main`.
+- Fases 1 y 2 hechas (AppFormError y los cuatro diálogos de creación). Sigue la fase 3. AppLayout.spec tiene 6 fallos que ya existen en `main`.
 - El servicio `web` monta el checkout principal: en un worktree, los tests corren en un contenedor `node:24` aparte que
   monta `web/` del worktree y el volumen `workspace_web-node-modules` (ver plan dialogos-unificados).
 
