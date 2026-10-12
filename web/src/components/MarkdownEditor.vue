@@ -2,6 +2,7 @@
 import { Bold, Code, Heading, Italic, Link, List, ListOrdered, Quote } from '@lucide/vue'
 import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { isApple } from '../platform'
 import { formatLines, toggleCode, toggleLink, wrapSelection, type TextEdit } from '../markdown/markdownFormat'
 import AppSegmented from './ui/AppSegmented.vue'
 import AppTooltip from './ui/AppTooltip.vue'
@@ -50,7 +51,7 @@ const actions: { key: string; icon: typeof Bold; shortcut?: string; run: Action 
 
 function tooltipText(action: { key: string; shortcut?: string }) {
   const name = t(`markdownEditor.${action.key}`)
-  return action.shortcut ? `${name} (Ctrl+${action.shortcut})` : name
+  return action.shortcut ? `${name} (${isApple ? '⌘' : 'Ctrl+'}${action.shortcut})` : name
 }
 
 async function apply(run: Action) {
@@ -87,7 +88,7 @@ function onInput(event: Event) {
             class="markdown-editor__tool"
             :data-test="`tool-${action.key}`"
             :aria-label="t(`markdownEditor.${action.key}`)"
-            :aria-keyshortcuts="action.shortcut ? `Control+${action.shortcut}` : undefined"
+            :aria-keyshortcuts="action.shortcut ? `${isApple ? 'Meta' : 'Control'}+${action.shortcut}` : undefined"
             :disabled="readonly"
             @mousedown.prevent
             @click="apply(action.run)"

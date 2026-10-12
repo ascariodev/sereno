@@ -72,5 +72,7 @@
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-5: El formato desde la barra asigna `el.value` y rompe el historial de deshacer nativo del textarea (Ctrl+Z); usar `document.execCommand('insertText')` o un historial propio.
       Complejidad: media · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-6: Tooltips y atajos del editor muestran "Ctrl+" también en Mac; mostrar "⌘" según la plataforma.
+- [x] M-6: Tooltips y atajos del editor muestran "Ctrl+" también en Mac; mostrar "⌘" según la plataforma.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → haiku
+- [ ] M-7: En `MarkdownEditor.apple.spec.ts`, buscar el tooltip por el texto del enlace en vez de `tips[7]` (depende del orden de las acciones).
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
