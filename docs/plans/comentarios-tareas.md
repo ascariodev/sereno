@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -34,7 +34,7 @@
 ### [x] Fase 3 — Evento TaskCommentCreated
 - Broadcast `.task.comment.created` al canal del proyecto con el resource cargado igual que en index (L-37). 2 archivos.
 
-### [ ] Fase 4 — Extraer la resolución de menciones [riesgo]
+### [x] Fase 4 — Extraer la resolución de menciones [riesgo]
 - Sacar de `MessageMentions::target` la parte que resuelve `<@id>` a miembros con acceso al proyecto, para reusarla sin
   canal. Refactor del chat: la suite completa del API pasa sin cambios. 2 archivos.
 
@@ -94,9 +94,13 @@
   `ShouldDispatchAfterCommit`, independiente de `TaskSnapshotEvent`; payload `{comment: {...}}` serializado en el
   constructor con `TaskCommentResource`. Las fases 5 y 8 deben cargar sus relaciones (menciones, adjuntos) en
   `TaskCommentController::RELATIONS` (L-37). La web (fase 10) escucha `.task.comment.created`.
+- 2026-10-12 (fase 4): `App\Support\MentionTargets::resolve(?string $body, int $authorId, int $organizationId,
+  ?int $projectId, int $max): Collection<User>` (estática); `MessageMentions::target` delega en ella con
+  `chat.mentions.max_per_message`. La fase 5 la llama con el `project_id` de la tarea y decide el `$max` de los
+  comentarios (reusar esa clave o crear otra). Suite completa del API sin fallos.
 
 ## Notas para la próxima sesión
-- Fases 1 a 3 hechas (tabla, API de listar/crear y evento). Sigue la fase 4 [riesgo]. Helper de tests API del coordinador: scratchpad `apitest.sh`. El plan `notificaciones` escucha `TaskCommentCreated`.
+- Fases 1 a 4 hechas (tabla, API de listar/crear, evento y MentionTargets). Sigue la fase 5.
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.

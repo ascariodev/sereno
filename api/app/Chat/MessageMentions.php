@@ -7,46 +7,27 @@ use App\Models\Channel;
 use App\Models\Message;
 use App\Models\MessageMention;
 use App\Models\User;
-use App\Support\ProjectAccess;
+use App\Support\MentionTargets;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
 
 class MessageMentions
 {
     /**
      * Members of the channel's organization who can see the channel, named by `<@id>` tokens, minus the author,
      * ordered by id. Only the first `chat.mentions.max_per_message` of them (in order of appearance) count;
-     * the body keeps all. Access is resolved in a batch, not per mentioned id.
+     * the body keeps all.
      *
      * @return Collection<int, User>
      */
     public function target(Channel $channel, ?string $body, int $authorId): Collection
     {
-        preg_match_all('/<@([1-9][0-9]{0,17})>/', $body ?? '', $matches);
-        $ids = array_values(array_diff(array_unique(array_map('intval', $matches[1])), [$authorId]));
-
-        if ($ids === []) {
-            return new Collection;
-        }
-
-        $members = User::query()
-            ->whereIn('id', $ids)
-            ->whereIn('id', DB::table('organization_user')->where('organization_id', $channel->organization_id)->select('user_id'))
-            ->get(['id', 'name'])
-            ->keyBy('id');
-
-        $memberIds = array_values(array_filter($ids, fn (int $id) => $members->has($id)));
-
-        if ($channel->project_id !== null) {
-            $memberIds = ProjectAccess::viewableUserIds($memberIds, $channel->organization_id, $channel->project_id);
-        }
-
-        $mentioned = array_map(
-            fn (int $id) => $members->get($id),
-            array_slice($memberIds, 0, config('chat.mentions.max_per_message')),
+        return MentionTargets::resolve(
+            $body,
+            $authorId,
+            $channel->organization_id,
+            $channel->project_id,
+            config('chat.mentions.max_per_message'),
         );
-
-        return (new Collection($mentioned))->sortBy('id')->values();
     }
 
     /**
