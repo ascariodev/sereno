@@ -14,7 +14,7 @@ withDefaults(
 
 <style scoped>
 .app-button {
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 10px;
   font: inherit;
   font-weight: 600;

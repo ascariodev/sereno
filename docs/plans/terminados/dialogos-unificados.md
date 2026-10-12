@@ -3,7 +3,7 @@
 **Objetivo:** que los cinco diálogos de creación y gestión (CreateLogSource, Invite, OrganizationCreate, ProjectCreate,
 ProjectMembers) usen `AppButton`, `AppInput` y un `AppSelect` nuevo en vez de HTML crudo con CSS duplicado, sin cambiar
 su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
-**Estado:** en curso · Fase actual: 8
+**Estado:** terminado · Fase actual: -
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -97,7 +97,7 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
 - **Archivos:** `web/src/components/ProjectMembersDialog.vue`.
 - **Terminado cuando:** `ProjectMembersDialog.spec` pasa sin cambios en los selectores. `vue-tsc -b` limpio.
 
-### [ ] Fase 8 — Verificación visual
+### [x] Fase 8 — Verificación visual
 - **Alcance:**
   - Revisar en el navegador los cinco diálogos en tema claro y oscuro, en escritorio y en móvil: alturas, alineación de
     la fila de acciones y de la fila select más botón, errores, foco visible.
@@ -132,22 +132,21 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
   `!!actionError` y pasa `describedby` solo con el error. `selectedId` es string (AppSelect emite strings) y la asignación
   sigue enviando el id numérico. AppSelect va en un wrapper propio `project-members__field` (`flex:1`): un `class` sobre
   AppInput/AppSelect cae en el control interno por `inheritAttrs: false`. Assign `md`; retry y remove `secondary`/`sm`.
+- 2026-10-12: verificación visual por medición (getBoundingClientRect y estilos computados) de main (:5174) contra el
+  worktree (:5175) en escritorio oscuro y móvil claro, con un 422 real. Única diferencia no prevista: el primario `md` medía
+  2px menos (el CSS anterior tenía borde transparente); AppButton `primary` pasa a `border: 1px solid transparent`.
+- 2026-10-12 (usuario): se aceptan Quitar y reintentar de ProjectMembersDialog en `sm` (antes 74x44, ahora 59x32, 13px) y
+  el offset de foco de 1px en los inputs (antes 2px).
 - 2026-10-12: el trabajo va en el worktree `.claude/worktrees/dialogos-unificados` (rama `feat/dialogos-unificados`). El
   servicio `web` monta el checkout principal: los tests del worktree corren en un contenedor `node:24` aparte que monta
   `web/` del worktree y el volumen `workspace_web-node-modules`.
 
 ## Notas para la próxima sesión
-- Fases 1 a 7 hechas. Sigue la fase 8 (verificación visual de los cinco diálogos, claro/oscuro, escritorio/móvil). El
-  servicio `web` sirve el checkout principal: para ver el worktree hace falta otro Vite sobre él (otro puerto) o mergear.
-- Fase 8: el foco de los inputs migrados usa `outline-offset: 1px` (antes 2px); `secondary` con borde 1px; `md` sin
-  `font-size` fijo (M-1). El textarea de ProjectCreateDialog pasa a `min-height` 44px y `padding-block` 10px. En InviteDialog el retry pasa de padding 0 12px a 0 16px (fila del retry dentro del `<p role=alert>`). ProjectMembersDialog: remove y retry a `sm` (32px, 13px), retry
-  secundario; el select debe llenar el wrapper junto al botón; sin candidatos, label y texto en la misma línea.
-- Fases 6 y 7: si las opciones del select llegan async con `modelValue` ya fijado, AppSelect no reaplica `:value` al
-  cambiar solo las opciones; comprobar que el valor mostrado coincide con el modelo (ver M-2).
+- Plan terminado. Pendientes solo las mejoras propuestas. AppLayout.spec tiene 6 fallos que ya existían en `main`.
 
 ## Mejoras propuestas
 - [ ] M-1 (baja, sonnet): fijar `font-size` en los tamaños `md` y `sm` de AppButton para que todos los diálogos midan
-  igual, en vez de heredar el del contexto (revisar en la fase 8).
+  igual, en vez de heredar el del contexto. En la fase 8 todos midieron 14px (heredado), así que es solo robustez.
 - [ ] M-2 (baja, sonnet): AppSelect con opciones que llegan después de fijar `modelValue` (`v-for` diferido): test de que
   el valor mostrado coincide con el modelo y, si falla, reaplicar el valor al cambiar las opciones.
 - [ ] M-3 (baja, sonnet): estilo atenuado de AppSelect con `disabled` y test de que un `modelValue` sin opción coincidente
