@@ -70,6 +70,27 @@ describe('projects store', () => {
     expect(store.projects[1].name).toBe('Beta')
   })
 
+  it('update during an in-flight refresh keeps the saved value', async () => {
+    let stale = false
+    let resolveRefresh: (value: unknown) => void = () => {}
+    const flag = (value: boolean) => ({ ...project(1, 'Alpha'), tasks_resolve_log_groups: value })
+    vi.spyOn(api, 'get').mockImplementation((path: string) => {
+      if (path !== '/api/projects') return Promise.resolve({ data: [] } as never)
+      if (stale) return new Promise((resolve) => (resolveRefresh = resolve)) as never
+      return Promise.resolve({ data: [flag(false)], meta: meta() } as never)
+    })
+    vi.spyOn(api, 'patch').mockResolvedValue({ data: flag(true) } as never)
+    const store = setup()
+    await flushPromises()
+    stale = true
+    const refreshing = store.refresh()
+    await flushPromises()
+    await store.update(1, { tasks_resolve_log_groups: true })
+    resolveRefresh({ data: [flag(false)], meta: meta() })
+    await refreshing
+    expect(store.projects[0].tasks_resolve_log_groups).toBe(true)
+  })
+
   it('update rethrows a failure and leaves the project unchanged', async () => {
     vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
       path === '/api/projects'

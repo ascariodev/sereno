@@ -146,7 +146,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
 - [x] M-2 (baja, sonnet): en `SystemNotice.vue`, extraer el chip a la tarea (`RouterLink` o `<b>` sin proyecto),
   repetido en `task.created_from_group` y `task.group_reopened`; de paso, el `<b>` sin proyecto no debería usar la clase
   `system-notice-line__actor`.
-- [ ] M-3 (media, sonnet): en el store de proyectos, que un `load()` o `refresh()` que empezó antes de un `update` no
+- [x] M-3 (media, sonnet): en el store de proyectos, que un `load()` o `refresh()` que empezó antes de un `update` no
   pise el valor recién guardado (marcar ids tocados y conservar sus campos), con spec del guardado durante la recarga.
 - [ ] M-4 (baja, sonnet): en `PlanView`, mientras guarda usar `aria-disabled` e ignorar el `change` en vez de `disabled`
   (no sacar el foco del teclado); reutilizar un getter del store de organización (`canCreateProject` o uno nuevo
