@@ -71,7 +71,7 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
 ## Decisiones
 - 2026-10-12 — Sin tabla ni enlace al grupo en la descripción — el render no admite tablas ni enlaces relativos, y
   TaskAside ya enlaza al grupo de origen.
-- 2026-10-12 — (propuesta, a confirmar) El aviso del canal prellena con los datos del payload, sin pedir el grupo:
+- 2026-10-12 — (confirmada por el usuario) El aviso del canal prellena con los datos del payload, sin pedir el grupo:
   evita una petición pesada (hasta 50 eventos) y la carrera con el reset síncrono del diálogo. El conteo es el del
   momento del aviso.
 - 2026-10-12 — Los rótulos de la plantilla siguen el idioma de la interfaz de quien crea la tarea; luego es
