@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 
 
 ## Contexto mínimo
@@ -88,7 +88,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
   `TaskCommentController.php`, `api/app/Events/TaskCommentDeleted.php`.
 - **Terminado cuando:** tests de borrar (autor, admin, ajeno 403, archivos borrados, conteo en el evento).
 
-### [ ] Fase 10 — Cliente y store de comentarios: editar y borrar
+### [x] Fase 10 — Cliente y store de comentarios: editar y borrar
 - **Alcance:** `TaskComment.edited_at`; `updateTaskComment` y `deleteTaskComment` en el cliente; `update(comment)`
   (descarta ediciones más viejas por `edited_at`) y `remove(id)` en el store, respetando `generation`.
 - **Archivos:** `web/src/api/types.ts`, `web/src/api/taskComments.ts`, `web/src/stores/taskComments.ts`.
@@ -135,6 +135,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - Fase 7 hecha: PATCH comentarios; `syncMentions($comment,$task,$authorId,?$currentIds)` sin eventos; `TaskCommentUpdated` `{comment}`. `UpdateTaskCommentRequest` exige `body`: en la fase 8 revisar el caso de comentario sin texto al quitar adjuntos.
 - Fase 8 hecha: `remove_attachment_ids` en el PATCH; body sigue obligatorio (igual que store); archivos borrados en afterCommit con try/report (patrón reutilizable en fase 9).
 - Fase 9 hecha (API completo): DELETE comentarios, evento `task.comment.deleted` `{id, task_id, comments_count}` (la web valida los tres como number).
+- Fase 10 hecha: `updateTaskComment`/`deleteTaskComment`; store `update(comment)` (descarta si el conocido tiene edición más nueva o el entrante no trae `edited_at`) y `remove(id)`. `validComment` no exige `edited_at`: la fase 11 debe exigirlo (string|null).
 
 ## Mejoras propuestas
 - [ ] M-1: `docs/lecciones.md` tiene L-37 a L-40 repetidas (líneas ~50-57); quitar el duplicado. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet

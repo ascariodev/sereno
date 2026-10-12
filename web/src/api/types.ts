@@ -351,6 +351,8 @@ export interface TaskComment {
   attachments: MessageAttachment[]
   /** ISO timestamp. */
   created_at: string
+  /** ISO timestamp of the last edit; null if never edited. */
+  edited_at: string | null
 }
 
 export interface DataEnvelope<T> {

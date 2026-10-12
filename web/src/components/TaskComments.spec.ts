@@ -19,6 +19,7 @@ const comment = (id: number, overrides: Partial<TaskComment> = {}): TaskComment 
   mentions: [],
   attachments: [],
   created_at: new Date().toISOString(),
+  edited_at: null,
   ...overrides,
 })
 const page = (data: TaskComment[], nextCursor: string | null = null) => ({ data, meta: { next_cursor: nextCursor } }) as never

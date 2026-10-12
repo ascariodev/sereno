@@ -139,6 +139,24 @@ export const useTaskCommentsStore = defineStore('taskComments', () => {
     return true
   }
 
+  /** An edited comment: replaces the known one of the open task, unless the known one has a newer edit. */
+  function update(comment: TaskComment): boolean {
+    if (taskId.value === null || comment.task_id !== taskId.value) return false
+    const known = comments.value.find((item) => item.id === comment.id)
+    if (known === undefined) return false
+    if (known.edited_at != null && (comment.edited_at == null || Date.parse(comment.edited_at) < Date.parse(known.edited_at))) {
+      return false
+    }
+    comments.value = mergeComments(comments.value, [comment])
+    return true
+  }
+
+  function remove(id: number): boolean {
+    if (!comments.value.some((item) => item.id === id)) return false
+    comments.value = comments.value.filter((item) => item.id !== id)
+    return true
+  }
+
   /** Posts a comment on the open task; API errors propagate to the composer. */
   async function send(body: string, attachmentIds: number[] = []): Promise<number | null> {
     if (projectId.value === null || taskId.value === null) return null
@@ -149,5 +167,5 @@ export const useTaskCommentsStore = defineStore('taskComments', () => {
     return comment.id
   }
 
-  return { projectId, taskId, comments, nextCursor, loading, loadingMore, error, open, loadOlder, refresh, insert, send, clear }
+  return { projectId, taskId, comments, nextCursor, loading, loadingMore, error, open, loadOlder, refresh, insert, update, remove, send, clear }
 })

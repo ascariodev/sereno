@@ -12,6 +12,7 @@ const comment = (id: number, overrides: Partial<TaskComment> = {}): TaskComment 
   mentions: [],
   attachments: [],
   created_at: '2026-10-12T10:00:00.000000Z',
+  edited_at: null,
   ...overrides,
 })
 const page = (data: TaskComment[], nextCursor: string | null = null) => ({ data, meta: { next_cursor: nextCursor } }) as never
@@ -276,5 +277,29 @@ describe('task comments store', () => {
     fresh.resolve(page([comment(9)]))
     await refreshing
     expect(store.comments).toEqual([])
+  })
+
+  it('update replaces a known comment of the open task and ignores others', async () => {
+    const store = await opened([comment(1), comment(2)])
+    expect(store.update(comment(2, { body: 'edited', edited_at: '2026-10-12T11:00:00.000000Z' }))).toBe(true)
+    expect(store.comments[1].body).toBe('edited')
+    expect(store.update(comment(7, { body: 'x' }))).toBe(false)
+    expect(store.update(comment(1, { task_id: 99, body: 'x' }))).toBe(false)
+    expect(ids(store.comments)).toEqual([1, 2])
+    expect(store.comments[0].body).toBe('c1')
+  })
+
+  it('update drops an edit older than the known one', async () => {
+    const store = await opened([comment(1, { body: 'new', edited_at: '2026-10-12T12:00:00.000000Z' })])
+    expect(store.update(comment(1, { body: 'old', edited_at: '2026-10-12T11:00:00.000000Z' }))).toBe(false)
+    expect(store.update(comment(1, { body: 'unedited', edited_at: null }))).toBe(false)
+    expect(store.comments[0].body).toBe('new')
+  })
+
+  it('remove drops a known comment by id', async () => {
+    const store = await opened([comment(1), comment(2)])
+    expect(store.remove(1)).toBe(true)
+    expect(store.remove(1)).toBe(false)
+    expect(ids(store.comments)).toEqual([2])
   })
 })
