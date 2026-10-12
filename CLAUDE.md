@@ -45,7 +45,7 @@ Válidos desde la fase 2 del plan `nucleo`.
 - Base desde cero: `docker compose exec api php artisan migrate:fresh --seed`
 - Dependencias PHP: `docker compose exec api composer install`
 - Tests API: `docker compose exec api php artisan test --compact`
-  (un archivo: `... test --compact tests/Feature/AuthTest.php`; un caso: `--filter=nombre`)
+  (un archivo: `... test --compact tests/Feature/Core/AuthTest.php`; un caso: `--filter=nombre`)
 - Cola y scheduler: servicios `queue` (`queue:work --tries=3`) y `scheduler` (`schedule:work`), misma imagen
   y volumen que `api`. Logs: `docker compose logs --tail=50 queue` (o `scheduler`). El worker no recarga
   el código: tras cambiar un job o algo que use, `docker compose restart queue`.
