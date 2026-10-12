@@ -3,7 +3,7 @@
 **Objetivo:** que los cinco diálogos de creación y gestión (CreateLogSource, Invite, OrganizationCreate, ProjectCreate,
 ProjectMembers) usen `AppButton`, `AppInput` y un `AppSelect` nuevo en vez de HTML crudo con CSS duplicado, sin cambiar
 su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -54,7 +54,7 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
     errores; y que `focus()` funciona en los dos casos.
   - Pasan los specs de las tres vistas que lo usan. `vue-tsc -b` limpio.
 
-### [ ] Fase 3 — AppSelect
+### [x] Fase 3 — AppSelect
 - **Alcance:**
   - Componente nuevo con la misma API que AppInput (`id`, `label`, `modelValue`, `errors`, `errorTest`, `describedby`,
     `$attrs` al `<select>`, `focus()`) y las opciones por slot.
@@ -118,14 +118,22 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
 - 2026-10-12: AppInput reemplaza `describedbyExtra` por `describedby` (se une siempre; el único uso, InviteView, lo pasa
   solo con errores porque su `<p>` tiene `v-if`). Orden de `aria-describedby`: hint (`${id}-hint`), errores, `describedby`.
   `aria-invalid` depende solo de los errores. `multiline` con `rows` (3 por defecto). El hint usa `--ink-3`.
+- 2026-10-12: AppSelect tiene la API de AppInput sin hint, multiline ni slot por defecto bajo los errores (las opciones van
+  en el slot); emite `update:modelValue` en `change`. Orden de `aria-describedby`: errores, `describedby`.
 - 2026-10-12: el trabajo va en el worktree `.claude/worktrees/dialogos-unificados` (rama `feat/dialogos-unificados`). El
   servicio `web` monta el checkout principal: los tests del worktree corren en un contenedor `node:24` aparte que monta
   `web/` del worktree y el volumen `workspace_web-node-modules`.
 
 ## Notas para la próxima sesión
-- Fases 1 y 2 hechas. Sigue la fase 3 (AppSelect, con la misma API que AppInput: `describedby`, no `describedbyExtra`).
-  Leer `docs/lecciones.md` (L-25, L-33, L-38, L-61). Ver en Decisiones cómo correr los tests web sobre el worktree.
+- Fases 1 a 3 hechas. Sigue la fase 4 (OrganizationCreateDialog y CreateLogSourceDialog). Leer `docs/lecciones.md`
+  (L-25, L-33, L-38, L-61). Ver en Decisiones cómo correr los tests web sobre el worktree.
+- Fases 6 y 7: si las opciones del select llegan async con `modelValue` ya fijado, AppSelect no reaplica `:value` al
+  cambiar solo las opciones; comprobar que el valor mostrado coincide con el modelo (ver M-2).
 
 ## Mejoras propuestas
 - [ ] M-1 (baja, sonnet): fijar `font-size` en los tamaños `md` y `sm` de AppButton para que todos los diálogos midan
   igual, en vez de heredar el del contexto (revisar en la fase 8).
+- [ ] M-2 (baja, sonnet): AppSelect con opciones que llegan después de fijar `modelValue` (`v-for` diferido): test de que
+  el valor mostrado coincide con el modelo y, si falla, reaplicar el valor al cambiar las opciones.
+- [ ] M-3 (baja, sonnet): estilo atenuado de AppSelect con `disabled` y test de que un `modelValue` sin opción coincidente
+  no emite nada.
