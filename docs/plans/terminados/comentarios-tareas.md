@@ -193,7 +193,7 @@
       con `<@id>` montado antes de cargar los miembros se repinte. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
 - [ ] M-14: `MarkdownEditor`: deshacer (Ctrl+Z) un formato que envolvía una mención la deja como `@Nombre` sin token;
       conservar las menciones al reconciliar tras deshacer. Complejidad: media · Archivos: 2 · sin riesgo → sonnet
-- [ ] M-15: `MarkdownEditor`: `position: relative` en la raíz para el texto solo para lectores.
+- [x] M-15: `MarkdownEditor`: `position: relative` en la raíz para el texto solo para lectores.
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-16: Accesibilidad de `TaskComments`: región `role="status"` que anuncie el comentario enviado, `role="status"`
       en "Cargando" y vacío, `aria-labelledby` al `<h2>` en vez de `aria-label` repetido y nombre en la `<ul>`.

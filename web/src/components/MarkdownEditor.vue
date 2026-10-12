@@ -288,6 +288,7 @@ function onBlur() {
 
 <style scoped>
 .markdown-editor {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
