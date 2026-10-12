@@ -3,7 +3,7 @@
 **Objetivo:** que los cinco diálogos de creación y gestión (CreateLogSource, Invite, OrganizationCreate, ProjectCreate,
 ProjectMembers) usen `AppButton`, `AppInput` y un `AppSelect` nuevo en vez de HTML crudo con CSS duplicado, sin cambiar
 su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -28,7 +28,7 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
 
 ## Fases
 
-### [ ] Fase 1 — Variantes de AppButton
+### [x] Fase 1 — Variantes de AppButton
 - **Alcance:**
   - Props `variant` (`primary` por defecto, `secondary` outline) y `size` (`lg` por defecto con los 46px actuales, `md` de
     44px para diálogos, `sm` para botones de fila como remove).
@@ -112,9 +112,17 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
 - 2026-10-11: alcance limitado a los cinco diálogos de M-16. TaskCreateDialog, LogSourceKeyDialog y las confirmaciones de
   InvitationsView y MembersView usan el mismo patrón, pero quedan como mejora posterior si el usuario no amplía el alcance.
 - 2026-10-11: AppButton no cambia su `type` por defecto ni su tamaño por defecto, para no tocar las vistas que ya lo usan.
+- 2026-10-12: AppButton aplica clases `app-button--<variant>` y `app-button--<size>`. `lg` igual que antes (46px, 15px,
+  sin padding); `md` 44px con padding 0 16px y fuente heredada (como los diálogos actuales); `sm` 32px, padding 0 10px,
+  13px (valores propios, se ajustan en las fases 7 u 8). `secondary`: borde 1px `--border`, fondo transparente, `--ink`.
+- 2026-10-12: el trabajo va en el worktree `.claude/worktrees/dialogos-unificados` (rama `feat/dialogos-unificados`). El
+  servicio `web` monta el checkout principal: los tests del worktree corren en un contenedor `node:24` aparte que monta
+  `web/` del worktree y el volumen `workspace_web-node-modules`.
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1. Leer `docs/lecciones.md` (L-22 layout, L-25 comportamiento visible con test, L-33 errores en
-  `aria-describedby`, L-38 tokens del tema).
+- Fase 1 hecha. Sigue la fase 2 (AppInput con textarea, hint y `describedby`). Leer `docs/lecciones.md` (L-22, L-25,
+  L-33, L-38). Ver en Decisiones cómo correr los tests web sobre el worktree.
 
 ## Mejoras propuestas
+- [ ] M-1 (baja, sonnet): fijar `font-size` en los tamaños `md` y `sm` de AppButton para que todos los diálogos midan
+  igual, en vez de heredar el del contexto (revisar en la fase 8).
