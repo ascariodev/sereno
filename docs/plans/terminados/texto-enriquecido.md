@@ -74,7 +74,7 @@
       Complejidad: media · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-6: Tooltips y atajos del editor muestran "Ctrl+" también en Mac; mostrar "⌘" según la plataforma.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → haiku
-- [ ] M-7: En `MarkdownEditor.apple.spec.ts`, buscar el tooltip por el texto del enlace en vez de `tips[7]` (depende del orden de las acciones).
+- [x] M-7: En `MarkdownEditor.apple.spec.ts`, buscar el tooltip por el texto del enlace en vez de `tips[7]` (depende del orden de las acciones).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-8: En `MarkdownEditor.vue`, si `execCommand` devuelve true sin disparar `input` el modelo se desincroniza: comparar `el.value === next` y usar el fallback; agregar spec con emoji en el texto.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

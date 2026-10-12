@@ -17,7 +17,7 @@ describe('MarkdownEditor on Apple platforms', () => {
 
     const tips = wrapper.findAll('.tip').map((t) => t.attributes('data-text'))
     expect(tips[0]).toBe('Bold (⌘B)')
-    expect(tips[7]).toBe('Link (⌘K)')
+    expect(tips).toContain('Link (⌘K)')
     expect(wrapper.find('[data-test=tool-bold]').attributes('aria-keyshortcuts')).toBe('Meta+B')
   })
 })
