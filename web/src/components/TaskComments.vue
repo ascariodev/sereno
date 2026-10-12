@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Paperclip, X } from '@lucide/vue'
-import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { getTaskAttachmentUrl, taskAttachmentsPath } from '../api/taskComments'
@@ -29,6 +29,7 @@ const draft = ref('')
 const sending = ref(false)
 const formError = ref<string | null>(null)
 const picker = ref<HTMLInputElement | null>(null)
+const list = ref<HTMLElement | null>(null)
 const fileIdPrefix = useId()
 const headingId = `${fileIdPrefix}-heading`
 const sentNotice = ref('')
@@ -145,12 +146,16 @@ async function submit(): Promise<void> {
   sending.value = true
   const sentIds = [...uploads.attachmentIds.value]
   try {
-    await store.send(draft.value.trim(), sentIds)
+    const sentId = await store.send(draft.value.trim(), sentIds)
     if (token !== sendToken) return
     draft.value = ''
     sentNotice.value = t('taskComments.sent')
     for (const item of [...uploads.items.value]) {
       if (item.status === 'error' || (item.attachment && sentIds.includes(item.attachment.id))) uploads.remove(item.key)
+    }
+    if (sentId !== null) {
+      await nextTick()
+      if (token === sendToken) list.value?.querySelector(`[data-comment-id="${sentId}"]`)?.scrollIntoView({ block: 'nearest' })
     }
   } catch (error) {
     if (token !== sendToken) return
@@ -189,8 +194,8 @@ async function submit(): Promise<void> {
       {{ store.loadingMore ? t('common.loading') : t('taskComments.loadOlder') }}
     </button>
 
-    <ul v-if="store.comments.length > 0" class="task-comments__list" :aria-labelledby="headingId">
-      <li v-for="comment in store.comments" :key="comment.id" class="task-comments__item" data-test="comment">
+    <ul v-if="store.comments.length > 0" ref="list" class="task-comments__list" :aria-labelledby="headingId">
+      <li v-for="comment in store.comments" :key="comment.id" class="task-comments__item" data-test="comment" :data-comment-id="comment.id">
         <AppAvatar v-if="comment.user" :name="comment.user.name" :id="comment.user.id" :size="28" />
         <div class="task-comments__main">
           <p class="task-comments__meta">

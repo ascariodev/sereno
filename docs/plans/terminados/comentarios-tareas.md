@@ -198,7 +198,7 @@
 - [x] M-16: Accesibilidad de `TaskComments`: región `role="status"` que anuncie el comentario enviado, `role="status"`
       en "Cargando" y vacío, `aria-labelledby` al `<h2>` en vez de `aria-label` repetido y nombre en la `<ul>`.
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
-- [ ] M-17: Llevar a la vista el comentario recién enviado (scroll) en `TaskComments`.
+- [x] M-17: Llevar a la vista el comentario recién enviado (scroll) en `TaskComments`.
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
 - [ ] M-18: Texto propio para el exceso de adjuntos en comentarios (`attachments.tooMany` dice "por mensaje").
       Complejidad: baja · Archivos: 3 · sin riesgo → sonnet

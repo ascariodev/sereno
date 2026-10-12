@@ -122,6 +122,21 @@ describe('TaskComments', () => {
     expect(wrapper.get('[data-test="comment-sent-status"]').text()).toBe('Comment sent.')
   })
 
+  it('scrolls the new comment into view after sending', async () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+    vi.spyOn(api, 'get').mockResolvedValue(page([comment(1)]))
+    vi.spyOn(api, 'post').mockResolvedValue({ data: comment(7, { body: 'Hello' }) } as never)
+    const wrapper = mountComments()
+    await flushPromises()
+    await write(wrapper, 'Hello')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
+    expect((scrollIntoView.mock.contexts[0] as HTMLElement).getAttribute('data-comment-id')).toBe('7')
+  })
+
   it('exposes status roles and names the section and list from the heading', async () => {
     vi.spyOn(api, 'get').mockResolvedValue(page([]))
     const wrapper = mountComments()
