@@ -30,7 +30,7 @@ function mountEditor(overrides: Partial<TaskComment> = {}) {
   const store = useTaskCommentsStore()
   store.$patch({ taskId: 9, projectId: 5, comments: [comment] })
   const wrapper = mount(TaskCommentEditor, {
-    props: { projectId: 5, taskId: 9, comment, mentions: { members: [], excludeUserId: 1 } },
+    props: { projectId: 5, taskId: 9, comment, mentions: { members: [{ id: 4, name: 'Dora' }], excludeUserId: 1 } },
     global: { plugins: [pinia, i18n] },
     attachTo: document.body,
   })
@@ -56,6 +56,16 @@ describe('TaskCommentEditor', () => {
     expect(patch).toHaveBeenCalledWith('/api/projects/5/tasks/9/comments/7', { body: 'Hi <@3> again' })
     expect(store.comments[0].body).toBe('Hi <@3> again')
     expect(wrapper.emitted('done')).toHaveLength(1)
+  })
+
+  it('renders a person only present in the comment mentions but does not suggest them', async () => {
+    const { wrapper } = mountEditor()
+    const field = wrapper.get('textarea')
+    expect((field.element as HTMLTextAreaElement).value).toBe('Hi @Carla')
+    await field.setValue('Hi @Carla @')
+    ;(field.element as HTMLTextAreaElement).setSelectionRange(11, 11)
+    await field.trigger('keyup')
+    expect(wrapper.findAll('[role=option]').map((o) => o.find('span').text())).toEqual(['Dora'])
   })
 
   it('focuses the field on mount with the caret at the end', () => {

@@ -33,13 +33,8 @@ onBeforeUnmount(() => {
 })
 
 // The comment's own mentions name their users even when the member list is not loaded yet or they left the
-// project, so the editor shows `@Name` instead of the raw `<@id>` token.
-const editorMentions = computed<MarkdownMentionOptions>(() => {
-  const members = props.mentions.members
-  const known = new Set(members.map((member) => member.id))
-  const extra = props.comment.mentions.filter((mention) => !known.has(mention.id))
-  return { ...props.mentions, members: extra.length > 0 ? [...members, ...extra] : members }
-})
+// project, so the editor shows `@Name` instead of the raw `<@id>` token; they are never suggested.
+const editorMentions = computed<MarkdownMentionOptions>(() => ({ ...props.mentions, known: props.comment.mentions }))
 
 const removedStillAttached = computed(() =>
   removedIds.value.filter((id) => props.comment.attachments.some((attachment) => attachment.id === id)),
