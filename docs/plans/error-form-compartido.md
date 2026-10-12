@@ -3,7 +3,7 @@
 **Objetivo:** que el error general de los formularios (`<p role="alert" data-test="error-form">`, hoy con una clase
 `__error` y el mismo CSS copiado en nueve archivos) sea un componente base `AppFormError`, sin cambiar su aspecto ni su
 accesibilidad. Origen: dialogos-unificados M-4.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -22,7 +22,7 @@ accesibilidad. Origen: dialogos-unificados M-4.
 
 ## Fases
 
-### [ ] Fase 1 — Componente AppFormError
+### [x] Fase 1 — Componente AppFormError
 - **Alcance:**
   - `web/src/components/ui/AppFormError.vue`: un `<p class="app-form-error" role="alert">` con slot; `data-test` y demás
     atributos caen en el `<p>`. Mismo CSS que `.app-input__error`.
@@ -58,10 +58,12 @@ accesibilidad. Origen: dialogos-unificados M-4.
   `role="alert"` de la misma clase. Los errores de campo y los avisos sin `role="alert"` (`email-taken-hint`,
   `projects-failed`) quedan fuera.
 - 2026-10-12: sin fase visual propia: el CSS es idéntico, así que basta una medición en la última fase.
+- 2026-10-12: el trabajo va en el worktree `.claude/worktrees/error-form-compartido` (rama `feat/error-form-compartido`).
+- 2026-10-12 (fase 1): AppFormError no usa `inheritAttrs: false`: es de raíz única, así que `class`, `data-test` e `id`
+  del padre caen en el `<p>`.
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1. Leer `docs/lecciones.md` (L-25, L-38, L-62: un `class` sobre un componente con
-  `inheritAttrs: false` cae en el elemento interno). AppLayout.spec tiene 6 fallos que ya existen en `main`.
+- Fase 1 hecha: `web/src/components/ui/AppFormError.vue`. Sigue la fase 2. AppLayout.spec tiene 6 fallos que ya existen en `main`.
 - El servicio `web` monta el checkout principal: en un worktree, los tests corren en un contenedor `node:24` aparte que
   monta `web/` del worktree y el volumen `workspace_web-node-modules` (ver plan dialogos-unificados).
 
