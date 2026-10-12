@@ -17,10 +17,12 @@ const props = withDefaults(
     status?: TaskStatus
     /** Title the form opens with (a log group's title in phases 24 and 25). */
     initialTitle?: string
+    /** Description the form opens with. */
+    initialDescription?: string
     /** Log group the task comes from. */
     logGroupId?: number | null
   }>(),
-  { status: 'todo', initialTitle: '', logGroupId: null },
+  { status: 'todo', initialTitle: '', initialDescription: '', logGroupId: null },
 )
 const emit = defineEmits<{ created: [task: Task]; groupTaken: [] }>()
 const open = defineModel<boolean>('open', { default: false })
@@ -66,7 +68,7 @@ function describedBy(field: Field): string | undefined {
 function reset(): void {
   generation++
   title.value = props.initialTitle
-  description.value = ''
+  description.value = props.initialDescription
   assigneeId.value = null
   submitting.value = false
   fieldErrors.value = {}

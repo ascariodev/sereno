@@ -1352,6 +1352,10 @@ describe('ChannelView create task from a notice', () => {
     await flushPromises()
     const form = q('form.task-create') as HTMLFormElement
     expect((form.querySelector('#task-create-title') as HTMLInputElement).value).toBe('Group 5')
+    const description = (form.querySelector('#task-create-description') as HTMLTextAreaElement).value
+    expect(description).toContain('- **Level:** error')
+    expect(description).toContain('- **Events:** 2')
+    expect(description).toContain('Group 5')
     form.dispatchEvent(new Event('submit', { cancelable: true }))
     await flushPromises()
   }

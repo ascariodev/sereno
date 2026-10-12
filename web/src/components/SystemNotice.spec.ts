@@ -247,10 +247,10 @@ describe('SystemNotice', () => {
       const mountTask = (payload: unknown, props: Record<string, unknown>) =>
         mount(SystemNotice, { props: { message: message(payload), projectId: 3, ...props }, global: { plugins: [i18n, router()] } })
 
-      it('shows the button for opened and reopened notices and emits the group and title', async () => {
+      it('shows the button for opened and reopened notices and emits the notice payload', async () => {
         const wrapper = mountTask(opened, { canCreateTask: true })
         await wrapper.find('button[name=create-task]').trigger('click')
-        expect(wrapper.emitted('createTask')).toEqual([[5, 'Boom']])
+        expect(wrapper.emitted('createTask')).toEqual([[opened]])
         expect(mountTask(reopened, { canCreateTask: true }).find('button[name=create-task]').exists()).toBe(true)
       })
 

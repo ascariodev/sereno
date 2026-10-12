@@ -179,4 +179,18 @@ describe('TaskCreateDialog', () => {
     await openIt(wrapper)
     expect(q<HTMLInputElement>('#task-create-title')!.value).toBe('Seed')
   })
+
+  it('opens with the initial description, sends it untouched and restores it after a cancel', async () => {
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: task } as never)
+    const { wrapper, open } = mountHost({ initialTitle: 'Boom', initialDescription: '- **Level:** Error' })
+    await openIt(wrapper)
+    expect(q<HTMLTextAreaElement>('#task-create-description')!.value).toBe('- **Level:** Error')
+    await type('#task-create-description', 'edited')
+    open.value = false
+    await flushPromises()
+    await openIt(wrapper)
+    expect(q<HTMLTextAreaElement>('#task-create-description')!.value).toBe('- **Level:** Error')
+    await submit()
+    expect(post).toHaveBeenCalledWith('/api/projects/5/tasks', expect.objectContaining({ description: '- **Level:** Error' }))
+  })
 })

@@ -3,7 +3,7 @@
 **Objetivo:** al crear una tarea desde un aviso de log (Aside del grupo o aviso del canal), la descripción del
 diálogo llega prellenada en Markdown con nivel, conteo de eventos y el mensaje en un bloque de código.
 Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
-**Estado:** en curso · Fase actual: 1
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 
@@ -30,7 +30,7 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
 
 ## Fases
 
-### [ ] Fase 1 — Helper que arma la descripción desde un grupo
+### [x] Fase 1 — Helper que arma la descripción desde un grupo
 - **Alcance:** función pura `buildLogGroupTaskDescription(data, t, locale)` con
   `data = { level, events_count, message, first_seen_at?, last_seen_at? }`. Forma exacta (L-51):
   lista `- **<Nivel>:** <etiqueta del nivel>`, `- **<Eventos>:** <n>`, y si vienen, primera y última vez
@@ -44,14 +44,14 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
 - **Terminado cuando:** el spec cubre la forma exacta en en/es, mensaje con backticks (valla más larga),
   mensaje con emoji recortado sin partir pares sustitutos, campos opcionales ausentes y total ≤ 10000.
 
-### [ ] Fase 2 — Prop `initialDescription` en TaskCreateDialog
+### [x] Fase 2 — Prop `initialDescription` en TaskCreateDialog
 - **Alcance:** prop `initialDescription` (por defecto `''`) que `reset()` usa en vez de `''`; se toma al abrir,
   igual que `initialTitle`. Si la descripción inicial queda sin tocar, se envía tal cual.
 - **Archivos:** `web/src/components/TaskCreateDialog.vue` + `TaskCreateDialog.spec.ts`.
 - **Terminado cuando:** test que abre con descripción inicial, la envía en el POST, y tras cancelar y reabrir
   vuelve a la inicial; el test existente de L62 sigue pasando.
 
-### [ ] Fase 3 — Prellenado desde el Aside del grupo
+### [x] Fase 3 — Prellenado desde el Aside del grupo
 - **Alcance:** `LogGroupAside` pasa `initial-description` armada con el grupo completo: nivel, `events_count`,
   primera y última vez, y como mensaje `events[0].message` o, si no hay eventos, `title`. Cubre también LogView y
   el Aside de ChannelView, que usan este componente.
@@ -59,7 +59,7 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
 - **Terminado cuando:** el test de crear tarea comprueba la descripción enviada y que persiste al cruzar el
   breakpoint móvil/escritorio.
 
-### [ ] Fase 4 — Prellenado desde el aviso del canal
+### [x] Fase 4 — Prellenado desde el aviso del canal
 - **Alcance:** `SystemNotice` emite el payload del aviso (`LogGroupOpenedPayload`) en vez de `(id, title)`;
   `MessageList` lo reemite; `ChannelView` guarda en `createTarget` nivel y conteo y pasa `initial-description`
   armada sin fechas y con `title` como mensaje. Sin petición extra (ver Decisiones).
@@ -78,7 +78,13 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
   contenido de la persona y no se traduce.
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1. Leer `docs/lecciones.md` (L-11, L-25, L-51). Al terminar el plan, marcar M-2 `[x]` en
+- Fase 1 hecha: `buildLogGroupTaskDescription(data, t, locale)` en `web/src/components/logGroupTaskDescription.ts`, `t: (key) => string`, sin claves i18n nuevas. Fase 2 hecha: prop `initialDescription` en TaskCreateDialog (se toma al abrir). Fase 3 hecha: LogGroupAside pasa `initial-description` (mensaje: `events[0].message` o `title`). Fase 4 hecha: SystemNotice emite el payload y ChannelView arma la descripción. Plan terminado. Leer `docs/lecciones.md` (L-11, L-25, L-51). Al terminar el plan, marcar M-2 `[x]` en
   `docs/plans/terminados/texto-enriquecido.md`.
 
 ## Mejoras propuestas
+- [ ] M-1: Test de que cambiar `initialDescription` con el diálogo abierto no pisa lo editado
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-2: Test en LogGroupAside que refresca el grupo con el diálogo abierto y afirma que la descripción editada se conserva
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-3: En ChannelView.spec afirmar la descripción en el cuerpo del POST y cubrir un título de más de 200 caracteres (título recortado, descripción completa)
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
