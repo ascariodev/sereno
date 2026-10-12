@@ -93,7 +93,7 @@ class TaskCommentController extends Controller
     public function destroy(DeleteTaskCommentRequest $request, Project $project, Task $task, TaskComment $comment): Response
     {
         DB::transaction(function () use ($comment) {
-            // A concurrent delete committed while waiting for the lock leaves nothing to delete: 404.
+            // The route binding already resolved $comment; re-reading under the lock detects a delete that committed meanwhile (404).
             $locked = TaskComment::query()->whereKey($comment->id)->lockForUpdate()->first();
             abort_if($locked === null, 404);
 
@@ -140,10 +140,6 @@ class TaskCommentController extends Controller
     /** @param  Collection<int, TaskCommentAttachment>  $files */
     private function deleteFilesAfterCommit(Collection $files): void
     {
-        if ($files->isEmpty()) {
-            return;
-        }
-
         DB::afterCommit(function () use ($files) {
             foreach ($files as $file) {
                 try {

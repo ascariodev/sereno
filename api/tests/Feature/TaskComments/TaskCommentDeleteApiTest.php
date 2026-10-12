@@ -138,6 +138,7 @@ it('deletes the attachment rows and their files after the commit', function () {
 it('keeps the comment and its files when the transaction rolls back', function () {
     Event::fake([TaskCommentDeleted::class]);
     [$id, $path] = deleteCommentAttachment($this->comment);
+    // Postgres DDL is transactional, so the test transaction rolls the trigger back too.
     DB::unprepared(<<<'SQL'
         CREATE FUNCTION fail_task_comment_delete() RETURNS trigger AS $body$ BEGIN RAISE EXCEPTION 'boom'; END $body$ LANGUAGE plpgsql;
         CREATE TRIGGER fail_task_comment_delete BEFORE DELETE ON task_comments FOR EACH ROW EXECUTE FUNCTION fail_task_comment_delete();
