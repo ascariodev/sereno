@@ -147,7 +147,7 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
 ## Mejoras propuestas
 - [x] M-1 (baja, sonnet): fijar `font-size` en los tamaños `md` y `sm` de AppButton para que todos los diálogos midan
   igual, en vez de heredar el del contexto. En la fase 8 todos midieron 14px (heredado), así que es solo robustez.
-- [ ] M-2 (baja, sonnet): AppSelect con opciones que llegan después de fijar `modelValue` (`v-for` diferido): test de que
+- [x] M-2 (baja, sonnet): AppSelect con opciones que llegan después de fijar `modelValue` (`v-for` diferido): test de que
   el valor mostrado coincide con el modelo y, si falla, reaplicar el valor al cambiar las opciones.
 - [ ] M-3 (baja, sonnet): estilo atenuado de AppSelect con `disabled` y test de que un `modelValue` sin opción coincidente
   no emite nada.

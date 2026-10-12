@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils'
+import { defineComponent, nextTick, ref } from 'vue'
 import { describe, expect, it } from 'vitest'
 import AppSelect from './AppSelect.vue'
 
@@ -54,6 +55,19 @@ describe('AppSelect', () => {
   it('has no aria attributes without errors or describedby', () => {
     const wrapper = mount(AppSelect, { props: base, slots: { default: options } })
     expect(wrapper.get('select').attributes('aria-describedby')).toBeUndefined()
+  })
+
+  it('shows the model value when options arrive after it is set', async () => {
+    const items = ref<string[]>([])
+    const Host = defineComponent({
+      components: { AppSelect },
+      setup: () => ({ items }),
+      template: '<AppSelect id="s" label="Role" model-value="b"><option v-for="i in items" :key="i" :value="i">{{ i }}</option></AppSelect>',
+    })
+    const wrapper = mount(Host)
+    items.value = ['a', 'b', 'c']
+    await nextTick()
+    expect(wrapper.get('select').element.value).toBe('b')
   })
 
   it('focus() focuses the select', () => {
