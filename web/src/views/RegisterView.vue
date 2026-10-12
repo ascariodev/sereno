@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import AppButton from '../components/ui/AppButton.vue'
+import AppFormError from '../components/ui/AppFormError.vue'
 import AppInput from '../components/ui/AppInput.vue'
 import BrandMark from '../components/ui/BrandMark.vue'
 import { useRegistrationStatus } from '../composables/useRegistrationStatus'
@@ -94,7 +95,7 @@ async function submit(): Promise<void> {
 
     <div v-if="failed" class="register__panel" data-test="status-error">
       <h1>{{ t('register.title') }}</h1>
-      <p class="register__error" role="alert">{{ t('register.statusError') }}</p>
+      <AppFormError>{{ t('register.statusError') }}</AppFormError>
       <AppButton type="button" data-test="retry" @click="retryStatus">{{ t('register.retry') }}</AppButton>
       <RouterLink class="register__link" :to="loginLocation">{{ t('register.toLogin') }}</RouterLink>
     </div>
@@ -157,7 +158,7 @@ async function submit(): Promise<void> {
         required
       />
 
-      <p v-if="formError" class="register__error" role="alert" data-test="error-form">{{ formError }}</p>
+      <AppFormError v-if="formError" data-test="error-form">{{ formError }}</AppFormError>
 
       <AppButton type="submit" :disabled="submitting">
         {{ submitting ? t('register.submitting') : t('register.submit') }}
@@ -212,11 +213,6 @@ async function submit(): Promise<void> {
 .register__loading {
   margin: 0;
   color: var(--ink-2);
-  font-size: 13px;
-}
-.register__error {
-  margin: 0;
-  color: var(--level-error-fg);
   font-size: 13px;
 }
 </style>

@@ -5,6 +5,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import { useRegistrationStatus } from '../composables/useRegistrationStatus'
 import AppButton from '../components/ui/AppButton.vue'
+import AppFormError from '../components/ui/AppFormError.vue'
 import AppInput from '../components/ui/AppInput.vue'
 import AppSegmented from '../components/ui/AppSegmented.vue'
 import BrandMark from '../components/ui/BrandMark.vue'
@@ -121,7 +122,7 @@ async function submit(): Promise<void> {
             error-test="error-password"
           />
 
-          <p v-if="formError" class="login__error" role="alert" data-test="error-form">{{ formError }}</p>
+          <AppFormError v-if="formError" data-test="error-form">{{ formError }}</AppFormError>
 
           <AppButton type="submit" :disabled="submitting">
             {{ submitting ? t('login.submitting') : t('login.submit') }}
@@ -214,11 +215,6 @@ async function submit(): Promise<void> {
   color: var(--ink-2);
   font-size: 13px;
   text-align: center;
-}
-.login__error {
-  margin: 0;
-  color: var(--level-error-fg);
-  font-size: 13px;
 }
 .login__hero {
   flex: 1 1 520px;

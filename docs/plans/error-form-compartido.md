@@ -3,7 +3,7 @@
 **Objetivo:** que el error general de los formularios (`<p role="alert" data-test="error-form">`, hoy con una clase
 `__error` y el mismo CSS copiado en nueve archivos) sea un componente base `AppFormError`, sin cambiar su aspecto ni su
 accesibilidad. Origen: dialogos-unificados M-4.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -39,7 +39,7 @@ accesibilidad. Origen: dialogos-unificados M-4.
   IntegrationsView, InvitationsView) pasan sin cambios en los selectores; un grep no encuentra clases `__error` sin uso.
   `vue-tsc -b` limpio.
 
-### [ ] Fase 3 — Migrar las vistas de acceso
+### [x] Fase 3 — Migrar las vistas de acceso
 - **Alcance:** LoginView, RegisterView (también `statusError`) e InviteView (también `accept-error`) usan AppFormError.
   Se borra el CSS `__error` donde quede sin uso.
 - **Archivos:** `web/src/views/LoginView.vue`, `RegisterView.vue`, `InviteView.vue`.
@@ -61,10 +61,17 @@ accesibilidad. Origen: dialogos-unificados M-4.
 - 2026-10-12: el trabajo va en el worktree `.claude/worktrees/error-form-compartido` (rama `feat/error-form-compartido`).
 - 2026-10-12 (fase 1): AppFormError no usa `inheritAttrs: false`: es de raíz única, así que `class`, `data-test` e `id`
   del padre caen en el `<p>`.
+- 2026-10-12 (fase 3): una regla de la vista sobre `p` con más especificidad (`.invite__card p`, color ink-2) pisa
+  `.app-form-error`: ahí el AppFormError conserva la clase de la vista (`invite__error`) y su override. Revisar lo mismo
+  en TaskCreateDialog y TaskAside.
 
 ## Notas para la próxima sesión
-- Fases 1 y 2 hechas (AppFormError y los cuatro diálogos de creación). Sigue la fase 3. AppLayout.spec tiene 6 fallos que ya existen en `main`.
+- Fases 1 a 3 hechas (AppFormError, diálogos de creación y vistas de acceso). Sigue la fase 4. AppLayout.spec tiene 6 fallos que ya existen en `main`.
 - El servicio `web` monta el checkout principal: en un worktree, los tests corren en un contenedor `node:24` aparte que
   monta `web/` del worktree y el volumen `workspace_web-node-modules` (ver plan dialogos-unificados).
 
 ## Mejoras propuestas
+- [ ] M-1 (baja, sonnet): en InviteView, `.invite__card .invite__error` repite `font-size: 13px`, que AppFormError ya
+  trae; basta el `color`.
+- [ ] M-2 (baja, sonnet): bajar la especificidad de las reglas de vista sobre `p` (o usar `:where()`) para que
+  AppFormError no necesite la clase de la vista como parche. Solo si el caso de InviteView se repite.
