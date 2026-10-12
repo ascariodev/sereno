@@ -130,3 +130,18 @@ it('keeps the mentions that stay in the body', function () {
 
     expect(DB::table('task_comment_mentions')->where('task_comment_id', $this->comment->id)->count())->toBe(1);
 });
+
+it('respects the mention limit and excludes the author when editing', function () {
+    config(['chat.mentions.max_per_message' => 1]);
+    $other = User::factory()->create();
+    $this->organization->addMember($other, [Role::Member]);
+    $this->project->addMember($other);
+
+    patchComment(['body' => "<@{$this->author->id}> <@{$other->id}> <@{$this->ana->id}>"])
+        ->assertOk()
+        ->assertJsonCount(1, 'data.mentions')
+        ->assertJsonPath('data.mentions.0.id', $other->id);
+
+    expect(DB::table('task_comment_mentions')->where('task_comment_id', $this->comment->id)->pluck('user_id')->all())
+        ->toBe([$other->id]);
+});

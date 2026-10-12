@@ -184,9 +184,7 @@ class TaskCommentController extends Controller
     }
 
     /**
-     * Brings the comment's mention rows to the body: inserts the new ones and deletes the ones no longer
-     * mentioned. Comment mentions do not notify, so nothing is dispatched. Pass `$currentIds` to skip the
-     * lookup (new comment: []).
+     * Comment mentions do not notify, so nothing is dispatched. `$currentIds` skips the lookup (new comment: []).
      *
      * @param  list<int>|null  $currentIds
      */
