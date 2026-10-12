@@ -183,7 +183,7 @@
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [x] M-9: Acortar los docblocks y comentarios de `App\Actions\DeleteTask` a lo no obvio (convención de comentarios
       mínimos). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-10: `validComment` (echo.ts) valida también la forma de `user` y de los elementos de `mentions` y `attachments`.
+- [x] M-10: `validComment` (echo.ts) valida también la forma de `user` y de los elementos de `mentions` y `attachments`.
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
 - [ ] M-11: Specs de `MarkdownContent` para un `<span class="mention-chip">` escrito por el usuario (sale como texto) y
       para `\<@1>` (sin chip). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet

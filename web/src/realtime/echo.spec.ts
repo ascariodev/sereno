@@ -147,10 +147,25 @@ describe('realtime', () => {
     emit({ comment: { ...comment, mentions: undefined } })
     emit({ comment: { ...comment, attachments: 'x' } })
     emit({ comment: { ...comment, created_at: undefined } })
+    emit({ comment: { ...comment, user: undefined } })
+    emit({ comment: { ...comment, user: { id: 'x', name: 'A' } } })
+    emit({ comment: { ...comment, mentions: [null] } })
+    emit({ comment: { ...comment, mentions: [{ id: 1 }] } })
+    emit({ comment: { ...comment, attachments: [{ id: 1, original_name: 'a.txt' }] } })
     emit({})
 
-    expect(first).toEqual([4])
-    expect(second).toEqual([4])
+    emit({
+      comment: {
+        ...comment,
+        id: 6,
+        user: { id: 1, name: 'A' },
+        mentions: [{ id: 2, name: 'B' }],
+        attachments: [{ id: 3, original_name: 'a.txt', mime: 'text/plain', size: 1, created_at: 'x', url: 'u' }],
+      },
+    })
+
+    expect(first).toEqual([4, 6])
+    expect(second).toEqual([4, 6])
     leaveFirst()
     expect(client.leave).not.toHaveBeenCalled()
     leaveSecond()
