@@ -3,7 +3,7 @@
 **Objetivo:** `api/tests/Feature` repartido en `Core/`, `Log/`, `Chat/` y `Plan/`, sin perder ni duplicar ningún test, y
 la convención documentada para que los tests nuevos caigan en su carpeta. Origen: M-6 de
 `docs/plans/terminados/comentarios-tareas.md` (alejarse del truncado de descubrimiento de L-64).
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 
 
 ## Contexto mínimo
@@ -36,7 +36,7 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 - **Archivos:** solo tests movidos.
 - **Terminado cuando:** igual que la fase 1, con la carpeta `Log/`.
 
-### [ ] Fase 3 — Mover los tests de Chat
+### [x] Fase 3 — Mover los tests de Chat
 - **Alcance:** `Attachment*Api`, `Channel*`, `Mention*`, `Message*` y `PruneOrphanAttachments` (28) a
   `tests/Feature/Chat/`.
 - **Archivos:** solo tests movidos.
@@ -67,6 +67,7 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 ## Notas para la próxima sesión
 - Fase 1 hecha (26 archivos movidos, cuenta idéntica). Cuenta base en Decisiones. `LogGroupTaskApiTest` sigue en `Feature/` y va a Log en la fase 2.
 - Fase 2 hecha (16 a `Log/`, cuenta idéntica). Siguiente: Chat (28).
+- Fase 3 hecha (28 a `Chat/`, cuenta idéntica). Siguiente: Core (todo lo suelto restante).
   `CLAUDE.md`: puede chocar con la fase 5 al mergear.
 
 ## Mejoras propuestas
