@@ -135,9 +135,10 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
   owner o admin. `projects.update` fusiona la respuesta con el proyecto (el PATCH no trae los conteos) y relanza el error.
 
 ## Notas para la próxima sesión
-- Plan terminado. Falta la verificación en el navegador de la fase 6 (activar el ajuste, mover a Hecho una tarea creada
-  desde un aviso y ver el grupo resuelto en el canal): el entorno de desarrollo corre el checkout principal, así que se
-  hace tras integrar la rama, con `migrate` y `docker compose restart queue`.
+- Plan terminado. Verificado en el navegador (2026-10-11) con API y web del worktree en puertos aparte: activar el ajuste,
+  mover a Hecho una tarea creada desde un aviso resuelve el grupo y lo avisa en el canal, y reabrirlo a mano publica "Se
+  reabrió el grupo de logs de la tarea". La migración ya corrió en la base de desarrollo; tras integrar la rama,
+  `docker compose restart queue` para el listener nuevo.
 
 ## Mejoras propuestas
 - [x] M-1 (baja, sonnet): en `LogGroupController::update`, no reasignar el parámetro enlazado `$group` con el
