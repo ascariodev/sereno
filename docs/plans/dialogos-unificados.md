@@ -3,7 +3,7 @@
 **Objetivo:** que los cinco diálogos de creación y gestión (CreateLogSource, Invite, OrganizationCreate, ProjectCreate,
 ProjectMembers) usen `AppButton`, `AppInput` y un `AppSelect` nuevo en vez de HTML crudo con CSS duplicado, sin cambiar
 su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -40,7 +40,7 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
     `aria-label` llegan al `<button>`, y el slot.
   - Pasan los specs de LoginView, RegisterView e InviteView. `vue-tsc -b` limpio.
 
-### [ ] Fase 2 — AppInput con textarea, hint y descripción externa
+### [x] Fase 2 — AppInput con textarea, hint y descripción externa
 - **Alcance:**
   - Prop `multiline` (con `rows`, padding vertical y `resize: vertical`) que pinta un `<textarea>` con la misma lógica de
     label, errores y `$attrs`.
@@ -115,13 +115,16 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
 - 2026-10-12: AppButton aplica clases `app-button--<variant>` y `app-button--<size>`. `lg` igual que antes (46px, 15px,
   sin padding); `md` 44px con padding 0 16px y fuente heredada (como los diálogos actuales); `sm` 32px, padding 0 10px,
   13px (valores propios, se ajustan en las fases 7 u 8). `secondary`: borde 1px `--border`, fondo transparente, `--ink`.
+- 2026-10-12: AppInput reemplaza `describedbyExtra` por `describedby` (se une siempre; el único uso, InviteView, lo pasa
+  solo con errores porque su `<p>` tiene `v-if`). Orden de `aria-describedby`: hint (`${id}-hint`), errores, `describedby`.
+  `aria-invalid` depende solo de los errores. `multiline` con `rows` (3 por defecto). El hint usa `--ink-3`.
 - 2026-10-12: el trabajo va en el worktree `.claude/worktrees/dialogos-unificados` (rama `feat/dialogos-unificados`). El
   servicio `web` monta el checkout principal: los tests del worktree corren en un contenedor `node:24` aparte que monta
   `web/` del worktree y el volumen `workspace_web-node-modules`.
 
 ## Notas para la próxima sesión
-- Fase 1 hecha. Sigue la fase 2 (AppInput con textarea, hint y `describedby`). Leer `docs/lecciones.md` (L-22, L-25,
-  L-33, L-38). Ver en Decisiones cómo correr los tests web sobre el worktree.
+- Fases 1 y 2 hechas. Sigue la fase 3 (AppSelect, con la misma API que AppInput: `describedby`, no `describedbyExtra`).
+  Leer `docs/lecciones.md` (L-25, L-33, L-38, L-61). Ver en Decisiones cómo correr los tests web sobre el worktree.
 
 ## Mejoras propuestas
 - [ ] M-1 (baja, sonnet): fijar `font-size` en los tamaños `md` y `sm` de AppButton para que todos los diálogos midan

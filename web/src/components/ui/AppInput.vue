@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, useSlots } from 'vue'
 
 defineOptions({ inheritAttrs: false })
 
@@ -9,34 +9,54 @@ const props = defineProps<{
   modelValue?: string
   errors?: string[]
   errorTest?: string
-  describedbyExtra?: string
+  describedby?: string
+  multiline?: boolean
+  rows?: number
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
-const input = ref<HTMLInputElement | null>(null)
+const slots = useSlots()
+const field = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
 const errorIds = computed(() => (props.errors ?? []).map((_, index) => `${props.id}-error-${index}`))
-const describedBy = computed(() => {
-  if (!errorIds.value.length) return undefined
-  return [...errorIds.value, props.describedbyExtra].filter(Boolean).join(' ')
-})
+const hintId = computed(() => (slots.hint ? `${props.id}-hint` : undefined))
+const describedBy = computed(
+  () => [hintId.value, ...errorIds.value, props.describedby].filter(Boolean).join(' ') || undefined,
+)
 
-defineExpose({ focus: () => input.value?.focus() })
+function onInput(event: Event) {
+  emit('update:modelValue', (event.target as HTMLInputElement | HTMLTextAreaElement).value)
+}
+
+defineExpose({ focus: () => field.value?.focus() })
 </script>
 
 <template>
   <div class="app-input">
     <label :for="id">{{ label }}</label>
-    <input
+    <textarea
+      v-if="multiline"
       :id="id"
-      ref="input"
+      ref="field"
+      v-bind="$attrs"
+      :rows="rows ?? 3"
+      :value="modelValue"
+      :aria-invalid="errorIds.length ? 'true' : undefined"
+      :aria-describedby="describedBy"
+      @input="onInput"
+    />
+    <input
+      v-else
+      :id="id"
+      ref="field"
       v-bind="$attrs"
       :value="modelValue"
-      :aria-invalid="describedBy ? 'true' : undefined"
+      :aria-invalid="errorIds.length ? 'true' : undefined"
       :aria-describedby="describedBy"
-      @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+      @input="onInput"
     />
+    <p v-if="hintId" :id="hintId" class="app-input__hint"><slot name="hint" /></p>
     <p
       v-for="(message, index) in errors"
       :id="`${id}-error-${index}`"
@@ -60,20 +80,32 @@ defineExpose({ focus: () => input.value?.focus() })
   font-size: 13px;
   font-weight: 600;
 }
-.app-input input {
+.app-input input,
+.app-input textarea {
   min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
   color: var(--ink);
+  font: inherit;
+}
+.app-input textarea {
+  padding-block: 10px;
+  resize: vertical;
 }
 .app-input input[readonly] {
   color: var(--ink-3);
 }
-.app-input input:focus-visible {
+.app-input input:focus-visible,
+.app-input textarea:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+.app-input__hint {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 13px;
 }
 .app-input__error {
   margin: 0;
