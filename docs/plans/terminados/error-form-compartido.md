@@ -3,7 +3,7 @@
 **Objetivo:** que el error general de los formularios (`<p role="alert" data-test="error-form">`, hoy con una clase
 `__error` y el mismo CSS copiado en nueve archivos) sea un componente base `AppFormError`, sin cambiar su aspecto ni su
 accesibilidad. Origen: dialogos-unificados M-4.
-**Estado:** en curso · Fase actual: 4
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -46,7 +46,7 @@ accesibilidad. Origen: dialogos-unificados M-4.
 - **Terminado cuando:** LoginView.spec, RegisterView.spec e InviteView.spec pasan sin cambios en los selectores; grep sin
   clases huérfanas. `vue-tsc -b` limpio.
 
-### [ ] Fase 4 — Migrar las tareas
+### [x] Fase 4 — Migrar las tareas
 - **Alcance:** TaskCreateDialog y TaskAside usan AppFormError para el `error-form`; los errores de campo siguen con su clase.
 - **Archivos:** `web/src/components/TaskCreateDialog.vue`, `TaskAside.vue`.
 - **Terminado cuando:** TaskCreateDialog.spec, TaskAside.spec y los specs de las vistas que los montan pasan sin cambios
@@ -64,9 +64,13 @@ accesibilidad. Origen: dialogos-unificados M-4.
 - 2026-10-12 (fase 3): una regla de la vista sobre `p` con más especificidad (`.invite__card p`, color ink-2) pisa
   `.app-form-error`: ahí el AppFormError conserva la clase de la vista (`invite__error`) y su override. Revisar lo mismo
   en TaskCreateDialog y TaskAside.
+- 2026-10-12 (fase 4): TaskCreateDialog y TaskAside no tienen reglas que pisen `.app-form-error`: su error general va sin
+  la clase de la vista, que sigue en los errores de campo. Medición con un 500 simulado (main en 5174 contra el worktree
+  en 5175) en ProjectCreateDialog, TaskCreateDialog y TaskAside: margin, color, font-size, line-height, font-weight,
+  display, ancho y alto idénticos.
 
 ## Notas para la próxima sesión
-- Fases 1 a 3 hechas (AppFormError, diálogos de creación y vistas de acceso). Sigue la fase 4. AppLayout.spec tiene 6 fallos que ya existen en `main`.
+- Plan terminado. Pendientes solo las mejoras propuestas. AppLayout.spec tiene 6 fallos que ya existen en `main`.
 - El servicio `web` monta el checkout principal: en un worktree, los tests corren en un contenedor `node:24` aparte que
   monta `web/` del worktree y el volumen `workspace_web-node-modules` (ver plan dialogos-unificados).
 

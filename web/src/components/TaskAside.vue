@@ -12,6 +12,7 @@ import MarkdownContent from './MarkdownContent.vue'
 import MarkdownEditor from './MarkdownEditor.vue'
 import { toggleTaskItem } from '../markdown/toggleTaskItem'
 import AppDialog from './ui/AppDialog.vue'
+import AppFormError from './ui/AppFormError.vue'
 import LevelPill from './ui/LevelPill.vue'
 import ProjectKey from './ui/ProjectKey.vue'
 import TaskMoveMenu from './TaskMoveMenu.vue'
@@ -407,7 +408,7 @@ async function confirmDelete(): Promise<void> {
           </p>
         </div>
 
-        <p v-if="formError" class="task-aside__error" role="alert" data-test="error-form">{{ formError }}</p>
+        <AppFormError v-if="formError" data-test="error-form">{{ formError }}</AppFormError>
 
         <button v-if="!readOnly" type="submit" class="task-aside__save" data-test="submit" :disabled="submitting || !dirty">
           {{ submitting ? t('taskAside.saving') : t('taskAside.save') }}
