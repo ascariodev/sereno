@@ -10,10 +10,7 @@ use App\Models\Message;
 use App\Models\Project;
 use App\Models\Task;
 
-/**
- * Also runs in the queue worker, without an active organization: explicit tenant filters instead of scopes.
- * Only notifies; it changes neither the task nor the group.
- */
+/** Runs without an active organization (queue): explicit tenant filters. Only notifies. */
 class PostTaskGroupReopenedNotice
 {
     public function __invoke(int $organizationId, int $projectId, int $logGroupId): void

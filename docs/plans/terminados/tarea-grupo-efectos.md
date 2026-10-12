@@ -140,7 +140,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
   hace tras integrar la rama, con `migrate` y `docker compose restart queue`.
 
 ## Mejoras propuestas
-- [ ] M-1 (baja, sonnet): en `LogGroupController::update`, no reasignar el parámetro enlazado `$group` con el
+- [x] M-1 (baja, sonnet): en `LogGroupController::update`, no reasignar el parámetro enlazado `$group` con el
   resultado de `DB::transaction` (usar otro nombre) y recortar los comentarios largos del controlador y de
   `PostTaskGroupReopenedNotice`.
 - [ ] M-2 (baja, sonnet): en `SystemNotice.vue`, extraer el chip a la tarea (`RouterLink` o `<b>` sin proyecto),

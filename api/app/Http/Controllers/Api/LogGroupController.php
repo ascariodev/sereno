@@ -77,9 +77,8 @@ class LogGroupController extends Controller
     {
         abort_unless($group->project_id === $project->id, 404);
 
-        $group = DB::transaction(function () use ($group, $request, $postNotice, $postReopened) {
-            // Locked to read the real previous status: ingestion can reopen or resolve it in parallel. The task is only
-            // read afterwards, never locked before the group.
+        $updated = DB::transaction(function () use ($group, $request, $postNotice, $postReopened) {
+            // Lock to read the real previous status: ingestion can change it in parallel.
             $locked = LogGroup::query()->whereKey($group->id)->lock('for no key update')->firstOrFail();
             $previousStatus = $locked->status;
             $locked->status = $request->validated('status');
@@ -96,9 +95,9 @@ class LogGroupController extends Controller
             return $locked;
         });
 
-        $this->bindTaskProject(collect([$group->load('task')]), $project);
+        $this->bindTaskProject(collect([$updated->load('task')]), $project);
 
-        return new LogGroupResource($group);
+        return new LogGroupResource($updated);
     }
 
     /**
