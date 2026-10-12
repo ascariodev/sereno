@@ -69,6 +69,18 @@ export interface MentionOptions {
   ownUserId?: number
 }
 
+const ESCAPED_MENTION = /^\\(<@[1-9][0-9]{0,17}>)/
+
+md.inline.ruler.before('escape', 'escaped_mention', (state, silent) => {
+  const match = ESCAPED_MENTION.exec(state.src.slice(state.pos))
+  if (!match) return false
+  if (!silent) state.push('escaped_mention', '', 0).content = match[1]
+  state.pos += match[0].length
+  return true
+})
+
+md.renderer.rules.escaped_mention = (tokens, idx) => md.utils.escapeHtml(tokens[idx].content)
+
 md.core.ruler.after('inline', 'mentions', (state) => {
   const options = state.env?.mentions as MentionOptions | undefined
   if (!options) return

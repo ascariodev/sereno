@@ -92,6 +92,13 @@ describe('MarkdownContent', () => {
       expect(wrapper.text()).toContain('<@5>')
     })
 
+    it('keeps a backslash-escaped token as literal text', () => {
+      const wrapper = withMentions('\\<@5> and <@5>', [{ id: 5, name: 'Ana' }])
+
+      expect(wrapper.findAll('[data-mention]')).toHaveLength(1)
+      expect(wrapper.text()).toBe('<@5> and @Ana')
+    })
+
     it('escapes HTML in the name', () => {
       const wrapper = withMentions('<@5>', [{ id: 5, name: '<img src=x onerror=alert(1)>' }])
 
