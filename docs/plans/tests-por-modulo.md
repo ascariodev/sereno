@@ -3,7 +3,7 @@
 **Objetivo:** `api/tests/Feature` repartido en `Core/`, `Log/`, `Chat/` y `Plan/`, sin perder ni duplicar ningún test, y
 la convención documentada para que los tests nuevos caigan en su carpeta. Origen: M-6 de
 `docs/plans/terminados/comentarios-tareas.md` (alejarse del truncado de descubrimiento de L-64).
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 
 
 ## Contexto mínimo
@@ -42,7 +42,7 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 - **Archivos:** solo tests movidos.
 - **Terminado cuando:** igual que la fase 1, con la carpeta `Chat/`.
 
-### [ ] Fase 4 — Mover los tests del núcleo
+### [x] Fase 4 — Mover los tests del núcleo
 - **Alcance:** el resto (24): auth, organizaciones, miembros, invitaciones, proyectos, roles, tenant, idioma,
   traducciones e infraestructura (`Cors`, `Health`, `TrustProxies`, `DatabaseSeeder`, `BroadcastingAuth`,
   `ConnectionTerminator`, `MembershipBroadcast`) a `tests/Feature/Core/`. Al terminar no queda ningún `*Test.php`
@@ -63,11 +63,14 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 - 2026-10-12 — Una fase por módulo: si el montaje trunca o un test se pierde, el corte queda acotado a una carpeta.
 - 2026-10-12 — Los planes terminados no se actualizan: son históricos y citan las rutas de su momento.
 - 2026-10-12 — Cuenta base (fase 1): LISTED=1182; la suite reporta 1179 tests (warnings + passed) y 5034 aserciones. Cada fase debe dar exactamente esos números. La línea `Tests:` trae la palabra "warnings" (falta .env en el contenedor): no filtrar con `grep -vi warn`.
+- 2026-10-12 — Fase 4: con Core corriendo tras Chat la suite agotaba los 128M por defecto (Request.php:471, payload de 6MB). Decisión del usuario: `memory_limit` 512M en `api/phpunit.xml`; la fuga queda como M-1.
 
 ## Notas para la próxima sesión
 - Fase 1 hecha (26 archivos movidos, cuenta idéntica). Cuenta base en Decisiones. `LogGroupTaskApiTest` sigue en `Feature/` y va a Log en la fase 2.
 - Fase 2 hecha (16 a `Log/`, cuenta idéntica). Siguiente: Chat (28).
 - Fase 3 hecha (28 a `Chat/`, cuenta idéntica). Siguiente: Core (todo lo suelto restante).
+- Fase 4 hecha (24 a `Core/`, `Feature/` sin tests sueltos, cuenta idéntica). Siguiente: documentar (fase 5).
   `CLAUDE.md`: puede chocar con la fase 5 al mergear.
 
 ## Mejoras propuestas
+- [ ] M-1: Buscar el test de Chat que acumula memoria (payload de 6MB en `Request.php:471`) y liberar lo retenido, para poder bajar el `memory_limit` de `phpunit.xml`. Complejidad: media · Archivos: 1-3 · sin riesgo → sonnet
