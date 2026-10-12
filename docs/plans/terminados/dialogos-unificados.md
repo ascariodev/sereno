@@ -155,5 +155,5 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
   `.app-input__error`: extraer una clase o componente compartido (también `.proj-create__error`).
 - [x] M-5 (DESCARTADA por el usuario: con el store real "fallo y cargando" es inalcanzable, `load()` limpia `failed` al empezar; el `:disabled` es código defensivo y el test lo fija a mano a propósito) (baja, sonnet): InviteDialog.spec fija `store.loading = true` a mano en el test de retry; usar una carga
   pendiente del store en vez de acoplarse a su estado interno.
-- [ ] M-6 (baja, sonnet): reforzar el test de AppSelect "sin opción coincidente no emite" con `selectedIndex` en -1, para que
+- [x] M-6 (baja, sonnet): reforzar el test de AppSelect "sin opción coincidente no emite" con `selectedIndex` en -1, para que
   falle también si el componente fuerza una opción.

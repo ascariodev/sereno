@@ -78,6 +78,7 @@ describe('AppSelect', () => {
   it('does not emit when the model value matches no option', async () => {
     const wrapper = mount(AppSelect, { props: { ...base, modelValue: 'zzz' }, slots: { default: options } })
     await wrapper.setProps({ modelValue: 'yyy' })
+    expect(wrapper.get('select').element.selectedIndex).toBe(-1)
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
   })
 
