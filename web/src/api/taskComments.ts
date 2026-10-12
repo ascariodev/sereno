@@ -29,6 +29,22 @@ export async function createTaskComment(
   return response.data
 }
 
+export async function updateTaskComment(
+  projectId: number,
+  taskId: number,
+  commentId: number,
+  body: string,
+  removeAttachmentIds: number[] = [],
+): Promise<TaskComment> {
+  const payload = removeAttachmentIds.length > 0 ? { body, remove_attachment_ids: removeAttachmentIds } : { body }
+  const response = await api.patch<DataEnvelope<TaskComment>>(`${base(projectId, taskId)}/${commentId}`, payload)
+  return response.data
+}
+
+export function deleteTaskComment(projectId: number, taskId: number, commentId: number): Promise<void> {
+  return api.delete(`${base(projectId, taskId)}/${commentId}`)
+}
+
 /** Upload endpoint for comment attachments of a task, for `useAttachmentUploads`. */
 export function taskAttachmentsPath(projectId: number, taskId: number): string {
   return `/api/projects/${projectId}/tasks/${taskId}/attachments`

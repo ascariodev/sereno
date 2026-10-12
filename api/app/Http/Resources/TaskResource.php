@@ -33,6 +33,7 @@ class TaskResource extends JsonResource
                     'events_count' => $this->logGroup->events_count,
                 ]
                 : null),
+            'comments_count' => $this->whenCounted('comments'),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

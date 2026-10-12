@@ -15,6 +15,8 @@ import { charCount, TASK_DESCRIPTION_MAX_LENGTH } from './taskLimits'
 export interface MarkdownMentionOptions {
   members: readonly (MentionCandidate & { email?: string })[]
   excludeUserId?: number | null
+  /** People only used to render `@Name` for existing tokens; never suggested. */
+  known?: readonly MentionCandidate[]
   /** Called when an `@` query appears, to load the member list. */
   ensureLoaded?: () => unknown
 }
@@ -74,12 +76,12 @@ const previewMentions = computed(() =>
 )
 
 watch(
-  () => [mentionsEnabled.value ? props.modelValue : null, props.mentions?.members] as const,
-  ([value, members], previous) => {
+  () => [mentionsEnabled.value ? props.modelValue : null, props.mentions?.members, props.mentions?.known] as const,
+  ([value, members, knownPeople], previous) => {
     if (value === null) return
-    if (value === mention.serialized.value && members === previous?.[1]) return
+    if (value === mention.serialized.value && members === previous?.[1] && knownPeople === previous?.[2]) return
     formatSteps.length = 0
-    const known = [...mention.mentions.value, ...(props.mentions?.members ?? [])]
+    const known = [...mention.mentions.value, ...(props.mentions?.members ?? []), ...(knownPeople ?? [])]
     mention.restore(parseMentionDraft(value, known))
   },
   { immediate: true },

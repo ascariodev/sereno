@@ -6,6 +6,7 @@ use App\Models\LogGroup;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\DB;
@@ -200,4 +201,19 @@ it('hides a single task from a member not assigned to its project', function () 
     DB::table('project_user')->where('project_id', $this->project->id)->where('user_id', $this->member->id)->delete();
 
     showTaskAs($this->member, $this->organization, $this->project, $task)->assertNotFound();
+});
+
+it('counts the comments of each task in the list and the single task', function () {
+    $commented = seedListedTask($this->project, 1);
+    $done = seedListedTask($this->project, 2, ['status' => TaskStatus::Done]);
+    $silent = seedListedTask($this->project, 3, ['position' => 2.0]);
+    TaskComment::factory()->forTask($commented)->count(2)->create(['user_id' => $this->member->id]);
+    TaskComment::factory()->forTask($done)->create(['user_id' => $this->member->id]);
+
+    $counts = collect(listTasksAs($this->member, $this->organization, $this->project)->assertOk()->json('data'))
+        ->pluck('comments_count', 'id')->all();
+
+    expect($counts)->toBe([$commented->id => 2, $silent->id => 0, $done->id => 1]);
+    showTaskAs($this->member, $this->organization, $this->project, $commented)
+        ->assertOk()->assertJsonPath('data.comments_count', 2);
 });

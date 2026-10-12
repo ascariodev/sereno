@@ -14,7 +14,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   y filtro de acceso), `web/src/stores/mentions.ts`, `MentionsView.vue`, badge en `AppSidebar.vue`.
 - Enlaces profundos que ya existen en la web: `projects/:projectId/plan?task=<id>`, `channels/:id?thread=<id>`.
 - `api/.env` y `api/.env.example` están bloqueados por permisos: las variables `MAIL_*` las pone el usuario (L-52).
-- Lecciones: L-06, L-07, L-37, L-38 (eventos a `users.{id}`), L-42 (membresía en `broadcastOn`), L-49, L-55, L-28.
+- Lecciones: L-06, L-07, L-66, L-67 (eventos a `users.{id}`), L-42 (membresía en `broadcastOn`), L-49, L-55, L-28.
 
 ## Fases
 

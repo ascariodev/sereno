@@ -715,7 +715,7 @@ describe('PlanView', () => {
       const spy = mockApi(() => ({ data: [mk(1)] }))
       fake.setStatus('connected')
       const wrapper = await mountView('/projects/5/plan?task=1')
-      const comment = { id: 4, task_id: 1, body: 'Live one', user: { id: 2, name: 'Bea' }, mentions: [], attachments: [], created_at: new Date().toISOString() }
+      const comment = { id: 4, task_id: 1, body: 'Live one', user: { id: 2, name: 'Bea' }, mentions: [], attachments: [], created_at: new Date().toISOString(), edited_at: null }
       fake.emit('.task.comment.created', { comment })
       fake.emit('.task.comment.created', { comment })
       fake.emit('.task.comment.created', { comment: { ...comment, id: 5, task_id: 2 } })
@@ -727,6 +727,39 @@ describe('PlanView', () => {
       fake.setStatus('connected')
       await flushPromises()
       expect(spy.mock.calls.filter(([path]) => String(path).endsWith('/comments')).length).toBe(before + 1)
+    })
+
+    it('applies comments_count of a live comment to the task without a reload', async () => {
+      const fake = live()
+      mockApi(() => ({ data: [mk(1)] }))
+      fake.setStatus('connected')
+      await mountView()
+      const comment = { id: 4, task_id: 1, body: 'x', user: null, mentions: [], attachments: [], created_at: new Date().toISOString(), edited_at: null }
+      fake.emit('.task.comment.created', { comment, comments_count: 4 })
+      await flushPromises()
+      expect(useTasksStore().find(1)?.comments_count).toBe(4)
+      fake.emit('.task.comment.created', { comment: { ...comment, id: 5 } })
+      await flushPromises()
+      expect(useTasksStore().find(1)?.comments_count).toBe(4)
+    })
+
+    it('applies a live edit and a live delete of a comment, with the new count', async () => {
+      const fake = live()
+      mockApi(() => ({ data: [mk(1)] }))
+      fake.setStatus('connected')
+      const wrapper = await mountView('/projects/5/plan?task=1')
+      const comment = { id: 4, task_id: 1, body: 'Before', user: null, mentions: [], attachments: [], created_at: new Date().toISOString(), edited_at: null }
+      fake.emit('.task.comment.created', { comment, comments_count: 3 })
+      await flushPromises()
+      expect(wrapper.text()).toContain('Before')
+      fake.emit('.task.comment.updated', { comment: { ...comment, body: 'After', edited_at: new Date().toISOString() } })
+      await flushPromises()
+      expect(wrapper.text()).toContain('After')
+      expect(wrapper.text()).not.toContain('Before')
+      fake.emit('.task.comment.deleted', { id: 4, task_id: 1, comments_count: 2 })
+      await flushPromises()
+      expect(wrapper.findAll('[data-test="comment"]')).toHaveLength(0)
+      expect(useTasksStore().find(1)?.comments_count).toBe(2)
     })
 
     it('reloads and resubscribes when the active organization changes', async () => {

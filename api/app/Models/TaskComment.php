@@ -19,6 +19,13 @@ class TaskComment extends Model
 
     public const BODY_MAX_LENGTH = 10000;
 
+    protected function casts(): array
+    {
+        return [
+            'edited_at' => 'datetime',
+        ];
+    }
+
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);

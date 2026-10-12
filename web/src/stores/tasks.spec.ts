@@ -195,6 +195,17 @@ describe('tasks store', () => {
     expect(store.find(1)?.status).toBe('in_review')
   })
 
+  it('setCommentsCount applies the absolute count without touching updated_at or the order', async () => {
+    const store = await opened([task(1), task(2)])
+    expect(store.setCommentsCount(2, 5)).toBe(true)
+    expect(store.find(2)?.comments_count).toBe(5)
+    expect(store.find(2)?.updated_at).toBe('2026-10-10T00:00:00.000000Z')
+    expect(ids(store.columns.todo)).toEqual([1, 2])
+    expect(store.setCommentsCount(2, 3)).toBe(true)
+    expect(store.find(2)?.comments_count).toBe(3)
+    expect(store.setCommentsCount(99, 1)).toBe(false)
+  })
+
   it('a deleted task does not come back with a late event or load', async () => {
     const store = await opened([task(1), task(2)])
     expect(store.remove({ id: 1, project_id: 7 })).toBe(true)

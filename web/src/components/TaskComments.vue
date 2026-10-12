@@ -3,25 +3,31 @@ import { Paperclip, X } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
-import { getTaskAttachmentUrl, taskAttachmentsPath } from '../api/taskComments'
+import type { TaskComment } from '../api/types'
+import { deleteTaskComment, getTaskAttachmentUrl, taskAttachmentsPath } from '../api/taskComments'
 import { useAttachmentUploads } from '../composables/useAttachmentUploads'
 import { useSharedNow } from '../composables/useSharedNow'
 import { formatFileSize } from '../formatFileSize'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
+import { useOrganizationStore } from '../stores/organization'
 import { useTaskCommentsStore } from '../stores/taskComments'
 import MarkdownContent from './MarkdownContent.vue'
 import MarkdownEditor from './MarkdownEditor.vue'
 import MessageAttachments from './MessageAttachments.vue'
+import TaskCommentEditor from './TaskCommentEditor.vue'
 import { charCount, TASK_DESCRIPTION_MAX_LENGTH } from './taskLimits'
 import AppAvatar from './ui/AppAvatar.vue'
+import AppDialog from './ui/AppDialog.vue'
 import AppFormError from './ui/AppFormError.vue'
+import AppTooltip from './ui/AppTooltip.vue'
 
 const props = defineProps<{ projectId: number; taskId: number }>()
 
 const { t, locale } = useI18n()
 const store = useTaskCommentsStore()
 const auth = useAuthStore()
+const organization = useOrganizationStore()
 const directory = useMemberDirectoryStore()
 const now = useSharedNow()
 
@@ -30,9 +36,18 @@ const sending = ref(false)
 const formError = ref<string | null>(null)
 const picker = ref<HTMLInputElement | null>(null)
 const list = ref<HTMLElement | null>(null)
+const heading = ref<HTMLElement | null>(null)
 const fileIdPrefix = useId()
 const headingId = `${fileIdPrefix}-heading`
 const sentNotice = ref('')
+const editingId = ref<number | null>(null)
+const deleteOpen = ref(false)
+const deletingId = ref<number | null>(null)
+const deleting = ref(false)
+const deleteError = ref<string | null>(null)
+let deleteToken = 0
+let deleteDone = false
+let focusAfterRemoval: HTMLElement | null = null
 // Keyed by the upload path: changing task drops the items and discards uploads still in flight (L-10).
 const uploads = useAttachmentUploads(() => taskAttachmentsPath(props.projectId, props.taskId), {
   tooManyKey: 'taskComments.tooManyAttachments',
@@ -47,6 +62,12 @@ watch(
     sending.value = false
     formError.value = null
     sentNotice.value = ''
+    editingId.value = null
+    deleteToken++
+    deleteOpen.value = false
+    deletingId.value = null
+    deleting.value = false
+    deleteError.value = null
     void store.open(props.projectId, props.taskId)
   },
   { immediate: true },
@@ -54,6 +75,7 @@ watch(
 
 onBeforeUnmount(() => {
   sendToken++
+  deleteToken++
   store.clear()
 })
 
@@ -135,6 +157,83 @@ function fullDate(iso: string): string {
   return new Date(iso).toLocaleString(locale.value, { dateStyle: 'full', timeStyle: 'medium' })
 }
 
+async function finishEditing(commentId: number): Promise<void> {
+  editingId.value = null
+  await nextTick()
+  list.value?.querySelector<HTMLButtonElement>(`[data-comment-id="${commentId}"] [data-test="comment-edit"]`)?.focus()
+}
+
+function isOwn(comment: TaskComment): boolean {
+  return comment.user !== null && comment.user.id === auth.user?.id
+}
+
+const canModerate = computed(() => organization.isOwner || organization.isAdmin)
+
+function canDelete(comment: TaskComment): boolean {
+  return isOwn(comment) || canModerate.value
+}
+
+function askDelete(comment: TaskComment): void {
+  deletingId.value = comment.id
+  deleteError.value = null
+  deleteDone = false
+  deleteOpen.value = true
+}
+
+function neighbourFocusTarget(id: number): HTMLElement | null {
+  const index = store.comments.findIndex((item) => item.id === id)
+  for (const neighbour of [store.comments[index + 1], store.comments[index - 1]]) {
+    if (!neighbour) continue
+    const button = list.value?.querySelector<HTMLElement>(`[data-comment-id="${neighbour.id}"] .task-comments__tools button`)
+    if (button) return button
+  }
+  return heading.value
+}
+
+function focusAfterDelete(event: Event): void {
+  if (deleteDone) {
+    if (!focusAfterRemoval) return
+    event.preventDefault()
+    focusAfterRemoval.focus()
+    focusAfterRemoval = null
+    return
+  }
+  if (deletingId.value === null) return
+  const button = list.value?.querySelector<HTMLButtonElement>(`[data-comment-id="${deletingId.value}"] [data-test="comment-delete"]`)
+  if (!button) return
+  event.preventDefault()
+  button.focus()
+}
+
+async function confirmDelete(): Promise<void> {
+  const id = deletingId.value
+  if (id === null || deleting.value) return
+  const token = deleteToken
+  deleteError.value = null
+  deleting.value = true
+  const finish = (): void => {
+    deleteDone = true
+    if (editingId.value === id) editingId.value = null
+    focusAfterRemoval = neighbourFocusTarget(id)
+    store.remove(id)
+    deleteOpen.value = false
+  }
+  try {
+    await deleteTaskComment(props.projectId, props.taskId, id)
+    if (token !== deleteToken) return
+    finish()
+  } catch (error) {
+    if (token !== deleteToken) return
+    if (!(error instanceof ApiError)) throw error
+    if (error.status === 404) finish()
+    else if (error.status === 403) deleteError.value = t('taskComments.deleteForbidden')
+    else if (error.status === 0) deleteError.value = t('taskComments.network')
+    else deleteError.value = t('taskComments.deleteFailed')
+  } finally {
+    if (token === deleteToken) deleting.value = false
+  }
+}
+
 function retry(): void {
   if (store.comments.length === 0) void store.open(props.projectId, props.taskId)
   else void store.loadOlder()
@@ -174,7 +273,7 @@ async function submit(): Promise<void> {
 
 <template>
   <section class="task-comments" :aria-labelledby="headingId" data-test="task-comments">
-    <h2 :id="headingId" class="task-comments__heading">{{ t('taskComments.heading') }}</h2>
+    <h2 :id="headingId" ref="heading" class="task-comments__heading" tabindex="-1">{{ t('taskComments.heading') }}</h2>
 
     <p v-if="store.loading" role="status" class="task-comments__note" data-test="comments-loading">{{ t('common.loading') }}</p>
 
@@ -203,9 +302,44 @@ async function submit(): Promise<void> {
           <p class="task-comments__meta">
             <span class="task-comments__author" data-test="comment-author">{{ comment.user?.name ?? t('taskComments.deletedUser') }}</span>
             <time :datetime="comment.created_at" :title="fullDate(comment.created_at)">{{ when(comment.created_at) }}</time>
+            <AppTooltip v-if="comment.edited_at" :text="t('message.editedAt', { date: fullDate(comment.edited_at) })">
+              <span class="task-comments__edited" data-test="comment-edited"><span aria-hidden="true">{{ t('message.edited') }}</span><span class="task-comments__sr">{{ t('message.editedAt', { date: fullDate(comment.edited_at) }) }}</span></span>
+            </AppTooltip>
+            <span class="task-comments__tools">
+              <button
+                v-if="isOwn(comment) && editingId !== comment.id"
+                type="button"
+                class="task-comments__edit"
+                data-test="comment-edit"
+                :aria-label="t('taskComments.editNamed', { name: comment.user?.name ?? '' })"
+                @click="editingId = comment.id"
+              >
+                {{ t('taskComments.edit') }}
+              </button>
+              <button
+                v-if="canDelete(comment)"
+                type="button"
+                class="task-comments__edit"
+                data-test="comment-delete"
+                :aria-label="t('taskComments.deleteNamed', { name: comment.user?.name ?? t('taskComments.deletedUser') })"
+                @click="askDelete(comment)"
+              >
+                {{ t('taskComments.delete') }}
+              </button>
+            </span>
           </p>
-          <MarkdownContent :source="comment.body" :mentions="comment.mentions" :own-user-id="auth.user?.id" />
-          <MessageAttachments :attachments="comment.attachments" :renew-url="getTaskAttachmentUrl" />
+          <TaskCommentEditor
+            v-if="editingId === comment.id"
+            :project-id="projectId"
+            :task-id="taskId"
+            :comment="comment"
+            :mentions="mentionOptions"
+            @done="finishEditing(comment.id)"
+          />
+          <template v-else>
+            <MarkdownContent :source="comment.body" :mentions="comment.mentions" :own-user-id="auth.user?.id" />
+            <MessageAttachments :attachments="comment.attachments" :renew-url="getTaskAttachmentUrl" />
+          </template>
         </div>
       </li>
     </ul>
@@ -294,6 +428,23 @@ async function submit(): Promise<void> {
         </button>
       </div>
     </form>
+    <AppDialog
+      v-model:open="deleteOpen"
+      :title="t('taskComments.deleteTitle')"
+      :close-label="t('taskComments.deleteCancel')"
+      @close-auto-focus="focusAfterDelete"
+    >
+      <p data-test="comment-delete-text">{{ t('taskComments.deleteConfirm') }}</p>
+      <AppFormError v-if="deleteError" data-test="comment-delete-error">{{ deleteError }}</AppFormError>
+      <div class="task-comments__dialog-actions">
+        <button type="button" class="task-comments__cancel" data-test="comment-delete-cancel" :disabled="deleting" @click="deleteOpen = false">
+          {{ t('taskComments.deleteCancel') }}
+        </button>
+        <button type="button" class="task-comments__confirm" data-test="comment-delete-confirm" :disabled="deleting" @click="confirmDelete">
+          {{ deleting ? t('taskComments.deleting') : t('taskComments.delete') }}
+        </button>
+      </div>
+    </AppDialog>
   </section>
 </template>
 
@@ -351,6 +502,51 @@ async function submit(): Promise<void> {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink);
+}
+.task-comments__edited {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.task-comments__tools {
+  margin-left: auto;
+}
+.task-comments__dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: var(--space-4);
+}
+.task-comments__cancel,
+.task-comments__confirm {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.task-comments__confirm {
+  border-color: var(--level-error-fg);
+  background: var(--level-error-bg);
+  color: var(--level-error-fg);
+}
+.task-comments__cancel:disabled,
+.task-comments__confirm:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.task-comments__edit {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
 }
 .task-comments__form {
   display: flex;
@@ -473,6 +669,9 @@ async function submit(): Promise<void> {
   cursor: default;
 }
 .task-comments__button:focus-visible,
+.task-comments__edit:focus-visible,
+.task-comments__cancel:focus-visible,
+.task-comments__confirm:focus-visible,
 .task-comments__attach:focus-visible,
 .task-comments__file-action:focus-visible,
 .task-comments__send:focus-visible {

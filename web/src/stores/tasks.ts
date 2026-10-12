@@ -156,6 +156,16 @@ export const useTasksStore = defineStore('tasks', () => {
     return true
   }
 
+  /** Absolute comment count from `task.comment.created`; leaves `updated_at` and the order untouched. */
+  function setCommentsCount(taskId: number, count: number): boolean {
+    const index = tasks.value.findIndex((task) => task.id === taskId)
+    if (index < 0) return false
+    const next = tasks.value.slice()
+    next[index] = { ...next[index], comments_count: count }
+    tasks.value = next
+    return true
+  }
+
   function clear(): void {
     generation++
     loadSeq++
@@ -337,6 +347,7 @@ export const useTasksStore = defineStore('tasks', () => {
     insert,
     replace,
     remove,
+    setCommentsCount,
     create,
     update,
     move,

@@ -71,3 +71,12 @@ it('broadcasts the mentions like the response', function () {
             && $comment === $response->json('data');
     });
 });
+
+it('broadcasts the task comment count including the new comment', function () {
+    $this->task->comments()->make(['body' => 'First'])->forceFill(['user_id' => $this->member->id])->save();
+    Event::fake([TaskCommentCreated::class]);
+
+    broadcastCommentCall($this, ['body' => 'Second'])->assertCreated();
+
+    Event::assertDispatched(TaskCommentCreated::class, fn (TaskCommentCreated $event) => $event->broadcastWith()['comments_count'] === 2);
+});

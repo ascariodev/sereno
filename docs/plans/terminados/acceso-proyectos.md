@@ -21,7 +21,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 - `Organization::removeMember` ya desasigna tareas, emite `MembershipRevoked` y corta sockets
   (`TerminateUserConnections`, 5 s): patrón a imitar.
 - Web: cualquier 403 con organización dispara `handleForbidden` (recarga organizaciones); por eso lo inaccesible da 404.
-- Lecciones clave: L-03, L-04, L-08, L-29, L-34, L-36, L-38 (eventos a `users.{id}` solo con ids), L-42
+- Lecciones clave: L-03, L-04, L-08, L-29, L-34, L-36, L-67 (eventos a `users.{id}` solo con ids), L-42
   (condición de entrega en `broadcastOn()`). Migraciones: `.claude/rules/database.md`.
 
 ## Fases
@@ -101,7 +101,7 @@ asignados (y sus canales, mensajes, tareas, logs, menciones y realtime), se asig
 
 ### [x] Fase 11 — Quitar acceso corta lo que queda abierto [riesgo]
 - **Alcance:** al quitar a alguien de un proyecto: desasignar sus tareas de ese proyecto, emitir
-  `ProjectAccessChanged` a `users.{id}` (solo ids, L-38) y cortar sus sockets (`TerminateUserConnections`). Al
+  `ProjectAccessChanged` a `users.{id}` (solo ids, L-67) y cortar sus sockets (`TerminateUserConnections`). Al
   asignar, el mismo evento con `granted`. Al degradar admin u owner a member, cortar sockets. `removeMember` borra
   sus filas de `project_user`.
 - **Archivos:** `ProjectMemberController.php` (o una acción), `app/Events/ProjectAccessChanged.php` (nuevo),

@@ -89,7 +89,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 
 ### [x] Fase 11 — Eventos en vivo de tareas (api)
 - `TaskCreated`, `TaskUpdated` (incluye movimientos) y `TaskDeleted` en el canal del proyecto, tras el commit, con el
-  resource resuelto (L-37 para lo que cargue) y la condición de entrega en `broadcastOn()` si hace falta (L-42).
+  resource resuelto (L-66 para lo que cargue) y la condición de entrega en `broadcastOn()` si hace falta (L-42).
 
 ### Web
 
@@ -229,7 +229,7 @@ movimiento entre columnas, cambios en vivo, y crear una tarea desde un aviso de 
 - [x] M-1 (media, sonnet): mensaje de sistema en el canal al crear una tarea desde un aviso, y chip "Tarea POSVE-12"
   en la tarjeta del aviso.
 - [ ] M-2 (alta, plan nuevo): comentarios en las tareas (contador del diseño).
-- [x] M-3 (media, sonnet): avisar al asignado por `users.{id}` (solo ids, L-38).
+- [x] M-3 (media, sonnet): avisar al asignado por `users.{id}` (solo ids, L-67).
 - [x] M-4 (media, sonnet): paginar o limitar la columna Hecho si crece.
 - [ ] M-5 (media, sonnet): efectos cruzados opcionales entre tarea y grupo (Hecho resuelve, reabierto avisa). Va a un plan propio: `docs/plans/tarea-grupo-efectos.md` (aprobado 2026-10-11).
 - [x] M-6 (baja, sonnet): test de `TaskPolicy` sin organización activa (falla cerrada en `viewAny` y `create`).

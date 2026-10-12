@@ -494,7 +494,8 @@
     "showMoreDone": "Show more done tasks",
     "unassigned": "Unassigned",
     "assignedTo": "Assigned to {name}",
-    "fromNotice": "From a log notice"
+    "fromNotice": "From a log notice",
+    "commentsCount": "{n} comment | {n} comments"
   },
   "taskAside": {
     "editDescription": "Edit description",
@@ -531,7 +532,22 @@
     "sendFailed": "Could not send the comment. Try again.",
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "network": "Could not reach the server.",
-    "deletedUser": "deleted user"
+    "deletedUser": "deleted user",
+    "edit": "Edit",
+    "editNamed": "Edit comment by {name}",
+    "editLabel": "Edit comment",
+    "saving": "Saving...",
+    "editForbidden": "You cannot edit this comment.",
+    "editGone": "The comment no longer exists.",
+    "editFailed": "Could not save the changes.",
+    "delete": "Delete",
+    "deleteNamed": "Delete comment by {name}",
+    "deleteTitle": "Delete comment",
+    "deleteConfirm": "This comment will be deleted for everyone. This cannot be undone.",
+    "deleteCancel": "Cancel",
+    "deleting": "Deleting...",
+    "deleteForbidden": "You cannot delete this comment.",
+    "deleteFailed": "Could not delete the comment."
   },
   "markdownEditor": {
     "write": "Write",

@@ -9,6 +9,7 @@ use App\Models\LogGroup;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\Event;
@@ -161,4 +162,29 @@ it('does not notify on self assignment, unassignment or an unchanged assignee', 
     taskBroadcastCall($this, 'PATCH', "/{$this->task->id}", ['assignee_id' => $this->member->id])->assertOk();
 
     Event::assertNotDispatched(TaskAssigned::class);
+});
+
+it('broadcasts the comment count of the task with the same value as the response', function () {
+    Event::fake([TaskCreated::class, TaskUpdated::class]);
+    TaskComment::factory()->forTask($this->task)->count(2)->create(['user_id' => $this->member->id]);
+
+    $created = taskBroadcastCall($this, 'POST', '', ['title' => 'New'])->assertCreated()
+        ->assertJsonPath('data.comments_count', 0);
+    TaskComment::factory()->forTask(Task::findOrFail($created->json('data.id')))->create(['user_id' => $this->member->id]);
+    taskBroadcastCall($this, 'PATCH', "/{$this->task->id}", ['title' => 'Renamed'])->assertOk()
+        ->assertJsonPath('data.comments_count', 2);
+    taskBroadcastCall($this, 'POST', "/{$this->task->id}/move", ['status' => 'done'])->assertOk()
+        ->assertJsonPath('data.comments_count', 2);
+
+    Event::assertDispatched(TaskCreated::class, fn (TaskCreated $event) => $event->task['comments_count'] === 0);
+    expect(Event::dispatched(TaskUpdated::class)->map(fn (array $args) => $args[0]->task['comments_count'])->all())
+        ->toBe([2, 2]);
+});
+
+it('counts the comments when the event gets a task without the count and no active organization', function () {
+    TaskComment::factory()->forTask($this->task)->count(3)->create(['user_id' => $this->member->id]);
+    $task = Task::withoutGlobalScopes()->findOrFail($this->task->id);
+    app(CurrentOrganization::class)->set(null);
+
+    expect((new TaskUpdated($task->setRelation('project', $this->project)))->task['comments_count'])->toBe(3);
 });

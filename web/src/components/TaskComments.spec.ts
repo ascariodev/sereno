@@ -6,6 +6,7 @@ import type { TaskComment } from '../api/types'
 import { i18n } from '../i18n'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
+import { useOrganizationStore } from '../stores/organization'
 import { useTaskCommentsStore } from '../stores/taskComments'
 import TaskComments from './TaskComments.vue'
 
@@ -19,6 +20,7 @@ const comment = (id: number, overrides: Partial<TaskComment> = {}): TaskComment 
   mentions: [],
   attachments: [],
   created_at: new Date().toISOString(),
+  edited_at: null,
   ...overrides,
 })
 const page = (data: TaskComment[], nextCursor: string | null = null) => ({ data, meta: { next_cursor: nextCursor } }) as never
@@ -423,5 +425,228 @@ describe('TaskComments', () => {
       expect(get).toHaveBeenCalledWith('/api/task-attachments/3/url')
       expect(wrapper.get('[data-test="comment"] img').attributes('src')).toBe('http://api/task-attachments/3?sig=new')
     })
+  })
+})
+
+describe('TaskComments editing', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('offers Edit only on own comments and opens a single inline editor', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(
+      page([comment(3, { user: { id: 1, name: 'Ana' }, body: 'mine' }), comment(2), comment(1, { user: { id: 1, name: 'Ana' } })]),
+    )
+    const wrapper = mountComments()
+    await flushPromises()
+    const items = () => wrapper.findAll('[data-test="comment"]')
+    expect(items().map((item) => item.find('[data-test="comment-edit"]').exists())).toEqual([true, false, true])
+
+    await items()[2].get('[data-test="comment-edit"]').trigger('click')
+    expect(items()[2].find('[data-test="comment-editor"]').exists()).toBe(true)
+    expect(items()[2].find('[data-test="comment-edit"]').exists()).toBe(false)
+    await items()[0].get('[data-test="comment-edit"]').trigger('click')
+    expect(wrapper.findAll('[data-test="comment-editor"]')).toHaveLength(1)
+    expect(items()[0].find('[data-test="comment-editor"]').exists()).toBe(true)
+    expect(items()[2].text()).toContain('mine')
+  })
+
+  it('closes the editor on cancel and when the task changes', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([comment(1, { user: { id: 1, name: 'Ana' } })]))
+    const wrapper = mountComments()
+    await flushPromises()
+    await wrapper.get('[data-test="comment-edit"]').trigger('click')
+    await wrapper.get('[data-test="edit-cancel"]').trigger('click')
+    expect(wrapper.find('[data-test="comment-editor"]').exists()).toBe(false)
+
+    await wrapper.get('[data-test="comment-edit"]').trigger('click')
+    await wrapper.setProps({ taskId: 10 })
+    await flushPromises()
+    expect(wrapper.find('[data-test="comment-editor"]').exists()).toBe(false)
+  })
+
+  it('returns focus to the Edit button after cancelling or saving', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([comment(1, { user: { id: 1, name: 'Ana' } })]))
+    vi.spyOn(api, 'patch').mockResolvedValue({
+      data: comment(1, { user: { id: 1, name: 'Ana' }, body: 'new', edited_at: '2026-10-12T10:00:00Z' }),
+    } as never)
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useAuthStore().$patch({ user: { id: 1, name: 'Ana' } as never })
+    vi.spyOn(useMemberDirectoryStore(), 'ensureLoaded').mockResolvedValue()
+    const wrapper = mount(TaskComments, { props: { projectId: 5, taskId: 9 }, global: { plugins: [pinia, i18n] }, attachTo: document.body })
+    await flushPromises()
+
+    await wrapper.get('[data-test="comment-edit"]').trigger('click')
+    expect(document.activeElement?.tagName).toBe('TEXTAREA')
+    await wrapper.get('[data-test="edit-cancel"]').trigger('click')
+    await flushPromises()
+    expect(document.activeElement).toBe(wrapper.get('[data-test="comment-edit"]').element)
+
+    await wrapper.get('[data-test="comment-edit"]').trigger('click')
+    await wrapper.get('[data-test="comment-editor"] textarea').setValue('new')
+    await wrapper.get('[data-test="comment-editor"]').trigger('submit')
+    await flushPromises()
+    expect(wrapper.text()).toContain('new')
+    expect(document.activeElement).toBe(wrapper.get('[data-test="comment-edit"]').element)
+  })
+
+  it('labels edited comments with the edit date', async () => {
+    const editedAt = '2026-10-12T10:00:00Z'
+    vi.spyOn(api, 'get').mockResolvedValue(page([comment(2, { edited_at: editedAt }), comment(1)]))
+    const wrapper = mountComments()
+    await flushPromises()
+    const items = wrapper.findAll('[data-test="comment"]')
+    expect(items[0].find('[data-test="comment-edited"]').exists()).toBe(false)
+    const label = items[1].get('[data-test="comment-edited"]')
+    expect(label.text()).toContain('(edited)')
+    expect(label.text()).toContain(new Date(editedAt).toLocaleString('en', { dateStyle: 'full', timeStyle: 'medium' }))
+  })
+})
+
+describe('TaskComments deleting', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const mine = (id: number) => comment(id, { user: { id: 1, name: 'Ana' } })
+  const dialogButton = (name: string) => document.querySelector<HTMLButtonElement>(`[data-test="${name}"]`)
+
+  function mountAs(roles: string[]) {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useAuthStore().$patch({ user: { id: 1, name: 'Ana' } as never })
+    useOrganizationStore().$patch({ organizations: [{ id: 1, name: 'Org', slug: 'org', settings: null, roles }], activeId: 1 })
+    vi.spyOn(useMemberDirectoryStore(), 'ensureLoaded').mockResolvedValue()
+    return mount(TaskComments, { props: { projectId: 5, taskId: 9 }, global: { plugins: [pinia, i18n] }, attachTo: document.body })
+  }
+
+  async function deleteAndFocus(ids: number[], target: number) {
+    vi.spyOn(api, 'get').mockResolvedValue(page(ids.map(mine)))
+    vi.spyOn(api, 'delete').mockResolvedValue(undefined as never)
+    const wrapper = mountAs(['member'])
+    await flushPromises()
+    await wrapper.get(`[data-comment-id="${target}"] [data-test="comment-delete"]`).trigger('click')
+    await flushPromises()
+    dialogButton('comment-delete-confirm')!.click()
+    await flushPromises()
+    return wrapper
+  }
+
+  it('moves focus to the next comment after deleting', async () => {
+    const wrapper = await deleteAndFocus([1, 2, 3], 2)
+    expect(document.activeElement).toBe(wrapper.get('[data-comment-id="3"] [data-test="comment-edit"]').element)
+  })
+
+  it('moves focus to the previous comment when the last one is deleted', async () => {
+    const wrapper = await deleteAndFocus([1, 2, 3], 3)
+    expect(document.activeElement).toBe(wrapper.get('[data-comment-id="2"] [data-test="comment-edit"]').element)
+  })
+
+  it('moves focus to the heading when the only comment is deleted', async () => {
+    const wrapper = await deleteAndFocus([1], 1)
+    expect(document.activeElement).toBe(wrapper.get('h2').element)
+  })
+
+  it('offers Delete on own comments, and on all of them to owners and admins', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([comment(2), mine(1)]))
+    const visible = async (roles: string[]) => {
+      const wrapper = mountAs(roles)
+      await flushPromises()
+      const result = wrapper.findAll('[data-test="comment"]').map((item) => item.find('[data-test="comment-delete"]').exists())
+      wrapper.unmount()
+      return result
+    }
+    expect(await visible(['member'])).toEqual([true, false])
+    expect(await visible(['admin'])).toEqual([true, true])
+    expect(await visible(['owner'])).toEqual([true, true])
+  })
+
+  it('deletes after confirming and removes the comment', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([comment(2), mine(1)]))
+    const del = vi.spyOn(api, 'delete').mockResolvedValue(undefined as never)
+    const wrapper = mountAs(['admin'])
+    await flushPromises()
+    await wrapper.get('[data-comment-id="2"] [data-test="comment-delete"]').trigger('click')
+    await flushPromises()
+    expect(dialogButton('comment-delete-confirm')).not.toBeNull()
+    expect(del).not.toHaveBeenCalled()
+    dialogButton('comment-delete-confirm')!.click()
+    await flushPromises()
+    expect(del).toHaveBeenCalledWith('/api/projects/5/tasks/9/comments/2')
+    expect(wrapper.findAll('[data-test="comment"]')).toHaveLength(1)
+    expect(dialogButton('comment-delete-confirm')).toBeNull()
+  })
+
+  it('does not delete on cancel and returns focus to the Delete button', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([mine(1)]))
+    const del = vi.spyOn(api, 'delete').mockResolvedValue(undefined as never)
+    const wrapper = mountAs(['member'])
+    await flushPromises()
+    const button = wrapper.get('[data-test="comment-delete"]')
+    await button.trigger('click')
+    await flushPromises()
+    dialogButton('comment-delete-cancel')!.click()
+    await flushPromises()
+    expect(del).not.toHaveBeenCalled()
+    expect(wrapper.findAll('[data-test="comment"]')).toHaveLength(1)
+    expect(document.activeElement).toBe(button.element)
+  })
+
+  it('shows an error and keeps the comment when deleting fails', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([mine(1)]))
+    vi.spyOn(api, 'delete').mockRejectedValue(new ApiError(403, 'no'))
+    const wrapper = mountAs(['member'])
+    await flushPromises()
+    await wrapper.get('[data-test="comment-delete"]').trigger('click')
+    await flushPromises()
+    dialogButton('comment-delete-confirm')!.click()
+    await flushPromises()
+    expect(document.querySelector('[data-test="comment-delete-error"]')?.textContent).toContain('You cannot delete this comment.')
+    expect(wrapper.findAll('[data-test="comment"]')).toHaveLength(1)
+  })
+
+  it('drops the comment when it no longer exists', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([mine(1)]))
+    vi.spyOn(api, 'delete').mockRejectedValue(new ApiError(404, 'gone'))
+    const wrapper = mountAs(['member'])
+    await flushPromises()
+    await wrapper.get('[data-test="comment-delete"]').trigger('click')
+    await flushPromises()
+    dialogButton('comment-delete-confirm')!.click()
+    await flushPromises()
+    expect(wrapper.findAll('[data-test="comment"]')).toHaveLength(0)
+    expect(dialogButton('comment-delete-confirm')).toBeNull()
+  })
+
+  it('closes the editor of the deleted comment', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([mine(1), mine(2)]))
+    vi.spyOn(api, 'delete').mockResolvedValue(undefined as never)
+    const wrapper = mountAs(['member'])
+    await flushPromises()
+    await wrapper.get('[data-comment-id="1"] [data-test="comment-edit"]').trigger('click')
+    expect(wrapper.find('[data-test="comment-editor"]').exists()).toBe(true)
+    await wrapper.get('[data-comment-id="1"] [data-test="comment-delete"]').trigger('click')
+    await flushPromises()
+    dialogButton('comment-delete-confirm')!.click()
+    await flushPromises()
+    expect(wrapper.find('[data-test="comment-editor"]').exists()).toBe(false)
+  })
+
+  it('ignores the response when the task changes while deleting', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([mine(1)]))
+    const pending = deferred<never>()
+    vi.spyOn(api, 'delete').mockReturnValue(pending.promise)
+    const wrapper = mountAs(['member'])
+    await flushPromises()
+    await wrapper.get('[data-test="comment-delete"]').trigger('click')
+    await flushPromises()
+    dialogButton('comment-delete-confirm')!.click()
+    await wrapper.setProps({ taskId: 10 })
+    await flushPromises()
+    pending.resolve(undefined as never)
+    await flushPromises()
+    expect(wrapper.findAll('[data-test="comment"]')).toHaveLength(1)
+    expect(dialogButton('comment-delete-confirm')).toBeNull()
   })
 })

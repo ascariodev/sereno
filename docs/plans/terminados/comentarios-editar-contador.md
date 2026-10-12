@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 1
+**Estado:** terminado
 
 
 ## Contexto mínimo
@@ -26,7 +26,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 
 ## Fases
 
-### [ ] Fase 1 — `comments_count` en el recurso de tarea [riesgo]
+### [x] Fase 1 — `comments_count` en el recurso de tarea [riesgo]
 - **Alcance:** `TaskResource` expone `comments_count` (`whenCounted`). Un único punto declara el conteo sin el scope
   global de `TaskComment` (seguro: la FK compuesta ata el comentario a su tarea) y lo usan index, show, store, update,
   move, las vecinas renumeradas, `Task::unassignUser` y, como respaldo, `TaskSnapshotEvent` (`loadCount` si falta).
@@ -35,37 +35,37 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - **Terminado cuando:** tests en `TaskListApiTest`, `TaskBroadcastTest` y `TaskUnassignOnRemovalTest` comprueban el
   conteo correcto (también con comentarios de otra tarea y sin organización activa).
 
-### [ ] Fase 2 — Conteo en el evento de comentario creado
+### [x] Fase 2 — Conteo en el evento de comentario creado
 - **Alcance:** `TaskCommentCreated` lleva `comments_count` de la tarea, contado tras el commit (absoluto, no delta).
 - **Archivos:** `api/app/Events/TaskCommentCreated.php`, `api/app/Http/Controllers/Api/TaskCommentController.php`.
 - **Terminado cuando:** `TaskCommentBroadcastTest` comprueba el conteo en el payload.
 
-### [ ] Fase 3 — Contador en `TaskCard`
+### [x] Fase 3 — Contador en `TaskCard`
 - **Alcance:** tipo `Task.comments_count`; `TaskCard` muestra icono y número solo si es mayor que 0, con etiqueta
   accesible traducida (en/es, plural).
 - **Archivos:** `web/src/api/types.ts`, `web/src/components/TaskCard.vue`, `web/src/i18n/en.json`, `web/src/i18n/es.json`.
 - **Terminado cuando:** `TaskCard.spec.ts` cubre 0 (oculto), 1 y N.
 
-### [ ] Fase 4 — Contador en vivo desde los eventos de comentario
+### [x] Fase 4 — Contador en vivo desde los eventos de comentario
 - **Alcance:** `echo.ts` valida y entrega `comments_count` del evento; el store de tareas aplica el valor absoluto a la
   tarea (`setCommentsCount`, sin tocar `updated_at`); `PlanView` lo conecta.
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/stores/tasks.ts`, `web/src/views/PlanView.vue`.
 - **Terminado cuando:** specs de echo, store de tareas y `PlanView` cubren que un comentario nuevo actualiza la tarjeta.
 
-### [ ] Fase 5 — `edited_at` en comentarios
+### [x] Fase 5 — `edited_at` en comentarios
 - **Alcance:** migración con `task_comments.edited_at` (nullable, UTC), cast en el modelo, `edited_at` en
   `TaskCommentResource`; `database.md` actualizado (y corregida la referencia a `TaskComment::mentions()`, que no existe).
 - **Archivos:** migración nueva, `api/app/Models/TaskComment.php`, `api/app/Http/Resources/TaskCommentResource.php`,
   `.claude/rules/database.md`.
 - **Terminado cuando:** test del recurso devuelve `edited_at` null en un comentario nuevo; `migrate:fresh` limpio.
 
-### [ ] Fase 6 — Policy de editar y borrar
+### [x] Fase 6 — Policy de editar y borrar
 - **Alcance:** `TaskCommentPolicy::update` (solo el autor) y `delete` (autor, owner o admin); ambos exigen ver la tarea
   y la organización activa igual a la del comentario.
 - **Archivos:** `api/app/Policies/TaskCommentPolicy.php`.
 - **Terminado cuando:** `TaskCommentPolicyTest` cubre autor, otro miembro, admin, owner y otra organización.
 
-### [ ] Fase 7 — Editar el cuerpo con resincronización de menciones [riesgo]
+### [x] Fase 7 — Editar el cuerpo con resincronización de menciones [riesgo]
 - **Alcance:** `PATCH projects/{project}/tasks/{task}/comments/{comment}` (404 si no es de la tarea), cuerpo validado
   como en `store`; transacción con `lockForUpdate`; menciones sincronizadas (insertar nuevas, borrar quitadas) con
   `MentionTargets`; `edited_at` solo si el cuerpo cambió; evento `TaskCommentUpdated` (`task.comment.updated`).
@@ -74,13 +74,13 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - **Terminado cuando:** tests de editar (autor, ajeno 403, otra tarea 404, menciones agregadas y quitadas, sin cambios
   no marca `edited_at`) y del broadcast.
 
-### [ ] Fase 8 — Quitar adjuntos al editar [riesgo]
+### [x] Fase 8 — Quitar adjuntos al editar [riesgo]
 - **Alcance:** `remove_attachment_ids` (solo del mismo comentario) en el `PATCH`; borra las filas en la transacción,
   los archivos tras el commit; quitar un adjunto marca `edited_at`.
 - **Archivos:** `UpdateTaskCommentRequest.php`, `TaskCommentController.php`.
 - **Terminado cuando:** tests de quitar adjunto (archivo borrado tras commit, id ajeno rechazado, rollback no borra).
 
-### [ ] Fase 9 — Borrar comentarios [riesgo]
+### [x] Fase 9 — Borrar comentarios [riesgo]
 - **Alcance:** `DELETE .../comments/{comment}`: borrado físico (los comentarios no tienen respuestas), filas de
   menciones y adjuntos por cascada, archivos tras el commit; evento `TaskCommentDeleted`
   (`task.comment.deleted`, `{id, task_id, comments_count}`). Borrado concurrente: el segundo responde 404.
@@ -88,19 +88,19 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
   `TaskCommentController.php`, `api/app/Events/TaskCommentDeleted.php`.
 - **Terminado cuando:** tests de borrar (autor, admin, ajeno 403, archivos borrados, conteo en el evento).
 
-### [ ] Fase 10 — Cliente y store de comentarios: editar y borrar
+### [x] Fase 10 — Cliente y store de comentarios: editar y borrar
 - **Alcance:** `TaskComment.edited_at`; `updateTaskComment` y `deleteTaskComment` en el cliente; `update(comment)`
   (descarta ediciones más viejas por `edited_at`) y `remove(id)` en el store, respetando `generation`.
 - **Archivos:** `web/src/api/types.ts`, `web/src/api/taskComments.ts`, `web/src/stores/taskComments.ts`.
 - **Terminado cuando:** specs del cliente y del store.
 
-### [ ] Fase 11 — Eventos en vivo de edición y borrado
+### [x] Fase 11 — Eventos en vivo de edición y borrado
 - **Alcance:** `echo.ts` escucha `task.comment.updated` y `task.comment.deleted` (con validadores); `PlanView` los
   conecta al store de comentarios y el borrado también al contador de la tarea.
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/views/PlanView.vue`.
 - **Terminado cuando:** specs de echo y `PlanView`.
 
-### [ ] Fase 12 — Editor en línea de comentarios [riesgo]
+### [x] Fase 12 — Editor en línea de comentarios [riesgo]
 - **Alcance:** componente `TaskCommentEditor` (como `MessageEditor`: `MarkdownEditor` con
   `parseMentionDraft(comment.body, comment.mentions)`, marcar adjuntos para quitar, guardar, cancelar con Esc);
   `TaskComments` muestra "Editar" en los propios y la etiqueta "editado" con fecha.
@@ -109,7 +109,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - **Terminado cuando:** specs del editor (guardar, cancelar, menciones conservadas, quitar adjunto, error) y de
   `TaskComments` (botón solo en propios, etiqueta editado).
 
-### [ ] Fase 13 — Borrar desde el panel
+### [x] Fase 13 — Borrar desde el panel
 - **Alcance:** acción "Borrar" en propios y, para owner/admin, en todos; diálogo de confirmación (`AppDialog`); error
   visible con `AppFormError`.
 - **Archivos:** `web/src/components/TaskComments.vue`, `web/src/i18n/en.json`, `web/src/i18n/es.json`.
@@ -126,6 +126,22 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
   resincronizar no emite eventos de mención.
 
 ## Notas para la próxima sesión
-- Arrancar por la fase 1. Leer `docs/lecciones.md` (L-37, L-63, L-64) y el patrón de `MessageController::update`.
+- Fase 1 hecha: el conteo se declara en `TaskController::counts()` (closure sin scopes globales); reutilizarlo en las fases 2 y 9.
+- Fase 2 hecha: payload de `task.comment.created` = `{comment, comments_count}` (hermanos)...
+- Fase 3 hecha: `Task.comments_count?` opcional en el tipo; TaskCard lo muestra si > 0.
+- Fase 4 hecha: `onTaskCommentCreated(comment, commentsCount?)`; `tasks.setCommentsCount`. Contador en vivo completo (fases 1-4).
+- Fase 5 hecha: `task_comments.edited_at` + recurso. Tras la migración, correr `php artisan migrate` en la base de desarrollo.
+- Fase 6 hecha: `TaskCommentPolicy::update` (autor) y `delete` (autor, owner, admin); devuelven la respuesta de `inspect view` de la tarea (404 sin acceso).
+- Fase 7 hecha: PATCH comentarios; `syncMentions($comment,$task,$authorId,?$currentIds)` sin eventos; `TaskCommentUpdated` `{comment}`. `UpdateTaskCommentRequest` exige `body`: en la fase 8 revisar el caso de comentario sin texto al quitar adjuntos.
+- Fase 8 hecha: `remove_attachment_ids` en el PATCH; body sigue obligatorio (igual que store); archivos borrados en afterCommit con try/report (patrón reutilizable en fase 9).
+- Fase 9 hecha (API completo): DELETE comentarios, evento `task.comment.deleted` `{id, task_id, comments_count}` (la web valida los tres como number).
+- Fase 10 hecha: `updateTaskComment`/`deleteTaskComment`; store `update(comment)` (descarta si el conocido tiene edición más nueva o el entrante no trae `edited_at`) y `remove(id)`. `validComment` no exige `edited_at`: la fase 11 debe exigirlo (string|null).
+- Fase 11 hecha: echo escucha `task.comment.updated` y `task.comment.deleted`; `validComment` exige `edited_at`. Faltan solo las fases de UI (12 editor, 13 borrar).
+- Fase 12 hecha: `TaskCommentEditor` en línea; botón Borrar de la fase 13 va en la fila de meta junto a "Editar" (`.task-comments__edit`). Retrabajo de foco: L-65.
+- Fase 13 hecha: borrar desde el panel con confirmación; foco al vecino tras borrar (L-65 ampliada). Plan completo.
 
 ## Mejoras propuestas
+- [x] M-1: `docs/lecciones.md` tiene IDs repetidos (L-37 a L-40 en las líneas ~50-53 y ~54-57, y L-59): no son duplicados sino lecciones distintas con el mismo ID. Renumerar el bloque repetido a IDs libres y corregir las citas en código y planes (hay citas a L-37, L-38 y L-39, ambiguas). Complejidad: media · Archivos: varios · sin riesgo → sonnet
+- [x] M-2: Test de `max_per_message` y exclusión del autor en la edición de comentarios; acortar los PHPDoc de `syncMentions` y `update`. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
+- [x] M-3: `TaskCommentController`: quitar el `isEmpty()` redundante de `deleteFilesAfterCommit` y aclarar el comentario de `destroy`; comentario de una línea en el test de rollback (DDL transaccional). Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
+- [x] M-4: El autocompletado del editor de comentarios puede sugerir a personas mencionadas que ya salieron del proyecto (se suman `comment.mentions` a los miembros); usarlas solo para pintar, no para sugerir. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet

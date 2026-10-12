@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createTaskComment, listTaskComments } from './taskComments'
+import { createTaskComment, deleteTaskComment, listTaskComments, updateTaskComment } from './taskComments'
 import type { TaskComment } from './types'
 
 const comment: TaskComment = {
@@ -10,6 +10,7 @@ const comment: TaskComment = {
   mentions: [{ id: 2, name: 'Bo' }],
   attachments: [],
   created_at: '2026-10-12T10:00:00.000000Z',
+  edited_at: null,
 }
 
 function stubFetch(body: unknown, status = 200) {
@@ -59,5 +60,25 @@ describe('task comments api', () => {
     const fetchMock = stubFetch({ data: comment }, 201)
     await createTaskComment(3, 9, 'x', [7, 8])
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ body: 'x', attachment_ids: [7, 8] })
+  })
+
+  it('patches a comment sending remove_attachment_ids only when present', async () => {
+    const fetchMock = stubFetch({ data: { ...comment, edited_at: '2026-10-12T11:00:00.000000Z' } })
+    const result = await updateTaskComment(3, 9, 4, 'new', [7])
+    expect(new URL(fetchMock.mock.calls[0][0], 'http://x').pathname).toBe('/api/projects/3/tasks/9/comments/4')
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('PATCH')
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ body: 'new', remove_attachment_ids: [7] })
+    expect(result.edited_at).toBe('2026-10-12T11:00:00.000000Z')
+
+    await updateTaskComment(3, 9, 4, 'again')
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual({ body: 'again' })
+  })
+
+  it('deletes a comment', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+    await deleteTaskComment(3, 9, 4)
+    expect(new URL(fetchMock.mock.calls[0][0], 'http://x').pathname).toBe('/api/projects/3/tasks/9/comments/4')
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('DELETE')
   })
 })
