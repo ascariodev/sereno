@@ -246,6 +246,101 @@ describe('TaskAside', () => {
     expect(q('[data-test="edit-description"]')).not.toBeNull()
   })
 
+  describe('task list', () => {
+    const withTasks = { ...base, description: 'Todo\n\n- [ ] one\n- [x] two' }
+    const box = (index: number) => document.body.querySelectorAll<HTMLInputElement>('[data-test="description-view"] input')[index]
+    async function check(index: number) {
+      box(index).click()
+      await flushPromises()
+    }
+
+    it('saves the toggled description and reflects it', async () => {
+      const spy = vi.spyOn(tasksApi, 'updateTask').mockResolvedValue({ ...withTasks, description: 'Todo\n\n- [x] one\n- [x] two', updated_at: '2026-01-02T00:00:00.000000Z' })
+      await mountAside(withTasks)
+      box(0).focus()
+      await check(0)
+      expect(spy).toHaveBeenCalledWith(5, 9, { title: 'Fix it', description: 'Todo\n\n- [x] one\n- [x] two', assigneeId: null })
+      expect(box(0).checked).toBe(true)
+      expect(document.activeElement).toBe(box(0))
+      expect(q<HTMLButtonElement>('[data-test="submit"]')!.disabled).toBe(true)
+    })
+
+    it('leaves the boxes disabled and saves nothing when read-only', async () => {
+      const spy = vi.spyOn(tasksApi, 'updateTask').mockResolvedValue(withTasks)
+      await mountAside(withTasks, { readOnly: true })
+      expect(box(0).disabled).toBe(true)
+      await check(0)
+      expect(spy).not.toHaveBeenCalled()
+    })
+
+    it('keeps the old state and reports the failure on error', async () => {
+      const spy = vi.spyOn(tasksApi, 'updateTask').mockRejectedValue(new ApiError(0, 'net', {}))
+      const error = vi.spyOn(toast, 'error')
+      await mountAside(withTasks)
+      await check(0)
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(error).toHaveBeenCalled()
+      expect(box(0).checked).toBe(false)
+      expect(box(0).disabled).toBe(false)
+    })
+
+    function pendingUpdate() {
+      let resolve!: (task: Task) => void
+      const spy = vi.spyOn(tasksApi, 'updateTask').mockImplementation(() => new Promise<Task>((done) => { resolve = done }))
+      return { spy, resolve: (task: Task) => resolve(task) }
+    }
+    const saved = { ...withTasks, description: 'Todo\n\n- [x] one\n- [x] two', updated_at: '2026-01-02T00:00:00.000000Z' }
+
+    it('discards a second click while saving, marks the description busy and reverts the box', async () => {
+      const { spy, resolve } = pendingUpdate()
+      await mountAside(withTasks)
+      const view = () => q('[data-test="description-view"]')!
+      expect(view().hasAttribute('aria-busy')).toBe(false)
+      await check(0)
+      expect(view().getAttribute('aria-busy')).toBe('true')
+      expect(box(0).disabled).toBe(false)
+      await check(1)
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(box(1).checked).toBe(true)
+      resolve(saved)
+      await flushPromises()
+      expect(view().hasAttribute('aria-busy')).toBe(false)
+      expect(box(0).checked).toBe(true)
+    })
+
+    it('disables the edit button while saving', async () => {
+      const { resolve } = pendingUpdate()
+      await mountAside(withTasks)
+      await check(0)
+      expect(q<HTMLButtonElement>('[data-test="edit-description"]')!.disabled).toBe(true)
+      resolve(saved)
+      await flushPromises()
+      expect(q<HTMLButtonElement>('[data-test="edit-description"]')!.disabled).toBe(false)
+    })
+
+    it('does not overwrite an open editor draft when the save resolves', async () => {
+      const { resolve } = pendingUpdate()
+      const { wrapper } = await mountAside(withTasks)
+      await check(0)
+      ;(wrapper.vm as unknown as { fieldErrors: Record<string, string[]> }).fieldErrors = { description: ['x'] }
+      await flushPromises()
+      await type('#task-aside-description', 'draft')
+      resolve(saved)
+      await flushPromises()
+      expect(q<HTMLTextAreaElement>('#task-aside-description')!.value).toBe('draft')
+    })
+
+    it('does not show boxes while the editor is open, so an unsaved edit is not overwritten', async () => {
+      const spy = vi.spyOn(tasksApi, 'updateTask').mockResolvedValue(withTasks)
+      await mountAside(withTasks)
+      q<HTMLButtonElement>('[data-test="edit-description"]')!.click()
+      await flushPromises()
+      await type('#task-aside-description', 'draft')
+      expect(box(0)).toBeUndefined()
+      expect(spy).not.toHaveBeenCalled()
+    })
+  })
+
   it('is read-only when the project is archived', async () => {
     const spy = vi.spyOn(tasksApi, 'updateTask').mockResolvedValue(base)
     await mountAside(base, { readOnly: true })

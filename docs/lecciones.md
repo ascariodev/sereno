@@ -91,6 +91,7 @@
   enlaces directos (`?task=`, `?message=`) pidan al API lo que no está cargado en vez de dar "no encontrado". —
   aplicada en: plan-tareas M-4, chat M-2
 - L-59: Un estilo de una vista sobre la raíz de un componente hijo (ancho de un panel) se escribe con `:deep` desde un contenedor propio y se mide en el navegador: si la raíz es dinámica (`<component :is>`) o un fragmento, el scope id no llega y la regla no se aplica sin error (LogView, PlanView). — aplicada en: pendiente
+- L-60: Una acción que guarda un campo desde la vista (marcar una casilla) mientras otra puede editarlo deshabilita la edición durante el PATCH y, al resolver, no reescribe un borrador abierto; se prueba con la petición pendiente (segundo clic, abrir el editor). — aplicada en: test (TaskAside.spec)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

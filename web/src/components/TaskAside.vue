@@ -10,6 +10,7 @@ import { useTasksStore } from '../stores/tasks'
 import { charCount, TASK_DESCRIPTION_MAX_LENGTH, TASK_TITLE_MAX_LENGTH } from './taskLimits'
 import MarkdownContent from './MarkdownContent.vue'
 import MarkdownEditor from './MarkdownEditor.vue'
+import { toggleTaskItem } from '../markdown/toggleTaskItem'
 import AppDialog from './ui/AppDialog.vue'
 import LevelPill from './ui/LevelPill.vue'
 import ProjectKey from './ui/ProjectKey.vue'
@@ -241,6 +242,40 @@ async function submit(): Promise<void> {
   }
 }
 
+async function toggleTask(lineIndex: number): Promise<void> {
+  if (submitting.value || props.readOnly || !task.value || showDescriptionEditor.value) return
+  const next = toggleTaskItem(snapshot.description, lineIndex)
+  if (next === snapshot.description) return
+  formError.value = null
+  const current = ++generation
+  submitting.value = true
+  try {
+    const saved = await tasks.update(props.projectId, props.taskId, {
+      title: snapshot.title,
+      description: next,
+      assigneeId: snapshot.assigneeId,
+    })
+    if (current !== generation) return
+    snapshot = { title: saved.title, description: saved.description ?? '', assigneeId: saved.assignee?.id ?? null }
+    if (!showDescriptionEditor.value) description.value = snapshot.description
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error
+    if (current !== generation) return
+    if (error.status === 404) {
+      if (!closed) {
+        closed = true
+        toast.error(t('taskAside.notFound'))
+        emit('close', true)
+      }
+    } else if (error.status === 422) toast.error(error.message)
+    else if (error.status === 429) toast.error(t('taskCreate.tooManyAttempts'))
+    else if (error.status === 0) toast.error(t('taskCreate.network'))
+    else toast.error(t('taskAside.failed'))
+  } finally {
+    if (current === generation) submitting.value = false
+  }
+}
+
 async function confirmDelete(): Promise<void> {
   if (deleting.value || !canDelete.value) return
   const current = ++generation
@@ -334,11 +369,11 @@ async function confirmDelete(): Promise<void> {
             {{ t('taskAside.cancel') }}
           </button>
           <template v-else>
-            <div v-if="description.trim() !== ''" class="task-aside__description" data-test="description-view" role="group" aria-labelledby="task-aside-description-label">
-              <MarkdownContent :source="description" />
+            <div v-if="description.trim() !== ''" class="task-aside__description" data-test="description-view" :aria-busy="submitting ? 'true' : undefined" role="group" aria-labelledby="task-aside-description-label">
+              <MarkdownContent :source="description" :interactive="!readOnly" @toggle="toggleTask" />
             </div>
             <p v-else class="task-aside__note" data-test="description-empty">{{ t('taskAside.noDescription') }}</p>
-            <button v-if="!readOnly" type="button" id="task-aside-description-edit" class="task-aside__secondary-button" data-test="edit-description" @click="editingDescription = true">
+            <button v-if="!readOnly" type="button" id="task-aside-description-edit" class="task-aside__secondary-button" data-test="edit-description" :disabled="submitting" @click="editingDescription = true">
               {{ t(description.trim() === '' ? 'taskAside.addDescription' : 'taskAside.editDescription') }}
             </button>
           </template>

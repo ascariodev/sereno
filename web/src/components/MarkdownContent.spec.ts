@@ -35,4 +35,38 @@ describe('MarkdownContent', () => {
   it.each([[''], [null], [undefined]])('renders nothing for empty source %s', (source) => {
     expect(render(source).find('.markdown-content').exists()).toBe(false)
   })
+
+  it('renders task checkboxes disabled and silent by default', async () => {
+    const wrapper = render('- [ ] one\n- [x] two')
+    const boxes = wrapper.findAll('input[type="checkbox"]')
+
+    expect(boxes).toHaveLength(2)
+    expect(boxes.every((box) => (box.element as HTMLInputElement).disabled)).toBe(true)
+    expect(boxes[0].attributes('aria-label')).toBe('one')
+    await boxes[0].trigger('change')
+    expect(wrapper.emitted('toggle')).toBeUndefined()
+  })
+
+  it('emits toggle with the source line when interactive and keeps the box tied to the source', async () => {
+    const wrapper = mount(MarkdownContent, { props: { source: 'intro\n\n- [ ] one\n- [x] two', interactive: true } })
+    const boxes = wrapper.findAll('input[type="checkbox"]')
+
+    expect((boxes[0].element as HTMLInputElement).disabled).toBe(false)
+    ;(boxes[1].element as HTMLInputElement).checked = false
+    await boxes[1].trigger('change')
+    expect(wrapper.emitted('toggle')).toEqual([[3]])
+    expect((boxes[1].element as HTMLInputElement).checked).toBe(true)
+  })
+
+  it('restores focus on the same checkbox when the DOM is replaced', async () => {
+    const wrapper = mount(MarkdownContent, { props: { source: '- [ ] one\n- [ ] two', interactive: true }, attachTo: document.body })
+    const second = wrapper.findAll('input')[1].element as HTMLInputElement
+    second.focus()
+    expect(document.activeElement).toBe(second)
+    await wrapper.setProps({ source: '- [ ] one\n- [x] two' })
+    const replaced = wrapper.findAll('input')[1].element as HTMLInputElement
+    expect(replaced).not.toBe(second)
+    expect(document.activeElement).toBe(replaced)
+    wrapper.unmount()
+  })
 })

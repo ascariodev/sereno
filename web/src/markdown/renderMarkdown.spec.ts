@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { renderMarkdown } from './renderMarkdown'
+import { renderMarkdown, sanitizeHtml } from './renderMarkdown'
 
 describe('renderMarkdown', () => {
   it('returns an empty string for empty input', () => {
@@ -75,5 +75,64 @@ describe('renderMarkdown', () => {
   it('strips disallowed schemes even in mixed case or entities', () => {
     expect(renderMarkdown('[x](JaVaScRiPt:alert(1))')).not.toContain('href')
     expect(renderMarkdown('[x](&#106;avascript:alert(1))')).not.toContain('href')
+  })
+
+  describe('task list', () => {
+    const boxes = (html: string) => Array.from(new DOMParser().parseFromString(html, 'text/html').querySelectorAll('input'))
+
+    it('renders checkboxes disabled with the source line and an accessible name', () => {
+      const [open, done] = boxes(renderMarkdown('- [ ] write **docs**\n- [x] ship'))
+      expect(open.type).toBe('checkbox')
+      expect(open.disabled).toBe(true)
+      expect(open.checked).toBe(false)
+      expect(open.dataset.taskLine).toBe('0')
+      expect(open.getAttribute('aria-label')).toBe('write docs')
+      expect(done.checked).toBe(true)
+      expect(done.dataset.taskLine).toBe('1')
+      expect(renderMarkdown('- [ ] a')).not.toContain('[ ]')
+    })
+
+    it('omits disabled when interactive', () => {
+      expect(boxes(renderMarkdown('- [ ] a', { interactive: true }))[0].disabled).toBe(false)
+    })
+
+    it('ignores brackets outside a list item or inside code', () => {
+      expect(boxes(renderMarkdown('[ ] loose\n\n```\n- [ ] code\n```\n\n- plain [ ] text'))).toHaveLength(0)
+    })
+
+    it('never lets other inputs through', () => {
+      expect(renderMarkdown('<input type="text" value="x">')).not.toContain('<input')
+      expect(renderMarkdown('<input type="checkbox" data-task-line="1">')).not.toContain('<input')
+    })
+    it('keeps the label intact with quotes, angle brackets and ampersands, and adds no attributes', () => {
+      const [box] = boxes(renderMarkdown('- [ ] a" onfocus="x <b> & c'))
+      expect(box.getAttribute('aria-label')).toBe('a" onfocus="x <b> & c')
+      expect(box.getAttributeNames().sort()).toEqual(['aria-label', 'data-task-line', 'disabled', 'type'])
+    })
+
+    describe('sanitizer', () => {
+      const parse = (html: string) => new DOMParser().parseFromString(sanitizeHtml(html), 'text/html')
+
+      it('drops inputs that are not checkboxes', () => {
+        expect(parse('<input type="text" data-task-line="1">').querySelector('input')).toBeNull()
+        expect(parse('<input data-task-line="1">').querySelector('input')).toBeNull()
+      })
+
+      it('drops a checkbox without a numeric source line', () => {
+        expect(parse('<input type="checkbox">').querySelector('input')).toBeNull()
+        expect(parse('<input type="checkbox" data-task-line="a" formaction="x">').querySelector('input')).toBeNull()
+      })
+
+      it('keeps a valid checkbox without extra attributes', () => {
+        const box = parse('<input type="checkbox" data-task-line="2" formaction="x" name="n" value="v">').querySelector('input')!
+        expect(box.getAttributeNames().sort()).toEqual(['data-task-line', 'type'])
+      })
+
+      it('strips task attributes from other elements', () => {
+        const p = parse('<p aria-label="x" data-task-line="1">t</p>').querySelector('p')!
+        expect(p.hasAttribute('aria-label')).toBe(false)
+        expect(p.hasAttribute('data-task-line')).toBe(false)
+      })
+    })
   })
 })

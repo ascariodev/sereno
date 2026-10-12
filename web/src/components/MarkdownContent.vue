@@ -1,14 +1,41 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onUpdated, ref, watch } from 'vue'
 import { renderMarkdown } from '../markdown/renderMarkdown'
 
-const props = defineProps<{ source: string | null | undefined }>()
+const props = defineProps<{ source: string | null | undefined; interactive?: boolean }>()
+const emit = defineEmits<{ toggle: [lineIndex: number] }>()
 
-const html = computed(() => renderMarkdown(props.source ?? ''))
+const html = computed(() => renderMarkdown(props.source ?? '', { interactive: props.interactive }))
+
+const root = ref<HTMLElement | null>(null)
+let focusedLine: string | null = null
+
+watch(
+  html,
+  () => {
+    const active = document.activeElement
+    focusedLine = active instanceof HTMLInputElement && root.value?.contains(active) ? (active.dataset.taskLine ?? null) : null
+  },
+  { flush: 'pre' },
+)
+
+onUpdated(() => {
+  if (focusedLine === null) return
+  root.value?.querySelector<HTMLInputElement>(`input[data-task-line="${focusedLine}"]`)?.focus()
+  focusedLine = null
+})
+
+function onChange(event: Event): void {
+  const box = event.target
+  if (!props.interactive || !(box instanceof HTMLInputElement) || box.type !== 'checkbox') return
+  box.checked = !box.checked
+  const line = box.dataset.taskLine
+  if (line !== undefined) emit('toggle', Number(line))
+}
 </script>
 
 <template>
-  <div v-if="html" class="markdown-content" v-html="html"></div>
+  <div v-if="html" ref="root" class="markdown-content" @change="onChange" v-html="html"></div>
 </template>
 
 <style scoped>
@@ -73,6 +100,22 @@ const html = computed(() => renderMarkdown(props.source ?? ''))
   padding-left: var(--space-3);
   border-left: 3px solid var(--border);
   color: var(--ink-2);
+}
+.markdown-content :deep(li:has(> input[type='checkbox'])) {
+  list-style: none;
+  margin-left: calc(-1 * var(--space-4));
+}
+.markdown-content :deep(input[type='checkbox']) {
+  margin: 0 var(--space-2) 0 0;
+  vertical-align: middle;
+  accent-color: var(--accent);
+}
+.markdown-content :deep(input[type='checkbox']:not(:disabled)) {
+  cursor: pointer;
+}
+.markdown-content :deep(input[type='checkbox']:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .markdown-content :deep(hr) {
   border: 0;
