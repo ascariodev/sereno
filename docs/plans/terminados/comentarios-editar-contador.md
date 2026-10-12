@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 14
+**Estado:** terminado
 
 
 ## Contexto mínimo
