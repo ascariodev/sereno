@@ -3,7 +3,7 @@
 **Objetivo:** que los cinco diálogos de creación y gestión (CreateLogSource, Invite, OrganizationCreate, ProjectCreate,
 ProjectMembers) usen `AppButton`, `AppInput` y un `AppSelect` nuevo en vez de HTML crudo con CSS duplicado, sin cambiar
 su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -71,7 +71,7 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
 - **Archivos:** `web/src/components/OrganizationCreateDialog.vue`, `web/src/components/CreateLogSourceDialog.vue`.
 - **Terminado cuando:** sus specs pasan sin cambios en los selectores. `vue-tsc -b` limpio.
 
-### [ ] Fase 5 — Migrar ProjectCreateDialog
+### [x] Fase 5 — Migrar ProjectCreateDialog
 - **Alcance:** nombre, key y descripción pasan a AppInput (la descripción con `multiline`) y los botones a AppButton.
   Se conservan `@input` para derivar la key, `maxlength`, `autocapitalize`, `spellcheck` y `returnFocus`.
 - **Archivos:** `web/src/components/ProjectCreateDialog.vue`.
@@ -123,15 +123,17 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
 - 2026-10-12 (usuario): el hint de CreateLogSourceDialog va en el slot `hint` de AppInput y entra en `aria-describedby`
   (antes no); se cambió solo esa aserción de `CreateLogSourceDialog.spec`. Mismo criterio para otros hints.
 - 2026-10-12: AppLayout.spec tiene 6 fallos (menú de usuario y menciones) que ya existen en `main`; no son de este plan.
+- 2026-10-12: un campo que deriva otro valor al escribir usa `:model-value` + `@update:model-value` con su handler, no
+  `@input` (con `inheritAttrs: false` caería en `$attrs` y su orden respecto del v-model no está garantizado).
 - 2026-10-12: el trabajo va en el worktree `.claude/worktrees/dialogos-unificados` (rama `feat/dialogos-unificados`). El
   servicio `web` monta el checkout principal: los tests del worktree corren en un contenedor `node:24` aparte que monta
   `web/` del worktree y el volumen `workspace_web-node-modules`.
 
 ## Notas para la próxima sesión
-- Fases 1 a 4 hechas. Sigue la fase 5 (ProjectCreateDialog). Leer `docs/lecciones.md` (L-25, L-33, L-38, L-61). Ver
-  en Decisiones cómo correr los tests web sobre el worktree.
+- Fases 1 a 5 hechas. Sigue la fase 6 (InviteDialog, [riesgo]: primero el spec contra la versión actual). Leer
+  `docs/lecciones.md` (L-25, L-33, L-38, L-61). Ver en Decisiones cómo correr los tests web sobre el worktree.
 - Fase 8: el foco de los inputs migrados usa `outline-offset: 1px` (antes 2px); `secondary` con borde 1px; `md` sin
-  `font-size` fijo (M-1).
+  `font-size` fijo (M-1). El textarea de ProjectCreateDialog pasa a `min-height` 44px y `padding-block` 10px.
 - Fases 6 y 7: si las opciones del select llegan async con `modelValue` ya fijado, AppSelect no reaplica `:value` al
   cambiar solo las opciones; comprobar que el valor mostrado coincide con el modelo (ver M-2).
 
@@ -143,4 +145,4 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
 - [ ] M-3 (baja, sonnet): estilo atenuado de AppSelect con `disabled` y test de que un `modelValue` sin opción coincidente
   no emite nada.
 - [ ] M-4 (media, sonnet): el `error-form` (`<p role="alert">` con `__error`) repite en cada diálogo el estilo de
-  `.app-input__error`: extraer una clase o componente compartido.
+  `.app-input__error`: extraer una clase o componente compartido (también `.proj-create__error`).

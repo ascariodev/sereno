@@ -5,7 +5,9 @@ import { useRouter } from 'vue-router'
 import { ApiError } from '../api/client'
 import type { Project } from '../api/types'
 import { useProjectsStore } from '../stores/projects'
+import AppButton from './ui/AppButton.vue'
 import AppDialog from './ui/AppDialog.vue'
+import AppInput from './ui/AppInput.vue'
 import { toast } from './ui/toast'
 
 const NAME_MAX_LENGTH = 255
@@ -23,7 +25,7 @@ const { t } = useI18n()
 const router = useRouter()
 const projects = useProjectsStore()
 
-const nameInput = ref<HTMLInputElement | null>(null)
+const nameInput = ref<InstanceType<typeof AppInput> | null>(null)
 const name = ref('')
 const key = ref('')
 const description = ref('')
@@ -42,11 +44,6 @@ const dialogOpen = computed({
   },
 })
 
-function describedBy(field: Field): string | undefined {
-  const count = fieldErrors.value[field]?.length ?? 0
-  return count ? Array.from({ length: count }, (_, index) => `proj-create-${field}-error-${index}`).join(' ') : undefined
-}
-
 function suggestKey(source: string): string {
   const letters = source
     .normalize('NFD')
@@ -57,12 +54,13 @@ function suggestKey(source: string): string {
   return letters.slice(0, KEY_MAX_LENGTH)
 }
 
-function onNameInput(): void {
-  if (!keyEdited.value) key.value = suggestKey(name.value)
+function onNameInput(value: string): void {
+  name.value = value
+  if (!keyEdited.value) key.value = suggestKey(value)
 }
 
-function onKeyInput(): void {
-  key.value = key.value.toUpperCase()
+function onKeyInput(value: string): void {
+  key.value = value.toUpperCase()
   keyEdited.value = key.value !== ''
   if (!keyEdited.value) key.value = suggestKey(name.value)
 }
@@ -164,88 +162,56 @@ async function submit(): Promise<void> {
     @close-auto-focus="returnFocus"
   >
     <form class="proj-create" novalidate @submit.prevent="submit">
-      <div class="proj-create__field">
-        <label for="proj-create-name">{{ t('projCreate.nameLabel') }}</label>
-        <input
-          id="proj-create-name"
-          ref="nameInput"
-          v-model="name"
-          type="text"
-          name="name"
-          autocomplete="off"
-          required
-          :aria-invalid="describedBy('name') ? 'true' : undefined"
-          :aria-describedby="describedBy('name')"
-          @input="onNameInput"
-        />
-        <p
-          v-for="(message, index) in fieldErrors.name"
-          :id="`proj-create-name-error-${index}`"
-          :key="`${index}-${message}`"
-          class="proj-create__error"
-          data-test="error-name"
-        >
-          {{ message }}
-        </p>
-      </div>
+      <AppInput
+        id="proj-create-name"
+        ref="nameInput"
+        :model-value="name"
+        :label="t('projCreate.nameLabel')"
+        :errors="fieldErrors.name"
+        error-test="error-name"
+        type="text"
+        name="name"
+        autocomplete="off"
+        required
+        @update:model-value="onNameInput"
+      />
 
-      <div class="proj-create__field">
-        <label for="proj-create-key">{{ t('projCreate.keyLabel') }}</label>
-        <input
-          id="proj-create-key"
-          v-model="key"
-          type="text"
-          name="key"
-          autocomplete="off"
-          autocapitalize="characters"
-          spellcheck="false"
-          :maxlength="KEY_MAX_LENGTH"
-          required
-          :aria-invalid="describedBy('key') ? 'true' : undefined"
-          :aria-describedby="describedBy('key')"
-          @input="onKeyInput"
-        />
-        <p
-          v-for="(message, index) in fieldErrors.key"
-          :id="`proj-create-key-error-${index}`"
-          :key="`${index}-${message}`"
-          class="proj-create__error"
-          data-test="error-key"
-        >
-          {{ message }}
-        </p>
-      </div>
+      <AppInput
+        id="proj-create-key"
+        :model-value="key"
+        :label="t('projCreate.keyLabel')"
+        :errors="fieldErrors.key"
+        error-test="error-key"
+        type="text"
+        name="key"
+        autocomplete="off"
+        autocapitalize="characters"
+        spellcheck="false"
+        :maxlength="KEY_MAX_LENGTH"
+        required
+        @update:model-value="onKeyInput"
+      />
 
-      <div class="proj-create__field">
-        <label for="proj-create-description">{{ t('projCreate.descriptionLabel') }}</label>
-        <textarea
-          id="proj-create-description"
-          v-model="description"
-          name="description"
-          rows="3"
-          :aria-invalid="describedBy('description') ? 'true' : undefined"
-          :aria-describedby="describedBy('description')"
-        ></textarea>
-        <p
-          v-for="(message, index) in fieldErrors.description"
-          :id="`proj-create-description-error-${index}`"
-          :key="`${index}-${message}`"
-          class="proj-create__error"
-          data-test="error-description"
-        >
-          {{ message }}
-        </p>
-      </div>
+      <AppInput
+        id="proj-create-description"
+        v-model="description"
+        :label="t('projCreate.descriptionLabel')"
+        :errors="fieldErrors.description"
+        error-test="error-description"
+        name="description"
+        multiline
+        :rows="3"
+      />
 
       <p v-if="formError" class="proj-create__error" role="alert" data-test="error-form">{{ formError }}</p>
 
       <div class="proj-create__actions">
-        <button type="button" class="proj-create__cancel" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">
+        <AppButton type="button" variant="secondary" size="md" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">
           {{ t('projCreate.cancel') }}
-        </button>
-        <button type="submit" class="proj-create__submit" data-test="submit" :disabled="submitting">
+        </AppButton>
+        <AppButton type="submit" size="md" data-test="submit" :disabled="submitting">
           {{ submitting ? t('projCreate.creating') : t('projCreate.submit') }}
-        </button>
+        </AppButton>
       </div>
     </form>
   </AppDialog>
@@ -257,38 +223,6 @@ async function submit(): Promise<void> {
   flex-direction: column;
   gap: 14px;
 }
-.proj-create__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.proj-create__field label {
-  font-size: 13px;
-  font-weight: 600;
-}
-.proj-create__field input,
-.proj-create__field textarea {
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-}
-.proj-create__field input {
-  min-height: 44px;
-}
-.proj-create__field textarea {
-  padding: 10px 12px;
-  resize: vertical;
-}
-.proj-create__field input:focus-visible,
-.proj-create__field textarea:focus-visible,
-.proj-create__cancel:focus-visible,
-.proj-create__submit:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
 .proj-create__error {
   margin: 0;
   color: var(--level-error-fg);
@@ -299,27 +233,5 @@ async function submit(): Promise<void> {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 4px;
-}
-.proj-create__cancel,
-.proj-create__submit {
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-.proj-create__submit {
-  border-color: transparent;
-  background: var(--ink);
-  color: var(--surface);
-}
-.proj-create__cancel:disabled,
-.proj-create__submit:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 </style>
