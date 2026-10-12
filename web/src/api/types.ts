@@ -26,6 +26,7 @@ export interface Project {
   key: string
   description: string | null
   archived_at: string | null
+  tasks_resolve_log_groups: boolean
   created_at: string
   updated_at: string
   open_groups_count?: number
@@ -160,6 +161,13 @@ export interface TaskCreatedFromGroupPayload {
   task_status: TaskStatus
 }
 
+export interface TaskGroupReopenedPayload {
+  type: 'task.group_reopened'
+  log_group_id: number
+  task_id: number
+  task_key: string
+}
+
 export interface UnknownPayload {
   type: string
   [key: string]: unknown
@@ -169,7 +177,17 @@ export type MessagePayload =
   | LogGroupOpenedPayload
   | LogGroupStatusChangedPayload
   | TaskCreatedFromGroupPayload
+  | TaskGroupReopenedPayload
   | UnknownPayload
+
+export function isTaskGroupReopenedPayload(payload: MessagePayload | null): payload is TaskGroupReopenedPayload {
+  return (
+    payload?.type === 'task.group_reopened' &&
+    typeof payload.log_group_id === 'number' &&
+    typeof payload.task_id === 'number' &&
+    typeof payload.task_key === 'string'
+  )
+}
 
 export function isTaskCreatedFromGroupPayload(payload: MessagePayload | null): payload is TaskCreatedFromGroupPayload {
   return (

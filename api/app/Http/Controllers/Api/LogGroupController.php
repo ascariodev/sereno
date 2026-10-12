@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\PostLogGroupStatusNotice;
+use App\Actions\PostTaskGroupReopenedNotice;
+use App\Enums\LogGroupStatus;
 use App\Enums\LogLevel;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
@@ -10,10 +13,8 @@ use App\Http\Requests\LogGroup\ListLogGroupsRequest;
 use App\Http\Requests\LogGroup\UpdateLogGroupRequest;
 use App\Http\Resources\LogGroupHourlyResource;
 use App\Http\Resources\LogGroupResource;
-use App\Models\Channel;
 use App\Models\LogEvent;
 use App\Models\LogGroup;
-use App\Models\Message;
 use App\Models\Project;
 use App\Models\Task;
 use App\Support\LogGroupHourlyCounts;
@@ -72,23 +73,31 @@ class LogGroupController extends Controller
         return new LogGroupResource($group);
     }
 
-    public function update(UpdateLogGroupRequest $request, Project $project, LogGroup $group): LogGroupResource
+    public function update(UpdateLogGroupRequest $request, Project $project, LogGroup $group, PostLogGroupStatusNotice $postNotice, PostTaskGroupReopenedNotice $postReopened): LogGroupResource
     {
         abort_unless($group->project_id === $project->id, 404);
 
-        $previousStatus = $group->status;
-        $group->status = $request->validated('status');
+        $updated = DB::transaction(function () use ($group, $request, $postNotice, $postReopened) {
+            // Lock to read the real previous status: ingestion can change it in parallel.
+            $locked = LogGroup::query()->whereKey($group->id)->lock('for no key update')->firstOrFail();
+            $previousStatus = $locked->status;
+            $locked->status = $request->validated('status');
 
-        if ($group->isDirty('status')) {
-            DB::transaction(function () use ($group, $project, $previousStatus, $request) {
-                $group->save();
-                $this->postStatusNotice($project, $group, $previousStatus->value, $request->user()->id);
-            });
-        }
+            if ($locked->isDirty('status')) {
+                $locked->save();
+                $postNotice($locked, $previousStatus, $request->user());
 
-        $this->bindTaskProject(collect([$group->load('task')]), $project);
+                if ($previousStatus === LogGroupStatus::Resolved && $locked->status === LogGroupStatus::Open) {
+                    $postReopened($locked->organization_id, $locked->project_id, $locked->id);
+                }
+            }
 
-        return new LogGroupResource($group);
+            return $locked;
+        });
+
+        $this->bindTaskProject(collect([$updated->load('task')]), $project);
+
+        return new LogGroupResource($updated);
     }
 
     /**
@@ -116,35 +125,6 @@ class LogGroupController extends Controller
         foreach ($groups as $group) {
             $group->task?->setRelation('project', $project);
         }
-    }
-
-    private function postStatusNotice(Project $project, LogGroup $group, string $previousStatus, int $userId): void
-    {
-        $channel = Channel::query()
-            ->where('project_id', $project->id)
-            ->whereNull('archived_at')
-            ->first();
-
-        if ($channel === null) {
-            return;
-        }
-
-        $message = new Message([
-            'kind' => Message::KIND_SYSTEM,
-            'payload' => [
-                'type' => 'log.group_status_changed',
-                'log_group_id' => $group->id,
-                'title' => $group->title,
-                'status' => $group->status->value,
-                'previous_status' => $previousStatus,
-            ],
-        ]);
-        $message->forceFill([
-            'organization_id' => $group->organization_id,
-            'channel_id' => $channel->id,
-            'user_id' => $userId,
-            'log_group_id' => $group->id,
-        ])->save();
     }
 
     /** @return list<string> */

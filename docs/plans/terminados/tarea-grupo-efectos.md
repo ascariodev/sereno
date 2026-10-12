@@ -2,7 +2,7 @@
 
 **Objetivo:** en los proyectos que lo activen, mover a Hecho una tarea creada desde un aviso resuelve su grupo de log, y
 si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. Origen: plan-tareas M-5 (y canales M-19).
-**Estado:** en curso · Fase actual: 1
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -30,7 +30,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
 
 ## Fases
 
-### [ ] Fase 1 — Ajuste por proyecto
+### [x] Fase 1 — Ajuste por proyecto
 - **Alcance:**
   - Migración con columna `projects.tasks_resolve_log_groups` boolean not null default false.
   - Cast en `Project`, campo en `ProjectResource` y validación `boolean` en `ProjectRequest`, solo en update.
@@ -44,7 +44,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
     autorización según la policy.
   - Pasan `ProjectApiTest` (o el que cubra proyectos) y pint.
 
-### [ ] Fase 2 — Aviso de estado del grupo compartido (canales M-19)
+### [x] Fase 2 — Aviso de estado del grupo compartido (canales M-19)
 - **Alcance:**
   - Sacar `postStatusNotice` de `LogGroupController` a una acción (p. ej. `App\Actions\PostLogGroupStatusNotice`) que
     reciba el grupo, el estado previo y el actor.
@@ -52,7 +52,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
 - **Archivos:** `api/app/Http/Controllers/Api/LogGroupController.php`, la acción nueva.
 - **Terminado cuando:** `LogGroupApiTest` y `LogGroupTaskApiTest` pasan sin cambios, y pint.
 
-### [ ] Fase 3 — Hecho resuelve el grupo [riesgo]
+### [x] Fase 3 — Hecho resuelve el grupo [riesgo]
 - **Alcance:**
   - En `TaskController::move`, dentro de la transacción: si el proyecto tiene el ajuste, la tarea pasa de otro estado a
     `done` y su grupo está `open`, el grupo pasa a `resolved` y se publica `log.group_status_changed` con la acción de
@@ -69,7 +69,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
   - Pasan `TaskMoveApiTest`, `TaskMoveConcurrencyTest` y `LogGroupApiTest`.
   - La suite completa del API pasa (L-49).
 
-### [ ] Fase 4 — Aviso en el canal al reabrir un grupo con tarea en Hecho
+### [x] Fase 4 — Aviso en el canal al reabrir un grupo con tarea en Hecho
 - **Alcance:**
   - Acción que, si el proyecto tiene el ajuste y el grupo tiene tarea en `done`, publica un mensaje de sistema
     `task.group_reopened` {log_group_id, task_id, task_key} en el canal activo del proyecto. Solo ids y valores planos.
@@ -82,7 +82,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
     estado (nada); reapertura manual (aviso); proyecto sin canal activo (nada, sin error); y el payload exacto.
   - Pasan `PostLogGroupNoticeTest`, `LogEventRecorderTest` y `LogGroupApiTest`.
 
-### [ ] Fase 5 — Pintar el aviso de reapertura en la web
+### [x] Fase 5 — Pintar el aviso de reapertura en la web
 - **Alcance:**
   - Guard `isTaskGroupReopenedPayload`, que valida la forma de los campos (L-13).
   - `SystemNotice` pinta "Se reabrió el grupo de la tarea PRJ-12", con chip a la tarea (como `task.created_from_group`).
@@ -91,7 +91,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
 - **Terminado cuando:** `SystemNotice.spec` cubre el aviso válido, el payload mal formado (cae al genérico) y el chip con
   su ruta. Pasan `messages.spec` y `vue-tsc -b`.
 
-### [ ] Fase 6 — Interruptor del ajuste en la web [riesgo]
+### [x] Fase 6 — Interruptor del ajuste en la web [riesgo]
 - **Alcance:**
   - Campo en el tipo `Project`, `updateProject` en el cliente y un interruptor visible para quien puede editar el
     proyecto, con estado de carga, error con toast y valor que se refleja en el store de proyectos.
@@ -114,9 +114,41 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
   grupo.
 - 2026-10-11: la fase 2 resuelve canales M-19 (sacar `postStatusNotice` a una acción), que ahora sí tiene un segundo
   punto de uso.
+- 2026-10-11 (fase 1): el ajuste lo cambia quien pasa `ProjectPolicy::update` (owner y admin; un member recibe 403).
+  Se valida `sometimes|boolean` solo en update (en create se ignora). `Project` lo tiene en Fillable y con
+  `$attributes` default false, para que el POST devuelva false sin recargar.
+- 2026-10-11: el trabajo va en el worktree `feat/tarea-grupo-efectos`. Como los contenedores montan el checkout
+  principal, los tests del API se corren con `.claude/worktrees/t.sh` (contenedor desechable con el api del worktree).
+- 2026-10-11 (fase 3): orden de bloqueos en `TaskController::move`: proyecto (NO KEY UPDATE), grupo (FOR NO KEY UPDATE,
+  no FOR UPDATE: serializa con la ingesta y el PATCH sin frenar los KEY SHARE de las FK), tarea (FOR UPDATE), columna.
+  Grupo antes que tarea por la retención (borra grupo y luego el `nullOnDelete` toca la tarea). El ajuste se lee de la
+  fila bloqueada del proyecto (`lockActiveProject` la devuelve). Resolver y avisar va después de guardar la tarea.
+
+- 2026-10-11 (fase 4): `App\Actions\PostTaskGroupReopenedNotice(organizationId, projectId, logGroupId)` lee en el
+  worker, sin scopes, que el grupo siga `open`, el ajuste, la tarea en `done` y el canal activo, y publica
+  `task.group_reopened` {log_group_id, task_id (int), task_key} con `user_id` null. Listener en cola
+  `PostTaskGroupReopenedNoticeListener` (tries=1, auto-discovery). `LogGroupController::update` bloquea el grupo FOR NO
+  KEY UPDATE, lee de ahí el estado previo y llama a la acción solo de resolved a open.
+
+- 2026-10-11 (fase 6): el interruptor va en la cabecera de `PlanView` (slot `actions` de `ProjectHeader`), la propuesta
+  del plan; la pregunta al usuario quedó sin respuesta y dijo "continua". Es un checkbox `role="switch"` visible para
+  owner o admin. `projects.update` fusiona la respuesta con el proyecto (el PATCH no trae los conteos) y relanza el error.
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1. Leer `docs/lecciones.md` (L-41 concurrencia, L-42 condiciones en el worker, L-49 suite completa
-  al tocar accesos o transacciones, L-13 guards de payload).
+- Plan terminado. Verificado en el navegador (2026-10-11) con API y web del worktree en puertos aparte: activar el ajuste,
+  mover a Hecho una tarea creada desde un aviso resuelve el grupo y lo avisa en el canal, y reabrirlo a mano publica "Se
+  reabrió el grupo de logs de la tarea". La migración ya corrió en la base de desarrollo; tras integrar la rama,
+  `docker compose restart queue` para el listener nuevo.
 
 ## Mejoras propuestas
+- [x] M-1 (baja, sonnet): en `LogGroupController::update`, no reasignar el parámetro enlazado `$group` con el
+  resultado de `DB::transaction` (usar otro nombre) y recortar los comentarios largos del controlador y de
+  `PostTaskGroupReopenedNotice`.
+- [x] M-2 (baja, sonnet): en `SystemNotice.vue`, extraer el chip a la tarea (`RouterLink` o `<b>` sin proyecto),
+  repetido en `task.created_from_group` y `task.group_reopened`; de paso, el `<b>` sin proyecto no debería usar la clase
+  `system-notice-line__actor`.
+- [x] M-3 (media, sonnet): en el store de proyectos, que un `load()` o `refresh()` que empezó antes de un `update` no
+  pise el valor recién guardado (marcar ids tocados y conservar sus campos), con spec del guardado durante la recarga.
+- [x] M-4 (baja, sonnet): en `PlanView`, mientras guarda usar `aria-disabled` e ignorar el `change` en vez de `disabled`
+  (no sacar el foco del teclado); reutilizar un getter del store de organización (`canCreateProject` o uno nuevo
+  `canManageProjects`) en vez de repetir `isOwner || isAdmin`; separar en casos el spec de permisos.

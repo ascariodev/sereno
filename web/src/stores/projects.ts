@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { listAllChannels } from '../api/channels'
 import { api } from '../api/client'
-import { createProject, type CreateProjectInput } from '../api/projects'
+import { createProject, updateProject, type CreateProjectInput, type UpdateProjectInput } from '../api/projects'
 import type { Paginated, Project } from '../api/types'
 import { useOrganizationStore } from './organization'
 
@@ -30,6 +30,9 @@ export const useProjectsStore = defineStore('projects', () => {
   const loaded = ref(false)
   let generation = 0
   let countsGeneration = 0
+  let updateSeq = 0
+  let loadsInFlight = 0
+  let recentUpdates: { seq: number; project: Project }[] = []
   let countsTimer: ReturnType<typeof setTimeout> | null = null
 
   function cancelCountsRefresh(): void {
@@ -58,19 +61,25 @@ export const useProjectsStore = defineStore('projects', () => {
     }
     failed.value = false
     loading.value = true
+    const startedAt = updateSeq
+    loadsInFlight++
     try {
       const [loadedProjects, channels] = await Promise.all([
         fetchProjects(),
         listAllChannels(),
       ])
       if (current !== generation) return
-      projects.value = loadedProjects.filter((project) => project.archived_at === null)
+      const savedSince = recentUpdates.filter((entry) => entry.seq > startedAt)
+      projects.value = loadedProjects
+        .filter((project) => project.archived_at === null)
+        .map((project) => savedSince.reduce((merged, entry) => (entry.project.id === merged.id ? { ...merged, ...entry.project } : merged), project))
       channelByProject.value = Object.fromEntries(channels.map((channel) => [channel.project_id, channel.id]))
       loaded.value = true
     } catch {
       if (current !== generation) return
       failed.value = true
     } finally {
+      if (--loadsInFlight === 0) recentUpdates = []
       if (current === generation) loading.value = false
     }
   }
@@ -101,6 +110,13 @@ export const useProjectsStore = defineStore('projects', () => {
     const created = await createProject(input)
     await load(true)
     return created
+  }
+
+  async function update(projectId: number, input: UpdateProjectInput): Promise<Project> {
+    const updated = await updateProject(projectId, input)
+    if (loadsInFlight > 0) recentUpdates.push({ seq: ++updateSeq, project: updated })
+    projects.value = projects.value.map((project) => (project.id === projectId ? { ...project, ...updated } : project))
+    return updated
   }
 
   async function fetchCounts(): Promise<void> {
@@ -142,5 +158,5 @@ export const useProjectsStore = defineStore('projects', () => {
     { immediate: true },
   )
 
-  return { projects, channelByProject, loading, failed, loaded, reload, refresh, projectIdOfChannel, removeProject, create, clear, refreshCounts }
+  return { projects, channelByProject, loading, failed, loaded, reload, refresh, projectIdOfChannel, removeProject, create, update, clear, refreshCounts }
 })

@@ -17,6 +17,7 @@ const project = (id: number, name: string, key: string) => ({
   key,
   description: null,
   archived_at: null,
+  tasks_resolve_log_groups: false,
   created_at: '',
   updated_at: '',
 })

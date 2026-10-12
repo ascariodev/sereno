@@ -18,6 +18,7 @@ class ProjectResource extends JsonResource
             'key' => $this->key,
             'description' => $this->description,
             'archived_at' => $this->archived_at,
+            'tasks_resolve_log_groups' => $this->tasks_resolve_log_groups,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'open_groups_count' => $this->whenHas('open_groups_count'),

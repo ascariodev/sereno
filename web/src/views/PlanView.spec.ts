@@ -17,7 +17,7 @@ import PlanView from './PlanView.vue'
 
 enableAutoUnmount(afterEach)
 
-const project = (id: number, key: string) => ({ id, name: `proj${id}`, key, description: null, archived_at: null, created_at: '', updated_at: '' })
+const project = (id: number, key: string) => ({ id, name: `proj${id}`, key, description: null, archived_at: null, tasks_resolve_log_groups: false, created_at: '', updated_at: '' })
 
 function mockApi(tasks: (path: string) => unknown = () => ({ data: [] })) {
   return vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
@@ -31,11 +31,14 @@ function mockApi(tasks: (path: string) => unknown = () => ({ data: [] })) {
 const taskCalls = (spy: { mock: { calls: unknown[][] } }) =>
   spy.mock.calls.map(([path]) => path).filter((path) => /\/tasks$/.test(String(path)))
 
-async function mountView(path = '/projects/5/plan') {
+async function mountView(path = '/projects/5/plan', roles: string[] = []) {
   const pinia = createPinia()
   setActivePinia(pinia)
   useAuthStore().$patch({ token: 't', user: { id: 1, name: 'Ana', email: 'a@b.c', locale: null } })
-  useOrganizationStore().$patch({ activeId: 1 })
+  useOrganizationStore().$patch({
+    activeId: 1,
+    ...(roles.length ? { organizations: [{ id: 1, name: 'Acme', slug: 'acme', settings: null, roles }] } : {}),
+  })
   const router = createAppRouter(createMemoryHistory())
   await router.push(path)
   const wrapper = mount(PlanView, { global: { plugins: [pinia, i18n, router] } })
@@ -799,6 +802,97 @@ describe('PlanView', () => {
       expect(wrapper.find('#task-aside-title').exists()).toBe(false)
       expect(wrapper.router.currentRoute.value.query.task).toBeUndefined()
       expect(error).toHaveBeenCalled()
+    })
+  })
+  describe('resolve log groups setting', () => {
+    const toggle = 'input[name="tasks-resolve-log-groups"]'
+    const projectFive = () => useProjectsStore().projects.find((item) => item.id === 5)
+
+    it('is hidden for a member', async () => {
+      mockApi()
+      expect((await mountView('/projects/5/plan', ['member'])).find(toggle).exists()).toBe(false)
+    })
+
+    it('is shown for an admin', async () => {
+      mockApi()
+      expect((await mountView('/projects/5/plan', ['admin'])).find(toggle).exists()).toBe(true)
+    })
+
+    it('is shown for an owner as a switch with its label', async () => {
+      mockApi()
+      const owner = await mountView('/projects/5/plan', ['owner'])
+      const input = owner.get(toggle)
+      expect(input.attributes('role')).toBe('switch')
+      expect((input.element as HTMLInputElement).checked).toBe(false)
+      expect(owner.text()).toContain('Moving to Done resolves the log group')
+    })
+
+    it('saves the change, shows it as busy meanwhile and updates the projects store', async () => {
+      mockApi()
+      let release!: (value: unknown) => void
+      const patch = vi.spyOn(api, 'patch').mockImplementation(() => new Promise((resolve) => (release = resolve)) as never)
+      const wrapper = await mountView('/projects/5/plan', ['admin'])
+      await wrapper.get(toggle).setValue(true)
+      expect(patch).toHaveBeenCalledWith('/api/projects/5', { tasks_resolve_log_groups: true })
+      expect(wrapper.get(toggle).attributes('aria-disabled')).toBe('true')
+      expect((wrapper.get(toggle).element as HTMLInputElement).checked).toBe(true)
+      expect(wrapper.get(toggle).attributes('aria-busy')).toBe('true')
+      release({ data: { ...project(5, 'POSVE'), tasks_resolve_log_groups: true } })
+      await flushPromises()
+      expect(projectFive()?.tasks_resolve_log_groups).toBe(true)
+      expect(wrapper.get(toggle).attributes('aria-disabled')).toBeUndefined()
+      expect(wrapper.get(toggle).attributes('aria-busy')).toBeUndefined()
+      expect((wrapper.get(toggle).element as HTMLInputElement).checked).toBe(true)
+    })
+
+    it('ignores a change while saving and keeps the displayed value', async () => {
+      mockApi()
+      const patch = vi.spyOn(api, 'patch').mockImplementation(() => new Promise(() => {}) as never)
+      const wrapper = await mountView('/projects/5/plan', ['admin'])
+      await wrapper.get(toggle).setValue(true)
+      await wrapper.get(toggle).setValue(false)
+      expect(patch).toHaveBeenCalledTimes(1)
+      expect((wrapper.get(toggle).element as HTMLInputElement).checked).toBe(true)
+    })
+
+    it('reverts the switch and shows a toast when the change fails', async () => {
+      mockApi()
+      const error = vi.spyOn(toast, 'error')
+      vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(500, 'boom'))
+      const wrapper = await mountView('/projects/5/plan', ['admin'])
+      await wrapper.get(toggle).setValue(true)
+      await flushPromises()
+      expect((wrapper.get(toggle).element as HTMLInputElement).checked).toBe(false)
+      expect(wrapper.get(toggle).attributes('aria-disabled')).toBeUndefined()
+      expect(projectFive()?.tasks_resolve_log_groups).toBe(false)
+      expect(error).toHaveBeenCalledWith('Could not change the setting. Try again.')
+    })
+
+    it('shows the forbidden toast on a 403', async () => {
+      mockApi()
+      const error = vi.spyOn(toast, 'error')
+      vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(403, 'no'))
+      const wrapper = await mountView('/projects/5/plan', ['admin'])
+      await wrapper.get(toggle).setValue(true)
+      await flushPromises()
+      expect((wrapper.get(toggle).element as HTMLInputElement).checked).toBe(false)
+      expect(error).toHaveBeenCalledWith('You are not allowed to change this setting.')
+    })
+
+    it('drops a pending failure after leaving the project, without a toast', async () => {
+      mockApi()
+      const error = vi.spyOn(toast, 'error')
+      let fail!: (reason: unknown) => void
+      vi.spyOn(api, 'patch').mockImplementation(() => new Promise((_, reject) => (fail = reject)) as never)
+      const wrapper = await mountView('/projects/5/plan', ['admin'])
+      await wrapper.get(toggle).setValue(true)
+      await wrapper.router.push('/projects/6/plan')
+      await flushPromises()
+      expect(wrapper.get(toggle).attributes('aria-disabled')).toBeUndefined()
+      expect((wrapper.get(toggle).element as HTMLInputElement).checked).toBe(false)
+      fail(new ApiError(500, 'boom'))
+      await flushPromises()
+      expect(error).not.toHaveBeenCalled()
     })
   })
 })

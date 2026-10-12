@@ -13,11 +13,13 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
-#[Fillable(['name', 'key', 'description'])]
+#[Fillable(['name', 'key', 'description', 'tasks_resolve_log_groups'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
     use BelongsToOrganization, HasFactory;
+
+    protected $attributes = ['tasks_resolve_log_groups' => false];
 
     protected static function booted(): void
     {
@@ -42,6 +44,7 @@ class Project extends Model
     {
         return [
             'archived_at' => 'datetime',
+            'tasks_resolve_log_groups' => 'boolean',
         ];
     }
 

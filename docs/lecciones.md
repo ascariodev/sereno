@@ -91,6 +91,8 @@
   enlaces directos (`?task=`, `?message=`) pidan al API lo que no está cargado en vez de dar "no encontrado". —
   aplicada en: plan-tareas M-4, chat M-2
 
+- L-59: Un listener en cola que avisa de un estado ("se reabrió") vuelve a comprobar en el worker que ese estado sigue vigente: otra operación puede revertirlo mientras el job espera. — aplicada en: test (TaskGroupReopenedNoticeTest)
+
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
 -->

@@ -17,8 +17,8 @@ async function mountAt(path: string) {
   useOrganizationStore().activeId = 1
   const projects = useProjectsStore()
   projects.projects = [
-    { id: 5, name: 'posveapi', key: 'POSVE', description: null, archived_at: null, created_at: '', updated_at: '' },
-    { id: 6, name: 'other', key: 'OTHER', description: null, archived_at: null, created_at: '', updated_at: '' },
+    { id: 5, name: 'posveapi', key: 'POSVE', description: null, archived_at: null, tasks_resolve_log_groups: false, created_at: '', updated_at: '' },
+    { id: 6, name: 'other', key: 'OTHER', description: null, archived_at: null, tasks_resolve_log_groups: false, created_at: '', updated_at: '' },
   ]
   projects.channelByProject = { 5: 7, 6: 8 }
   const router = createRouter({
