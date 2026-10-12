@@ -179,7 +179,7 @@
       archivos, mueve toda la suite) → convertir en plan
 - [x] M-7: Compartir `signedDownload()` y `URL_EXPIRY_STEP_SECONDS` entre `MessageAttachment` y `TaskCommentAttachment`
       (trait). Complejidad: baja · Archivos: 2-3 · sin riesgo → sonnet
-- [ ] M-8: Test de descarga y URL nueva de un adjunto de comentario cuyo archivo falta en disco (404).
+- [x] M-8: Test de descarga y URL nueva de un adjunto de comentario cuyo archivo falta en disco (404).
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-9: Acortar los docblocks y comentarios de `App\Actions\DeleteTask` a lo no obvio (convención de comentarios
       mínimos). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet

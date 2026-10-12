@@ -291,6 +291,16 @@ it('returns a fresh signed url to whoever can see the task', function () {
     expect(fetchTaskAttachment($response->json('data.url'))->assertOk()->streamedContent())->toBe('hello world');
 });
 
+it('hands out a fresh url for a missing file, whose download answers 404', function () {
+    $attachment = storedTaskAttachment($this->task, $this->comment, null);
+
+    $response = taskUploadingAs($this->member, $this->organization)
+        ->getJson("/api/task-attachments/{$attachment->id}/url")
+        ->assertOk();
+
+    fetchTaskAttachment($response->json('data.url'))->assertNotFound();
+});
+
 it('answers 404 for a fresh url without access, of another organization or of an orphan', function (string $case) {
     [$user, $organization, $attachment] = match ($case) {
         'private project' => (function () {
