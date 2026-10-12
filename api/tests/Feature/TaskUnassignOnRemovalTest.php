@@ -6,6 +6,7 @@ use App\Exceptions\LastOwnerException;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\Event;
@@ -136,4 +137,19 @@ it('keeps the assignments when the removal is rejected', function () {
     expect(fn () => $this->organization->removeMember($this->owner))->toThrow(LastOwnerException::class);
 
     expect(assigneeOf($this->ownersTask))->toBe($this->owner->id);
+});
+
+it('broadcasts the comment count of each unassigned task without an active organization', function () {
+    $second = secondTaskOfProject($this->mine, $this->member);
+    app(CurrentOrganization::class)->set($this->organization);
+    TaskComment::factory()->forTask($this->mine)->count(2)->create(['user_id' => $this->owner->id]);
+    TaskComment::factory()->forTask($this->ownersTask)->create(['user_id' => $this->owner->id]);
+    app(CurrentOrganization::class)->set(null);
+    Event::fake([TaskUpdated::class]);
+
+    $this->organization->removeMember($this->member);
+
+    $counts = Event::dispatched(TaskUpdated::class)
+        ->mapWithKeys(fn (array $args) => [$args[0]->task['id'] => $args[0]->task['comments_count']]);
+    expect($counts->all())->toEqual([$this->mine->id => 2, $second->id => 0]);
 });

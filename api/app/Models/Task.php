@@ -41,6 +41,7 @@ class Task extends Model
             ->where('assignee_id', $userId)
             ->when($projectId !== null, fn ($query) => $query->where('project_id', $projectId))
             ->with(TaskController::RELATIONS)
+            ->withCount(TaskController::counts())
             ->lockForUpdate()
             ->get();
 

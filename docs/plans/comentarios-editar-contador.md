@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 
 
 ## Contexto mínimo
@@ -26,7 +26,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 
 ## Fases
 
-### [ ] Fase 1 — `comments_count` en el recurso de tarea [riesgo]
+### [x] Fase 1 — `comments_count` en el recurso de tarea [riesgo]
 - **Alcance:** `TaskResource` expone `comments_count` (`whenCounted`). Un único punto declara el conteo sin el scope
   global de `TaskComment` (seguro: la FK compuesta ata el comentario a su tarea) y lo usan index, show, store, update,
   move, las vecinas renumeradas, `Task::unassignUser` y, como respaldo, `TaskSnapshotEvent` (`loadCount` si falta).
@@ -126,6 +126,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
   resincronizar no emite eventos de mención.
 
 ## Notas para la próxima sesión
-- Arrancar por la fase 1. Leer `docs/lecciones.md` (L-37, L-63, L-64) y el patrón de `MessageController::update`.
+- Fase 1 hecha: el conteo se declara en `TaskController::counts()` (closure sin scopes globales); reutilizarlo en las fases 2 y 9.
 
 ## Mejoras propuestas
+- [ ] M-1: `docs/lecciones.md` tiene L-37 a L-40 repetidas (líneas ~50-57); quitar el duplicado. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet

@@ -23,6 +23,8 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\ProjectAccess;
+use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -36,6 +38,18 @@ use Illuminate\Validation\ValidationException;
 class TaskController extends Controller
 {
     public const RELATIONS = ['assignee:id,name', 'logGroup:id,level,title,status,events_count'];
+
+    /**
+     * Counts loaded next to RELATIONS wherever a TaskResource is built. Comments are counted without their organization
+     * scope (it needs an active organization, and Task::unassignUser runs without one): the composite foreign key
+     * already ties each comment to the organization of its task.
+     *
+     * @return array<string, Closure(Builder): Builder>
+     */
+    public static function counts(): array
+    {
+        return ['comments' => fn (Builder $query) => $query->withoutGlobalScopes()];
+    }
 
     /** Below this gap between neighbors the column is renumbered instead of halving it again. */
     private const MIN_POSITION_GAP = 1e-9;
@@ -62,6 +76,7 @@ class TaskController extends Controller
             ->where('project_id', $project->id)
             ->where('status', '!=', TaskStatus::Done)
             ->with(self::RELATIONS)
+            ->withCount(self::counts())
             ->orderByRaw($order, $bindings)
             ->orderBy('position')
             ->orderBy('id')
@@ -76,6 +91,7 @@ class TaskController extends Controller
         // cut is contiguous, which keeps drag & drop neighbors adjacent; it is returned in column order.
         $done = $doneQuery
             ->with(self::RELATIONS)
+            ->withCount(self::counts())
             ->orderByDesc('position')
             ->orderByDesc('id')
             ->when($doneLimit !== null, fn ($query) => $query->limit($doneLimit))
@@ -100,7 +116,7 @@ class TaskController extends Controller
         abort_unless($task->project_id === $project->id, 404);
         Gate::authorize('view', $task);
 
-        $task->load(self::RELATIONS)->setRelation('project', $project);
+        $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
 
         return new TaskResource($task);
     }
@@ -156,7 +172,7 @@ class TaskController extends Controller
             ]);
         }
 
-        $task->load(self::RELATIONS)->setRelation('project', $project);
+        $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
         TaskCreated::dispatch($task);
         $this->notifyAssignee($task, $request->user()->id);
 
@@ -204,7 +220,7 @@ class TaskController extends Controller
             $task->fill($data)->save();
         });
 
-        $task->load(self::RELATIONS)->setRelation('project', $project);
+        $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
         TaskUpdated::dispatch($task);
         if ($newAssigneeId !== null) {
             $this->notifyAssignee($task, $request->user()->id);
@@ -304,10 +320,10 @@ class TaskController extends Controller
             return $task;
         });
 
-        $task->load(self::RELATIONS)->setRelation('project', $project);
+        $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
         TaskUpdated::dispatch($task);
 
-        Task::query()->with(self::RELATIONS)->whereKey($renumbered)->get()->each(
+        Task::query()->with(self::RELATIONS)->withCount(self::counts())->whereKey($renumbered)->get()->each(
             fn (Task $neighbor) => TaskUpdated::dispatch($neighbor->setRelation('project', $project))
         );
 

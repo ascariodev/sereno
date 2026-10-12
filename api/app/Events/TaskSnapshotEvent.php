@@ -30,7 +30,11 @@ abstract class TaskSnapshotEvent implements ShouldBroadcast, ShouldDispatchAfter
     {
         $this->organizationId = $task->organization_id;
         $this->projectId = $task->project_id;
-        $this->task = (new TaskResource($task->loadMissing(TaskController::RELATIONS)))->resolve();
+        $task->loadMissing(TaskController::RELATIONS);
+        if (! array_key_exists('comments_count', $task->getAttributes())) {
+            $task->loadCount(TaskController::counts());
+        }
+        $this->task = (new TaskResource($task))->resolve();
     }
 
     public function broadcastOn(): PrivateChannel

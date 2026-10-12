@@ -6,6 +6,7 @@ use App\Models\LogGroup;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\DB;
@@ -137,6 +138,7 @@ it('broadcasts the moved task and each renumbered neighbor with its new position
     $a = columnTask($this->project, 'done', 1.0);
     $b = columnTask($this->project, 'done', 1.0);
     $c = columnTask($this->project, 'done', 7.5);
+    TaskComment::factory()->forTask($b)->count(2)->create(['user_id' => $this->member->id]);
     Event::fake([TaskUpdated::class]);
 
     moveTaskAs($this->member, $this->organization, $this->project, $this->task, [
@@ -148,6 +150,9 @@ it('broadcasts the moved task and each renumbered neighbor with its new position
         ->mapWithKeys(fn (array $args) => [$args[0]->task['id'] => $args[0]->task['position']]);
 
     expect($positions->all())->toEqual([$this->task->id => 2, $b->id => 3, $c->id => 4]);
+    $counts = Event::dispatched(TaskUpdated::class)
+        ->mapWithKeys(fn (array $args) => [$args[0]->task['id'] => $args[0]->task['comments_count']]);
+    expect($counts->all())->toEqual([$this->task->id => 0, $b->id => 2, $c->id => 0]);
 });
 
 it('rejects neighbors outside the target column, project or organization', function (string $case) {
