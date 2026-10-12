@@ -494,7 +494,8 @@
     "showMoreDone": "Ver más tareas hechas",
     "unassigned": "Sin asignar",
     "assignedTo": "Asignada a {name}",
-    "fromNotice": "Desde un aviso de log"
+    "fromNotice": "Desde un aviso de log",
+    "commentsCount": "{n} comentario | {n} comentarios"
   },
   "taskAside": {
     "editDescription": "Editar descripción",

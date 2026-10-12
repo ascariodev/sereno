@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
+import { MessageSquare } from '@lucide/vue'
 import type { Task } from '../api/types'
 import AppAvatar from './ui/AppAvatar.vue'
 import LevelPill from './ui/LevelPill.vue'
@@ -17,6 +18,7 @@ const metaId = computed(() => `task-${props.task.id}-meta`)
 const to = computed(() => ({ query: { ...route.query, task: String(props.task.id) } }))
 const group = computed(() => props.task.log_group ?? null)
 const assignee = computed(() => props.task.assignee ?? null)
+const commentsCount = computed(() => props.task.comments_count ?? 0)
 </script>
 
 <template>
@@ -29,10 +31,12 @@ const assignee = computed(() => props.task.assignee ?? null)
       <span :id="titleId" class="task-card__title">{{ task.title }}</span>
       <span :id="metaId" class="task-card__meta">
         <ProjectKey :value="task.key" />
+        <span v-if="commentsCount > 0" class="task-card__comments" aria-hidden="true"><MessageSquare :size="14" aria-hidden="true" />{{ commentsCount }}</span>
         <span class="task-card__spacer"></span>
         <AppAvatar v-if="assignee" :name="assignee.name" :id="assignee.id" :size="24" />
         <span class="sr-only">
           {{ assignee ? t('plan.assignedTo', { name: assignee.name }) : t('plan.unassigned') }}
+          <template v-if="commentsCount > 0">. {{ t('plan.commentsCount', { n: commentsCount }, commentsCount) }}</template>
           <template v-if="group">. {{ t('plan.fromNotice') }}</template>
         </span>
       </span>
@@ -95,6 +99,11 @@ const assignee = computed(() => props.task.assignee ?? null)
   gap: 8px;
   font-size: 12px;
   color: var(--ink-3);
+}
+.task-card__comments {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .task-card__spacer {
   flex: 1;

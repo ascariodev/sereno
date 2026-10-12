@@ -104,6 +104,8 @@ export interface Task {
   assignee?: TaskAssignee | null
   /** Origin notice; null when the task has none or the group was deleted. */
   log_group?: TaskLogGroup | null
+  /** Comments on the task; the API sends it on every task response. */
+  comments_count?: number
   created_at: string
   updated_at: string
 }

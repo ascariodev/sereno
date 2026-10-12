@@ -494,7 +494,8 @@
     "showMoreDone": "Show more done tasks",
     "unassigned": "Unassigned",
     "assignedTo": "Assigned to {name}",
-    "fromNotice": "From a log notice"
+    "fromNotice": "From a log notice",
+    "commentsCount": "{n} comment | {n} comments"
   },
   "taskAside": {
     "editDescription": "Edit description",

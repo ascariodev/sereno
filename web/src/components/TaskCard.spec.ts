@@ -32,6 +32,16 @@ describe('TaskCard', () => {
     expect(wrapper.find('button[name=move-task]').exists()).toBe(true)
   })
 
+  it('shows the comments count with a plural label only when above zero', () => {
+    const none = mount(TaskCard, { props: { task: { ...task, comments_count: 0 } }, global: { plugins: [createPinia(), i18n, createAppRouter(createMemoryHistory())] } })
+    expect(none.find('.task-card__comments').exists()).toBe(false)
+    const one = mount(TaskCard, { props: { task: { ...task, comments_count: 1 } }, global: { plugins: [createPinia(), i18n, createAppRouter(createMemoryHistory())] } })
+    expect(one.get('.task-card__comments').text()).toBe('1')
+    expect(one.text()).toContain('1 comment')
+    const many = mount(TaskCard, { props: { task: { ...task, comments_count: 3 } }, global: { plugins: [createPinia(), i18n, createAppRouter(createMemoryHistory())] } })
+    expect(many.text()).toContain('3 comments')
+  })
+
   it('is not draggable and has no move menu when read only', () => {
     const wrapper = mountCard(true)
     expect(wrapper.get('.task-card-wrap').attributes('draggable')).toBeUndefined()
