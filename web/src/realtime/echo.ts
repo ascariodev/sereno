@@ -1,6 +1,6 @@
 import Echo from 'laravel-echo'
 import Pusher, { type ChannelAuthorizationCallback } from 'pusher-js'
-import { isTaskStatus, type LogSourceConnectedEvent, type Message, type MessageDeletedEvent, type Task, type TaskDeletedEvent } from '../api/types'
+import { isTaskStatus, type LogSourceConnectedEvent, type Message, type MessageDeletedEvent, type Task, type TaskComment, type TaskDeletedEvent } from '../api/types'
 import { config } from '../config'
 
 export const MESSAGE_CREATED_EVENT = '.message.created'
@@ -15,6 +15,7 @@ export const MENTION_REMOVED_EVENT = '.mention.removed'
 export const TASK_CREATED_EVENT = '.task.created'
 export const TASK_UPDATED_EVENT = '.task.updated'
 export const TASK_DELETED_EVENT = '.task.deleted'
+export const TASK_COMMENT_CREATED_EVENT = '.task.comment.created'
 export const PROJECT_MEMBERS_CHANGED_EVENT = '.project.members_changed'
 export const LOG_SOURCE_CONNECTED_EVENT = '.log_source.connected'
 export const ORGANIZATION_MEMBERS_CHANGED_EVENT = '.organization.members_changed'
@@ -30,6 +31,7 @@ export interface RealtimePayload {
   deleted_at?: string
   root?: MessageDeletedEvent['root']
   task?: Partial<Task>
+  comment?: Partial<TaskComment>
   project_id?: number
   task_id?: number
   granted?: boolean
@@ -249,6 +251,7 @@ export interface ProjectSubscriptionHandlers {
   onTaskCreated?: (task: Task) => void
   onTaskUpdated?: (task: Task) => void
   onTaskDeleted?: (event: TaskDeletedEvent) => void
+  onTaskCommentCreated?: (comment: TaskComment) => void
   onMembersChanged?: (projectId: number) => void
   onLogSourceConnected?: (event: LogSourceConnectedEvent) => void
 }
@@ -263,6 +266,17 @@ function validTask(task: Partial<Task> | undefined): task is Task {
   )
 }
 
+function validComment(comment: Partial<TaskComment> | undefined): comment is TaskComment {
+  return (
+    typeof comment?.id === 'number' &&
+    typeof comment.task_id === 'number' &&
+    typeof comment.body === 'string' &&
+    typeof comment.created_at === 'string' &&
+    Array.isArray(comment.mentions) &&
+    Array.isArray(comment.attachments)
+  )
+}
+
 export function subscribeToProject(
   organizationId: number,
   projectId: number,
@@ -272,6 +286,7 @@ export function subscribeToProject(
     onTaskCreated = () => {},
     onTaskUpdated = () => {},
     onTaskDeleted = () => {},
+    onTaskCommentCreated = () => {},
     onMembersChanged = () => {},
     onLogSourceConnected = () => {},
   } = handlers
@@ -279,6 +294,7 @@ export function subscribeToProject(
     TASK_CREATED_EVENT,
     TASK_UPDATED_EVENT,
     TASK_DELETED_EVENT,
+    TASK_COMMENT_CREATED_EVENT,
     PROJECT_MEMBERS_CHANGED_EVENT,
     LOG_SOURCE_CONNECTED_EVENT,
   ]
@@ -291,6 +307,10 @@ export function subscribeToProject(
     }
     if (event === PROJECT_MEMBERS_CHANGED_EVENT) {
       dispatchMembersChanged(data, onMembersChanged)
+      return
+    }
+    if (event === TASK_COMMENT_CREATED_EVENT) {
+      if (validComment(data.comment)) onTaskCommentCreated(data.comment)
       return
     }
     if (event === TASK_DELETED_EVENT) {

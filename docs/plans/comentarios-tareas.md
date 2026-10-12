@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -56,7 +56,7 @@
 ### [x] Fase 9 — Borrar archivos al borrar la tarea [riesgo]
 - Los archivos de los adjuntos de comentarios se borran del disco al borrar la tarea (después del commit). 2-3 archivos.
 
-### [ ] Fase 10 — Cliente y store de comentarios (web)
+### [x] Fase 10 — Cliente y store de comentarios (web)
 - `api/taskComments.ts`, store con contador de generación (L-10, L-14) y evento en vivo en `echo.ts`; tipos leídos de los resources (L-09). 3 archivos.
 
 ### [ ] Fase 11 — Menciones en MarkdownContent (web)
@@ -129,9 +129,15 @@
   bloquea la tarea, lee sus adjuntos (enlazados y huérfanos) y la borra; en `DB::afterCommit` borra los archivos y el
   directorio `tasks/{org}/{task}`. `TaskController::destroy` la usa. Hoy no hay borrado de proyectos ni organizaciones;
   si se agrega, debe pasar por `DeleteTask` (lo que escape lo barre `chat:prune-attachments`, que ya cubre `tasks/`).
+- 2026-10-12 (fase 10): tipo `TaskComment` en `web/src/api/types.ts` (`user` nullable, `mentions`, `attachments` con la
+  forma de `MessageAttachment`); cliente `web/src/api/taskComments.ts` (`CursorPage`). `useTaskCommentsStore`: `open`,
+  `loadOlder`, `refresh`, `insert`, `send`, `clear`; lista de más antigua a más nueva, fusionada por id; contadores
+  `generation` (L-10) y `listVersion` (L-14). `insert` descarta lo que no es de la tarea abierta o ya está. `subscribeToProject`
+  acepta `onTaskCommentCreated` (con type guard). La fase 13 llama a `store.refresh()` en `onReconnect` y `clear()` al
+  cerrar el panel. El `error` lo comparten la carga inicial y `loadOlder`, como en `thread.ts`.
 
 ## Notas para la próxima sesión
-- Fases 1 a 9 hechas (API completa). Sigue la fase 10, la primera de la web (verificación web desde el worktree en "Decisiones").
+- Fases 1 a 10 hechas (API completa; web: cliente y store). Sigue la fase 11. Helpers de verificación del coordinador en el scratchpad (`apitest.sh`, `webtest.sh`).
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
@@ -153,3 +159,5 @@
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-9: Acortar los docblocks y comentarios de `App\Actions\DeleteTask` a lo no obvio (convención de comentarios
       mínimos). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [ ] M-10: `validComment` (echo.ts) valida también la forma de `user` y de los elementos de `mentions` y `attachments`.
+      Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
