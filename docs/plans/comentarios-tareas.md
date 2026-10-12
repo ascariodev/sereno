@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -53,7 +53,7 @@
 - `attachment_ids` al crear (solo del mismo autor y tarea, sin enlazar), resource con URLs firmadas, la poda de huérfanos
   cubre la tabla nueva. Unos 4 archivos.
 
-### [ ] Fase 9 — Borrar archivos al borrar la tarea [riesgo]
+### [x] Fase 9 — Borrar archivos al borrar la tarea [riesgo]
 - Los archivos de los adjuntos de comentarios se borran del disco al borrar la tarea (después del commit). 2-3 archivos.
 
 ### [ ] Fase 10 — Cliente y store de comentarios (web)
@@ -125,9 +125,13 @@
   original_name, mime, size, created_at, url}]`. `chat:prune-attachments` poda también `task_comment_attachments`
   (`STORAGE_ROOTS = ['chat','tasks']`), con la misma ventana `orphan_hours`: un adjunto de comentario subido y no
   enviado en esa ventana se pierde, igual que en el chat.
+- 2026-10-12 (fase 9): `App\Actions\DeleteTask` (invocable) es el punto único para borrar tareas: en `DB::transaction`
+  bloquea la tarea, lee sus adjuntos (enlazados y huérfanos) y la borra; en `DB::afterCommit` borra los archivos y el
+  directorio `tasks/{org}/{task}`. `TaskController::destroy` la usa. Hoy no hay borrado de proyectos ni organizaciones;
+  si se agrega, debe pasar por `DeleteTask` (lo que escape lo barre `chat:prune-attachments`, que ya cubre `tasks/`).
 
 ## Notas para la próxima sesión
-- Fases 1 a 8 hechas (API de comentarios, menciones y adjuntos completa). Sigue la fase 9 [riesgo]. Ojo con la nota de la fase 7 sobre `tests/Feature`.
+- Fases 1 a 9 hechas (API completa). Sigue la fase 10, la primera de la web (verificación web desde el worktree en "Decisiones").
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
@@ -147,3 +151,5 @@
       (trait). Complejidad: baja · Archivos: 2-3 · sin riesgo → sonnet
 - [ ] M-8: Test de descarga y URL nueva de un adjunto de comentario cuyo archivo falta en disco (404).
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [ ] M-9: Acortar los docblocks y comentarios de `App\Actions\DeleteTask` a lo no obvio (convención de comentarios
+      mínimos). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
