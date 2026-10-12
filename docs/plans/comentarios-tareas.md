@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -45,7 +45,7 @@
 - Pasar a una clase de soporte el guardado, nombre original, mime y la descarga en stream de `AttachmentController`.
   Tests del chat sin cambios. 2 archivos.
 
-### [ ] Fase 7 — Subida y descarga de adjuntos de comentarios [riesgo]
+### [x] Fase 7 — Subida y descarga de adjuntos de comentarios [riesgo]
 - Tabla `task_comment_attachments` (comment_id nulo hasta enlazarlo), subida en `.../tasks/{task}/attachments`,
   descarga firmada, límites de `config/chat.php`. Unos 5 archivos.
 
@@ -108,9 +108,19 @@
   label)` da 404 si falta el archivo, las mismas cabeceras y lee `expires` de la query (ruta firmada). El controlador
   sigue creando la fila, borrando el archivo si falla el `save()` y buscando el adjunto: la fase 7 repite esos pasos.
   Suite completa del API sin fallos.
+- 2026-10-12 (fase 7): `task_comment_attachments` con `task_id` y `task_comment_id` (nulo) en FK compuestas con cascade,
+  `user_id` con `nullOnDelete` e índice parcial de huérfanos. Archivos en `tasks/{org}/{task}/` (la poda del chat solo
+  recorre `chat/`; la fase 9 puede borrar el directorio entero). Rutas: subida `POST projects/{project}/tasks/{task}/attachments`
+  (`throttle:chat-attachments`), descarga firmada pública `GET task-attachments/{id}` (`task-attachments.download`, solo
+  enlazados) y URL nueva `GET task-attachments/{id}/url` (404 si no enlazado o sin acceso). La subida responde `{id,
+  original_name, mime, size, created_at, url}`. Fase 8: comprobar que el comentario sea de la misma tarea que el adjunto
+  (la FK no lo garantiza) y que la poda cubra la tabla nueva y la raíz `tasks` en `pathChunks` sin borrar archivos con fila.
+- 2026-10-12 (fase 7): los tests de comentarios viven en `api/tests/Feature/TaskComments/`. El montaje de Docker Desktop
+  truncaba en silencio el listado de `tests/Feature` (Pest descubría 8 tests y salía con 0) al pasar de cierto tamaño de
+  nombres. Tras agregar tests se comprueba `php vendor/bin/pest --list-tests | wc -l` (hoy 1124).
 
 ## Notas para la próxima sesión
-- Fases 1 a 6 hechas (tabla, API, evento, MentionTargets, menciones y AttachmentStorage). Sigue la fase 7 [riesgo].
+- Fases 1 a 7 hechas (hasta subida y descarga de adjuntos). Sigue la fase 8. Ojo con la nota de la fase 7 sobre `tests/Feature`.
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
@@ -123,3 +133,10 @@
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-5: Docblock de `AttachmentStorage::download` que diga que depende de `expires` de una ruta firmada para el
       `max-age`. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [ ] M-6: Repartir `api/tests/Feature` en subcarpetas por módulo (Chat, Log, Plan, Core) para alejarse del umbral que
+      trunca el descubrimiento de Pest en el montaje de Docker. Decisión del usuario. Complejidad: alta (más de 5
+      archivos, mueve toda la suite) → convertir en plan
+- [ ] M-7: Compartir `signedDownload()` y `URL_EXPIRY_STEP_SECONDS` entre `MessageAttachment` y `TaskCommentAttachment`
+      (trait). Complejidad: baja · Archivos: 2-3 · sin riesgo → sonnet
+- [ ] M-8: Test de descarga y URL nueva de un adjunto de comentario cuyo archivo falta en disco (404).
+      Complejidad: baja · Archivos: 1 · sin riesgo → sonnet

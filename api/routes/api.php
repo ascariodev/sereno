@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectMemberController;
+use App\Http\Controllers\Api\TaskCommentAttachmentController;
 use App\Http\Controllers\Api\TaskCommentController;
 use App\Http\Controllers\Api\TaskController;
 use Illuminate\Support\Facades\Route;
@@ -63,6 +64,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::post('projects/{project}/tasks/{task}/move', [TaskController::class, 'move']);
     Route::get('projects/{project}/tasks/{task}/comments', [TaskCommentController::class, 'index']);
     Route::post('projects/{project}/tasks/{task}/comments', [TaskCommentController::class, 'store']);
+    Route::post('projects/{project}/tasks/{task}/attachments', [TaskCommentAttachmentController::class, 'store'])->middleware('throttle:chat-attachments');
     Route::get('projects/{project}/members', [ProjectMemberController::class, 'index']);
     Route::post('projects/{project}/members', [ProjectMemberController::class, 'store']);
     Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy'])->whereNumber('user');
@@ -84,6 +86,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::delete('channels/{channel}/messages/{message}', [MessageController::class, 'destroy'])->whereNumber('message')->middleware('throttle:channel-messages');
     Route::get('attachments/{attachment}/url', [AttachmentController::class, 'url'])->whereNumber('attachment')->middleware('throttle:attachment-urls');
     Route::post('channels/{channel}/attachments', [AttachmentController::class, 'store'])->middleware('throttle:chat-attachments');
+    Route::get('task-attachments/{attachment}/url', [TaskCommentAttachmentController::class, 'url'])->whereNumber('attachment')->middleware('throttle:attachment-urls');
 });
 
 // No Bearer nor organization: the signed URL is the credential, so it works from <img> and is generated without
@@ -92,6 +95,11 @@ Route::get('attachments/{attachment}', [AttachmentController::class, 'download']
     ->whereNumber('attachment')
     ->middleware(['throttle:attachment-downloads', 'signed:relative'])
     ->name('attachments.download');
+
+Route::get('task-attachments/{attachment}', [TaskCommentAttachmentController::class, 'download'])
+    ->whereNumber('attachment')
+    ->middleware(['throttle:attachment-downloads', 'signed:relative'])
+    ->name('task-attachments.download');
 
 Route::middleware(['log.source', 'throttle:log-ingest'])->group(function () {
     Route::post('ingest/events', [LogIngestController::class, 'store']);
