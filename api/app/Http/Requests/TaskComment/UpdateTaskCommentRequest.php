@@ -6,6 +6,7 @@ use App\Models\Task;
 use App\Models\TaskComment;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class UpdateTaskCommentRequest extends FormRequest
 {
@@ -25,7 +26,15 @@ class UpdateTaskCommentRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'remove_attachment_ids' => ['sometimes', 'list', 'max:'.config('chat.attachments.max_per_message')],
+            'remove_attachment_ids.*' => ['integer', 'distinct', Rule::exists('task_comment_attachments', 'id')->where('task_comment_id', $this->route('comment')->id)],
             'body' => ['required', 'string', 'max:'.TaskComment::BODY_MAX_LENGTH, 'not_regex:/\x00/'],
         ];
+    }
+
+    /** @return list<int> */
+    public function removeAttachmentIds(): array
+    {
+        return array_map('intval', $this->validated('remove_attachment_ids') ?? []);
     }
 }

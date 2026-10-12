@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 
 
 ## Contexto mínimo
@@ -74,7 +74,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - **Terminado cuando:** tests de editar (autor, ajeno 403, otra tarea 404, menciones agregadas y quitadas, sin cambios
   no marca `edited_at`) y del broadcast.
 
-### [ ] Fase 8 — Quitar adjuntos al editar [riesgo]
+### [x] Fase 8 — Quitar adjuntos al editar [riesgo]
 - **Alcance:** `remove_attachment_ids` (solo del mismo comentario) en el `PATCH`; borra las filas en la transacción,
   los archivos tras el commit; quitar un adjunto marca `edited_at`.
 - **Archivos:** `UpdateTaskCommentRequest.php`, `TaskCommentController.php`.
@@ -133,6 +133,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - Fase 5 hecha: `task_comments.edited_at` + recurso. Tras la migración, correr `php artisan migrate` en la base de desarrollo.
 - Fase 6 hecha: `TaskCommentPolicy::update` (autor) y `delete` (autor, owner, admin); devuelven la respuesta de `inspect view` de la tarea (404 sin acceso).
 - Fase 7 hecha: PATCH comentarios; `syncMentions($comment,$task,$authorId,?$currentIds)` sin eventos; `TaskCommentUpdated` `{comment}`. `UpdateTaskCommentRequest` exige `body`: en la fase 8 revisar el caso de comentario sin texto al quitar adjuntos.
+- Fase 8 hecha: `remove_attachment_ids` en el PATCH; body sigue obligatorio (igual que store); archivos borrados en afterCommit con try/report (patrón reutilizable en fase 9).
 
 ## Mejoras propuestas
 - [ ] M-1: `docs/lecciones.md` tiene L-37 a L-40 repetidas (líneas ~50-57); quitar el duplicado. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet

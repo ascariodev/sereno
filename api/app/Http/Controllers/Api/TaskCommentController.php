@@ -19,7 +19,9 @@ use App\Support\MentionTargets;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class TaskCommentController extends Controller
 {
@@ -54,15 +56,18 @@ class TaskCommentController extends Controller
     public function update(UpdateTaskCommentRequest $request, Project $project, Task $task, TaskComment $comment): TaskCommentResource
     {
         $body = $request->validated('body');
+        $removeIds = $request->removeAttachmentIds();
         $edited = false;
 
-        DB::transaction(function () use ($request, $task, &$comment, $body, &$edited) {
+        DB::transaction(function () use ($request, $task, &$comment, $body, $removeIds, &$edited) {
             // Reread after the lock: a delete or another edit committed while waiting must not be overwritten.
             $locked = TaskComment::query()->whereKey($comment->id)->lockForUpdate()->first();
             abort_if($locked === null, 404);
             $comment = $locked;
 
-            if ($comment->body !== $body) {
+            $removed = $this->removeAttachments($comment, $removeIds);
+
+            if ($comment->body !== $body || $removed) {
                 $edited = true;
                 $comment->body = $body;
                 $comment->edited_at = now()->startOfSecond();
@@ -79,6 +84,41 @@ class TaskCommentController extends Controller
         }
 
         return new TaskCommentResource($comment);
+    }
+
+    /**
+     * Deletes the rows now and the files only once the transaction commits, so a rollback keeps both.
+     *
+     * @param  list<int>  $ids
+     */
+    private function removeAttachments(TaskComment $comment, array $ids): bool
+    {
+        if ($ids === []) {
+            return false;
+        }
+
+        $files = TaskCommentAttachment::query()
+            ->where('task_comment_id', $comment->id)
+            ->whereIn('id', $ids)
+            ->get(['id', 'disk', 'path']);
+
+        if ($files->isEmpty()) {
+            return false;
+        }
+
+        TaskCommentAttachment::query()->whereIn('id', $files->pluck('id'))->delete();
+
+        DB::afterCommit(function () use ($files) {
+            foreach ($files as $file) {
+                try {
+                    Storage::disk($file->disk)->delete($file->path);
+                } catch (Throwable $e) {
+                    report($e);
+                }
+            }
+        });
+
+        return true;
     }
 
     /**
