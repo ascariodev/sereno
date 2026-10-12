@@ -16,6 +16,7 @@ import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import { TASK_FILTERS, useTasksStore, type TaskFilter } from '../stores/tasks'
+import { useTaskCommentsStore } from '../stores/taskComments'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -23,6 +24,7 @@ const router = useRouter()
 const organization = useOrganizationStore()
 const projects = useProjectsStore()
 const tasks = useTasksStore()
+const comments = useTaskCommentsStore()
 const directory = useMemberDirectoryStore()
 
 const projectId = computed(() => Number(route.params.projectId))
@@ -137,9 +139,13 @@ function joinRealtime(): void {
     onTaskCreated: (task) => tasks.insert(task),
     onTaskUpdated: (task) => tasks.replace(task),
     onTaskDeleted: (event) => tasks.remove(event),
+    onTaskCommentCreated: (comment) => comments.insert(comment),
     onMembersChanged: (id) => directory.invalidate(id),
   })
-  unsubscribeReconnect = onReconnect(() => void tasks.refresh())
+  unsubscribeReconnect = onReconnect(() => {
+    void tasks.refresh()
+    void comments.refresh()
+  })
 }
 
 watch(activeFilter, (value) => (tasks.filter = value), { immediate: true })

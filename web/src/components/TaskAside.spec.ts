@@ -10,6 +10,7 @@ import { createAppRouter } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
+import { useTaskCommentsStore } from '../stores/taskComments'
 import { useTasksStore } from '../stores/tasks'
 import { toast } from './ui/toast'
 import TaskAside from './TaskAside.vue'
@@ -65,12 +66,22 @@ async function submit() {
 describe('TaskAside', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    vi.spyOn(api, 'get').mockResolvedValue({ data: [], meta: { next_cursor: null } } as never)
     document.body.innerHTML = ''
     fakeMatchMedia(false)
   })
   afterEach(() => {
     useTasksStore().clear()
     window.matchMedia = originalMatchMedia
+  })
+
+  it('loads the comments of the task and clears them on unmount', async () => {
+    const { wrapper, store } = await mountAside()
+    expect(api.get).toHaveBeenCalledWith('/api/projects/5/tasks/9/comments', expect.anything())
+    expect(q('[data-test="task-comments"]')).not.toBeNull()
+    wrapper.unmount()
+    expect(useTaskCommentsStore().taskId).toBeNull()
+    expect(store).toBeDefined()
   })
 
   it('fills the form and saves the three fields through the store', async () => {

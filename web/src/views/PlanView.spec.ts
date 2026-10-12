@@ -23,6 +23,7 @@ function mockApi(tasks: (path: string) => unknown = () => ({ data: [] })) {
   return vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
     if (path === '/api/projects') return { data: [project(5, 'POSVE'), project(6, 'OTHER')], meta: { last_page: 1 } } as never
     if (path === '/api/channels') return { data: [{ id: 7, project_id: 5, name: 'general' }] } as never
+    if (path.endsWith('/comments')) return { data: [], meta: { next_cursor: null } } as never
     if (/^\/api\/projects\/\d+\/tasks$/.test(path)) return (await tasks(path)) as never
     return undefined as never
   })
@@ -706,6 +707,25 @@ describe('PlanView', () => {
       fake.emit('.task.deleted', { id: 2, project_id: 5 })
       await flushPromises()
       expect(wrapper.findAll('[data-task-id]')).toHaveLength(1)
+    })
+
+    it('shows a live comment of the open task once and refreshes comments on reconnect', async () => {
+      const fake = live()
+      const spy = mockApi(() => ({ data: [mk(1)] }))
+      fake.setStatus('connected')
+      const wrapper = await mountView('/projects/5/plan?task=1')
+      const comment = { id: 4, task_id: 1, body: 'Live one', user: { id: 2, name: 'Bea' }, mentions: [], attachments: [], created_at: new Date().toISOString() }
+      fake.emit('.task.comment.created', { comment })
+      fake.emit('.task.comment.created', { comment })
+      fake.emit('.task.comment.created', { comment: { ...comment, id: 5, task_id: 2 } })
+      await flushPromises()
+      expect(wrapper.findAll('[data-test="comment"]')).toHaveLength(1)
+      expect(wrapper.text()).toContain('Live one')
+      const before = spy.mock.calls.filter(([path]) => String(path).endsWith('/comments')).length
+      fake.setStatus('reconnecting')
+      fake.setStatus('connected')
+      await flushPromises()
+      expect(spy.mock.calls.filter(([path]) => String(path).endsWith('/comments')).length).toBe(before + 1)
     })
 
     it('reloads and resubscribes when the active organization changes', async () => {

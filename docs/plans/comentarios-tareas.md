@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 13
+**Estado:** en curso · Fase actual: 14
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -65,7 +65,7 @@
 ### [x] Fase 12 — Autocompletado de menciones en MarkdownEditor (web) [riesgo]
 - Conectar `useMentionInput`/`useMentionKeyboard` al editor como opción; hoy están pensados para el compositor del chat. 2-3 archivos.
 
-### [ ] Fase 13 — Comentarios en el panel de la tarea (web)
+### [x] Fase 13 — Comentarios en el panel de la tarea (web)
 - `TaskComments.vue` (lista, cargar anteriores, compositor con `MarkdownEditor`) dentro de `TaskAside`. 2 archivos.
 
 ### [ ] Fase 14 — Adjuntos en el compositor de comentarios (web) [riesgo]
@@ -147,9 +147,14 @@
   directory.membersOf(projectId), excludeUserId: auth.user?.id, ensureLoaded: () => directory.ensureLoaded(projectId) }"`
   y carga los miembros al abrir el panel (el `watch` del editor no reacciona a `members`). La lista de sugerencias va en
   el flujo bajo el textarea: revisar el layout en el navegador en la fase 13.
+- 2026-10-12 (fase 13): `TaskComments.vue` al final de `TaskAside`; `PlanView` pasa `onTaskCommentCreated` a su
+  `subscribeToProject` (sin canal nuevo) y llama `comments.refresh()` en `onReconnect`. `TaskComments` abre el store con
+  un `watch` sobre `"projectId:taskId"` (L-43), limpia borrador y error al cambiar y `clear()` al desmontar. El
+  compositor no se bloquea en proyectos archivados. Fecha relativa con `Intl.RelativeTimeFormat`, como `ThreadSummary`.
+  Visto en el navegador (endpoints simulados): la lista de sugerencias cabe bajo el textarea del panel.
 
 ## Notas para la próxima sesión
-- Fases 1 a 12 hechas (API completa; web: cliente, store, chip y autocompletado). Sigue la fase 13. Helpers de verificación del coordinador en el scratchpad (`apitest.sh`, `webtest.sh`).
+- Fases 1 a 13 hechas (API completa; web hasta el panel de comentarios). Sigue la fase 14 [riesgo]. Helpers de verificación del coordinador en el scratchpad (`apitest.sh`, `webtest.sh`).
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
@@ -183,3 +188,8 @@
       conservar las menciones al reconciliar tras deshacer. Complejidad: media · Archivos: 2 · sin riesgo → sonnet
 - [ ] M-15: `MarkdownEditor`: `position: relative` en la raíz para el texto solo para lectores.
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [ ] M-16: Accesibilidad de `TaskComments`: región `role="status"` que anuncie el comentario enviado, `role="status"`
+      en "Cargando" y vacío, `aria-labelledby` al `<h2>` en vez de `aria-label` repetido y nombre en la `<ul>`.
+      Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
+- [ ] M-17: Llevar a la vista el comentario recién enviado (scroll) en `TaskComments`.
+      Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
