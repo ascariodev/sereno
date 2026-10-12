@@ -1,11 +1,24 @@
 <script setup lang="ts">
 import { computed, onUpdated, ref, watch } from 'vue'
+import { i18n } from '../i18n'
 import { renderMarkdown } from '../markdown/renderMarkdown'
 
-const props = defineProps<{ source: string | null | undefined; interactive?: boolean }>()
+const props = defineProps<{
+  source: string | null | undefined
+  interactive?: boolean
+  mentions?: { id: number; name: string }[]
+  ownUserId?: number
+}>()
 const emit = defineEmits<{ toggle: [lineIndex: number] }>()
 
-const html = computed(() => renderMarkdown(props.source ?? '', { interactive: props.interactive }))
+const html = computed(() =>
+  renderMarkdown(props.source ?? '', {
+    interactive: props.interactive,
+    mentions: props.mentions
+      ? { mentions: props.mentions, unknownLabel: i18n.global.t('channel.unknownMention'), ownUserId: props.ownUserId }
+      : undefined,
+  }),
+)
 
 const root = ref<HTMLElement | null>(null)
 let focusedLine: string | null = null
@@ -116,6 +129,17 @@ function onChange(event: Event): void {
 .markdown-content :deep(input[type='checkbox']:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+.markdown-content :deep(.mention-chip) {
+  padding: 1px 4px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+.markdown-content :deep(.mention-chip--own) {
+  background: color-mix(in srgb, var(--accent) 25%, var(--surface));
+  font-weight: 600;
 }
 .markdown-content :deep(hr) {
   border: 0;

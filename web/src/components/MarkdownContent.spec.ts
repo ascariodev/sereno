@@ -69,4 +69,41 @@ describe('MarkdownContent', () => {
     expect(document.activeElement).toBe(replaced)
     wrapper.unmount()
   })
+
+  describe('mentions', () => {
+    const withMentions = (source: string, mentions?: { id: number; name: string }[]) =>
+      mount(MarkdownContent, { props: { source, mentions } })
+
+    it('paints a chip with the mention name', () => {
+      const chip = withMentions('hi <@5> there', [{ id: 5, name: 'Ana' }]).find('[data-mention]')
+
+      expect(chip.text()).toBe('@Ana')
+      expect(chip.classes()).toContain('mention-chip')
+    })
+
+    it('falls back to the unknown label for an id not in mentions', () => {
+      expect(withMentions('<@9>', [{ id: 5, name: 'Ana' }]).find('[data-mention]').text()).toBe('@user')
+    })
+
+    it('does not convert tokens inside code', () => {
+      const wrapper = withMentions(['`<@5>`', '', '```', '<@5>', '```'].join('\n'),[{ id: 5, name: 'Ana' }])
+
+      expect(wrapper.find('[data-mention]').exists()).toBe(false)
+      expect(wrapper.text()).toContain('<@5>')
+    })
+
+    it('escapes HTML in the name', () => {
+      const wrapper = withMentions('<@5>', [{ id: 5, name: '<img src=x onerror=alert(1)>' }])
+
+      expect(wrapper.find('img').exists()).toBe(false)
+      expect(wrapper.find('[data-mention]').text()).toBe('@<img src=x onerror=alert(1)>')
+    })
+
+    it('leaves tokens as text without the prop', () => {
+      const wrapper = withMentions('hi <@5>')
+
+      expect(wrapper.find('[data-mention]').exists()).toBe(false)
+      expect(wrapper.text()).toContain('<@5>')
+    })
+  })
 })

@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -59,7 +59,7 @@
 ### [x] Fase 10 — Cliente y store de comentarios (web)
 - `api/taskComments.ts`, store con contador de generación (L-10, L-14) y evento en vivo en `echo.ts`; tipos leídos de los resources (L-09). 3 archivos.
 
-### [ ] Fase 11 — Menciones en MarkdownContent (web)
+### [x] Fase 11 — Menciones en MarkdownContent (web)
 - Regla de markdown-it que pinta `<@id>` como chip con el nombre de `mentions` (igual que `MessageBody`). 2 archivos.
 
 ### [ ] Fase 12 — Autocompletado de menciones en MarkdownEditor (web) [riesgo]
@@ -135,9 +135,14 @@
   `generation` (L-10) y `listVersion` (L-14). `insert` descarta lo que no es de la tarea abierta o ya está. `subscribeToProject`
   acepta `onTaskCommentCreated` (con type guard). La fase 13 llama a `store.refresh()` en `onReconnect` y `clear()` al
   cerrar el panel. El `error` lo comparten la carga inicial y `loadOlder`, como en `thread.ts`.
+- 2026-10-12 (fase 11): `renderMarkdown` acepta `options.mentions` (`{mentions, unknownLabel, ownUserId}`); una regla core
+  convierte `<@id>` solo en tokens `text` (no en código). DOMPurify permite `span`, `class` y `data-mention`, y un hook los
+  quita salvo en el chip exacto (`html: false` impide escribirlo a mano). `MarkdownContent` tiene props opcionales
+  `mentions` y `ownUserId`; sin `mentions` el render no cambia. Usa `i18n.global.t` (reactivo al idioma) para
+  `channel.unknownMention`. La fase 13 pasa `:mentions` y `:own-user-id`.
 
 ## Notas para la próxima sesión
-- Fases 1 a 10 hechas (API completa; web: cliente y store). Sigue la fase 11. Helpers de verificación del coordinador en el scratchpad (`apitest.sh`, `webtest.sh`).
+- Fases 1 a 11 hechas (API completa; web: cliente, store y chip de mención). Sigue la fase 12 [riesgo]. Helpers de verificación del coordinador en el scratchpad (`apitest.sh`, `webtest.sh`).
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
@@ -161,3 +166,7 @@
       mínimos). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-10: `validComment` (echo.ts) valida también la forma de `user` y de los elementos de `mentions` y `attachments`.
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
+- [ ] M-11: Specs de `MarkdownContent` para un `<span class="mention-chip">` escrito por el usuario (sale como texto) y
+      para `\<@1>` (sin chip). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [ ] M-12: Unificar la resolución de menciones de `MessageBody.vue` y la regla de `renderMarkdown`.
+      Complejidad: media · Archivos: 3-4 · sin riesgo → sonnet

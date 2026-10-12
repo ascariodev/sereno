@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify'
 import MarkdownIt from 'markdown-it'
+import { MENTION_TOKEN } from '../mentionToken'
 
 const MAX_HEADING_LEVEL = 4
 const HEADING_OFFSET = 2
@@ -62,6 +63,47 @@ md.core.ruler.after('inline', 'task_list', (state) => {
   })
 })
 
+export interface MentionOptions {
+  mentions: readonly { id: number; name: string }[]
+  unknownLabel: string
+  ownUserId?: number
+}
+
+md.core.ruler.after('inline', 'mentions', (state) => {
+  const options = state.env?.mentions as MentionOptions | undefined
+  if (!options) return
+  const names = new Map(options.mentions.map((m) => [String(m.id), m.name]))
+  for (const block of state.tokens) {
+    if (block.type !== 'inline' || !block.children) continue
+    const children: typeof block.children = []
+    for (const child of block.children) {
+      if (child.type !== 'text' || !child.content.includes('<@')) {
+        children.push(child)
+        continue
+      }
+      let last = 0
+      const pushText = (text: string) => {
+        if (!text) return
+        const t = new state.Token('text', '', 0)
+        t.content = text
+        children.push(t)
+      }
+      for (const match of child.content.matchAll(MENTION_TOKEN)) {
+        pushText(child.content.slice(last, match.index))
+        const own = options.ownUserId !== undefined && String(options.ownUserId) === match[1]
+        const chip = new state.Token('html_inline', '', 0)
+        chip.content =
+          `<span class="mention-chip${own ? ' mention-chip--own' : ''}" data-mention>` +
+          `@${md.utils.escapeHtml(names.get(match[1]) ?? options.unknownLabel)}</span>`
+        children.push(chip)
+        last = match.index + match[0].length
+      }
+      pushText(child.content.slice(last))
+    }
+    block.children = children
+  }
+})
+
 export function taskItemLines(source: string): Set<number> {
   const tokens = md.parse(source, {})
   const lines = new Set<number>()
@@ -82,6 +124,14 @@ purifier.addHook('afterSanitizeAttributes', (node) => {
     node.setAttribute('target', '_blank')
     node.setAttribute('rel', 'noopener noreferrer')
   }
+  const isChip =
+    node.tagName === 'SPAN' &&
+    node.hasAttribute('data-mention') &&
+    ['mention-chip', 'mention-chip mention-chip--own'].includes(node.getAttribute('class') ?? '')
+  if (!isChip) {
+    node.removeAttribute('class')
+    node.removeAttribute('data-mention')
+  }
   if (node.tagName === 'INPUT') {
     const line = node.getAttribute('data-task-line')
     if (node.getAttribute('type') !== 'checkbox' || !/^\d+$/.test(line ?? '')) node.remove()
@@ -94,9 +144,9 @@ purifier.addHook('afterSanitizeAttributes', (node) => {
 const SANITIZE_CONFIG = {
   ALLOWED_TAGS: [
     'p', 'br', 'strong', 'em', 'del', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'a',
-    'h1', 'h2', 'h3', 'h4', 'hr', 'input',
+    'h1', 'h2', 'h3', 'h4', 'hr', 'input', 'span',
   ],
-  ALLOWED_ATTR: ['href', 'target', 'rel', 'type', 'checked', 'disabled', 'data-task-line', 'aria-label'],
+  ALLOWED_ATTR: ['href', 'target', 'rel', 'type', 'checked', 'disabled', 'data-task-line', 'aria-label', 'class', 'data-mention'],
   ALLOWED_URI_REGEXP: /^(?:https?:|mailto:)/i,
 }
 
@@ -104,7 +154,7 @@ export function sanitizeHtml(html: string): string {
   return purifier.sanitize(html, SANITIZE_CONFIG)
 }
 
-export function renderMarkdown(source: string, options: { interactive?: boolean } = {}): string {
+export function renderMarkdown(source: string, options: { interactive?: boolean; mentions?: MentionOptions } = {}): string {
   if (!source) return ''
-  return sanitizeHtml(md.render(source, { interactive: options.interactive === true }))
+  return sanitizeHtml(md.render(source, { interactive: options.interactive === true, mentions: options.mentions }))
 }
