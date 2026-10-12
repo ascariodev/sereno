@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -25,7 +25,7 @@
 - **Archivos:** migración, `api/app/Models/TaskComment.php`, `api/app/Models/Task.php`, factory, `.claude/rules/database.md`
 - **Terminado cuando:** test de modelo (cascade al borrar la tarea, FK que rechaza cruce de tenant).
 
-### [ ] Fase 2 — API listar y crear comentarios
+### [x] Fase 2 — API listar y crear comentarios
 - **Alcance:** GET (paginado por cursor, del más nuevo hacia atrás) y POST en `projects/{project}/tasks/{task}/comments`,
   FormRequest que autoriza antes de validar (body requerido, máx. 10000, sin `\x00`), `TaskCommentResource`, policy (ver = ver la tarea).
 - **Archivos:** controlador, request, resource, policy, `api/routes/api.php`
@@ -85,9 +85,14 @@
   compuesta; fases futuras con FK compuesta hacia `tasks` se apoyan en él. `task_id` no tiene FK simple. No hay
   `TaskFactory`: `TaskComment::factory()->forTask($task)` fija `task_id` y `organization_id`. `TaskComment` lleva solo
   `body` en Fillable y `BODY_MAX_LENGTH = 10000` para el FormRequest de la fase 2.
+- 2026-10-12 (fase 2): `GET` ordena por `id` desc con `cursorPaginate` (30 por defecto, máx. 100; cursor inválido da 422).
+  `TaskCommentResource`: `id`, `task_id`, `body`, `user {id, name}`, `created_at`. `TaskCommentController::RELATIONS =
+  ['user:id,name']`, que el evento de la fase 3 debe cargar igual (L-37). Los FormRequest comprueban que la tarea sea
+  del proyecto (404) y luego autorizan, antes de validar. `TaskCommentPolicy` (`viewAny`, `view`, `create`) delega en
+  `TaskPolicy::view`. Se puede comentar en proyectos archivados (el revisor no lo ve un riesgo).
 
 ## Notas para la próxima sesión
-- Fase 1 hecha (tabla y modelo). Sigue la fase 2. El plan `notificaciones` escucha `TaskCommentCreated`.
+- Fases 1 y 2 hechas (tabla, modelo y API de listar/crear). Sigue la fase 3. El plan `notificaciones` escucha `TaskCommentCreated`.
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
@@ -96,3 +101,5 @@
       Complejidad: baja · Archivos: 3 · Riesgo: contrato público → sonnet
 - [ ] M-3: `database.md`: referencia cruzada al nuevo único de `tasks` en su entrada y revisar la línea "Futuro: policy,
       API y eventos de tareas", desfasada. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [ ] M-4: Test directo de `TaskCommentPolicy::view` (hoy sin ruta que lo use) cuando exista editar o borrar.
+      Complejidad: baja · Archivos: 1 · sin riesgo → sonnet

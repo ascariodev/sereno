@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectMemberController;
+use App\Http\Controllers\Api\TaskCommentController;
 use App\Http\Controllers\Api\TaskController;
 use Illuminate\Support\Facades\Route;
 
@@ -60,6 +61,8 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::patch('projects/{project}/tasks/{task}', [TaskController::class, 'update']);
     Route::delete('projects/{project}/tasks/{task}', [TaskController::class, 'destroy']);
     Route::post('projects/{project}/tasks/{task}/move', [TaskController::class, 'move']);
+    Route::get('projects/{project}/tasks/{task}/comments', [TaskCommentController::class, 'index']);
+    Route::post('projects/{project}/tasks/{task}/comments', [TaskCommentController::class, 'store']);
     Route::get('projects/{project}/members', [ProjectMemberController::class, 'index']);
     Route::post('projects/{project}/members', [ProjectMemberController::class, 'store']);
     Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy'])->whereNumber('user');
