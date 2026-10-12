@@ -54,6 +54,35 @@ describe('projects store', () => {
     expect(store.removeProject(1)).toBeUndefined()
   })
 
+  it('update patches the project and merges it, keeping the open counts', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
+      path === '/api/projects'
+        ? ({ data: [{ ...project(1, 'Alpha'), tasks_resolve_log_groups: false, open_groups_count: 3 }, project(2, 'Beta')], meta: meta() } as never)
+        : ({ data: [] } as never),
+    )
+    const patch = vi.spyOn(api, 'patch').mockResolvedValue({ data: { ...project(1, 'Alpha'), tasks_resolve_log_groups: true } } as never)
+    const store = setup()
+    await flushPromises()
+    const updated = await store.update(1, { tasks_resolve_log_groups: true })
+    expect(patch).toHaveBeenCalledWith('/api/projects/1', { tasks_resolve_log_groups: true })
+    expect(updated.tasks_resolve_log_groups).toBe(true)
+    expect(store.projects[0]).toMatchObject({ id: 1, tasks_resolve_log_groups: true, open_groups_count: 3 })
+    expect(store.projects[1].name).toBe('Beta')
+  })
+
+  it('update rethrows a failure and leaves the project unchanged', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
+      path === '/api/projects'
+        ? ({ data: [{ ...project(1, 'Alpha'), tasks_resolve_log_groups: false }], meta: meta() } as never)
+        : ({ data: [] } as never),
+    )
+    vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(403, 'no'))
+    const store = setup()
+    await flushPromises()
+    await expect(store.update(1, { tasks_resolve_log_groups: true })).rejects.toMatchObject({ status: 403 })
+    expect(store.projects[0].tasks_resolve_log_groups).toBe(false)
+  })
+
   it('refresh reloads without emptying the lists meanwhile', async () => {
     const get = vi.spyOn(api, 'get').mockImplementation(async (path: string) =>
       path === '/api/projects'

@@ -26,6 +26,7 @@ export interface Project {
   key: string
   description: string | null
   archived_at: string | null
+  tasks_resolve_log_groups: boolean
   created_at: string
   updated_at: string
   open_groups_count?: number

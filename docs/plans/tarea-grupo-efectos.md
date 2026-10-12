@@ -2,7 +2,7 @@
 
 **Objetivo:** en los proyectos que lo activen, mover a Hecho una tarea creada desde un aviso resuelve su grupo de log, y
 si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. Origen: plan-tareas M-5 (y canales M-19).
-**Estado:** en curso · Fase actual: 6
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -91,7 +91,7 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
 - **Terminado cuando:** `SystemNotice.spec` cubre el aviso válido, el payload mal formado (cae al genérico) y el chip con
   su ruta. Pasan `messages.spec` y `vue-tsc -b`.
 
-### [ ] Fase 6 — Interruptor del ajuste en la web [riesgo]
+### [x] Fase 6 — Interruptor del ajuste en la web [riesgo]
 - **Alcance:**
   - Campo en el tipo `Project`, `updateProject` en el cliente y un interruptor visible para quien puede editar el
     proyecto, con estado de carga, error con toast y valor que se refleja en el store de proyectos.
@@ -130,11 +130,14 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
   `PostTaskGroupReopenedNoticeListener` (tries=1, auto-discovery). `LogGroupController::update` bloquea el grupo FOR NO
   KEY UPDATE, lee de ahí el estado previo y llama a la acción solo de resolved a open.
 
+- 2026-10-11 (fase 6): el interruptor va en la cabecera de `PlanView` (slot `actions` de `ProjectHeader`), la propuesta
+  del plan; la pregunta al usuario quedó sin respuesta y dijo "continua". Es un checkbox `role="switch"` visible para
+  owner o admin. `projects.update` fusiona la respuesta con el proyecto (el PATCH no trae los conteos) y relanza el error.
+
 ## Notas para la próxima sesión
-- Seguir con la fase 6, tras confirmar con el usuario dónde va el interruptor. Tests de la web del worktree con
-  `.claude/worktrees/w.sh` (node:24 desechable con `web/` del worktree y el volumen `workspace_web-node-modules`).
-  El aviso `task.group_reopened` se pinta en `SystemNotice` con clave `notice.taskGroupReopened`.
-- Leer `docs/lecciones.md` (L-41 concurrencia, L-42 condiciones en el worker, L-49 suite completa, L-13 guards).
+- Plan terminado. Falta la verificación en el navegador de la fase 6 (activar el ajuste, mover a Hecho una tarea creada
+  desde un aviso y ver el grupo resuelto en el canal): el entorno de desarrollo corre el checkout principal, así que se
+  hace tras integrar la rama, con `migrate` y `docker compose restart queue`.
 
 ## Mejoras propuestas
 - [ ] M-1 (baja, sonnet): en `LogGroupController::update`, no reasignar el parámetro enlazado `$group` con el
@@ -143,3 +146,8 @@ si ese grupo se reabre con la tarea en Hecho se avisa en el canal del proyecto. 
 - [ ] M-2 (baja, sonnet): en `SystemNotice.vue`, extraer el chip a la tarea (`RouterLink` o `<b>` sin proyecto),
   repetido en `task.created_from_group` y `task.group_reopened`; de paso, el `<b>` sin proyecto no debería usar la clase
   `system-notice-line__actor`.
+- [ ] M-3 (media, sonnet): en el store de proyectos, que un `load()` o `refresh()` que empezó antes de un `update` no
+  pise el valor recién guardado (marcar ids tocados y conservar sus campos), con spec del guardado durante la recarga.
+- [ ] M-4 (baja, sonnet): en `PlanView`, mientras guarda usar `aria-disabled` e ignorar el `change` en vez de `disabled`
+  (no sacar el foco del teclado); reutilizar un getter del store de organización (`canCreateProject` o uno nuevo
+  `canManageProjects`) en vez de repetir `isOwner || isAdmin`; separar en casos el spec de permisos.

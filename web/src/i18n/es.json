@@ -484,6 +484,11 @@
       "failed": "No se pudo mover la tarea. Inténtalo de nuevo."
     },
     "newTask": "Nueva tarea",
+    "resolveGroupsSetting": {
+      "label": "Mover a Hecho resuelve el grupo de log",
+      "failed": "No se pudo cambiar el ajuste. Inténtalo de nuevo.",
+      "forbidden": "No tienes permiso para cambiar este ajuste."
+    },
     "addTask": "Agregar tarea",
     "empty": "Sin tareas",
     "showMoreDone": "Ver más tareas hechas",

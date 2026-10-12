@@ -12,6 +12,15 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
   return response.data
 }
 
+export interface UpdateProjectInput {
+  tasks_resolve_log_groups?: boolean
+}
+
+export async function updateProject(projectId: number, input: UpdateProjectInput): Promise<Project> {
+  const response = await api.patch<DataEnvelope<Project>>(`/api/projects/${projectId}`, input)
+  return response.data
+}
+
 export async function listProjectMembers(projectId: number, signal?: AbortSignal): Promise<Member[]> {
   const response = await api.get<DataEnvelope<Member[]>>(`/api/projects/${projectId}/members`, { signal })
   return response.data

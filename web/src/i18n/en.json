@@ -484,6 +484,11 @@
       "failed": "Could not move the task. Try again."
     },
     "newTask": "New task",
+    "resolveGroupsSetting": {
+      "label": "Moving to Done resolves the log group",
+      "failed": "Could not change the setting. Try again.",
+      "forbidden": "You are not allowed to change this setting."
+    },
     "addTask": "Add task",
     "empty": "No tasks",
     "showMoreDone": "Show more done tasks",

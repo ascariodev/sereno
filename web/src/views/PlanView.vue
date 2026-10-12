@@ -8,7 +8,9 @@ import TaskAside from '../components/TaskAside.vue'
 import TaskCard from '../components/TaskCard.vue'
 import TaskCreateDialog from '../components/TaskCreateDialog.vue'
 import { useTaskDrag } from '../composables/useTaskDrag'
+import { ApiError } from '../api/client'
 import { TASK_STATUSES, type TaskStatus } from '../api/types'
+import { toast } from '../components/ui/toast'
 import { onReconnect, subscribeToProject } from '../realtime/echo'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useOrganizationStore } from '../stores/organization'
@@ -50,6 +52,35 @@ const taskId = computed(() => {
   return typeof raw === 'string' && /^[1-9]\d*$/.test(raw) ? Number(raw) : null
 })
 const showLoading = computed(() => validId.value && loadError.value === null && tasks.loading)
+const canEditSettings = computed(() => project.value !== null && (organization.isOwner || organization.isAdmin))
+const pendingResolveGroups = ref<boolean | null>(null)
+const savingResolveGroups = ref(false)
+const resolveGroupsChecked = computed(() => pendingResolveGroups.value ?? project.value?.tasks_resolve_log_groups ?? false)
+let settingGeneration = 0
+
+function resetSettingState(): void {
+  settingGeneration++
+  pendingResolveGroups.value = null
+  savingResolveGroups.value = false
+}
+
+async function toggleResolveGroups(value: boolean): Promise<void> {
+  const current = ++settingGeneration
+  pendingResolveGroups.value = value
+  savingResolveGroups.value = true
+  try {
+    await projects.update(projectId.value, { tasks_resolve_log_groups: value })
+  } catch (error) {
+    if (current !== settingGeneration) return
+    const forbidden = error instanceof ApiError && error.status === 403
+    toast.error(t(forbidden ? 'plan.resolveGroupsSetting.forbidden' : 'plan.resolveGroupsSetting.failed'))
+  } finally {
+    if (current === settingGeneration) {
+      pendingResolveGroups.value = null
+      savingResolveGroups.value = false
+    }
+  }
+}
 
 function load(): void {
   if (validId.value) void tasks.open(projectId.value)
@@ -120,10 +151,14 @@ watch(
 )
 watch(projectId, load, { immediate: true })
 watch(() => organization.activeId, (_, previous) => previous !== null && load())
-watch(projectId, () => (createOpen.value = false))
+watch(projectId, () => {
+  createOpen.value = false
+  resetSettingState()
+})
 
 onUnmounted(() => {
   leaveRealtime()
+  resetSettingState()
   tasks.clear()
 })
 </script>
@@ -138,8 +173,20 @@ onUnmounted(() => {
       :project-id="project.id"
       :channel-id="channelId"
     >
-      <template v-if="canCreate" #actions>
-        <button type="button" class="plan-view__new" name="new-task" @click="openCreate('todo')">
+      <template v-if="canCreate || canEditSettings" #actions>
+        <label v-if="canEditSettings" class="plan-view__setting">
+          <input
+            type="checkbox"
+            role="switch"
+            name="tasks-resolve-log-groups"
+            :checked="resolveGroupsChecked"
+            :disabled="savingResolveGroups"
+            :aria-busy="savingResolveGroups ? 'true' : undefined"
+            @change="toggleResolveGroups(($event.target as HTMLInputElement).checked)"
+          />
+          <span>{{ t('plan.resolveGroupsSetting.label') }}</span>
+        </label>
+        <button v-if="canCreate" type="button" class="plan-view__new" name="new-task" @click="openCreate('todo')">
           <Plus :size="15" aria-hidden="true" />
           {{ t('plan.newTask') }}
         </button>
@@ -385,6 +432,24 @@ onUnmounted(() => {
 }
 .plan-view__add:hover {
   background: var(--surface);
+}
+.plan-view__setting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.plan-view__setting input {
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: inherit;
+}
+.plan-view__setting input:disabled {
+  cursor: progress;
 }
 .plan-view__new:focus-visible,
 .plan-view__add:focus-visible {

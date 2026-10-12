@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { listAllChannels } from '../api/channels'
 import { api } from '../api/client'
-import { createProject, type CreateProjectInput } from '../api/projects'
+import { createProject, updateProject, type CreateProjectInput, type UpdateProjectInput } from '../api/projects'
 import type { Paginated, Project } from '../api/types'
 import { useOrganizationStore } from './organization'
 
@@ -103,6 +103,12 @@ export const useProjectsStore = defineStore('projects', () => {
     return created
   }
 
+  async function update(projectId: number, input: UpdateProjectInput): Promise<Project> {
+    const updated = await updateProject(projectId, input)
+    projects.value = projects.value.map((project) => (project.id === projectId ? { ...project, ...updated } : project))
+    return updated
+  }
+
   async function fetchCounts(): Promise<void> {
     const current = ++countsGeneration
     const listGeneration = generation
@@ -142,5 +148,5 @@ export const useProjectsStore = defineStore('projects', () => {
     { immediate: true },
   )
 
-  return { projects, channelByProject, loading, failed, loaded, reload, refresh, projectIdOfChannel, removeProject, create, clear, refreshCounts }
+  return { projects, channelByProject, loading, failed, loaded, reload, refresh, projectIdOfChannel, removeProject, create, update, clear, refreshCounts }
 })
