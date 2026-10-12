@@ -204,7 +204,7 @@ async function submit(): Promise<void> {
   const local = validate()
   fieldErrors.value = local
   if (Object.keys(local).length > 0) return
-  const current = ++generation
+  const current = generation
   submitting.value = true
   try {
     const saved = await tasks.update(props.projectId, props.taskId, {
@@ -247,7 +247,7 @@ async function toggleTask(lineIndex: number): Promise<void> {
   const next = toggleTaskItem(snapshot.description, lineIndex)
   if (next === snapshot.description) return
   formError.value = null
-  const current = ++generation
+  const current = generation
   submitting.value = true
   try {
     const saved = await tasks.update(props.projectId, props.taskId, {
@@ -278,7 +278,7 @@ async function toggleTask(lineIndex: number): Promise<void> {
 
 async function confirmDelete(): Promise<void> {
   if (deleting.value || !canDelete.value) return
-  const current = ++generation
+  const current = generation
   deleting.value = true
   closed = true
   try {

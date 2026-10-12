@@ -482,6 +482,23 @@ describe('TaskAside', () => {
       await flushPromises()
     })
 
+    it('releases the saving state when a delete started meanwhile fails', async () => {
+      let resolveSave!: (task: Task) => void
+      vi.spyOn(tasksApi, 'updateTask').mockReturnValue(new Promise<Task>((r) => (resolveSave = r)))
+      vi.spyOn(tasksApi, 'deleteTask').mockRejectedValue(new ApiError(403, 'no', {}))
+      await mountAside()
+      q<HTMLFormElement>('form')!.dispatchEvent(new Event('submit', { cancelable: true }))
+      await flushPromises()
+      expect(q('[data-test="description-view"]')!.getAttribute('aria-busy')).toBe('true')
+      q<HTMLButtonElement>('[data-test="delete"]')!.click()
+      await flushPromises()
+      confirmBtn().click()
+      await flushPromises()
+      resolveSave({ ...base, updated_at: '2026-01-02T00:00:00.000000Z' })
+      await flushPromises()
+      expect(q('[data-test="description-view"]')!.getAttribute('aria-busy')).toBeNull()
+    })
+
     it('a 403 keeps the panel open and shows a toast', async () => {
       vi.spyOn(tasksApi, 'deleteTask').mockRejectedValue(new ApiError(403, 'no', {}))
       const error = vi.spyOn(toast, 'error')
