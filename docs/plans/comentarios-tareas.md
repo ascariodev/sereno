@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** pendiente · Fase actual: 1
+**Estado:** en curso · Fase actual: 1
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -74,6 +74,13 @@
 ## Decisiones
 - 2026-10-11 — Alcance: menciones, Markdown y adjuntos; sin editar ni borrar comentarios — elegido por el usuario.
 - 2026-10-11 — Adjuntos en tabla propia `task_comment_attachments` (no polimórfica), para conservar las FK compuestas por tenant.
+
+- 2026-10-12: el plan se ejecuta en el worktree `.claude/worktrees/comentarios-tareas` (rama `feat/comentarios-tareas`).
+  Verificación desde un worktree (los contenedores montan el checkout principal), tomada de `integracion-simple`:
+  web con `MSYS_NO_PATHCONV=1 docker run --rm -v "<worktree>/web:/app" -v workspace_web-node-modules:/app/node_modules -w /app node:24 npx vitest --run <spec>`;
+  API, desde la raíz del checkout principal (solo lectura), con
+  `WT="$(cd .claude/worktrees/comentarios-tareas/api && pwd -W)" && MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps -T -e APP_KEY="base64:$(head -c 32 /dev/urandom | base64)" -e DB_DATABASE=workspace_test -v "$WT:/var/www/api" api php artisan test --compact <archivos>`
+  (igual con `./vendor/bin/pint --test -q`). Nunca leer ni montar `.env` (L-52).
 
 ## Notas para la próxima sesión
 - Empezar después de terminar `texto-enriquecido`. El plan `notificaciones` escucha `TaskCommentCreated`.
