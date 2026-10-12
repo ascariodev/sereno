@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { statusFrom, updateLogGroupStatus } from '../api/logGroups'
 import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload, isTaskCreatedFromGroupPayload, isTaskGroupReopenedPayload } from '../api/types'
-import type { LogGroupStatus, Message } from '../api/types'
+import type { LogGroupOpenedPayload, LogGroupStatus, Message } from '../api/types'
 import { levelTone as toneOf } from '../api/logLevels'
 import { hourlyCountsOf, requestHourlyCounts } from '../composables/useHourlyCounts'
 import { setGroupStatus, statusOfGroup, taskOfGroup } from '../composables/useLogGroupStatuses'
@@ -21,7 +21,7 @@ const props = defineProps<{ message: Message; projectId?: number; threadable?: b
 const emit = defineEmits<{
   select: [groupId: number]
   openThread: [messageId: number]
-  createTask: [groupId: number, title: string]
+  createTask: [payload: LogGroupOpenedPayload]
 }>()
 
 const { t, te, locale } = useI18n()
@@ -150,7 +150,7 @@ const fullDate = computed(() => created.value.toLocaleString(locale.value, { dat
           type="button"
           name="create-task"
           class="system-notice__secondary"
-          @click="emit('createTask', opened.log_group_id, opened.title)"
+          @click="emit('createTask', opened)"
         >
           <ListPlus :size="15" :stroke-width="1.8" aria-hidden="true" />
           {{ t('logGroup.createTask') }}

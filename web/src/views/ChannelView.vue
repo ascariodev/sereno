@@ -7,8 +7,9 @@ import { ApiError } from '../api/client'
 import { getLogGroup } from '../api/logGroups'
 import { deleteMessage } from '../api/messages'
 import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '../api/types'
-import type { Channel, Message, MessageDeletedEvent, Task } from '../api/types'
+import type { Channel, LogGroupOpenedPayload, Message, MessageDeletedEvent, Task } from '../api/types'
 import { messageActionsKey } from '../components/messageActions'
+import { buildLogGroupTaskDescription } from '../components/logGroupTaskDescription'
 import { TASK_TITLE_MAX_LENGTH } from '../components/taskLimits'
 import TaskCreateDialog from '../components/TaskCreateDialog.vue'
 import { setGroupTask } from '../composables/useLogGroupStatuses'
@@ -27,7 +28,7 @@ import { useOrganizationStore } from '../stores/organization'
 import { useProjectsStore } from '../stores/projects'
 import { useThreadStore } from '../stores/thread'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const organization = useOrganizationStore()
@@ -67,7 +68,7 @@ provide(messageActionsKey, {
 })
 const panelProjectId = ref<number | null>(null)
 const createOpen = ref(false)
-const createTarget = ref<{ groupId: number; title: string } | null>(null)
+const createTarget = ref<{ groupId: number; title: string; description: string } | null>(null)
 const canCreateTask = computed(() => {
   const id = channel.value?.project_id
   const found = projects.projects.find((item) => item.id === id)
@@ -127,8 +128,12 @@ function selectGroup(id: number | null, replace = false): void {
 }
 
 // The dialog seeds its form when it opens, so it must already have the new props (title, group) by then.
-async function startCreateTask(id: number, title: string): Promise<void> {
-  createTarget.value = { groupId: id, title: [...title].slice(0, TASK_TITLE_MAX_LENGTH).join('') }
+async function startCreateTask(payload: LogGroupOpenedPayload): Promise<void> {
+  createTarget.value = {
+    groupId: payload.log_group_id,
+    title: [...payload.title].slice(0, TASK_TITLE_MAX_LENGTH).join(''),
+    description: buildLogGroupTaskDescription({ level: payload.level, events_count: payload.events_count, message: payload.title }, t, locale.value),
+  }
   await nextTick()
   createOpen.value = true
 }
@@ -452,6 +457,7 @@ defineExpose({ openThread })
       v-model:open="createOpen"
       :project-id="channel.project_id"
       :initial-title="createTarget?.title ?? ''"
+      :initial-description="createTarget?.description ?? ''"
       :log-group-id="createTarget?.groupId ?? null"
       @created="onTaskCreated"
       @group-taken="onGroupTaken"

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { Message } from '../api/types'
+import type { LogGroupOpenedPayload, Message } from '../api/types'
 import MessageItem from './MessageItem.vue'
 import SystemNotice from './SystemNotice.vue'
 
 const props = defineProps<{ messages: Message[]; hasMore: boolean; loadingMore: boolean; projectId?: number; ownUserId?: number; emptyLabel?: string; threadable?: boolean; canCreateTask?: boolean; focusId?: number | null }>()
-defineEmits<{ loadOlder: []; select: [groupId: number]; openThread: [messageId: number]; createTask: [groupId: number, title: string] }>()
+defineEmits<{ loadOlder: []; select: [groupId: number]; openThread: [messageId: number]; createTask: [payload: LogGroupOpenedPayload] }>()
 
 const { t, locale } = useI18n()
 
@@ -162,7 +162,7 @@ const rows = computed<Row[]>(() => {
             :project-id="projectId"
             :threadable="threadable"
             :can-create-task="canCreateTask"
-            @create-task="(id: number, title: string) => $emit('createTask', id, title)"
+            @create-task="(payload: LogGroupOpenedPayload) => $emit('createTask', payload)"
             @select="$emit('select', $event)"
             @open-thread="$emit('openThread', $event)"
           />

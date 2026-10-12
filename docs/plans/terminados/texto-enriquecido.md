@@ -64,7 +64,7 @@
 ## Mejoras propuestas
 - [x] M-1: Casillas de lista de tareas (`- [ ]`) que se marcan desde la vista renderizada.
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-2: Prellenar la descripción de la tarea creada desde un aviso de log en Markdown (nivel, conteo, bloque de código). Hoy nada arma una descripción: `TaskCreateDialog` abre vacío y solo recibe `initialTitle` y `logGroupId`. Es solo web: helper `buildLogGroupDescription(group)` (valla más larga que la mayor racha de backticks del mensaje, tope de 10000 con `charCount`), prop `initialDescription`, `LogGroupAside` y `ChannelView` (que no tiene el grupo a mano: decidir si pide `getLogGroup`), i18n y specs.
+- [x] M-2: Prellenar la descripción de la tarea creada desde un aviso de log en Markdown (nivel, conteo, bloque de código). Hoy nada arma una descripción: `TaskCreateDialog` abre vacío y solo recibe `initialTitle` y `logGroupId`. Es solo web: helper `buildLogGroupDescription(group)` (valla más larga que la mayor racha de backticks del mensaje, tope de 10000 con `charCount`), prop `initialDescription`, `LogGroupAside` y `ChannelView` (que no tiene el grupo a mano: decidir si pide `getLogGroup`), i18n y specs.
       Complejidad: alta · Archivos: 6+ · Riesgo: ninguno → convertir en plan (`/planificar`)
 - [x] M-3: Aislar el hook de DOMPurify (instancia propia `DOMPurify(window)` o `addHook`/`removeHook` alrededor de `sanitize`) para que no afecte a otros usos futuros.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
