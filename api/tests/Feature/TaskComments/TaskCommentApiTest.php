@@ -53,6 +53,12 @@ it('creates a comment authored by the caller', function () {
     expect(TaskComment::query()->where('task_id', $this->task->id)->count())->toBe(1);
 });
 
+it('returns a null edited_at for a new comment', function () {
+    commentsCall($this->member, $this->organization, 'POST', $this->project, $this->task, ['body' => 'Hello'])
+        ->assertCreated()
+        ->assertJsonPath('data.edited_at', null);
+});
+
 it('lists comments newest first', function () {
     $first = TaskComment::factory()->forTask($this->task)->create(['user_id' => $this->member->id]);
     $second = TaskComment::factory()->forTask($this->task)->create(['user_id' => $this->member->id]);

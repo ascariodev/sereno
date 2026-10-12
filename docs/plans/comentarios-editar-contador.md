@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 
 
 ## Contexto mínimo
@@ -52,7 +52,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/stores/tasks.ts`, `web/src/views/PlanView.vue`.
 - **Terminado cuando:** specs de echo, store de tareas y `PlanView` cubren que un comentario nuevo actualiza la tarjeta.
 
-### [ ] Fase 5 — `edited_at` en comentarios
+### [x] Fase 5 — `edited_at` en comentarios
 - **Alcance:** migración con `task_comments.edited_at` (nullable, UTC), cast en el modelo, `edited_at` en
   `TaskCommentResource`; `database.md` actualizado (y corregida la referencia a `TaskComment::mentions()`, que no existe).
 - **Archivos:** migración nueva, `api/app/Models/TaskComment.php`, `api/app/Http/Resources/TaskCommentResource.php`,
@@ -130,6 +130,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - Fase 2 hecha: payload de `task.comment.created` = `{comment, comments_count}` (hermanos)...
 - Fase 3 hecha: `Task.comments_count?` opcional en el tipo; TaskCard lo muestra si > 0.
 - Fase 4 hecha: `onTaskCommentCreated(comment, commentsCount?)`; `tasks.setCommentsCount`. Contador en vivo completo (fases 1-4).
+- Fase 5 hecha: `task_comments.edited_at` + recurso. Tras la migración, correr `php artisan migrate` en la base de desarrollo.
 
 ## Mejoras propuestas
 - [ ] M-1: `docs/lecciones.md` tiene L-37 a L-40 repetidas (líneas ~50-57); quitar el duplicado. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
