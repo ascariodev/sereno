@@ -14,7 +14,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 /**
  * Holds the serialized comment instead of the model: the queue worker has no active organization. Loads what
- * TaskCommentController::index loads (L-37).
+ * TaskCommentController::index loads (L-66).
  */
 class TaskCommentCreated implements ShouldBroadcast, ShouldDispatchAfterCommit
 {

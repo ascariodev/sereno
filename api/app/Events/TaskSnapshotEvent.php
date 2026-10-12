@@ -13,7 +13,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 /**
  * Holds the serialized task instead of the model: the queue worker has no active organization. Loads what
- * TaskController::index loads (L-37); the caller sets `project` on the task so key() needs no query.
+ * TaskController::index loads (L-66); the caller sets `project` on the task so key() needs no query.
  */
 abstract class TaskSnapshotEvent implements ShouldBroadcast, ShouldDispatchAfterCommit
 {

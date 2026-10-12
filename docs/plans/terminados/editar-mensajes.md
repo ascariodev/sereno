@@ -132,7 +132,7 @@ para todos, los contadores de hilo y la bandeja de menciones coherentes. Sale de
 
 ### [x] Fase 18b — Abrir el editor desde el mensaje (web)
 - `messageActions.ts` expone el id en edición y cerrar; `MessageItem` cambia el cuerpo por `MessageEditor` en el
-  mensaje en edición (canal e hilo); `ChannelView` provee el estado y lo limpia en `reload()` (L-40). Specs de
+  mensaje en edición (canal e hilo); `ChannelView` provee el estado y lo limpia en `reload()` (L-69). Specs de
   `MessageItem`, `ChannelView` (con cambio de canal con el editor abierto y un caso en el hilo).
 
 ### [x] Fase 19 — Menciones quitadas en la bandeja (web)

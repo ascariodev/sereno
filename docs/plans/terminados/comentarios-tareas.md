@@ -14,7 +14,7 @@
   `message_attachments`, `api/config/chat.php`, comando `chat:prune-attachments`.
 - Web: `web/src/realtime/echo.ts` (`subscribeToProject`), `useMentionInput.ts`, `useMentionKeyboard.ts`,
   `useAttachmentUploads.ts`, `MessageAttachments.vue`, `MessageBody.vue` (chip de mención).
-- Lecciones: L-04, L-09, L-10, L-14, L-28, L-37 (resource igual en index y en eventos), L-41/L-49 (suite completa al tocar accesos), L-50.
+- Lecciones: L-04, L-09, L-10, L-14, L-28, L-66 (resource igual en index y en eventos), L-41/L-49 (suite completa al tocar accesos), L-50.
 
 ## Fases
 
@@ -32,7 +32,7 @@
 - **Terminado cuando:** tests de acceso (otro proyecto, otra organización, proyecto privado), validación y paginación.
 
 ### [x] Fase 3 — Evento TaskCommentCreated
-- Broadcast `.task.comment.created` al canal del proyecto con el resource cargado igual que en index (L-37). 2 archivos.
+- Broadcast `.task.comment.created` al canal del proyecto con el resource cargado igual que en index (L-66). 2 archivos.
 
 ### [x] Fase 4 — Extraer la resolución de menciones [riesgo]
 - Sacar de `MessageMentions::target` la parte que resuelve `<@id>` a miembros con acceso al proyecto, para reusarla sin
@@ -87,13 +87,13 @@
   `body` en Fillable y `BODY_MAX_LENGTH = 10000` para el FormRequest de la fase 2.
 - 2026-10-12 (fase 2): `GET` ordena por `id` desc con `cursorPaginate` (30 por defecto, máx. 100; cursor inválido da 422).
   `TaskCommentResource`: `id`, `task_id`, `body`, `user {id, name}`, `created_at`. `TaskCommentController::RELATIONS =
-  ['user:id,name']`, que el evento de la fase 3 debe cargar igual (L-37). Los FormRequest comprueban que la tarea sea
+  ['user:id,name']`, que el evento de la fase 3 debe cargar igual (L-66). Los FormRequest comprueban que la tarea sea
   del proyecto (404) y luego autorizan, antes de validar. `TaskCommentPolicy` (`viewAny`, `view`, `create`) delega en
   `TaskPolicy::view`. Se puede comentar en proyectos archivados (el revisor no lo ve un riesgo).
 - 2026-10-12 (fase 3): `TaskCommentCreated(TaskComment $comment, int $projectId)` es `ShouldBroadcast` +
   `ShouldDispatchAfterCommit`, independiente de `TaskSnapshotEvent`; payload `{comment: {...}}` serializado en el
   constructor con `TaskCommentResource`. Las fases 5 y 8 deben cargar sus relaciones (menciones, adjuntos) en
-  `TaskCommentController::RELATIONS` (L-37). La web (fase 10) escucha `.task.comment.created`.
+  `TaskCommentController::RELATIONS` (L-66). La web (fase 10) escucha `.task.comment.created`.
 - 2026-10-12 (fase 4): `App\Support\MentionTargets::resolve(?string $body, int $authorId, int $organizationId,
   ?int $projectId, int $max): Collection<User>` (estática); `MessageMentions::target` delega en ella con
   `chat.mentions.max_per_message`. La fase 5 la llama con el `project_id` de la tarea y decide el `$max` de los
