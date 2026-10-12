@@ -3,7 +3,7 @@
 **Objetivo:** `api/tests/Feature` repartido en `Core/`, `Log/`, `Chat/` y `Plan/`, sin perder ni duplicar ningún test, y
 la convención documentada para que los tests nuevos caigan en su carpeta. Origen: M-6 de
 `docs/plans/terminados/comentarios-tareas.md` (alejarse del truncado de descubrimiento de L-64).
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 
 
 ## Contexto mínimo
@@ -50,7 +50,7 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 - **Archivos:** solo tests movidos.
 - **Terminado cuando:** igual que la fase 1, con `Core/`, y `ls tests/Feature/*.php` vacío.
 
-### [ ] Fase 5 — Documentar la convención
+### [x] Fase 5 — Documentar la convención
 - **Alcance:** `.claude/rules/tests-api.md` explica las carpetas y la regla de ubicación; el ejemplo de `CLAUDE.md`
   apunta a `tests/Feature/Core/AuthTest.php`; L-64 pasa a "aplicada en: tests-por-modulo"; `docs/plans/notificaciones.md`
   (activo) indica que sus tests de menciones van en `tests/Feature/Chat/`.
@@ -70,6 +70,7 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 - Fase 2 hecha (16 a `Log/`, cuenta idéntica). Siguiente: Chat (28).
 - Fase 3 hecha (28 a `Chat/`, cuenta idéntica). Siguiente: Core (todo lo suelto restante).
 - Fase 4 hecha (24 a `Core/`, `Feature/` sin tests sueltos, cuenta idéntica). Siguiente: documentar (fase 5).
+- Fase 5 hecha: convención en `.claude/rules/tests-api.md`, ejemplo de `CLAUDE.md`, L-64 aplicada y nota en `notificaciones.md`. Plan terminado.
   `CLAUDE.md`: puede chocar con la fase 5 al mergear.
 
 ## Mejoras propuestas
