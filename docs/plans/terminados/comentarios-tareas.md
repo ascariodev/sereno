@@ -165,9 +165,12 @@
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
-      Complejidad: media · Archivos: 5 · Riesgo: contrato público → opus
+      Complejidad: alta · Archivos: >5 · Riesgo: contrato público → plan propio (junto con M-2; el borrado afecta al contador)
 - [ ] M-2: Contador de comentarios en `TaskCard`.
-      Complejidad: baja · Archivos: 3 · Riesgo: contrato público → sonnet
+      Complejidad: alta · Archivos: ~10 · Riesgo: contrato público → plan propio. Hallazgos: `unassignUser` corre sin
+      organización activa, así que el `withCount` debe quitar el scope de `TaskComment` y declararse en un solo lugar;
+      `TaskCommentCreated` llega también a quien envía, por lo que el evento debería traer `comments_count` contado tras
+      el commit y la web aplicar max(actual, recibido). División propuesta: M-2a API (5 archivos), M-2b web (4 + i18n).
 - [x] M-3: `database.md`: referencia cruzada al nuevo único de `tasks` en su entrada y revisar la línea "Futuro: policy,
       API y eventos de tareas", desfasada. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [x] M-4: Test directo de `TaskCommentPolicy::view` (hoy sin ruta que lo use) cuando exista editar o borrar.
