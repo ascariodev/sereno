@@ -386,6 +386,7 @@ describe('PlanView', () => {
       vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
         if (path === '/api/projects') return { data: [{ ...project(5, 'POSVE'), archived_at: '2026-01-01' }], meta: { last_page: 1 } } as never
         if (path === '/api/channels') return { data: [] } as never
+        if (path.endsWith('/comments')) return { data: [], meta: { next_cursor: null } } as never
         return { data: [task(1)] } as never
       })
       const wrapper = await mountView('/projects/5/plan?task=1')

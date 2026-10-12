@@ -1,5 +1,5 @@
 import { computed, onScopeDispose, ref, watch } from 'vue'
-import { uploadAttachment } from '../api/attachments'
+import { uploadAttachment, uploadAttachmentTo } from '../api/attachments'
 import { ApiError } from '../api/client'
 import type { MessageAttachment } from '../api/types'
 import { ATTACHMENT_MAX_PER_MESSAGE, ATTACHMENT_MAX_SIZE_BYTES } from '../config'
@@ -24,8 +24,12 @@ export interface UploadItem {
 const t = (key: string, params: Record<string, unknown> = {}): string =>
   i18n.global.t(key, params) as string
 
+/**
+ * `target` is the chat channel id or, for other owners (task comments), the upload endpoint path.
+ * Changing it drops every item and discards uploads still in flight.
+ */
 export function useAttachmentUploads(
-  channelId: () => number,
+  target: () => number | string,
   options: { maxFiles?: number; maxBytes?: number } = {},
 ) {
   const maxFiles = options.maxFiles ?? ATTACHMENT_MAX_PER_MESSAGE
@@ -89,7 +93,12 @@ export function useAttachmentUploads(
     const controller = new AbortController()
     controllers.set(key, controller)
     try {
-      const attachment = await uploadAttachment(channelId(), file, { signal: controller.signal })
+      const destination = target()
+      const init = { signal: controller.signal }
+      const attachment =
+        typeof destination === 'string'
+          ? await uploadAttachmentTo(destination, file, init)
+          : await uploadAttachment(destination, file, init)
       if (round !== generation || controller.signal.aborted) return
       const item = find(key)
       if (!item) return
@@ -165,7 +174,7 @@ export function useAttachmentUploads(
     items.value = []
   }
 
-  watch(channelId, reset, { flush: 'sync' })
+  watch(target, reset, { flush: 'sync' })
   onScopeDispose(reset)
 
   return {

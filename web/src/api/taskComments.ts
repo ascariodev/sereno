@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { CursorPage, DataEnvelope, TaskComment } from './types'
+import type { AttachmentUrl, CursorPage, DataEnvelope, TaskComment } from './types'
 
 const base = (projectId: number, taskId: number) => `/api/projects/${projectId}/tasks/${taskId}/comments`
 
@@ -26,5 +26,15 @@ export async function createTaskComment(
     body,
     ...(attachmentIds.length > 0 ? { attachment_ids: attachmentIds } : {}),
   })
+  return response.data
+}
+
+/** Upload endpoint for comment attachments of a task, for `useAttachmentUploads`. */
+export function taskAttachmentsPath(projectId: number, taskId: number): string {
+  return `/api/projects/${projectId}/tasks/${taskId}/attachments`
+}
+
+export async function getTaskAttachmentUrl(attachmentId: number): Promise<AttachmentUrl> {
+  const response = await api.get<DataEnvelope<AttachmentUrl>>(`/api/task-attachments/${attachmentId}/url`)
   return response.data
 }

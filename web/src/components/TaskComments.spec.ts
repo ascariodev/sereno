@@ -207,4 +207,190 @@ describe('TaskComments', () => {
     expect(useTaskCommentsStore().taskId).toBeNull()
     expect(useTaskCommentsStore().comments).toEqual([])
   })
+
+  describe('attachments', () => {
+    const uploadPath = '/api/projects/5/tasks/9/attachments'
+    const uploaded = (id: number, name = 'a.txt') => ({
+      data: { id, original_name: name, mime: 'text/plain', size: 3, created_at: '2026-01-01T00:00:00Z', url: 'x' },
+    })
+    const file = (name: string, size = 3) => new File([new Uint8Array(size)], name, { type: 'text/plain' })
+
+    async function pick(wrapper: ReturnType<typeof mountComments>, files: File[]) {
+      const input = wrapper.get('[data-test="comment-picker"]')
+      Object.defineProperty(input.element, 'files', { value: files, configurable: true })
+      await input.trigger('change')
+      await flushPromises()
+    }
+
+    it('opens the picker from the attach button and uploads to the task endpoint', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([]))
+      const post = vi.spyOn(api, 'post').mockResolvedValue(uploaded(1) as never)
+      const wrapper = mountComments()
+      await flushPromises()
+      const attach = wrapper.get('[data-test="comment-attach"]')
+      expect(attach.attributes('aria-label')).toBe('Attach')
+      const click = vi.spyOn(wrapper.get('[data-test="comment-picker"]').element as HTMLInputElement, 'click')
+      await attach.trigger('click')
+      expect(click).toHaveBeenCalled()
+      await pick(wrapper, [file('a.txt')])
+      expect(post).toHaveBeenCalledWith(uploadPath, expect.any(FormData), expect.anything())
+      expect(wrapper.get('[data-test="comment-file"]').text()).toContain('a.txt')
+    })
+
+    it('shows the upload progress and blocks sending until it finishes', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([]))
+      const upload = deferred<never>()
+      vi.spyOn(api, 'post').mockReturnValue(upload.promise)
+      const wrapper = mountComments()
+      await flushPromises()
+      await write(wrapper, 'Hello')
+      await pick(wrapper, [file('a.txt')])
+      expect(wrapper.get('[data-test="comment-file"]').text()).toContain('Uploading...')
+      expect(wrapper.get('[data-test="comment-upload-status"]').text()).toBe('Uploading a.txt')
+      expect(wrapper.get<HTMLButtonElement>('[data-test="comment-send"]').element.disabled).toBe(true)
+      upload.resolve(uploaded(1) as never)
+      await flushPromises()
+      expect(wrapper.get<HTMLButtonElement>('[data-test="comment-send"]').element.disabled).toBe(false)
+    })
+
+    it('sends the attachment ids and clears the sent and failed files', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([]))
+      const post = vi.spyOn(api, 'post').mockImplementation((url: string) => {
+        if (url !== uploadPath) return Promise.resolve({ data: comment(7, { body: 'Hello' }) }) as never
+        return Promise.resolve(uploaded(4)) as never
+      })
+      const wrapper = mountComments()
+      await flushPromises()
+      await pick(wrapper, [file('a.txt'), file('big.bin', 999 * 1024 * 1024)])
+      expect(wrapper.findAll('[data-test="comment-file"]')).toHaveLength(2)
+      await write(wrapper, 'Hello')
+      await wrapper.get('form').trigger('submit')
+      await flushPromises()
+      expect(post).toHaveBeenLastCalledWith('/api/projects/5/tasks/9/comments', { body: 'Hello', attachment_ids: [4] })
+      expect(wrapper.findAll('[data-test="comment-file"]')).toHaveLength(0)
+    })
+
+    it('keeps the files when sending fails', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([]))
+      vi.spyOn(api, 'post').mockImplementation(
+        (url: string) => (url === uploadPath ? Promise.resolve(uploaded(4)) : Promise.reject(new ApiError(500, 'x'))) as never,
+      )
+      const wrapper = mountComments()
+      await flushPromises()
+      await pick(wrapper, [file('a.txt')])
+      await write(wrapper, 'Hello')
+      await wrapper.get('form').trigger('submit')
+      await flushPromises()
+      expect(wrapper.findAll('[data-test="comment-file"]')).toHaveLength(1)
+    })
+
+    it('shows the error of each file and removes it', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([]))
+      vi.spyOn(api, 'post').mockRejectedValue(new ApiError(422, 'x', { file: ['The file is empty.'] }))
+      const wrapper = mountComments()
+      await flushPromises()
+      await pick(wrapper, [file('a.txt')])
+      expect(wrapper.get('[data-test="comment-file-error"]').text()).toBe('The file is empty.')
+      expect(wrapper.find('[data-test="comment-file-retry"]').exists()).toBe(false)
+      expect(wrapper.get('[data-test="comment-upload-status"]').text()).toBe('Could not upload a.txt: The file is empty.')
+      const remove = wrapper.get('[data-test="comment-file-remove"]')
+      expect(remove.attributes('aria-label')).toBe('Remove a.txt')
+      await remove.trigger('click')
+      expect(wrapper.find('[data-test="comment-file"]').exists()).toBe(false)
+    })
+
+    it('offers retry on a network failure', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([]))
+      const post = vi
+        .spyOn(api, 'post')
+        .mockRejectedValueOnce(new Error('net'))
+        .mockResolvedValueOnce(uploaded(4) as never)
+      const wrapper = mountComments()
+      await flushPromises()
+      await pick(wrapper, [file('a.txt')])
+      const retry = wrapper.get('[data-test="comment-file-retry"]')
+      expect(retry.attributes('aria-describedby')).toBe(wrapper.get('[data-test="comment-file-error"]').attributes('id'))
+      await retry.trigger('click')
+      await flushPromises()
+      expect(post).toHaveBeenCalledTimes(2)
+      expect(wrapper.find('[data-test="comment-file-error"]').exists()).toBe(false)
+    })
+
+    it('cancels an upload in progress', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([]))
+      let signal: AbortSignal | undefined
+      vi.spyOn(api, 'post').mockImplementation((_url: string, _body?: unknown, init?: { signal?: AbortSignal }) => {
+        signal = init?.signal
+        return new Promise(() => {}) as never
+      })
+      const wrapper = mountComments()
+      await flushPromises()
+      await pick(wrapper, [file('a.txt')])
+      const cancel = wrapper.get('[data-test="comment-file-remove"]')
+      expect(cancel.attributes('aria-label')).toBe('Cancel the upload of a.txt')
+      await cancel.trigger('click')
+      expect(signal?.aborted).toBe(true)
+      expect(wrapper.find('[data-test="comment-file"]').exists()).toBe(false)
+    })
+
+    it('adds pasted and dropped files but leaves pasted text alone', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([]))
+      const post = vi.spyOn(api, 'post').mockResolvedValue(uploaded(1) as never)
+      const wrapper = mountComments()
+      await flushPromises()
+      const textPaste = new Event('paste', { cancelable: true, bubbles: true }) as Event & { clipboardData: unknown }
+      textPaste.clipboardData = { files: [] }
+      wrapper.get('textarea').element.dispatchEvent(textPaste)
+      expect(textPaste.defaultPrevented).toBe(false)
+      const filePaste = new Event('paste', { cancelable: true, bubbles: true }) as Event & { clipboardData: unknown }
+      filePaste.clipboardData = { files: [file('p.png')] }
+      wrapper.get('textarea').element.dispatchEvent(filePaste)
+      expect(filePaste.defaultPrevented).toBe(true)
+      const drop = new Event('drop', { cancelable: true, bubbles: true }) as Event & { dataTransfer: unknown }
+      drop.dataTransfer = { types: ['Files'], files: [file('d.txt')] }
+      wrapper.get('[data-test="comment-drop"]').element.dispatchEvent(drop)
+      expect(drop.defaultPrevented).toBe(true)
+      await flushPromises()
+      expect(post).toHaveBeenCalledTimes(2)
+      const names = wrapper.findAll('[data-test="comment-file"]').map((item) => item.text())
+      expect(names[0]).toContain('p.png')
+      expect(names[1]).toContain('d.txt')
+    })
+
+    it('drops the files and ignores an upload in flight when the task changes', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue(page([]))
+      const upload = deferred<never>()
+      const post = vi.spyOn(api, 'post').mockReturnValueOnce(upload.promise)
+      const wrapper = mountComments()
+      await flushPromises()
+      await pick(wrapper, [file('a.txt')])
+      await wrapper.setProps({ taskId: 10 })
+      upload.resolve(uploaded(4) as never)
+      await flushPromises()
+      expect(wrapper.find('[data-test="comment-file"]').exists()).toBe(false)
+      post.mockResolvedValue({ data: comment(8, { task_id: 10 }) } as never)
+      await write(wrapper, 'Hello')
+      await wrapper.get('form').trigger('submit')
+      await flushPromises()
+      expect(post).toHaveBeenLastCalledWith('/api/projects/5/tasks/10/comments', { body: 'Hello' })
+    })
+
+    it('shows the attachments of each comment and renews their url on the task endpoint', async () => {
+      const image = { id: 3, original_name: 'foto.png', mime: 'image/png', size: 10, created_at: '', url: 'http://api/task-attachments/3?sig=old' }
+      const get = vi.spyOn(api, 'get').mockImplementation(
+        (url: string) =>
+          (url === '/api/task-attachments/3/url'
+            ? Promise.resolve({ data: { url: 'http://api/task-attachments/3?sig=new', expires_at: '' } })
+            : Promise.resolve(page([comment(1, { attachments: [image] })]))) as never,
+      )
+      const wrapper = mountComments()
+      await flushPromises()
+      const img = wrapper.get('[data-test="comment"] img')
+      expect(img.attributes('src')).toBe(image.url)
+      await img.trigger('error')
+      await flushPromises()
+      expect(get).toHaveBeenCalledWith('/api/task-attachments/3/url')
+      expect(wrapper.get('[data-test="comment"] img').attributes('src')).toBe('http://api/task-attachments/3?sig=new')
+    })
+  })
 })

@@ -1,7 +1,7 @@
 # Plan: comentarios-tareas
 
 **Objetivo:** las tareas tienen comentarios en Markdown con menciones `@` y adjuntos, en vivo por Reverb.
-**Estado:** en curso · Fase actual: 14
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -68,7 +68,7 @@
 ### [x] Fase 13 — Comentarios en el panel de la tarea (web)
 - `TaskComments.vue` (lista, cargar anteriores, compositor con `MarkdownEditor`) dentro de `TaskAside`. 2 archivos.
 
-### [ ] Fase 14 — Adjuntos en el compositor de comentarios (web) [riesgo]
+### [x] Fase 14 — Adjuntos en el compositor de comentarios (web) [riesgo]
 - `useAttachmentUploads` con URL de subida configurable y `MessageAttachments` para mostrarlos. 3 archivos.
 
 ## Decisiones
@@ -152,9 +152,16 @@
   un `watch` sobre `"projectId:taskId"` (L-43), limpia borrador y error al cambiar y `clear()` al desmontar. El
   compositor no se bloquea en proyectos archivados. Fecha relativa con `Intl.RelativeTimeFormat`, como `ThreadSummary`.
   Visto en el navegador (endpoints simulados): la lista de sugerencias cabe bajo el textarea del panel.
+- 2026-10-12 (fase 14): `useAttachmentUploads(target: () => number | string, ...)`: un número sube al canal como antes;
+  un texto es la ruta de subida (`uploadAttachmentTo` en `api/attachments.ts`); al cambiar el target se vacía la lista y
+  se descartan las subidas en vuelo (L-10). `MessageAttachments` tiene la prop opcional `renewUrl`; sin ella usa
+  `getAttachmentUrl`. `api/taskComments.ts` suma `taskAttachmentsPath` y `getTaskAttachmentUrl`. `TaskComments` repite
+  el patrón de `MessageComposer` (botón, pegar, arrastrar, estado por archivo, `role="status"`) y envía `attachment_ids`.
+- 2026-10-12: plan terminado. Suite API 1137 tests sin fallos (list-tests 1140), Pint limpio; suite web 1649 tests con
+  solo los 6 fallos previos de AppLayout.spec, vue-tsc limpio.
 
 ## Notas para la próxima sesión
-- Fases 1 a 13 hechas (API completa; web hasta el panel de comentarios). Sigue la fase 14 [riesgo]. Helpers de verificación del coordinador en el scratchpad (`apitest.sh`, `webtest.sh`).
+- Plan terminado. Pendientes solo las mejoras propuestas. El plan `notificaciones` escucha `TaskCommentCreated`.
 
 ## Mejoras propuestas
 - [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
@@ -193,3 +200,7 @@
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
 - [ ] M-17: Llevar a la vista el comentario recién enviado (scroll) en `TaskComments`.
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
+- [ ] M-18: Texto propio para el exceso de adjuntos en comentarios (`attachments.tooMany` dice "por mensaje").
+      Complejidad: baja · Archivos: 3 · sin riesgo → sonnet
+- [ ] M-19: Actualizar en `useAttachmentUploads.ts` los comentarios "channel changes" y la rama `error.errors.channel`,
+      que ahora sirven a dos destinos. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet

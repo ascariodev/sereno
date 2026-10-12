@@ -202,4 +202,27 @@ describe('useAttachmentUploads', () => {
     wrapper.unmount()
     expect(pending[0]!.signal?.aborted).toBe(true)
   })
+  it('uploads to an endpoint path, resets when it changes and ignores the late response', async () => {
+    const path = ref('/api/projects/1/tasks/2/attachments')
+    const resolvers: ((value: MessageAttachment) => void)[] = []
+    const upload = vi
+      .spyOn(attachmentsApi, 'uploadAttachmentTo')
+      .mockImplementation(() => new Promise((resolve) => resolvers.push(resolve)))
+    wrapper = mount(
+      defineComponent({
+        setup() {
+          state = useAttachmentUploads(() => path.value)
+          return () => h('div')
+        },
+      }),
+    )
+    state.add([file('a')])
+    expect(upload).toHaveBeenCalledWith('/api/projects/1/tasks/2/attachments', expect.any(File), expect.anything())
+    expect(attachmentsApi.uploadAttachment).not.toHaveBeenCalled()
+    path.value = '/api/projects/1/tasks/3/attachments'
+    resolvers[0]!(attachment(1))
+    await flushPromises()
+    expect(state.items.value).toEqual([])
+    expect(state.attachmentIds.value).toEqual([])
+  })
 })

@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { Paperclip, X } from '@lucide/vue'
+import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
+import { getTaskAttachmentUrl, taskAttachmentsPath } from '../api/taskComments'
+import { useAttachmentUploads } from '../composables/useAttachmentUploads'
 import { useSharedNow } from '../composables/useSharedNow'
+import { formatFileSize } from '../formatFileSize'
 import { useAuthStore } from '../stores/auth'
 import { useMemberDirectoryStore } from '../stores/memberDirectory'
 import { useTaskCommentsStore } from '../stores/taskComments'
 import MarkdownContent from './MarkdownContent.vue'
 import MarkdownEditor from './MarkdownEditor.vue'
+import MessageAttachments from './MessageAttachments.vue'
 import { charCount, TASK_DESCRIPTION_MAX_LENGTH } from './taskLimits'
 import AppAvatar from './ui/AppAvatar.vue'
 import AppFormError from './ui/AppFormError.vue'
@@ -23,6 +28,10 @@ const now = useSharedNow()
 const draft = ref('')
 const sending = ref(false)
 const formError = ref<string | null>(null)
+const picker = ref<HTMLInputElement | null>(null)
+const fileIdPrefix = useId()
+// Keyed by the upload path: changing task drops the items and discards uploads still in flight (L-10).
+const uploads = useAttachmentUploads(() => taskAttachmentsPath(props.projectId, props.taskId))
 let sendToken = 0
 
 watch(
@@ -49,7 +58,57 @@ const mentionOptions = computed(() => ({
 }))
 
 const empty = computed(() => !store.loading && store.error === null && store.comments.length === 0)
-const canSend = computed(() => !sending.value && draft.value.trim() !== '' && charCount(draft.value) <= TASK_DESCRIPTION_MAX_LENGTH)
+const canSend = computed(
+  () =>
+    !sending.value &&
+    !uploads.busy.value &&
+    draft.value.trim() !== '' &&
+    charCount(draft.value) <= TASK_DESCRIPTION_MAX_LENGTH,
+)
+
+const uploadStatus = computed(() => {
+  const items = uploads.items.value
+  const uploading = items.filter((item) => item.status === 'uploading').at(-1)
+  if (uploading) return t('attachments.uploadingFile', { name: uploading.name })
+  const failed = items.filter((item) => item.status === 'error').at(-1)
+  return failed ? t('attachments.failedFile', { name: failed.name, error: failed.error ?? '' }) : ''
+})
+
+function fileErrorId(key: number): string {
+  return `${fileIdPrefix}-file-error-${key}`
+}
+
+function pickFiles(): void {
+  picker.value?.click()
+}
+
+function onPicked(event: Event): void {
+  const input = event.target as HTMLInputElement
+  const chosen = Array.from(input.files ?? [])
+  input.value = ''
+  uploads.add(chosen)
+}
+
+function onPaste(event: ClipboardEvent): void {
+  const pasted = Array.from(event.clipboardData?.files ?? [])
+  if (pasted.length === 0) return
+  event.preventDefault()
+  uploads.add(pasted)
+}
+
+function hasFiles(event: DragEvent): boolean {
+  return Array.from(event.dataTransfer?.types ?? []).includes('Files')
+}
+
+function onDragOver(event: DragEvent): void {
+  if (hasFiles(event)) event.preventDefault()
+}
+
+function onDrop(event: DragEvent): void {
+  if (!hasFiles(event)) return
+  event.preventDefault()
+  uploads.add(Array.from(event.dataTransfer?.files ?? []))
+}
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['day', 86_400],
@@ -80,9 +139,14 @@ async function submit(): Promise<void> {
   const token = ++sendToken
   formError.value = null
   sending.value = true
+  const sentIds = [...uploads.attachmentIds.value]
   try {
-    await store.send(draft.value.trim())
-    if (token === sendToken) draft.value = ''
+    await store.send(draft.value.trim(), sentIds)
+    if (token !== sendToken) return
+    draft.value = ''
+    for (const item of [...uploads.items.value]) {
+      if (item.status === 'error' || (item.attachment && sentIds.includes(item.attachment.id))) uploads.remove(item.key)
+    }
   } catch (error) {
     if (token !== sendToken) return
     if (!(error instanceof ApiError)) throw error
@@ -129,25 +193,93 @@ async function submit(): Promise<void> {
             <time :datetime="comment.created_at" :title="fullDate(comment.created_at)">{{ when(comment.created_at) }}</time>
           </p>
           <MarkdownContent :source="comment.body" :mentions="comment.mentions" :own-user-id="auth.user?.id" />
+          <MessageAttachments :attachments="comment.attachments" :renew-url="getTaskAttachmentUrl" />
         </div>
       </li>
     </ul>
 
     <form class="task-comments__form" novalidate @submit.prevent="submit">
       <label class="task-comments__label" for="task-comment-body">{{ t('taskComments.newLabel') }}</label>
-      <MarkdownEditor
-        id="task-comment-body"
-        v-model="draft"
-        name="comment"
-        :rows="3"
-        :max-length="TASK_DESCRIPTION_MAX_LENGTH"
-        :readonly="sending"
-        :mentions="mentionOptions"
-      />
+      <div class="task-comments__drop" data-test="comment-drop" @paste="onPaste" @dragover="onDragOver" @drop="onDrop">
+        <MarkdownEditor
+          id="task-comment-body"
+          v-model="draft"
+          name="comment"
+          :rows="3"
+          :max-length="TASK_DESCRIPTION_MAX_LENGTH"
+          :readonly="sending"
+          :mentions="mentionOptions"
+        />
+      </div>
+      <ul v-if="uploads.items.value.length > 0" class="task-comments__files" :aria-label="t('attachments.list')">
+        <li
+          v-for="item in uploads.items.value"
+          :key="item.key"
+          class="task-comments__file"
+          :data-status="item.status"
+          data-test="comment-file"
+        >
+          <span class="task-comments__file-name">{{ item.name }}</span>
+          <span class="task-comments__file-size">{{ formatFileSize(item.size) }}</span>
+          <span v-if="item.status === 'uploading'" class="task-comments__file-state">{{ t('attachments.uploading') }}</span>
+          <span
+            v-else-if="item.status === 'error'"
+            :id="fileErrorId(item.key)"
+            class="task-comments__file-error"
+            data-test="comment-file-error"
+          >{{ item.error }}</span>
+          <button
+            v-if="item.status === 'error' && item.retryable"
+            type="button"
+            class="task-comments__file-action"
+            data-test="comment-file-retry"
+            :aria-label="t('attachments.retryFile', { name: item.name })"
+            :aria-describedby="fileErrorId(item.key)"
+            @click="uploads.retry(item.key)"
+          >
+            {{ t('attachments.retry') }}
+          </button>
+          <button
+            type="button"
+            class="task-comments__file-action task-comments__file-remove"
+            data-test="comment-file-remove"
+            :aria-label="
+              item.status === 'uploading'
+                ? t('attachments.cancelFile', { name: item.name })
+                : t('attachments.removeFile', { name: item.name })
+            "
+            @click="uploads.remove(item.key)"
+          >
+            <X :size="14" :stroke-width="2" aria-hidden="true" />
+          </button>
+        </li>
+      </ul>
+      <span class="task-comments__sr" role="status" data-test="comment-upload-status">{{ uploadStatus }}</span>
       <AppFormError v-if="formError" data-test="comment-error">{{ formError }}</AppFormError>
-      <button type="submit" class="task-comments__send" data-test="comment-send" :disabled="!canSend">
-        {{ sending ? t('taskComments.sending') : t('taskComments.send') }}
-      </button>
+      <div class="task-comments__actions">
+        <input
+          ref="picker"
+          type="file"
+          name="attachments"
+          multiple
+          hidden
+          tabindex="-1"
+          data-test="comment-picker"
+          @change="onPicked"
+        />
+        <button
+          type="button"
+          class="task-comments__attach"
+          data-test="comment-attach"
+          :aria-label="t('attachments.attach')"
+          @click="pickFiles"
+        >
+          <Paperclip :size="17" :stroke-width="1.8" aria-hidden="true" />
+        </button>
+        <button type="submit" class="task-comments__send" data-test="comment-send" :disabled="!canSend">
+          {{ sending ? t('taskComments.sending') : t('taskComments.send') }}
+        </button>
+      </div>
     </form>
   </section>
 </template>
@@ -231,8 +363,88 @@ async function submit(): Promise<void> {
   opacity: 0.6;
   cursor: default;
 }
+.task-comments__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.task-comments__attach {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.task-comments__files {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.task-comments__file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: flex-start;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 13px;
+}
+.task-comments__file[data-status='error'] {
+  background: transparent;
+  border: 1px solid var(--border);
+}
+.task-comments__file-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.task-comments__file-size,
+.task-comments__file-state {
+  font-size: 12px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.task-comments__file-error {
+  flex: 1;
+  font-size: 12px;
+  color: var(--level-error-fg);
+}
+.task-comments__file-action {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.task-comments__file-remove {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  min-height: 32px;
+  margin-left: auto;
+  color: var(--ink-3);
+}
+.task-comments__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 .task-comments__send {
-  align-self: flex-end;
   min-height: 44px;
   padding: 0 16px;
   border: 0;
@@ -248,6 +460,8 @@ async function submit(): Promise<void> {
   cursor: default;
 }
 .task-comments__button:focus-visible,
+.task-comments__attach:focus-visible,
+.task-comments__file-action:focus-visible,
 .task-comments__send:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;

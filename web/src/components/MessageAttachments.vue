@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { MessageAttachment } from '../api/types'
+import type { AttachmentUrl, MessageAttachment } from '../api/types'
 import { ApiError } from '../api/client'
 import { getAttachmentUrl } from '../api/messages'
 import { formatFileSize } from '../formatFileSize'
 import { toast } from './ui/toast'
 
-const props = defineProps<{ attachments: MessageAttachment[] }>()
+const props = defineProps<{
+  attachments: MessageAttachment[]
+  /** Fetches a fresh signed url when the stored one expired; defaults to the chat endpoint. */
+  renewUrl?: (attachmentId: number) => Promise<AttachmentUrl>
+}>()
 
 const { t } = useI18n()
 
@@ -19,6 +23,10 @@ const failed = reactive(new Map<number, string>())
 const notice = computed(() =>
   props.attachments.some((a) => failed.get(a.id) === a.url) ? t('attachments.previewUnavailable') : '',
 )
+
+function freshUrl(id: number): Promise<AttachmentUrl> {
+  return props.renewUrl ? props.renewUrl(id) : getAttachmentUrl(id)
+}
 
 function previewUrl(a: MessageAttachment): string {
   const r = renewed.get(a.id)
@@ -36,7 +44,7 @@ async function onPreviewError(a: MessageAttachment) {
   }
   retried.set(a.id, a.url)
   try {
-    const { url } = await getAttachmentUrl(a.id)
+    const { url } = await freshUrl(a.id)
     renewed.set(a.id, { from: a.url, url })
   } catch {
     failed.set(a.id, a.url)
@@ -57,7 +65,7 @@ async function openFresh(event: MouseEvent, a: MessageAttachment) {
   const win = window.open('', '_blank')
   if (win) win.opener = null
   try {
-    const { url } = await getAttachmentUrl(a.id)
+    const { url } = await freshUrl(a.id)
     if (win) {
       win.location.href = url
       return
@@ -76,7 +84,7 @@ async function downloadFresh(event: MouseEvent, a: MessageAttachment) {
   if (!isPlainClick(event)) return
   event.preventDefault()
   try {
-    const { url } = await getAttachmentUrl(a.id)
+    const { url } = await freshUrl(a.id)
     window.location.assign(url)
   } catch (error) {
     toast.error(openErrorMessage(error))
