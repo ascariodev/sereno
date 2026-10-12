@@ -21,7 +21,9 @@ md.renderer.rules.heading_close = (tokens, idx, options, _env, self) => {
 md.renderer.rules.s_open = () => '<del>'
 md.renderer.rules.s_close = () => '</del>'
 
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+const purifier = DOMPurify(window)
+
+purifier.addHook('afterSanitizeAttributes', (node) => {
   if (node.tagName === 'A') {
     node.setAttribute('target', '_blank')
     node.setAttribute('rel', 'noopener noreferrer')
@@ -39,5 +41,5 @@ const SANITIZE_CONFIG = {
 
 export function renderMarkdown(source: string): string {
   if (!source) return ''
-  return DOMPurify.sanitize(md.render(source), SANITIZE_CONFIG)
+  return purifier.sanitize(md.render(source), SANITIZE_CONFIG)
 }

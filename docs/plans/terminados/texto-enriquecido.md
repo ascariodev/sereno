@@ -66,7 +66,7 @@
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-2: La tarea creada desde un aviso de log arma su descripción en Markdown (nivel, conteo, bloque de código).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-3: Aislar el hook de DOMPurify (instancia propia `DOMPurify(window)` o `addHook`/`removeHook` alrededor de `sanitize`) para que no afecte a otros usos futuros.
+- [x] M-3: Aislar el hook de DOMPurify (instancia propia `DOMPurify(window)` o `addHook`/`removeHook` alrededor de `sanitize`) para que no afecte a otros usos futuros.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-4: Simplificar `heading_close` en `renderMarkdown.ts` a `tokens[idx - 2].tag` (open, inline, close).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
