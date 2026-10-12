@@ -9,6 +9,7 @@ import { useTasksStore } from '../stores/tasks'
 import { charCount, TASK_DESCRIPTION_MAX_LENGTH, TASK_TITLE_MAX_LENGTH } from './taskLimits'
 import MarkdownEditor from './MarkdownEditor.vue'
 import AppDialog from './ui/AppDialog.vue'
+import AppFormError from './ui/AppFormError.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -239,7 +240,7 @@ async function submit(): Promise<void> {
         </p>
       </div>
 
-      <p v-if="formError" class="task-create__error" role="alert" data-test="error-form">{{ formError }}</p>
+      <AppFormError v-if="formError" data-test="error-form">{{ formError }}</AppFormError>
 
       <div class="task-create__actions">
         <button type="button" class="task-create__cancel" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">

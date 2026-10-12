@@ -3,7 +3,7 @@
 **Objetivo:** que el error general de los formularios (`<p role="alert" data-test="error-form">`, hoy con una clase
 `__error` y el mismo CSS copiado en nueve archivos) sea un componente base `AppFormError`, sin cambiar su aspecto ni su
 accesibilidad. Origen: dialogos-unificados M-4.
-**Estado:** en curso · Fase actual: 1
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -22,7 +22,7 @@ accesibilidad. Origen: dialogos-unificados M-4.
 
 ## Fases
 
-### [ ] Fase 1 — Componente AppFormError
+### [x] Fase 1 — Componente AppFormError
 - **Alcance:**
   - `web/src/components/ui/AppFormError.vue`: un `<p class="app-form-error" role="alert">` con slot; `data-test` y demás
     atributos caen en el `<p>`. Mismo CSS que `.app-input__error`.
@@ -31,7 +31,7 @@ accesibilidad. Origen: dialogos-unificados M-4.
 - **Terminado cuando:** el spec cubre `role="alert"`, el slot, que `data-test` y `id` llegan al `<p>` y la clase.
   `vue-tsc -b` limpio.
 
-### [ ] Fase 2 — Migrar los diálogos de creación
+### [x] Fase 2 — Migrar los diálogos de creación
 - **Alcance:** CreateLogSourceDialog, InviteDialog, OrganizationCreateDialog y ProjectCreateDialog usan AppFormError para
   el `error-form`. Se borra el CSS `__error` donde ya no lo usa nada (en InviteDialog se queda).
 - **Archivos:** los cuatro `.vue`.
@@ -39,14 +39,14 @@ accesibilidad. Origen: dialogos-unificados M-4.
   IntegrationsView, InvitationsView) pasan sin cambios en los selectores; un grep no encuentra clases `__error` sin uso.
   `vue-tsc -b` limpio.
 
-### [ ] Fase 3 — Migrar las vistas de acceso
+### [x] Fase 3 — Migrar las vistas de acceso
 - **Alcance:** LoginView, RegisterView (también `statusError`) e InviteView (también `accept-error`) usan AppFormError.
   Se borra el CSS `__error` donde quede sin uso.
 - **Archivos:** `web/src/views/LoginView.vue`, `RegisterView.vue`, `InviteView.vue`.
 - **Terminado cuando:** LoginView.spec, RegisterView.spec e InviteView.spec pasan sin cambios en los selectores; grep sin
   clases huérfanas. `vue-tsc -b` limpio.
 
-### [ ] Fase 4 — Migrar las tareas
+### [x] Fase 4 — Migrar las tareas
 - **Alcance:** TaskCreateDialog y TaskAside usan AppFormError para el `error-form`; los errores de campo siguen con su clase.
 - **Archivos:** `web/src/components/TaskCreateDialog.vue`, `TaskAside.vue`.
 - **Terminado cuando:** TaskCreateDialog.spec, TaskAside.spec y los specs de las vistas que los montan pasan sin cambios
@@ -58,11 +58,25 @@ accesibilidad. Origen: dialogos-unificados M-4.
   `role="alert"` de la misma clase. Los errores de campo y los avisos sin `role="alert"` (`email-taken-hint`,
   `projects-failed`) quedan fuera.
 - 2026-10-12: sin fase visual propia: el CSS es idéntico, así que basta una medición en la última fase.
+- 2026-10-12: el trabajo va en el worktree `.claude/worktrees/error-form-compartido` (rama `feat/error-form-compartido`).
+- 2026-10-12 (fase 1): AppFormError no usa `inheritAttrs: false`: es de raíz única, así que `class`, `data-test` e `id`
+  del padre caen en el `<p>`.
+- 2026-10-12 (fase 3): una regla de la vista sobre `p` con más especificidad (`.invite__card p`, color ink-2) pisa
+  `.app-form-error`: ahí el AppFormError conserva la clase de la vista (`invite__error`) y su override. Revisar lo mismo
+  en TaskCreateDialog y TaskAside.
+- 2026-10-12 (fase 4): TaskCreateDialog y TaskAside no tienen reglas que pisen `.app-form-error`: su error general va sin
+  la clase de la vista, que sigue en los errores de campo. Medición con un 500 simulado (main en 5174 contra el worktree
+  en 5175) en ProjectCreateDialog, TaskCreateDialog y TaskAside: margin, color, font-size, line-height, font-weight,
+  display, ancho y alto idénticos.
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1. Leer `docs/lecciones.md` (L-25, L-38, L-62: un `class` sobre un componente con
-  `inheritAttrs: false` cae en el elemento interno). AppLayout.spec tiene 6 fallos que ya existen en `main`.
+- Plan terminado. Pendientes solo las mejoras propuestas. AppLayout.spec tiene 6 fallos que ya existen en `main`.
 - El servicio `web` monta el checkout principal: en un worktree, los tests corren en un contenedor `node:24` aparte que
   monta `web/` del worktree y el volumen `workspace_web-node-modules` (ver plan dialogos-unificados).
 
 ## Mejoras propuestas
+- [x] M-1 (descartada): en InviteView, `.invite__card .invite__error` repite `font-size: 13px`, que AppFormError ya
+  trae; basta el `color`. No aplica: `email-taken-hint` usa la misma regla y no es un AppFormError, así que
+  necesita ese `font-size: 13px`.
+- [ ] M-2 (baja, sonnet): bajar la especificidad de las reglas de vista sobre `p` (o usar `:where()`) para que
+  AppFormError no necesite la clase de la vista como parche. Solo si el caso de InviteView se repite.

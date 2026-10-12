@@ -6,6 +6,7 @@ import { ApiError } from '../api/client'
 import { acceptInvitation, previewInvitation } from '../api/invitations'
 import type { InvitationPreview } from '../api/types'
 import AppButton from '../components/ui/AppButton.vue'
+import AppFormError from '../components/ui/AppFormError.vue'
 import AppInput from '../components/ui/AppInput.vue'
 import BrandMark from '../components/ui/BrandMark.vue'
 import { toast } from '../components/ui/toast'
@@ -250,7 +251,7 @@ async function signOut(): Promise<void> {
               {{ t('invite.signOut') }}
             </AppButton>
           </template>
-          <p v-if="acceptError" class="invite__error" role="alert" data-test="accept-error">{{ acceptError }}</p>
+          <AppFormError v-if="acceptError" class="invite__error" data-test="accept-error">{{ acceptError }}</AppFormError>
         </template>
 
         <form v-else class="invite__form" novalidate data-test="register-form" @submit.prevent="register">
@@ -307,7 +308,7 @@ async function signOut(): Promise<void> {
             required
           />
 
-          <p v-if="formError" class="invite__error" role="alert" data-test="error-form">{{ formError }}</p>
+          <AppFormError v-if="formError" class="invite__error" data-test="error-form">{{ formError }}</AppFormError>
 
           <AppButton type="submit" data-test="register" :disabled="registering || accepting">
             {{ registering || accepting ? t('invite.creating') : t('invite.createAccount') }}
