@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 
 
 ## Contexto mínimo
@@ -35,7 +35,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - **Terminado cuando:** tests en `TaskListApiTest`, `TaskBroadcastTest` y `TaskUnassignOnRemovalTest` comprueban el
   conteo correcto (también con comentarios de otra tarea y sin organización activa).
 
-### [ ] Fase 2 — Conteo en el evento de comentario creado
+### [x] Fase 2 — Conteo en el evento de comentario creado
 - **Alcance:** `TaskCommentCreated` lleva `comments_count` de la tarea, contado tras el commit (absoluto, no delta).
 - **Archivos:** `api/app/Events/TaskCommentCreated.php`, `api/app/Http/Controllers/Api/TaskCommentController.php`.
 - **Terminado cuando:** `TaskCommentBroadcastTest` comprueba el conteo en el payload.
@@ -127,6 +127,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 
 ## Notas para la próxima sesión
 - Fase 1 hecha: el conteo se declara en `TaskController::counts()` (closure sin scopes globales); reutilizarlo en las fases 2 y 9.
+- Fase 2 hecha: payload de `task.comment.created` = `{comment, comments_count}` (hermanos)...
 
 ## Mejoras propuestas
 - [ ] M-1: `docs/lecciones.md` tiene L-37 a L-40 repetidas (líneas ~50-57); quitar el duplicado. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
