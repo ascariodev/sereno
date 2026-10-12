@@ -7,6 +7,7 @@ import { useLogGroup } from '../composables/useLogGroup'
 import { setGroupStatus, setGroupTask, statusOfGroup, taskOfGroup } from '../composables/useLogGroupStatuses'
 import { useProjectsStore } from '../stores/projects'
 import LogGroupPanel from './LogGroupPanel.vue'
+import { buildLogGroupTaskDescription } from './logGroupTaskDescription'
 import { TASK_TITLE_MAX_LENGTH } from './taskLimits'
 import TaskCreateDialog from './TaskCreateDialog.vue'
 import { toast } from './ui/toast'
@@ -16,7 +17,7 @@ defineOptions({ inheritAttrs: false })
 const props = defineProps<{ projectId: number; groupId: number; refreshToken?: number }>()
 const emit = defineEmits<{ close: [replace?: boolean]; status: [status: LogGroupStatus] }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { group, loading, loadError, hourly, setStatus, setTask } = useLogGroup(
   () => props.projectId,
   () => props.groupId,
@@ -56,6 +57,11 @@ watch(
 )
 
 const initialTitle = computed(() => [...(group.value?.title ?? '')].slice(0, TASK_TITLE_MAX_LENGTH).join(''))
+const initialDescription = computed(() =>
+  group.value
+    ? buildLogGroupTaskDescription({ ...group.value, message: group.value.events?.[0]?.message ?? group.value.title }, t, locale.value)
+    : '',
+)
 const showCreateDialog = computed(() => canCreateTask.value && group.value !== null && !(group.value.task ?? taskOfGroup(props.groupId)))
 
 function focusTaskLink(): void {
@@ -166,6 +172,7 @@ function onOpenChange(open: boolean): void {
     v-model:open="createOpen"
     :project-id="projectId"
     :initial-title="initialTitle"
+    :initial-description="initialDescription"
     :log-group-id="groupId"
     @created="onTaskCreated"
     @group-taken="onGroupTaken"

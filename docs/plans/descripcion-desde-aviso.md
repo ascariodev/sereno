@@ -3,7 +3,7 @@
 **Objetivo:** al crear una tarea desde un aviso de log (Aside del grupo o aviso del canal), la descripción del
 diálogo llega prellenada en Markdown con nivel, conteo de eventos y el mensaje en un bloque de código.
 Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 
@@ -51,7 +51,7 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
 - **Terminado cuando:** test que abre con descripción inicial, la envía en el POST, y tras cancelar y reabrir
   vuelve a la inicial; el test existente de L62 sigue pasando.
 
-### [ ] Fase 3 — Prellenado desde el Aside del grupo
+### [x] Fase 3 — Prellenado desde el Aside del grupo
 - **Alcance:** `LogGroupAside` pasa `initial-description` armada con el grupo completo: nivel, `events_count`,
   primera y última vez, y como mensaje `events[0].message` o, si no hay eventos, `title`. Cubre también LogView y
   el Aside de ChannelView, que usan este componente.
@@ -78,9 +78,11 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
   contenido de la persona y no se traduce.
 
 ## Notas para la próxima sesión
-- Fase 1 hecha: `buildLogGroupTaskDescription(data, t, locale)` en `web/src/components/logGroupTaskDescription.ts`, `t: (key) => string`, sin claves i18n nuevas. Fase 2 hecha: prop `initialDescription` en TaskCreateDialog (se toma al abrir). Siguiente: fase 3. Leer `docs/lecciones.md` (L-11, L-25, L-51). Al terminar el plan, marcar M-2 `[x]` en
+- Fase 1 hecha: `buildLogGroupTaskDescription(data, t, locale)` en `web/src/components/logGroupTaskDescription.ts`, `t: (key) => string`, sin claves i18n nuevas. Fase 2 hecha: prop `initialDescription` en TaskCreateDialog (se toma al abrir). Fase 3 hecha: LogGroupAside pasa `initial-description` (mensaje: `events[0].message` o `title`). Siguiente: fase 4. Leer `docs/lecciones.md` (L-11, L-25, L-51). Al terminar el plan, marcar M-2 `[x]` en
   `docs/plans/terminados/texto-enriquecido.md`.
 
 ## Mejoras propuestas
 - [ ] M-1: Test de que cambiar `initialDescription` con el diálogo abierto no pisa lo editado
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-2: Test en LogGroupAside que refresca el grupo con el diálogo abierto y afirma que la descripción editada se conserva
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet

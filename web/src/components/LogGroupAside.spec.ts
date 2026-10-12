@@ -355,7 +355,10 @@ describe('LogGroupAside', () => {
       expect(input.value).toBe('Timeout in webhook')
       document.body.querySelector<HTMLButtonElement>('[data-test=submit]')!.click()
       await flushPromises()
+      const sent = post.mock.calls[0][1] as { description: string }
       expect(post.mock.calls[0][1]).toMatchObject({ title: 'Timeout in webhook', log_group_id: 5 })
+      expect(sent.description).toContain('- **Events:** 3')
+      expect(sent.description).toContain('```\nTimeout in webhook\n```')
       expect(wrapper!.find('button[name=create-task]').exists()).toBe(false)
       const link = wrapper!.get('[data-test=group-task-link]')
       expect(link.text()).toBe('View P-12')
@@ -396,6 +399,24 @@ describe('LogGroupAside', () => {
       await flushPromises()
       expect(document.body.querySelector<HTMLInputElement>('#task-create-title')!.value).toBe('Edited title')
       expect(groupCalls()).toBe(1)
+    })
+
+    it('keeps the prefilled description when crossing the breakpoint and uses the first event message', async () => {
+      fakeMatchMedia(false)
+      vi.mocked(api.get).mockResolvedValue({
+        data: { ...loaded.data, events: [{ id: 1, level: 'error', message: 'First event msg', context: null, occurred_at: '', received_at: '' }] },
+      } as never)
+      mountAside()
+      await flushPromises()
+      await wrapper!.find('button[name=create-task]').trigger('click')
+      await flushPromises()
+      const area = () => document.body.querySelector<HTMLTextAreaElement>('#task-create-description')!
+      expect(area().value).toContain('First event msg')
+      listener!({ matches: true })
+      await flushPromises()
+      listener!({ matches: false })
+      await flushPromises()
+      expect(area().value).toContain('First event msg')
     })
 
     it('prefills at most 200 characters of the title', async () => {
