@@ -3,6 +3,7 @@ import { Paperclip, X } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
+import type { TaskComment } from '../api/types'
 import { getTaskAttachmentUrl, taskAttachmentsPath } from '../api/taskComments'
 import { useAttachmentUploads } from '../composables/useAttachmentUploads'
 import { useSharedNow } from '../composables/useSharedNow'
@@ -13,9 +14,11 @@ import { useTaskCommentsStore } from '../stores/taskComments'
 import MarkdownContent from './MarkdownContent.vue'
 import MarkdownEditor from './MarkdownEditor.vue'
 import MessageAttachments from './MessageAttachments.vue'
+import TaskCommentEditor from './TaskCommentEditor.vue'
 import { charCount, TASK_DESCRIPTION_MAX_LENGTH } from './taskLimits'
 import AppAvatar from './ui/AppAvatar.vue'
 import AppFormError from './ui/AppFormError.vue'
+import AppTooltip from './ui/AppTooltip.vue'
 
 const props = defineProps<{ projectId: number; taskId: number }>()
 
@@ -33,6 +36,7 @@ const list = ref<HTMLElement | null>(null)
 const fileIdPrefix = useId()
 const headingId = `${fileIdPrefix}-heading`
 const sentNotice = ref('')
+const editingId = ref<number | null>(null)
 // Keyed by the upload path: changing task drops the items and discards uploads still in flight (L-10).
 const uploads = useAttachmentUploads(() => taskAttachmentsPath(props.projectId, props.taskId), {
   tooManyKey: 'taskComments.tooManyAttachments',
@@ -47,6 +51,7 @@ watch(
     sending.value = false
     formError.value = null
     sentNotice.value = ''
+    editingId.value = null
     void store.open(props.projectId, props.taskId)
   },
   { immediate: true },
@@ -135,6 +140,16 @@ function fullDate(iso: string): string {
   return new Date(iso).toLocaleString(locale.value, { dateStyle: 'full', timeStyle: 'medium' })
 }
 
+async function finishEditing(commentId: number): Promise<void> {
+  editingId.value = null
+  await nextTick()
+  list.value?.querySelector<HTMLButtonElement>(`[data-comment-id="${commentId}"] [data-test="comment-edit"]`)?.focus()
+}
+
+function isOwn(comment: TaskComment): boolean {
+  return comment.user !== null && comment.user.id === auth.user?.id
+}
+
 function retry(): void {
   if (store.comments.length === 0) void store.open(props.projectId, props.taskId)
   else void store.loadOlder()
@@ -203,9 +218,32 @@ async function submit(): Promise<void> {
           <p class="task-comments__meta">
             <span class="task-comments__author" data-test="comment-author">{{ comment.user?.name ?? t('taskComments.deletedUser') }}</span>
             <time :datetime="comment.created_at" :title="fullDate(comment.created_at)">{{ when(comment.created_at) }}</time>
+            <AppTooltip v-if="comment.edited_at" :text="t('message.editedAt', { date: fullDate(comment.edited_at) })">
+              <span class="task-comments__edited" data-test="comment-edited"><span aria-hidden="true">{{ t('message.edited') }}</span><span class="task-comments__sr">{{ t('message.editedAt', { date: fullDate(comment.edited_at) }) }}</span></span>
+            </AppTooltip>
+            <button
+              v-if="isOwn(comment) && editingId !== comment.id"
+              type="button"
+              class="task-comments__edit"
+              data-test="comment-edit"
+              :aria-label="t('taskComments.editNamed', { name: comment.user?.name ?? '' })"
+              @click="editingId = comment.id"
+            >
+              {{ t('taskComments.edit') }}
+            </button>
           </p>
-          <MarkdownContent :source="comment.body" :mentions="comment.mentions" :own-user-id="auth.user?.id" />
-          <MessageAttachments :attachments="comment.attachments" :renew-url="getTaskAttachmentUrl" />
+          <TaskCommentEditor
+            v-if="editingId === comment.id"
+            :project-id="projectId"
+            :task-id="taskId"
+            :comment="comment"
+            :mentions="mentionOptions"
+            @done="finishEditing(comment.id)"
+          />
+          <template v-else>
+            <MarkdownContent :source="comment.body" :mentions="comment.mentions" :own-user-id="auth.user?.id" />
+            <MessageAttachments :attachments="comment.attachments" :renew-url="getTaskAttachmentUrl" />
+          </template>
         </div>
       </li>
     </ul>
@@ -352,6 +390,21 @@ async function submit(): Promise<void> {
   font-weight: 600;
   color: var(--ink);
 }
+.task-comments__edited {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.task-comments__edit {
+  margin-left: auto;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
 .task-comments__form {
   display: flex;
   flex-direction: column;
@@ -473,6 +526,7 @@ async function submit(): Promise<void> {
   cursor: default;
 }
 .task-comments__button:focus-visible,
+.task-comments__edit:focus-visible,
 .task-comments__attach:focus-visible,
 .task-comments__file-action:focus-visible,
 .task-comments__send:focus-visible {

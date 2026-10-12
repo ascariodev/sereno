@@ -98,6 +98,7 @@
 - L-62: Un `class` o atributo ARIA puesto sobre un componente con `inheritAttrs: false` cae en el control interno, no en la raíz: el CSS scoped del padre no lo alcanza (envolver en un elemento propio) y un `aria-*` lo puede pisar el componente (darle una prop). — aplicada en: test (ProjectMembersDialog.spec)
 - L-63: Un endpoint que guarda un registro y sus filas hijas (menciones, adjuntos) lo hace en un `DB::transaction`, como `MessageController`, con un test que fuerza el fallo de las hijas y afirma que no queda el registro. — aplicada en: test (TaskCommentMentionsTest)
 - L-64: Una corrida de tests del API sobre un montaje de Docker Desktop se valida por la cuenta, no solo por "sin fallos": el montaje truncó el listado de `tests/Feature` y Pest corrió 8 tests con salida 0. Tras agregar archivos de test, `pest --list-tests | wc -l`. — aplicada en: pendiente
+- L-65: Un editor en línea que reemplaza un elemento con `v-if` enfoca su campo al abrirse y, al cerrarse, devuelve el foco al botón que lo abrió (con `nextTick`); si no, el foco cae al `body`. — aplicada en: comentarios-editar-contador fase 12
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

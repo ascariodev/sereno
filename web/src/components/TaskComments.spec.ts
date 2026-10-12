@@ -426,3 +426,79 @@ describe('TaskComments', () => {
     })
   })
 })
+
+describe('TaskComments editing', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('offers Edit only on own comments and opens a single inline editor', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(
+      page([comment(3, { user: { id: 1, name: 'Ana' }, body: 'mine' }), comment(2), comment(1, { user: { id: 1, name: 'Ana' } })]),
+    )
+    const wrapper = mountComments()
+    await flushPromises()
+    const items = () => wrapper.findAll('[data-test="comment"]')
+    expect(items().map((item) => item.find('[data-test="comment-edit"]').exists())).toEqual([true, false, true])
+
+    await items()[2].get('[data-test="comment-edit"]').trigger('click')
+    expect(items()[2].find('[data-test="comment-editor"]').exists()).toBe(true)
+    expect(items()[2].find('[data-test="comment-edit"]').exists()).toBe(false)
+    await items()[0].get('[data-test="comment-edit"]').trigger('click')
+    expect(wrapper.findAll('[data-test="comment-editor"]')).toHaveLength(1)
+    expect(items()[0].find('[data-test="comment-editor"]').exists()).toBe(true)
+    expect(items()[2].text()).toContain('mine')
+  })
+
+  it('closes the editor on cancel and when the task changes', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([comment(1, { user: { id: 1, name: 'Ana' } })]))
+    const wrapper = mountComments()
+    await flushPromises()
+    await wrapper.get('[data-test="comment-edit"]').trigger('click')
+    await wrapper.get('[data-test="edit-cancel"]').trigger('click')
+    expect(wrapper.find('[data-test="comment-editor"]').exists()).toBe(false)
+
+    await wrapper.get('[data-test="comment-edit"]').trigger('click')
+    await wrapper.setProps({ taskId: 10 })
+    await flushPromises()
+    expect(wrapper.find('[data-test="comment-editor"]').exists()).toBe(false)
+  })
+
+  it('returns focus to the Edit button after cancelling or saving', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([comment(1, { user: { id: 1, name: 'Ana' } })]))
+    vi.spyOn(api, 'patch').mockResolvedValue({
+      data: comment(1, { user: { id: 1, name: 'Ana' }, body: 'new', edited_at: '2026-10-12T10:00:00Z' }),
+    } as never)
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useAuthStore().$patch({ user: { id: 1, name: 'Ana' } as never })
+    vi.spyOn(useMemberDirectoryStore(), 'ensureLoaded').mockResolvedValue()
+    const wrapper = mount(TaskComments, { props: { projectId: 5, taskId: 9 }, global: { plugins: [pinia, i18n] }, attachTo: document.body })
+    await flushPromises()
+
+    await wrapper.get('[data-test="comment-edit"]').trigger('click')
+    expect(document.activeElement?.tagName).toBe('TEXTAREA')
+    await wrapper.get('[data-test="edit-cancel"]').trigger('click')
+    await flushPromises()
+    expect(document.activeElement).toBe(wrapper.get('[data-test="comment-edit"]').element)
+
+    await wrapper.get('[data-test="comment-edit"]').trigger('click')
+    await wrapper.get('[data-test="comment-editor"] textarea').setValue('new')
+    await wrapper.get('[data-test="comment-editor"]').trigger('submit')
+    await flushPromises()
+    expect(wrapper.text()).toContain('new')
+    expect(document.activeElement).toBe(wrapper.get('[data-test="comment-edit"]').element)
+  })
+
+  it('labels edited comments with the edit date', async () => {
+    const editedAt = '2026-10-12T10:00:00Z'
+    vi.spyOn(api, 'get').mockResolvedValue(page([comment(2, { edited_at: editedAt }), comment(1)]))
+    const wrapper = mountComments()
+    await flushPromises()
+    const items = wrapper.findAll('[data-test="comment"]')
+    expect(items[0].find('[data-test="comment-edited"]').exists()).toBe(false)
+    const label = items[1].get('[data-test="comment-edited"]')
+    expect(label.text()).toContain('(edited)')
+    expect(label.text()).toContain(new Date(editedAt).toLocaleString('en', { dateStyle: 'full', timeStyle: 'medium' }))
+  })
+})

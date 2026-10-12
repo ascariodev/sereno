@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 12
+**Estado:** en curso · Fase actual: 13
 
 
 ## Contexto mínimo
@@ -100,7 +100,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - **Archivos:** `web/src/realtime/echo.ts`, `web/src/views/PlanView.vue`.
 - **Terminado cuando:** specs de echo y `PlanView`.
 
-### [ ] Fase 12 — Editor en línea de comentarios [riesgo]
+### [x] Fase 12 — Editor en línea de comentarios [riesgo]
 - **Alcance:** componente `TaskCommentEditor` (como `MessageEditor`: `MarkdownEditor` con
   `parseMentionDraft(comment.body, comment.mentions)`, marcar adjuntos para quitar, guardar, cancelar con Esc);
   `TaskComments` muestra "Editar" en los propios y la etiqueta "editado" con fecha.
@@ -137,8 +137,10 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - Fase 9 hecha (API completo): DELETE comentarios, evento `task.comment.deleted` `{id, task_id, comments_count}` (la web valida los tres como number).
 - Fase 10 hecha: `updateTaskComment`/`deleteTaskComment`; store `update(comment)` (descarta si el conocido tiene edición más nueva o el entrante no trae `edited_at`) y `remove(id)`. `validComment` no exige `edited_at`: la fase 11 debe exigirlo (string|null).
 - Fase 11 hecha: echo escucha `task.comment.updated` y `task.comment.deleted`; `validComment` exige `edited_at`. Faltan solo las fases de UI (12 editor, 13 borrar).
+- Fase 12 hecha: `TaskCommentEditor` en línea; botón Borrar de la fase 13 va en la fila de meta junto a "Editar" (`.task-comments__edit`). Retrabajo de foco: L-65.
 
 ## Mejoras propuestas
 - [ ] M-1: `docs/lecciones.md` tiene L-37 a L-40 repetidas (líneas ~50-57); quitar el duplicado. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-2: Test de `max_per_message` y exclusión del autor en la edición de comentarios; acortar los PHPDoc de `syncMentions` y `update`. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
 - [ ] M-3: `TaskCommentController`: quitar el `isEmpty()` redundante de `deleteFilesAfterCommit` y aclarar el comentario de `destroy`; comentario de una línea en el test de rollback (DDL transaccional). Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
+- [ ] M-4: El autocompletado del editor de comentarios puede sugerir a personas mencionadas que ya salieron del proyecto (se suman `comment.mentions` a los miembros); usarlas solo para pintar, no para sugerir. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
