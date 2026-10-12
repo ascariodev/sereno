@@ -5,7 +5,9 @@ import { ApiError } from '../api/client'
 import { createLogSource } from '../api/logSources'
 import type { LogSourceWithKey } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
+import AppButton from './ui/AppButton.vue'
 import AppDialog from './ui/AppDialog.vue'
+import AppInput from './ui/AppInput.vue'
 import { toast } from './ui/toast'
 
 const NAME_MAX_LENGTH = 255
@@ -17,7 +19,7 @@ const open = defineModel<boolean>('open', { default: false })
 const { t } = useI18n()
 const organization = useOrganizationStore()
 
-const nameInput = ref<HTMLInputElement | null>(null)
+const nameInput = ref<InstanceType<typeof AppInput> | null>(null)
 const name = ref('')
 const submitting = ref(false)
 const fieldErrors = ref<Record<string, string[]>>({})
@@ -33,9 +35,6 @@ const dialogOpen = computed({
 })
 
 const nameErrors = computed(() => [...(fieldErrors.value.name ?? []), ...(fieldErrors.value.project ?? [])])
-const nameDescribedBy = computed(() =>
-  nameErrors.value.length ? nameErrors.value.map((_, index) => `log-source-name-error-${index}`).join(' ') : undefined,
-)
 
 function reset(): void {
   generation++
@@ -107,40 +106,30 @@ async function submit(): Promise<void> {
 <template>
   <AppDialog v-model:open="dialogOpen" :title="t('createLogSource.title')" :close-label="t('createLogSource.cancel')">
     <form class="create-source" novalidate @submit.prevent="submit">
-      <div class="create-source__field">
-        <label for="log-source-name">{{ t('createLogSource.name') }}</label>
-        <input
-          id="log-source-name"
-          ref="nameInput"
-          v-model="name"
-          type="text"
-          name="name"
-          autocomplete="off"
-          required
-          :aria-invalid="nameDescribedBy ? 'true' : undefined"
-          :aria-describedby="nameDescribedBy"
-        />
-        <p class="create-source__hint">{{ t('createLogSource.nameHint') }}</p>
-        <p
-          v-for="(message, index) in nameErrors"
-          :id="`log-source-name-error-${index}`"
-          :key="`${index}-${message}`"
-          class="create-source__error"
-          data-test="error-name"
-        >
-          {{ message }}
-        </p>
-      </div>
+      <AppInput
+        id="log-source-name"
+        ref="nameInput"
+        v-model="name"
+        :label="t('createLogSource.name')"
+        :errors="nameErrors"
+        error-test="error-name"
+        type="text"
+        name="name"
+        autocomplete="off"
+        required
+      >
+        <template #hint>{{ t('createLogSource.nameHint') }}</template>
+      </AppInput>
 
       <p v-if="formError" class="create-source__error" role="alert" data-test="error-form">{{ formError }}</p>
 
       <div class="create-source__actions">
-        <button type="button" class="create-source__cancel" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">
+        <AppButton type="button" variant="secondary" size="md" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">
           {{ t('createLogSource.cancel') }}
-        </button>
-        <button type="submit" class="create-source__submit" data-test="submit" :disabled="submitting">
+        </AppButton>
+        <AppButton type="submit" size="md" data-test="submit" :disabled="submitting">
           {{ submitting ? t('createLogSource.creating') : t('createLogSource.submit') }}
-        </button>
+        </AppButton>
       </div>
     </form>
   </AppDialog>
@@ -151,40 +140,6 @@ async function submit(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-
-.create-source__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.create-source__field label {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.create-source__field input {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-}
-
-.create-source__field input:focus-visible,
-.create-source__cancel:focus-visible,
-.create-source__submit:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.create-source__hint {
-  margin: 0;
-  color: var(--ink-3);
-  font-size: 13px;
 }
 
 .create-source__error {
@@ -198,30 +153,5 @@ async function submit(): Promise<void> {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 4px;
-}
-
-.create-source__cancel,
-.create-source__submit {
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.create-source__submit {
-  border-color: transparent;
-  background: var(--ink);
-  color: var(--surface);
-}
-
-.create-source__cancel:disabled,
-.create-source__submit:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 </style>

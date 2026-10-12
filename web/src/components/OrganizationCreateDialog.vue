@@ -4,7 +4,9 @@ import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import type { Organization } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
+import AppButton from './ui/AppButton.vue'
 import AppDialog from './ui/AppDialog.vue'
+import AppInput from './ui/AppInput.vue'
 import { toast } from './ui/toast'
 
 const NAME_MAX_LENGTH = 255
@@ -15,7 +17,7 @@ const open = defineModel<boolean>('open', { default: false })
 const { t } = useI18n()
 const organization = useOrganizationStore()
 
-const nameInput = ref<HTMLInputElement | null>(null)
+const nameInput = ref<InstanceType<typeof AppInput> | null>(null)
 const name = ref('')
 const submitting = ref(false)
 const fieldErrors = ref<Record<string, string[]>>({})
@@ -29,11 +31,6 @@ const dialogOpen = computed({
     if (!value && submitting.value) return
     open.value = value
   },
-})
-
-const nameDescribedBy = computed(() => {
-  const count = fieldErrors.value.name?.length ?? 0
-  return count ? Array.from({ length: count }, (_, index) => `org-create-name-error-${index}`).join(' ') : undefined
 })
 
 function reset(): void {
@@ -117,39 +114,28 @@ async function submit(): Promise<void> {
     @close-auto-focus="returnFocus"
   >
     <form class="org-create" novalidate @submit.prevent="submit">
-      <div class="org-create__field">
-        <label for="org-create-name">{{ t('orgCreate.nameLabel') }}</label>
-        <input
-          id="org-create-name"
-          ref="nameInput"
-          v-model="name"
-          type="text"
-          name="name"
-          autocomplete="organization"
-          required
-          :aria-invalid="nameDescribedBy ? 'true' : undefined"
-          :aria-describedby="nameDescribedBy"
-        />
-        <p
-          v-for="(message, index) in fieldErrors.name"
-          :id="`org-create-name-error-${index}`"
-          :key="`${index}-${message}`"
-          class="org-create__error"
-          data-test="error-name"
-        >
-          {{ message }}
-        </p>
-      </div>
+      <AppInput
+        id="org-create-name"
+        ref="nameInput"
+        v-model="name"
+        :label="t('orgCreate.nameLabel')"
+        :errors="fieldErrors.name"
+        error-test="error-name"
+        type="text"
+        name="name"
+        autocomplete="organization"
+        required
+      />
 
       <p v-if="formError" class="org-create__error" role="alert" data-test="error-form">{{ formError }}</p>
 
       <div class="org-create__actions">
-        <button type="button" class="org-create__cancel" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">
+        <AppButton type="button" variant="secondary" size="md" data-test="cancel" :disabled="submitting" @click="dialogOpen = false">
           {{ t('orgCreate.cancel') }}
-        </button>
-        <button type="submit" class="org-create__submit" data-test="submit" :disabled="submitting">
+        </AppButton>
+        <AppButton type="submit" size="md" data-test="submit" :disabled="submitting">
           {{ submitting ? t('orgCreate.creating') : t('orgCreate.submit') }}
-        </button>
+        </AppButton>
       </div>
     </form>
   </AppDialog>
@@ -161,30 +147,6 @@ async function submit(): Promise<void> {
   flex-direction: column;
   gap: 14px;
 }
-.org-create__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.org-create__field label {
-  font-size: 13px;
-  font-weight: 600;
-}
-.org-create__field input {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-}
-.org-create__field input:focus-visible,
-.org-create__cancel:focus-visible,
-.org-create__submit:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
 .org-create__error {
   margin: 0;
   color: var(--level-error-fg);
@@ -195,27 +157,5 @@ async function submit(): Promise<void> {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 4px;
-}
-.org-create__cancel,
-.org-create__submit {
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-.org-create__submit {
-  border-color: transparent;
-  background: var(--ink);
-  color: var(--surface);
-}
-.org-create__cancel:disabled,
-.org-create__submit:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 </style>
