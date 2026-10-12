@@ -3,7 +3,7 @@
 **Objetivo:** al crear una tarea desde un aviso de log (Aside del grupo o aviso del canal), la descripción del
 diálogo llega prellenada en Markdown con nivel, conteo de eventos y el mensaje en un bloque de código.
 Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 
@@ -44,7 +44,7 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
 - **Terminado cuando:** el spec cubre la forma exacta en en/es, mensaje con backticks (valla más larga),
   mensaje con emoji recortado sin partir pares sustitutos, campos opcionales ausentes y total ≤ 10000.
 
-### [ ] Fase 2 — Prop `initialDescription` en TaskCreateDialog
+### [x] Fase 2 — Prop `initialDescription` en TaskCreateDialog
 - **Alcance:** prop `initialDescription` (por defecto `''`) que `reset()` usa en vez de `''`; se toma al abrir,
   igual que `initialTitle`. Si la descripción inicial queda sin tocar, se envía tal cual.
 - **Archivos:** `web/src/components/TaskCreateDialog.vue` + `TaskCreateDialog.spec.ts`.
@@ -78,7 +78,9 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
   contenido de la persona y no se traduce.
 
 ## Notas para la próxima sesión
-- Fase 1 hecha: `buildLogGroupTaskDescription(data, t, locale)` en `web/src/components/logGroupTaskDescription.ts`, `t: (key) => string`, sin claves i18n nuevas. Siguiente: fase 2. Leer `docs/lecciones.md` (L-11, L-25, L-51). Al terminar el plan, marcar M-2 `[x]` en
+- Fase 1 hecha: `buildLogGroupTaskDescription(data, t, locale)` en `web/src/components/logGroupTaskDescription.ts`, `t: (key) => string`, sin claves i18n nuevas. Fase 2 hecha: prop `initialDescription` en TaskCreateDialog (se toma al abrir). Siguiente: fase 3. Leer `docs/lecciones.md` (L-11, L-25, L-51). Al terminar el plan, marcar M-2 `[x]` en
   `docs/plans/terminados/texto-enriquecido.md`.
 
 ## Mejoras propuestas
+- [ ] M-1: Test de que cambiar `initialDescription` con el diálogo abierto no pisa lo editado
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
