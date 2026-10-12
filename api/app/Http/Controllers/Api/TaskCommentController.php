@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\TaskCommentCreated;
+use App\Events\TaskCommentDeleted;
 use App\Events\TaskCommentUpdated;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TaskComment\DeleteTaskCommentRequest;
 use App\Http\Requests\TaskComment\ListTaskCommentsRequest;
 use App\Http\Requests\TaskComment\StoreTaskCommentRequest;
 use App\Http\Requests\TaskComment\UpdateTaskCommentRequest;
@@ -18,6 +20,8 @@ use App\Models\User;
 use App\Support\MentionTargets;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -86,6 +90,26 @@ class TaskCommentController extends Controller
         return new TaskCommentResource($comment);
     }
 
+    public function destroy(DeleteTaskCommentRequest $request, Project $project, Task $task, TaskComment $comment): Response
+    {
+        DB::transaction(function () use ($comment) {
+            // A concurrent delete committed while waiting for the lock leaves nothing to delete: 404.
+            $locked = TaskComment::query()->whereKey($comment->id)->lockForUpdate()->first();
+            abort_if($locked === null, 404);
+
+            $files = TaskCommentAttachment::query()
+                ->where('task_comment_id', $locked->id)
+                ->get(['disk', 'path']);
+
+            $locked->delete();
+            $this->deleteFilesAfterCommit($files);
+        });
+
+        TaskCommentDeleted::dispatch($comment->organization_id, $project->id, $task->id, $comment->id);
+
+        return response()->noContent();
+    }
+
     /**
      * Deletes the rows now and the files only once the transaction commits, so a rollback keeps both.
      *
@@ -108,6 +132,18 @@ class TaskCommentController extends Controller
 
         TaskCommentAttachment::query()->whereIn('id', $files->pluck('id'))->delete();
 
+        $this->deleteFilesAfterCommit($files);
+
+        return true;
+    }
+
+    /** @param  Collection<int, TaskCommentAttachment>  $files */
+    private function deleteFilesAfterCommit(Collection $files): void
+    {
+        if ($files->isEmpty()) {
+            return;
+        }
+
         DB::afterCommit(function () use ($files) {
             foreach ($files as $file) {
                 try {
@@ -117,8 +153,6 @@ class TaskCommentController extends Controller
                 }
             }
         });
-
-        return true;
     }
 
     /**

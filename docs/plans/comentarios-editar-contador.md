@@ -3,7 +3,7 @@
 **Objetivo:** las tarjetas del tablero muestran cuántos comentarios tiene cada tarea, al día en vivo, y en el panel de la
 tarea se pueden editar y borrar comentarios propios (owner/admin borran cualquiera), con menciones resincronizadas.
 Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 
 
 ## Contexto mínimo
@@ -80,7 +80,7 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - **Archivos:** `UpdateTaskCommentRequest.php`, `TaskCommentController.php`.
 - **Terminado cuando:** tests de quitar adjunto (archivo borrado tras commit, id ajeno rechazado, rollback no borra).
 
-### [ ] Fase 9 — Borrar comentarios [riesgo]
+### [x] Fase 9 — Borrar comentarios [riesgo]
 - **Alcance:** `DELETE .../comments/{comment}`: borrado físico (los comentarios no tienen respuestas), filas de
   menciones y adjuntos por cascada, archivos tras el commit; evento `TaskCommentDeleted`
   (`task.comment.deleted`, `{id, task_id, comments_count}`). Borrado concurrente: el segundo responde 404.
@@ -134,7 +134,9 @@ Origen: M-1 y M-2 de `docs/plans/terminados/comentarios-tareas.md`.
 - Fase 6 hecha: `TaskCommentPolicy::update` (autor) y `delete` (autor, owner, admin); devuelven la respuesta de `inspect view` de la tarea (404 sin acceso).
 - Fase 7 hecha: PATCH comentarios; `syncMentions($comment,$task,$authorId,?$currentIds)` sin eventos; `TaskCommentUpdated` `{comment}`. `UpdateTaskCommentRequest` exige `body`: en la fase 8 revisar el caso de comentario sin texto al quitar adjuntos.
 - Fase 8 hecha: `remove_attachment_ids` en el PATCH; body sigue obligatorio (igual que store); archivos borrados en afterCommit con try/report (patrón reutilizable en fase 9).
+- Fase 9 hecha (API completo): DELETE comentarios, evento `task.comment.deleted` `{id, task_id, comments_count}` (la web valida los tres como number).
 
 ## Mejoras propuestas
 - [ ] M-1: `docs/lecciones.md` tiene L-37 a L-40 repetidas (líneas ~50-57); quitar el duplicado. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-2: Test de `max_per_message` y exclusión del autor en la edición de comentarios; acortar los PHPDoc de `syncMentions` y `update`. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
+- [ ] M-3: `TaskCommentController`: quitar el `isEmpty()` redundante de `deleteFilesAfterCommit` y aclarar el comentario de `destroy`; comentario de una línea en el test de rollback (DDL transaccional). Complejidad: baja · Archivos: 2 · sin riesgo → sonnet

@@ -65,6 +65,7 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::get('projects/{project}/tasks/{task}/comments', [TaskCommentController::class, 'index']);
     Route::post('projects/{project}/tasks/{task}/comments', [TaskCommentController::class, 'store']);
     Route::patch('projects/{project}/tasks/{task}/comments/{comment}', [TaskCommentController::class, 'update'])->whereNumber('comment');
+    Route::delete('projects/{project}/tasks/{task}/comments/{comment}', [TaskCommentController::class, 'destroy'])->whereNumber('comment');
     Route::post('projects/{project}/tasks/{task}/attachments', [TaskCommentAttachmentController::class, 'store'])->middleware('throttle:chat-attachments');
     Route::get('projects/{project}/members', [ProjectMemberController::class, 'index']);
     Route::post('projects/{project}/members', [ProjectMemberController::class, 'store']);
