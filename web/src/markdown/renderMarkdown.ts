@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify'
 import MarkdownIt from 'markdown-it'
-import { MENTION_TOKEN } from '../mentionToken'
+import { splitMentions } from '../mentionToken'
 
 const MAX_HEADING_LEVEL = 4
 const HEADING_OFFSET = 2
@@ -72,7 +72,6 @@ export interface MentionOptions {
 md.core.ruler.after('inline', 'mentions', (state) => {
   const options = state.env?.mentions as MentionOptions | undefined
   if (!options) return
-  const names = new Map(options.mentions.map((m) => [String(m.id), m.name]))
   for (const block of state.tokens) {
     if (block.type !== 'inline' || !block.children) continue
     const children: typeof block.children = []
@@ -81,24 +80,19 @@ md.core.ruler.after('inline', 'mentions', (state) => {
         children.push(child)
         continue
       }
-      let last = 0
-      const pushText = (text: string) => {
-        if (!text) return
-        const t = new state.Token('text', '', 0)
-        t.content = text
-        children.push(t)
-      }
-      for (const match of child.content.matchAll(MENTION_TOKEN)) {
-        pushText(child.content.slice(last, match.index))
-        const own = options.ownUserId !== undefined && String(options.ownUserId) === match[1]
+      for (const part of splitMentions(child.content, options.mentions, options.unknownLabel, options.ownUserId)) {
+        if ('text' in part) {
+          const t = new state.Token('text', '', 0)
+          t.content = part.text
+          children.push(t)
+          continue
+        }
         const chip = new state.Token('html_inline', '', 0)
         chip.content =
-          `<span class="mention-chip${own ? ' mention-chip--own' : ''}" data-mention>` +
-          `@${md.utils.escapeHtml(names.get(match[1]) ?? options.unknownLabel)}</span>`
+          `<span class="mention-chip${part.own ? ' mention-chip--own' : ''}" data-mention>` +
+          `@${md.utils.escapeHtml(part.mention)}</span>`
         children.push(chip)
-        last = match.index + match[0].length
       }
-      pushText(child.content.slice(last))
     }
     block.children = children
   }

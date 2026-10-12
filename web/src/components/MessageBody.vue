@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { MENTION_TOKEN } from '../mentionToken'
+import { splitMentions, type MentionPart } from '../mentionToken'
 
 const props = defineProps<{
   body: string | null
@@ -11,25 +11,9 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-type Part = { text: string } | { mention: string; own: boolean }
-
-const parts = computed<Part[]>(() => {
-  const body = props.body ?? ''
-  const names = new Map((props.mentions ?? []).map((m) => [String(m.id), m.name]))
-  const result: Part[] = []
-  let last = 0
-  for (const match of body.matchAll(MENTION_TOKEN)) {
-    if (match.index > last) result.push({ text: body.slice(last, match.index) })
-    const id = match[1]
-    result.push({
-      mention: names.get(id) ?? t('channel.unknownMention'),
-      own: props.ownUserId !== undefined && String(props.ownUserId) === id,
-    })
-    last = match.index + match[0].length
-  }
-  if (last < body.length) result.push({ text: body.slice(last) })
-  return result
-})
+const parts = computed<MentionPart[]>(() =>
+  splitMentions(props.body ?? '', props.mentions ?? [], t('channel.unknownMention'), props.ownUserId),
+)
 </script>
 
 <template>

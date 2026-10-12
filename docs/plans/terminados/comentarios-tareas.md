@@ -187,7 +187,7 @@
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
 - [x] M-11: Specs de `MarkdownContent` para un `<span class="mention-chip">` escrito por el usuario (sale como texto) y
       para `\<@1>` (sin chip). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-12: Unificar la resolución de menciones de `MessageBody.vue` y la regla de `renderMarkdown`.
+- [x] M-12: Unificar la resolución de menciones de `MessageBody.vue` y la regla de `renderMarkdown`.
       Complejidad: media · Archivos: 3-4 · sin riesgo → sonnet
 - [ ] M-13: `MarkdownEditor`: el `watch` que pinta `@Nombre` depende también de `mentions.members`, para que un valor
       con `<@id>` montado antes de cargar los miembros se repinte. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
