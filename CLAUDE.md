@@ -133,7 +133,8 @@ y luego `graphify cluster-only ../.graphify-workspace/workspace`. No instalar gr
 ## Tareas grandes: flujo por fases
 El estado de una tarea larga vive en `docs/plans/<tarea>.md`, **no en la conversación**.
 
-1. **Planificar** (`/planificar <tarea>`): plan con fases pequeñas y criterio de "terminado". Esperar aprobación.
+1. **Planificar** (`/planificar <tarea>`): plan con fases pequeñas y criterio de "terminado", escrito en su worktree.
+   Esperar aprobación; al aprobarlo se mergea a `main` en local (sin push) para que las demás skills lo encuentren.
 2. **Ejecutar**:
    - **Automático** (`/ejecutar-plan <tarea>`): delega cada fase a `implementador-fase`, la revisa
      con `revisor-fase`, cierra y hace commit, y sigue hasta terminar o necesitar una decisión.
@@ -146,6 +147,9 @@ natural. `cerrar-fase` solo con `/cerrar-fase`.
 
 Reglas:
 - Una fase por sesión; `/clear` al cerrarla.
+- Plan que no aparece en `docs/plans/` ni en `terminados/`: puede estar en una rama sin mergear. Buscarlo con
+  `git worktree list` y `git log --all --oneline -- docs/plans/<tarea>.md` antes de decir que no existe, decir en qué
+  rama está y ofrecer mergearlo a `main` (merge local, solo con el ok del usuario).
 - No leer archivos que no hacen falta para la fase actual; explorar código desconocido con un subagente.
 - Si una fase crece más de lo previsto, dividirla en el plan en vez de seguir de largo.
 - Toda decisión que afecte fases futuras se escribe en "Decisiones" del plan.

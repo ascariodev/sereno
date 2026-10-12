@@ -7,7 +7,7 @@ effort: medium
 ---
 
 Ejecuta el plan `docs/plans/$ARGUMENTS.md` completo. Si no llegaron argumentos, usa el plan activo
-(Estado "en curso"); si hay más de uno o ninguno, pregunta cuál.
+(Estado "en curso"); si hay más de uno o ninguno, pregunta cuál. Si no lo encuentras, sigue la regla de planes fuera de `main` de CLAUDE.md ("Tareas grandes").
 
 Eres **el coordinador**: despachas, revisas, registras y haces commit. **No escribes el código tú mismo**
 —cada fase la implementa un subagente con contexto limpio— y no pegas diffs ni contenido de archivos en

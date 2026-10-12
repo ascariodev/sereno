@@ -7,7 +7,10 @@ effort: low
 disable-model-invocation: true
 ---
 
-Cierra la fase actual de `docs/plans/$ARGUMENTS.md` (si no llegaron argumentos, usa el plan con el que se trabajó en esta sesión):
+Cierra la fase actual de `docs/plans/$ARGUMENTS.md` (si no llegaron argumentos, usa el plan con el que se trabajó en esta sesión).
+Si no lo encuentras, sigue la regla de planes fuera de `main` de CLAUDE.md ("Tareas grandes").
+
+Pasos:
 
 1. Corre la verificación completa de cada app afectada, en un subagente que devuelva solo el resumen
    y sin otra corrida de tests en marcha:

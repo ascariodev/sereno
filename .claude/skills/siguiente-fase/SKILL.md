@@ -6,7 +6,7 @@ model: sonnet
 effort: medium
 ---
 
-Lee `docs/plans/$ARGUMENTS.md`.
+Lee `docs/plans/$ARGUMENTS.md`. Si no lo encuentras, sigue la regla de planes fuera de `main` de CLAUDE.md ("Tareas grandes").
 
 Si no llegaron argumentos, usa el plan activo que indicó el hook `plan-state` al iniciar la sesión, o busca en `docs/plans/` el plan con Estado "en curso". Si hay más de uno, o ninguno, pregunta cuál.
 
