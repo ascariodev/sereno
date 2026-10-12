@@ -519,6 +519,7 @@
     "failed": "Could not save the task. Try again."
   },
   "taskComments": {
+    "tooManyAttachments": "You can attach up to {max} files per comment.",
     "heading": "Comments",
     "empty": "No comments yet.",
     "loadOlder": "Load earlier comments",

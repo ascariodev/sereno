@@ -200,7 +200,7 @@
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
 - [x] M-17: Llevar a la vista el comentario recién enviado (scroll) en `TaskComments`.
       Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
-- [ ] M-18: Texto propio para el exceso de adjuntos en comentarios (`attachments.tooMany` dice "por mensaje").
+- [x] M-18: Texto propio para el exceso de adjuntos en comentarios (`attachments.tooMany` dice "por mensaje").
       Complejidad: baja · Archivos: 3 · sin riesgo → sonnet
 - [ ] M-19: Actualizar en `useAttachmentUploads.ts` los comentarios "channel changes" y la rama `error.errors.channel`,
       que ahora sirven a dos destinos. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet

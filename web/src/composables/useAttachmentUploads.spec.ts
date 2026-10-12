@@ -225,4 +225,19 @@ describe('useAttachmentUploads', () => {
     expect(state.items.value).toEqual([])
     expect(state.attachmentIds.value).toEqual([])
   })
+
+  it('uses the given message key when there are too many files', () => {
+    vi.spyOn(attachmentsApi, 'uploadAttachmentTo').mockImplementation(() => new Promise(() => {}))
+    wrapper = mount(
+      defineComponent({
+        setup() {
+          state = useAttachmentUploads(() => '/api/x', { maxFiles: 1, tooManyKey: 'taskComments.tooManyAttachments' })
+          return () => h('div')
+        },
+      }),
+    )
+    state.add([file('a'), file('b')])
+    expect(state.items.value[1]!.error).toBe(i18n.global.t('taskComments.tooManyAttachments', { max: 1 }))
+    expect(state.items.value[1]!.error).not.toBe(i18n.global.t('attachments.tooMany', { max: 1 }))
+  })
 })

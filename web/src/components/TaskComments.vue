@@ -34,7 +34,9 @@ const fileIdPrefix = useId()
 const headingId = `${fileIdPrefix}-heading`
 const sentNotice = ref('')
 // Keyed by the upload path: changing task drops the items and discards uploads still in flight (L-10).
-const uploads = useAttachmentUploads(() => taskAttachmentsPath(props.projectId, props.taskId))
+const uploads = useAttachmentUploads(() => taskAttachmentsPath(props.projectId, props.taskId), {
+  tooManyKey: 'taskComments.tooManyAttachments',
+})
 let sendToken = 0
 
 watch(

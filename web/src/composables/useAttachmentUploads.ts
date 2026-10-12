@@ -30,10 +30,11 @@ const t = (key: string, params: Record<string, unknown> = {}): string =>
  */
 export function useAttachmentUploads(
   target: () => number | string,
-  options: { maxFiles?: number; maxBytes?: number } = {},
+  options: { maxFiles?: number; maxBytes?: number; tooManyKey?: string } = {},
 ) {
   const maxFiles = options.maxFiles ?? ATTACHMENT_MAX_PER_MESSAGE
   const maxBytes = options.maxBytes ?? ATTACHMENT_MAX_SIZE_BYTES
+  const tooManyKey = options.tooManyKey ?? 'attachments.tooMany'
 
   const items = ref<UploadItem[]>([])
   const files = new Map<number, File>()
@@ -126,7 +127,7 @@ export function useAttachmentUploads(
         continue
       }
       if (activeCount() >= maxFiles) {
-        items.value.push(rejected(file, t('attachments.tooMany', { max: maxFiles })))
+        items.value.push(rejected(file, t(tooManyKey, { max: maxFiles })))
         continue
       }
       const key = nextKey++
@@ -148,7 +149,7 @@ export function useAttachmentUploads(
     const item = find(key)
     if (!item || item.status !== 'error' || !item.retryable || !files.has(key)) return
     if (activeCount() >= maxFiles) {
-      item.error = t('attachments.tooMany', { max: maxFiles })
+      item.error = t(tooManyKey, { max: maxFiles })
       item.retryable = false
       return
     }

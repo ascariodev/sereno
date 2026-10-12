@@ -519,6 +519,7 @@
     "failed": "No se pudo guardar la tarea. Inténtalo de nuevo."
   },
   "taskComments": {
+    "tooManyAttachments": "Puedes adjuntar hasta {max} archivos por comentario.",
     "heading": "Comentarios",
     "empty": "Aún no hay comentarios.",
     "loadOlder": "Cargar comentarios anteriores",
