@@ -3,7 +3,7 @@
 **Objetivo:** al crear una tarea desde un aviso de log (Aside del grupo o aviso del canal), la descripción del
 diálogo llega prellenada en Markdown con nivel, conteo de eventos y el mensaje en un bloque de código.
 Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 
@@ -30,7 +30,7 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
 
 ## Fases
 
-### [ ] Fase 1 — Helper que arma la descripción desde un grupo
+### [x] Fase 1 — Helper que arma la descripción desde un grupo
 - **Alcance:** función pura `buildLogGroupTaskDescription(data, t, locale)` con
   `data = { level, events_count, message, first_seen_at?, last_seen_at? }`. Forma exacta (L-51):
   lista `- **<Nivel>:** <etiqueta del nivel>`, `- **<Eventos>:** <n>`, y si vienen, primera y última vez
@@ -78,7 +78,7 @@ Sale de M-2 de `docs/plans/terminados/texto-enriquecido.md`.
   contenido de la persona y no se traduce.
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1. Leer `docs/lecciones.md` (L-11, L-25, L-51). Al terminar el plan, marcar M-2 `[x]` en
+- Fase 1 hecha: `buildLogGroupTaskDescription(data, t, locale)` en `web/src/components/logGroupTaskDescription.ts`, `t: (key) => string`, sin claves i18n nuevas. Siguiente: fase 2. Leer `docs/lecciones.md` (L-11, L-25, L-51). Al terminar el plan, marcar M-2 `[x]` en
   `docs/plans/terminados/texto-enriquecido.md`.
 
 ## Mejoras propuestas
