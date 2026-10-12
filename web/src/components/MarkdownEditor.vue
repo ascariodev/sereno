@@ -66,9 +66,10 @@ const previewMentions = computed(() =>
 )
 
 watch(
-  () => (mentionsEnabled.value ? props.modelValue : null),
-  (value) => {
-    if (value === null || value === mention.serialized.value) return
+  () => [mentionsEnabled.value ? props.modelValue : null, props.mentions?.members] as const,
+  ([value, members], previous) => {
+    if (value === null) return
+    if (value === mention.serialized.value && members === previous?.[1]) return
     const known = [...mention.mentions.value, ...(props.mentions?.members ?? [])]
     mention.restore(parseMentionDraft(value, known))
   },

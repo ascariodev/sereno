@@ -311,6 +311,16 @@ describe('MarkdownEditor', () => {
       expect(wrapper.emitted('update:modelValue')).toEqual([['hi @an']])
     })
 
+    it('repaints a mounted <@id> once the members load', async () => {
+      const wrapper = mountEditor('hi <@2>', { mentions: { members: [], excludeUserId: 1 } })
+      expect((wrapper.find('textarea').element as HTMLTextAreaElement).value).toBe('hi <@2>')
+
+      await wrapper.setProps({ mentions: { members, excludeUserId: 1 } })
+
+      expect((wrapper.find('textarea').element as HTMLTextAreaElement).value).toBe('hi @Ana Pérez')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    })
+
     it('opens an accessible list on @ like the chat composer and loads the members', async () => {
       const ensureLoaded = vi.fn()
       const wrapper = mountWithMentions('', { ensureLoaded })

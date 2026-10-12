@@ -189,7 +189,7 @@
       para `\<@1>` (sin chip). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [x] M-12: Unificar la resolución de menciones de `MessageBody.vue` y la regla de `renderMarkdown`.
       Complejidad: media · Archivos: 3-4 · sin riesgo → sonnet
-- [ ] M-13: `MarkdownEditor`: el `watch` que pinta `@Nombre` depende también de `mentions.members`, para que un valor
+- [x] M-13: `MarkdownEditor`: el `watch` que pinta `@Nombre` depende también de `mentions.members`, para que un valor
       con `<@id>` montado antes de cargar los miembros se repinte. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
 - [ ] M-14: `MarkdownEditor`: deshacer (Ctrl+Z) un formato que envolvía una mención la deja como `@Nombre` sin token;
       conservar las menciones al reconciliar tras deshacer. Complejidad: media · Archivos: 2 · sin riesgo → sonnet
