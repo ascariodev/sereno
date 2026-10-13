@@ -2,6 +2,7 @@
 
 namespace App\Notifications\Channels;
 
+use App\Events\NotificationCreated;
 use App\Models\AppNotification;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,8 @@ use InvalidArgumentException;
  * The notification implements `toApp(User $notifiable): array` returning `type`, `organization_id`,
  * `subject` (the model it refers to), and optionally `project_id` and `data`. The organization is explicit
  * because queued notifications run without an active one. Retries are idempotent: the row is keyed by the
- * notification id, which Laravel fixes per notifiable before queuing.
+ * notification id, which Laravel fixes per notifiable before queuing; `NotificationCreated` goes out only when
+ * the row was inserted, so a retry does not announce it twice.
  */
 class AppChannel
 {
@@ -31,7 +33,7 @@ class AppChannel
             throw new InvalidArgumentException('toApp() must return a type, an organization_id and a subject model.');
         }
 
-        AppNotification::query()->withoutGlobalScopes()->insertOrIgnore([
+        $inserted = AppNotification::query()->withoutGlobalScopes()->insertOrIgnore([
             'uuid' => $notification->id,
             'organization_id' => $payload['organization_id'],
             'user_id' => $notifiable->getKey(),
@@ -41,5 +43,11 @@ class AppChannel
             'subject_id' => $subject->getKey(),
             'data' => json_encode((object) ($payload['data'] ?? []), JSON_THROW_ON_ERROR),
         ]);
+
+        if ($inserted === 1) {
+            NotificationCreated::dispatch(
+                AppNotification::query()->withoutGlobalScopes()->where('uuid', $notification->id)->firstOrFail(),
+            );
+        }
     }
 }

@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -29,7 +29,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 2 — API de la bandeja
 - GET `notifications` (organización activa, cursor), POST `notifications/read` (ids o todas) y `unread_count`; resource y throttle. 5 archivos.
 
-### [ ] Fase 3 — Evento NotificationCreated
+### [x] Fase 3 — Evento NotificationCreated
 - Broadcast a `users.{id}` con membresía comprobada en `broadcastOn` (L-42). 2 archivos.
 
 ### [ ] Fase 4 — Notificación de tarea asignada
@@ -104,8 +104,16 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   `POST /api/notifications/read` con `all: true` o `ids` (máx. 100) → `{unread_count}`, idempotente; ids ajenos se ignoran.
   Throttle `notifications` 60/min por usuario, compartido. Un member solo ve (y cuenta y marca) las de `project_id` null o de sus
   proyectos visibles (patrón `MentionController`); las filas ocultas se conservan.
+- 2026-10-13 (fase 3): `App\Events\NotificationCreated` (`ShouldBroadcast`, `ShouldDispatchAfterCommit`) a `users.{id}`,
+  `broadcastAs` `notification.created`, payload `{organization_id, notification}` con el mismo item de `NotificationResource`
+  (resuelto al construir). Lo despacha `AppChannel::send` solo si `insertOrIgnore` insertó (un reintento no lo repite).
+  `broadcastOn` devuelve `[]` si el usuario ya no es miembro o, con `project_id`, si `ProjectAccess::canViewId` es falso.
+- 2026-10-13 (fase 3): `data` de cada notificación lleva ids y textos cortos (título, extracto breve), nunca cuerpos completos:
+  la comprobación de acceso corre en el worker y queda una ventana hasta la entrega.
 
 ## Notas para la próxima sesión
+- Fase 12: el cliente ignora `notification.created` si `organization_id` no es la organización activa y fusiona por `id`.
+- Tras el merge, `docker compose restart queue`.
 - Último de los tres planes. La fase 10 toca `api/docker-compose.yml`, que hoy tiene cambios sin commit de otra sesión.
 
 ## Mejoras propuestas
