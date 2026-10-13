@@ -2,7 +2,7 @@
 
 **Objetivo:** que las notificaciones de Sereno (tarea asignada, comentario o mención en tarea, mención en el chat) lleguen
 como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin duplicar lo que ya muestra la app abierta.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -24,7 +24,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 
 ## Fases
 
-### [ ] Fase 1 — Dependencia y claves VAPID [riesgo]
+### [x] Fase 1 — Dependencia y claves VAPID [riesgo]
 - **Alcance:** `composer require minishlink/web-push:^11`; config `workspace.push` (`vapid_public_key`, `vapid_private_key`,
   `vapid_subject`) desde env (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`); comando artisan que genera un par de
   claves con la librería y lo imprime (no escribe el `.env`). Verificar en el contenedor que la librería carga sin `gmp`;
@@ -114,8 +114,21 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - 2026-10-13 — Solo Web Push; el push móvil (Expo) va con la app móvil (`app/` no existe todavía).
 - 2026-10-13 — `push_subscriptions` sin `organization_id`: es del usuario y su dispositivo, no de una organización; el payload
   lleva la organización en la url.
+- 2026-10-13 — Sin `gmp` en el Dockerfile: `minishlink/web-push` v11 genera claves y cifra con `ext-openssl` y `bcmath`
+  (presentes); `gmp` es opcional de rendimiento.
+- 2026-10-13 — Comando `php artisan push:vapid-keys` imprime las líneas `VAPID_*` para el `.env`, no escribe archivos.
+  `workspace.push.vapid_subject` no tiene valor por defecto: la fase 7 debe no enviar (y reportar claro) si falta alguna
+  de las tres variables.
 
 ## Notas para la próxima sesión
-- Fase 1: pedir al usuario que cargue las claves VAPID en `api/.env` y que agregue los nombres a `api/.env.example`.
+- Fase 1 hecha. Pendiente del usuario: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (de `push:vapid-keys`) y `VAPID_SUBJECT`
+  (`mailto:...`) en `api/.env` y los tres nombres en `api/.env.example`; luego `docker compose restart api queue reverb scheduler`.
+- Ejecución en worktree (`.claude/worktrees/notificaciones-push`): los contenedores montan el checkout principal, así que
+  los tests del API corren en un contenedor desechable con el api del worktree montado (volumen `workspace_workspace_vendor`,
+  red `workspace_default`, `.env` principal montado solo lectura). El vendor compartido ya tiene `minishlink/web-push`:
+  no correr `composer install` en el checkout principal antes del merge.
 
 ## Mejoras propuestas
+
+- [ ] M-1 (baja, sonnet): `GenerateVapidKeysCommandTest` guarda y restaura las variables de entorno a mano; un helper
+  compartido de tests lo simplificaría.
