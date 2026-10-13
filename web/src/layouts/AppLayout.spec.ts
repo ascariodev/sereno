@@ -27,12 +27,15 @@ const orgs = [
   { id: 2, name: 'Two', slug: 'two', settings: null, roles: ['member'] },
 ]
 
+const channel = { id: 7, project_id: 5, name: 'general', project: { id: 5, name: 'posveapi', key: 'POSVE' }, is_archived: false }
+
 let projectExtra: Record<string, unknown> = {}
 let mentionsUnread = 0
 
 function sidebarData(path: string, withChannel = true): unknown {
   if (path === '/api/projects') return { data: [{ ...project, ...projectExtra }], meta: { last_page: 1 } }
-  if (path === '/api/channels') return withChannel ? { data: [{ id: 7, project_id: 5, name: 'general', project: { id: 5, name: 'posveapi' }, is_archived: false }] } : { data: [] }
+  if (path === '/api/channels') return withChannel ? { data: [channel] } : { data: [] }
+  if (path === '/api/channels/7') return { data: channel }
   if (path === '/api/mentions') return { data: [], links: {}, meta: { next_cursor: null, unread_count: mentionsUnread } }
   if (path === '/api/channels/7/messages') return { data: [], meta: { next_cursor: null } }
   return undefined
