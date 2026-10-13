@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -51,7 +51,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 9 — Preferencias de email (API)
 - `users.notification_preferences` jsonb (email por tipo, por defecto encendido), GET/PATCH en `me`, y `via()` las respeta. 5 archivos.
 
-### [ ] Fase 10 — Mailpit en desarrollo
+### [x] Fase 10 — Mailpit en desarrollo
 - Servicio `mailpit` en `api/docker-compose.yml` e instrucciones para `MAIL_*` en `CLAUDE.md` (el `.env` lo edita el usuario). 2 archivos.
 
 ### [ ] Fase 11 — Correo en producción [riesgo]
@@ -150,6 +150,9 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   task_comment_mention, task_commented, chat_mention}}}`, siempre los cuatro; `PATCH` con `{email:{tipo:bool}}`, merge parcial, responde
   el estado completo; 422 si falta `email` (también `[]`), no es array, clave fuera del enum o valor no booleano estricto. `GET /api/me`
   no las incluye. `via()` omite `mail` si está apagado (optimización) y `shouldSend` lo relee en el worker para el canal `mail`.
+- 2026-10-13 (fase 10): servicio `mailpit` (`axllent/mailpit:v1.31.5`) en `api/docker-compose.yml`, sin perfil (arranca con
+  `docker compose up -d`), puertos `127.0.0.1:8026` (web) y `127.0.0.1:1026` (SMTP); dentro de la red, `mailpit:1025`. Instrucciones
+  `MAIL_*` en `CLAUDE.md`; `api/.env` lo edita el usuario. Los tests no dependen de él (`phpunit.xml` fuerza `MAIL_MAILER=array`).
 
 ## Notas para la próxima sesión
 - Fase 12: el cliente ignora `notification.created` si `organization_id` no es la organización activa y fusiona por `id`.
@@ -195,3 +198,6 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-15: Test de worker (preferencia de email apagada tras encolar) también para `ChatMentionNotification` y las de comentarios,
       parametrizado. (revisor, fase 9)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-16: En las instrucciones de Mailpit de `CLAUDE.md`, quitar el `up -d mailpit` redundante, reiniciar también `reverb` y
+      `scheduler` (cargan el `.env`) y quitar `MAIL_SCHEME=null` del bloque. (revisor, fase 10)
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
