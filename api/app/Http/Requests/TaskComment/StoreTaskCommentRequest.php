@@ -5,6 +5,7 @@ namespace App\Http\Requests\TaskComment;
 use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TaskCommentAttachment;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
@@ -16,7 +17,8 @@ class StoreTaskCommentRequest extends FormRequest
     {
         /** @var Task $task */
         $task = $this->route('task');
-        abort_unless($task->project_id === $this->route('project')->id, 404);
+
+        throw_unless($task->project_id === $this->route('project')->id, ModelNotFoundException::class);
 
         return Gate::authorize('create', [TaskComment::class, $task])->allowed();
     }
