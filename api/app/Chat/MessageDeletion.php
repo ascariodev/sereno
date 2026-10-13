@@ -2,6 +2,7 @@
 
 namespace App\Chat;
 
+use App\Models\AppNotification;
 use App\Models\Message;
 use App\Models\MessageAttachment;
 use Illuminate\Database\Eloquent\Collection;
@@ -47,6 +48,8 @@ class MessageDeletion
             $locked->body = null;
             $locked->deleted_at = now()->startOfSecond();
             $locked->save();
+
+            AppNotification::forgetSubjects(Message::class, [$locked->id]);
 
             if ($root !== null) {
                 // A decrement, not a recount: a reply inserted but not yet counted (or not visible) is added by

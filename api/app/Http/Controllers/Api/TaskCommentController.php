@@ -11,6 +11,7 @@ use App\Http\Requests\TaskComment\ListTaskCommentsRequest;
 use App\Http\Requests\TaskComment\StoreTaskCommentRequest;
 use App\Http\Requests\TaskComment\UpdateTaskCommentRequest;
 use App\Http\Resources\TaskCommentResource;
+use App\Models\AppNotification;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskComment;
@@ -102,6 +103,7 @@ class TaskCommentController extends Controller
                 ->get(['disk', 'path']);
 
             $locked->delete();
+            AppNotification::forgetSubjects(TaskComment::class, [$locked->id]);
             $this->deleteFilesAfterCommit($files);
         });
 

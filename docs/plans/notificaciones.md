@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -45,7 +45,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 7 — Limpieza al perder acceso [riesgo]
 - `MembershipRevoked` y `ProjectAccessChanged` borran las notificaciones que el usuario ya no puede ver; suite completa (L-49). 2-3 archivos.
 
-### [ ] Fase 8 — Limpieza al borrar el sujeto
+### [x] Fase 8 — Limpieza al borrar el sujeto
 - Borrar tarea, mensaje o comentario borra sus notificaciones. 2-3 archivos.
 
 ### [ ] Fase 9 — Preferencias de email (API)
@@ -140,6 +140,11 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   `project_id` fuera de `ProjectAccess::visibleProjectIds` (conserva las de `project_id` null). Todo en try/catch con `report`:
   corre en el callback de commit y un fallo daría 500 y cortaría `TerminateUserConnections`. Borrar proyecto, usuario u
   organización ya lo cubren los FK en cascada; lo que aún está en cola lo frena `shouldSend`. Suite completa (L-49): 1267 ok.
+- 2026-10-13 (fase 8): `AppNotification::forgetSubjects(tipo, ids)` (sin scope) se llama dentro del `DB::transaction` del borrado, no
+  en un listener: `DeleteTask` (la tarea y sus comentarios, ids leídos antes del delete por la cascada), `TaskCommentController::destroy`
+  y `MessageDeletion` (soft delete; las respuestas de un raíz siguen vivas y conservan las suyas). No hay borrado de canales fuera de
+  la cascada de proyecto u organización. `ChatMentionNotification::shouldSend` frena un job en cola porque `MessageDeletion` vacía
+  `message_mentions` antes del soft delete (depende de ese orden).
 
 ## Notas para la próxima sesión
 - Fase 12: el cliente ignora `notification.created` si `organization_id` no es la organización activa y fusiona por `id`.
@@ -178,4 +183,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
       Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
 - [ ] M-13: En `SyncChatMentionNotification::handleCreated`, capturar y reportar un fallo al encolar para que no dé 500 al POST con el
       mensaje ya guardado. (revisor, fase 6)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-14: Que `ChatMentionNotification::shouldSend` mire también `deleted_at` del mensaje, para no depender de que `MessageDeletion`
+      vacíe las menciones antes; y que `NotificationSubjectCleanupTest` use una fila `chat_mention` real en el caso del mensaje. (revisor, fase 8)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
