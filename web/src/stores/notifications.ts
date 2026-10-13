@@ -107,6 +107,22 @@ export const useNotificationsStore = defineStore('notifications', () => {
     return missing
   }
 
+  /**
+   * Drops the loaded rows the first page's id range covers but the page lacks (deleted in the API); older rows loaded by
+   * cursor stay. A page without `next_cursor` covers everything. Live rows that arrived after the request started stay.
+   */
+  function pruneDeleted(
+    current: readonly AppNotification[],
+    page: { data: readonly AppNotification[]; meta: { next_cursor: string | null } },
+    startedAt: number,
+  ): readonly AppNotification[] {
+    const floor = page.meta.next_cursor === null || page.data.length === 0 ? 0 : Math.min(...page.data.map((row) => row.id))
+    const inPage = new Set(page.data.map((row) => row.id))
+    return current.filter(
+      (row) => row.id < floor || inPage.has(row.id) || (liveArrivals.get(row.id) ?? 0) > startedAt,
+    )
+  }
+
   /** Loads the first page and merges it into what is already there; the newest request wins. Also the way to reload. */
   function refresh(): Promise<void> {
     if (organization.activeId === null) return Promise.resolve()
@@ -117,7 +133,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     return listNotifications({ perPage: NOTIFICATIONS_PER_PAGE }, controller.signal)
       .then((page) => {
         if (current !== generation || version !== fetchVersion) return
-        notifications.value = mergeNotifications(notifications.value, page.data)
+        notifications.value = mergeNotifications(pruneDeleted(notifications.value, page, startedAt), page.data)
         if (!loaded.value) {
           nextCursor.value = page.meta.next_cursor
           loaded.value = true

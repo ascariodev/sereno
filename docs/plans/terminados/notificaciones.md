@@ -244,7 +244,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-16: En las instrucciones de Mailpit de `CLAUDE.md`, quitar el `up -d mailpit` redundante, reiniciar también `reverb` y
       `scheduler` (cargan el `.env`) y quitar `MAIL_SCHEME=null` del bloque. (revisor, fase 10)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-17: Las filas que el API borra (fases 7 y 8) siguen en la lista de la web: en el refresh tras reconectar, reemplazar las filas
+- [x] M-17: Las filas que el API borra (fases 7 y 8) siguen en la lista de la web: en el refresh tras reconectar, reemplazar las filas
       con `id` >= el menor de la página, o un evento `notification.removed`. (revisor, fase 12)
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [x] M-18: `markAllRead` marca como leídas también las filas llegadas en vivo durante la petición, que el servidor quizá no marcó:
