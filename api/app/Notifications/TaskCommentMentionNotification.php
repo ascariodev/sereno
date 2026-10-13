@@ -16,10 +16,16 @@ class TaskCommentMentionNotification extends TaskCommentNotification
 
     protected function stillRelevant(User $notifiable): bool
     {
+        return $this->stillApplies($notifiable);
+    }
+
+    public function stillApplies(User $notifiable): bool
+    {
         return TaskCommentMention::query()
             ->withoutGlobalScopes()
             ->where('task_comment_id', $this->commentId)
             ->where('user_id', $notifiable->id)
+            ->sharedLock()
             ->exists();
     }
 

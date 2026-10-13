@@ -3,6 +3,7 @@
 use App\Enums\Locale;
 use App\Enums\NotificationType;
 use App\Enums\Role;
+use App\Events\NotificationCreated;
 use App\Models\AppNotification;
 use App\Models\Organization;
 use App\Models\Project;
@@ -158,6 +159,18 @@ it('does not send a mention when the comment was deleted, the mention removed or
 
     expect(AppNotification::query()->count())->toBe(0)->and(commentNotificationsSent())->toBe([]);
 })->with(['comment', 'mention', 'access']);
+
+it('drops its row when the mention is removed after shouldSend passed but before the insert', function () {
+    $notification = mentionNotificationFor($this->mentioned);
+    $notification->id = (string) Str::uuid();
+    Event::fake([NotificationCreated::class]);
+    DB::table('task_comment_mentions')->where('task_comment_id', $notification->commentId)->delete();
+
+    app(AppChannel::class)->send($this->mentioned, $notification);
+
+    expect(AppNotification::query()->count())->toBe(0);
+    Event::assertNotDispatched(NotificationCreated::class);
+});
 
 it('does not send a comment notice when the user is no longer assignee or creator, or lost access', function (string $change) {
     $notification = mentionNotificationFor($this->mentioned);

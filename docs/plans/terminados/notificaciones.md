@@ -194,6 +194,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - 2026-10-13: cierre. Se trajo `main` (arreglo de `AppLayout.spec.ts` de otra sesión; su lección quedó como L-73 y las de este plan
   pasaron a L-74, L-75 y L-76). Suite API 1276 ok y Pint ok; suite web 1731 ok y typecheck ok; `AppLayout.spec.ts` ya pasa completo.
   Queda 1 error no manejado previo en `TaskComments.spec.ts` (`scrollIntoView` en jsdom), también en `main`, ajeno al plan (tarea aparte).
+- 2026-10-13 (M-10): `AppChannel` revalida tras insertar con el método opcional `stillApplies(User)` de la notificación (lectura con `sharedLock`); si da false borra la fila por uuid y no emite. Lo implementan las dos menciones.
 
 ## Notas para la próxima sesión
 - Tras el merge, `docker compose restart queue`.
@@ -223,7 +224,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
       Descartada: en cola cada canal y destinatario es un job con su propia instancia, así que una caché no ahorra consultas,
       y pasar el estado desde el listener lo congelaría al encolar (L-70).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-10: Cerrar el hueco entre `shouldSend` y el insert de `AppChannel` (una mención quitada justo ahí deja la fila) con un insert
+- [x] M-10: Cerrar el hueco entre `shouldSend` y el insert de `AppChannel` (una mención quitada justo ahí deja la fila) con un insert
       condicionado o un índice único parcial por (user, type, subject). (implementador y revisor, fase 6)
       Complejidad: media · Archivos: 3 · Riesgo: migración → opus
 - [x] M-11: Reducir el conjunto de `MailMarkdown::escape` a lo que forma enlaces e imágenes (`\ ` * _ [ ] ( ) < >`, `!` antes de `[`):
@@ -273,3 +274,8 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-27: `DelaysMail`: castear a entero no negativo `notifications.mail_delay_minutes`, y documentar `NOTIFICATION_MAIL_DELAY_MINUTES`
       (`api/.env.example` lo edita el usuario, L-52). (revisor, M-1)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-28: Reemplazar el `method_exists(stillApplies)` de `AppChannel` por una interfaz (p. ej. `RevalidatesAfterInsert`). (revisor, M-10)
+      Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
+- [ ] M-29: Cerrar el hueco de M-10 también para `task_commented` y `task_assigned` (tarea o comentario borrados entre `shouldSend` y el insert,
+      `forgetSubjects` dentro de la transacción). (implementador y revisor, M-10)
+      Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet

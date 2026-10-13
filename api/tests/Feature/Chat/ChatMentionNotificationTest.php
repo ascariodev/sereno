@@ -3,6 +3,7 @@
 use App\Enums\Locale;
 use App\Enums\NotificationType;
 use App\Enums\Role;
+use App\Events\NotificationCreated;
 use App\Models\AppNotification;
 use App\Models\Channel;
 use App\Models\Message;
@@ -166,6 +167,18 @@ it('does not send when the mention was removed or the access lost before the wor
 
     expect(AppNotification::query()->withoutGlobalScopes()->count())->toBe(0)->and(chatMentionChannelsSent())->toBe([]);
 })->with(['mention', 'project', 'organization']);
+
+it('drops its row when the mention is removed after shouldSend passed but before the insert', function () {
+    $notification = chatMentionNotificationFor($this->ana);
+    $notification->id = (string) Str::uuid();
+    Event::fake([NotificationCreated::class]);
+    DB::table('message_mentions')->where('message_id', $notification->messageId)->delete();
+
+    app(AppChannel::class)->send($this->ana, $notification);
+
+    expect(AppNotification::query()->withoutGlobalScopes()->count())->toBe(0);
+    Event::assertNotDispatched(NotificationCreated::class);
+});
 
 it('does not send when the message was deleted but its mention row is still there', function () {
     $notification = chatMentionNotificationFor($this->ana);

@@ -87,25 +87,29 @@ class ChatMentionNotification extends Notification implements ShouldQueue
             return false;
         }
 
-        $stillMentioned = MessageMention::query()
-            ->withoutGlobalScopes()
-            ->where('message_id', $this->messageId)
-            ->where('user_id', $notifiable->id)
-            ->exists();
-
         $messageAlive = Message::query()
             ->withoutGlobalScopes()
             ->whereKey($this->messageId)
             ->whereNull('deleted_at')
             ->exists();
 
-        if (! $stillMentioned || ! $messageAlive) {
+        if (! $this->stillApplies($notifiable) || ! $messageAlive) {
             return false;
         }
 
         return $this->projectId === null
             ? $notifiable->organizations()->whereKey($this->organizationId)->exists()
             : ProjectAccess::canViewId($notifiable, $this->organizationId, $this->projectId);
+    }
+
+    public function stillApplies(User $notifiable): bool
+    {
+        return MessageMention::query()
+            ->withoutGlobalScopes()
+            ->where('message_id', $this->messageId)
+            ->where('user_id', $notifiable->id)
+            ->sharedLock()
+            ->exists();
     }
 
     /** @return list<class-string|string> */
