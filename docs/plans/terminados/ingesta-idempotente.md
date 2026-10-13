@@ -2,7 +2,7 @@
 
 **Objetivo:** que reintentar la ingesta de log (el job en la cola o el POST del cliente) no duplique eventos ni sume de más en
 los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `docs/plans/terminados/log.md`.
-**Estado:** en curso · Fase actual: 7
+**Estado:** terminado · 7/7 fases
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -97,6 +97,7 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 - 2026-10-12 — Fase 7: el reintento reenvía el mismo lote ya formateado, solo ante `ConnectionException` o 5xx (no 4xx, tampoco 429); presupuesto total de 10 s por lote (`MAX_TIMEOUT_SECONDS`), y no reintenta si quedan menos de `MIN_RETRY_SECONDS` (0,5 s). Si el reintento falla, respaldo y descarte como antes.
 
 ## Notas para la próxima sesión
+- Plan terminado. Suite completa del API: 1199 tests, 5140 aserciones, LISTED=1202, pint limpio. Paquete `sereno-laravel`: rama `feat/ingesta-ids` (2 commits) sin mergear ni tag. Al desplegar: vaciar la cola de ingesta, `restart queue` y `restart scheduler`.
 - Fase 6 hecha (repo `sereno-laravel`, rama `feat/ingesta-ids`, worktree `../sereno-laravel/.claude/worktrees/ingesta-ids`, 1 commit): `EventFormatter` agrega `id` (UUID); el handler guarda el evento ya formateado. La fase 7 debe reenviar el mismo `$batch` sin volver a formatear y actualizar la línea "No retries" del README de "Delivery behavior" (hoy el README promete que el id sobrevive al reenvío, y solo será cierto con el reintento).
 - Fase 5 hecha: comando propio `log:prune-receipts` (diario 00:40 UTC, lotes de 5000, ventana `LogEventReceipt::RETRY_WINDOW_HOURS` = 48). Al desplegar también `docker compose restart scheduler`. Siguen las fases 6 y 7 en el repo `../sereno-laravel` (propio git; el worktree se crea ahí).
 - Fase 4 hecha: `IngestLogEvents` con `$tries = 3`, `backoff [5, 30]`. Al desplegar: vaciar la cola de ingesta antes (lotes encolados sin id no están protegidos) y `docker compose restart queue` (el worker no recarga código). Siguiente: poda de recibos (fase 5). Al terminar, marcar M-5 de `docs/plans/terminados/log.md`.
