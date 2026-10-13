@@ -20,9 +20,12 @@ class LogEventRecorder
      * Groups and stores one already validated event. Tenant ids come from the source, never from
      * the active organization: ingestion runs in jobs where the active organization is not set.
      *
+     * With an $eventId, an event already recorded for the same source is discarded and null is returned;
+     * without one, every call counts.
+     *
      * @param  array{level: LogLevel|string, message: string, context?: array<mixed>|null, occurred_at?: CarbonInterface|string|null, fingerprint?: string|null}  $event
      */
-    public function record(LogSource $source, array $event): LogEvent
+    public function record(LogSource $source, array $event, ?string $eventId = null): ?LogEvent
     {
         $receivedAt = CarbonImmutable::now('UTC')->startOfSecond();
         $level = $event['level'] instanceof LogLevel ? $event['level'] : LogLevel::from($event['level']);
@@ -34,7 +37,11 @@ class LogEventRecorder
         // The same $receivedAt decides the partition and the row: around midnight, computing it twice could pick different days.
         LogPartitions::ensure($receivedAt);
 
-        return DB::transaction(function () use ($source, $event, $level, $message, $occurredAt, $receivedAt) {
+        return DB::transaction(function () use ($source, $event, $eventId, $level, $message, $occurredAt, $receivedAt) {
+            if ($eventId !== null && ! $this->storeReceipt($source, $eventId, $receivedAt)) {
+                return null;
+            }
+
             $group = $this->upsertGroup(
                 $source,
                 LogFingerprint::for($message, $event['fingerprint'] ?? null),
@@ -67,6 +74,24 @@ class LogEventRecorder
         $firstLine = strtok(ltrim($message), "\r\n");
 
         return mb_substr(trim($firstLine === false ? '' : $firstLine), 0, LogGroup::TITLE_MAX_LENGTH);
+    }
+
+    /**
+     * Inside the event transaction, so a rollback also drops the receipt and a retry can record the event.
+     * A concurrent worker with the same id waits on the unique index until this one commits, then skips.
+     */
+    private function storeReceipt(LogSource $source, string $eventId, CarbonInterface $receivedAt): bool
+    {
+        return DB::affectingStatement(<<<'SQL'
+            INSERT INTO log_event_receipts (organization_id, log_source_id, event_id, received_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT (log_source_id, event_id) DO NOTHING
+            SQL, [
+            $source->organization_id,
+            $source->id,
+            $eventId,
+            $receivedAt->format('Y-m-d H:i:s'),
+        ]) === 1;
     }
 
     /**

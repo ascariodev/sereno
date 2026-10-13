@@ -23,7 +23,7 @@ class IngestLogEvents implements ShouldBeEncrypted, ShouldQueue
     public int $tries = 1;
 
     /**
-     * @param  list<array{level: string, message: string, context?: array<mixed>|null, occurred_at?: string|null, fingerprint?: string|null}>  $events
+     * @param  list<array{level: string, message: string, context?: array<mixed>|null, occurred_at?: string|null, fingerprint?: string|null, id?: string|null}>  $events
      */
     public function __construct(public readonly int $sourceId, public readonly array $events) {}
 
@@ -37,7 +37,7 @@ class IngestLogEvents implements ShouldBeEncrypted, ShouldQueue
         }
 
         foreach ($this->events as $event) {
-            $recorder->record($source, $event);
+            $recorder->record($source, $event, $event['id'] ?? null);
         }
     }
 }

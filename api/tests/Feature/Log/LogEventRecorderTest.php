@@ -287,3 +287,74 @@ it('does not dispatch LogGroupReopened when the transaction of a resolved group 
     Event::assertNotDispatched(LogGroupReopened::class);
     Event::assertNotDispatched(LogGroupOpened::class);
 });
+
+it('discards an event whose id was already recorded for the source', function () {
+    Event::fake([LogGroupOpened::class, LogGroupReopened::class]);
+    $event = ['level' => 'error', 'message' => 'Order failed'];
+
+    $first = $this->recorder->record($this->source, $event, 'evt-1');
+    $second = $this->recorder->record($this->source, $event, 'evt-1');
+
+    expect($first)->toBeInstanceOf(LogEvent::class)
+        ->and($second)->toBeNull()
+        ->and(DB::table('log_events')->count())->toBe(1)
+        ->and(DB::table('log_groups')->value('events_count'))->toBe(1)
+        ->and(DB::table('log_event_receipts')->count())->toBe(1);
+    Event::assertDispatchedTimes(LogGroupOpened::class, 1);
+});
+
+it('does not reopen a resolved group with a repeated event id', function () {
+    $event = ['level' => 'error', 'message' => 'Order failed'];
+    $first = $this->recorder->record($this->source, $event, 'evt-1');
+    LogGroup::withoutGlobalScopes()->find($first->log_group_id)->update(['status' => LogGroupStatus::Resolved]);
+    Event::fake([LogGroupOpened::class, LogGroupReopened::class]);
+
+    $this->recorder->record($this->source, $event, 'evt-1');
+
+    expect(DB::table('log_groups')->value('status'))->toBe(LogGroupStatus::Resolved->value);
+    Event::assertNotDispatched(LogGroupReopened::class);
+});
+
+it('records the same event id from another source', function () {
+    $otherSource = LogSource::factory()->for($this->project)->create();
+    $event = ['level' => 'error', 'message' => 'Order failed'];
+
+    $this->recorder->record($this->source, $event, 'evt-1');
+    $this->recorder->record($otherSource, $event, 'evt-1');
+
+    expect(DB::table('log_events')->count())->toBe(2)
+        ->and(DB::table('log_groups')->value('events_count'))->toBe(2);
+});
+
+it('keeps no receipt when the event transaction rolls back, so a retry records it', function () {
+    $event = ['level' => 'error', 'message' => 'Order failed'];
+    $fail = true;
+    LogEvent::creating(function () use (&$fail) {
+        if ($fail) {
+            throw new RuntimeException('insert failed');
+        }
+    });
+
+    expect(fn () => $this->recorder->record($this->source, $event, 'evt-1'))->toThrow(RuntimeException::class);
+    expect(DB::table('log_event_receipts')->count())->toBe(0)
+        ->and(DB::table('log_groups')->count())->toBe(0);
+
+    $fail = false;
+    $retried = $this->recorder->record($this->source, $event, 'evt-1');
+
+    expect($retried)->toBeInstanceOf(LogEvent::class)
+        ->and(DB::table('log_events')->count())->toBe(1)
+        ->and(DB::table('log_groups')->value('events_count'))->toBe(1)
+        ->and(DB::table('log_event_receipts')->count())->toBe(1);
+});
+
+it('counts every call when the event has no id', function () {
+    $event = ['level' => 'error', 'message' => 'Order failed'];
+
+    $this->recorder->record($this->source, $event);
+    $this->recorder->record($this->source, $event);
+
+    expect(DB::table('log_events')->count())->toBe(2)
+        ->and(DB::table('log_groups')->value('events_count'))->toBe(2)
+        ->and(DB::table('log_event_receipts')->count())->toBe(0);
+});
