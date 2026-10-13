@@ -215,7 +215,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-6: `ListNotificationsRequest` extiende `ListMessagesRequest` (y hereda `around()` sin uso): extraer una base o trait común
       de cursor y `per_page` para no acoplar la bandeja al chat. (revisor, fase 2)
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-7: Corregir el docblock de `TaskCommentController` (~línea 183) que dice que las menciones de comentarios no notifican. (revisor, fase 5)
+- [x] M-7: Corregir el docblock de `TaskCommentController` (~línea 183) que dice que las menciones de comentarios no notifican. (revisor, fase 5)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-8: Notificar las menciones nuevas al editar un comentario (`TaskCommentUpdated`). (implementador, fase 5)
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet

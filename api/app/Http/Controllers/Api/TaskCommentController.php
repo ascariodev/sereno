@@ -182,7 +182,7 @@ class TaskCommentController extends Controller
     }
 
     /**
-     * Comment mentions do not notify, so nothing is dispatched. `$currentIds` skips the lookup (new comment: []).
+     * Only syncs the mention rows; notifications are sent by the NotifyTaskCommentRecipients listener. `$currentIds` skips the lookup (new comment: []).
      *
      * @param  list<int>|null  $currentIds
      */
