@@ -11,14 +11,14 @@ import AppDialog from '../components/ui/AppDialog.vue'
 import { openProjectCreateKey } from '../composables/useProjectCreate'
 import { useMembershipWatch } from '../realtime/useMembershipWatch'
 import { useAuthStore } from '../stores/auth'
-import { useMentionsStore } from '../stores/mentions'
+import { useNotificationsStore } from '../stores/notifications'
 import { useOrganizationStore } from '../stores/organization'
 
 const { t } = useI18n()
 const organization = useOrganizationStore()
 const route = useRoute()
 const auth = useAuthStore()
-const mentions = useMentionsStore()
+const notifications = useNotificationsStore()
 const drawerOpen = ref(false)
 const paletteOpen = ref(false)
 const orgCreateOpen = ref(false)
@@ -33,8 +33,11 @@ useMembershipWatch()
 watch(
   () => auth.user?.id,
   (userId) => {
-    if (userId === undefined) mentions.stop()
-    else mentions.start(userId)
+    if (userId === undefined) {
+      notifications.stop()
+    } else {
+      notifications.start(userId)
+    }
   },
   { immediate: true },
 )
@@ -110,7 +113,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  mentions.stop()
+  notifications.stop()
   wideQuery?.removeEventListener('change', closeDrawerWhenWide)
 })
 </script>

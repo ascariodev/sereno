@@ -285,5 +285,16 @@
     "The neighbor tasks are not next to each other.": "Las tareas vecinas no están una junto a la otra.",
     "The selected assignee does not have access to this project.": "El responsable seleccionado no tiene acceso a este proyecto.",
     "Only users with the member role can be assigned to a project.": "Solo los usuarios con rol member se pueden asignar a un proyecto.",
-    "Only users with the member role can be removed from a project.": "Solo los usuarios con rol member se pueden quitar de un proyecto."
+    "Only users with the member role can be removed from a project.": "Solo los usuarios con rol member se pueden quitar de un proyecto.",
+    ":actor assigned you :task": ":actor te asignó :task",
+    ":actor assigned you the task :task: :title": ":actor te asignó la tarea :task: :title",
+    "View task": "Ver tarea",
+    ":actor mentioned you in :task": ":actor te mencionó en :task",
+    ":actor mentioned you in a comment on :task: :excerpt": ":actor te mencionó en un comentario de :task: :excerpt",
+    ":actor commented on :task": ":actor comentó en :task",
+    ":actor commented on your task :task: :excerpt": ":actor comentó en tu tarea :task: :excerpt",
+    ":actor mentioned you in #:channel": ":actor te mencionó en #:channel",
+    ":actor mentioned you in #:channel: :excerpt": ":actor te mencionó en #:channel: :excerpt",
+    "View message": "Ver mensaje",
+    "The notification type is not valid.": "El tipo de notificación no es válido."
 }

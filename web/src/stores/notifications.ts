@@ -1,9 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref, shallowRef, watch } from 'vue'
 import { ApiError } from '../api/client'
-import { listMentions, MENTIONS_PER_PAGE, MENTIONS_READ_MAX_IDS, markMentionsRead } from '../api/mentions'
-import type { Mention } from '../api/types'
-import { type MentionCreatedPayload, type MentionRemovedPayload, onReconnect, subscribeToUser } from '../realtime/echo'
+import {
+  listNotifications,
+  markNotificationsRead,
+  NOTIFICATIONS_PER_PAGE,
+  NOTIFICATIONS_READ_MAX_IDS,
+  parseNotification,
+} from '../api/notifications'
+import type { AppNotification } from '../api/types'
+import { type NotificationCreatedPayload, onReconnect, subscribeToUser } from '../realtime/echo'
 import { useOrganizationStore } from './organization'
 
 function toApiError(caught: unknown): ApiError {
@@ -11,26 +17,30 @@ function toApiError(caught: unknown): ApiError {
 }
 
 /**
- * Merges by mention id (the incoming version wins, except it never un-reads a local read) and sorts newest first.
+ * Merges by notification id (the incoming version wins, except it never un-reads a local read) and sorts newest first.
  * Keeping the local `read_at` is only correct while there is no "mark as unread" action; adding one means revisiting this.
  */
-function mergeMentions(current: readonly Mention[], incoming: readonly Mention[]): Mention[] {
-  const byId = new Map(current.map((mention) => [mention.id, mention]))
-  for (const mention of incoming) {
-    const local = byId.get(mention.id)
-    byId.set(mention.id, local?.read_at != null && mention.read_at === null ? { ...mention, read_at: local.read_at } : mention)
+function mergeNotifications(current: readonly AppNotification[], incoming: readonly AppNotification[]): AppNotification[] {
+  const byId = new Map(current.map((notification) => [notification.id, notification]))
+  for (const notification of incoming) {
+    const local = byId.get(notification.id)
+    byId.set(
+      notification.id,
+      local?.read_at != null && notification.read_at === null ? { ...notification, read_at: local.read_at } : notification,
+    )
   }
   return [...byId.values()].sort((a, b) => b.id - a.id)
 }
 
 /**
- * Mention inbox of the active organization. `unreadCount` comes from the API (`meta.unread_count`) and is adjusted
- * locally only between responses. The live event carries no mention id, so it bumps the counter and triggers a
- * refresh that brings the real row. Everything is dropped on any organization change or logout.
+ * Notification inbox of the active organization. `unreadCount` comes from the API (`meta.unread_count`) and is adjusted
+ * locally only between responses. The live event carries the whole row, so it is merged in directly (once per id); a
+ * refresh or page already in flight never drops it nor loses its count. Everything is dropped on any organization
+ * change or logout.
  */
-export const useMentionsStore = defineStore('mentions', () => {
+export const useNotificationsStore = defineStore('notifications', () => {
   const organization = useOrganizationStore()
-  const mentions = shallowRef<Mention[]>([])
+  const notifications = shallowRef<AppNotification[]>([])
   const unreadCount = ref(0)
   const nextCursor = ref<string | null>(null)
   const loaded = ref(false)
@@ -43,14 +53,13 @@ export const useMentionsStore = defineStore('mentions', () => {
   let countVersion = 0
   let readAllVersion = 0
   let readAllAt = ''
+  let liveSequence = 0
   let controller = new AbortController()
   let live = false
   let stopLive: (() => void) | null = null
-  const liveMessages = new Set<number>()
-  // Messages whose mention was removed live, with the fetchVersion at that moment: a response that started before the
-  // removal must not bring the row back. A refresh that started after it supersedes the entry (a re-mention missed
-  // while the socket was down must show up).
-  const removedMessages = new Map<number, number>()
+  // Rows that arrived live, with the sequence at that moment: a refresh that started before may not include them, so
+  // its unread count is topped up with the unread ones it lacks. A refresh that started after supersedes the entry.
+  const liveArrivals = new Map<number, number>()
 
   function setUnread(count: number): void {
     unreadCount.value = Math.max(0, count)
@@ -63,9 +72,8 @@ export const useMentionsStore = defineStore('mentions', () => {
     countVersion++
     controller.abort()
     controller = new AbortController()
-    liveMessages.clear()
-    removedMessages.clear()
-    mentions.value = []
+    liveArrivals.clear()
+    notifications.value = []
     unreadCount.value = 0
     nextCursor.value = null
     loaded.value = false
@@ -84,8 +92,19 @@ export const useMentionsStore = defineStore('mentions', () => {
     { flush: 'sync' },
   )
 
-  function withoutRemoved(rows: readonly Mention[]): Mention[] {
-    return removedMessages.size === 0 ? [...rows] : rows.filter((row) => !removedMessages.has(row.message.id))
+  /** Unread live rows that arrived after the request started and are not in its page. */
+  function unreadMissingFrom(page: readonly AppNotification[], startedAt: number): number {
+    const inPage = new Set(page.map((row) => row.id))
+    let missing = 0
+    for (const [id, arrivedAt] of liveArrivals) {
+      if (arrivedAt <= startedAt) {
+        liveArrivals.delete(id)
+        continue
+      }
+      const row = notifications.value.find((candidate) => candidate.id === id)
+      if (!inPage.has(id) && row !== undefined && row.read_at === null) missing++
+    }
+    return missing
   }
 
   /** Loads the first page and merges it into what is already there; the newest request wins. Also the way to reload. */
@@ -93,17 +112,17 @@ export const useMentionsStore = defineStore('mentions', () => {
     if (organization.activeId === null) return Promise.resolve()
     const current = generation
     const version = ++fetchVersion
+    const startedAt = liveSequence
     loading.value = true
-    return listMentions({ perPage: MENTIONS_PER_PAGE }, controller.signal)
+    return listNotifications({ perPage: NOTIFICATIONS_PER_PAGE }, controller.signal)
       .then((page) => {
         if (current !== generation || version !== fetchVersion) return
-        mentions.value = mergeMentions(mentions.value, withoutRemoved(page.data))
-        for (const [messageId, removedAt] of removedMessages) if (removedAt < version) removedMessages.delete(messageId)
+        notifications.value = mergeNotifications(notifications.value, page.data)
         if (!loaded.value) {
           nextCursor.value = page.meta.next_cursor
           loaded.value = true
         }
-        setUnread(page.meta.unread_count)
+        setUnread(page.meta.unread_count + unreadMissingFrom(page.data, startedAt))
         error.value = null
       })
       .catch((caught: unknown) => {
@@ -124,14 +143,14 @@ export const useMentionsStore = defineStore('mentions', () => {
     loadingMore.value = true
     loadMoreFailed.value = false
     try {
-      const page = await listMentions({ cursor, perPage: MENTIONS_PER_PAGE }, controller.signal)
+      const page = await listNotifications({ cursor, perPage: NOTIFICATIONS_PER_PAGE }, controller.signal)
       if (current !== generation) return
       // A "mark all" confirmed while this page was in flight covers its (older) rows, which may still arrive unread.
       const rows =
         readAll === readAllVersion
           ? page.data
           : page.data.map((row) => (row.read_at === null ? { ...row, read_at: readAllAt } : row))
-      mentions.value = mergeMentions(mentions.value, withoutRemoved(rows))
+      notifications.value = mergeNotifications(notifications.value, rows)
       nextCursor.value = page.meta.next_cursor
       if (counted === countVersion) setUnread(page.meta.unread_count)
     } catch {
@@ -142,7 +161,7 @@ export const useMentionsStore = defineStore('mentions', () => {
   }
 
   function setReadAt(ids: ReadonlySet<number>, readAt: string | null): void {
-    mentions.value = mentions.value.map((mention) => (ids.has(mention.id) ? { ...mention, read_at: readAt } : mention))
+    notifications.value = notifications.value.map((row) => (ids.has(row.id) ? { ...row, read_at: readAt } : row))
   }
 
   /** A read confirmed by the server makes a refresh still in flight stale (its count at least): launch a newer one. */
@@ -150,10 +169,10 @@ export const useMentionsStore = defineStore('mentions', () => {
     if (loading.value) void refresh()
   }
 
-  /** Marks the given loaded mentions read, optimistically. Resolves false (state restored, then resynced) if the API fails. */
-  async function markRead(targets: Mention | readonly Mention[]): Promise<boolean> {
-    const wanted = new Set((Array.isArray(targets) ? targets : [targets]).map((mention: Mention) => mention.id))
-    const ids = mentions.value.filter((mention) => wanted.has(mention.id) && mention.read_at === null).map((m) => m.id)
+  /** Marks the given loaded notifications read, optimistically. Resolves false (state restored, then resynced) if the API fails. */
+  async function markRead(targets: AppNotification | readonly AppNotification[]): Promise<boolean> {
+    const wanted = new Set((Array.isArray(targets) ? targets : [targets]).map((row: AppNotification) => row.id))
+    const ids = notifications.value.filter((row) => wanted.has(row.id) && row.read_at === null).map((row) => row.id)
     if (ids.length === 0) return true
     const current = generation
     const flipped = new Set(ids)
@@ -162,8 +181,8 @@ export const useMentionsStore = defineStore('mentions', () => {
     setUnread(unreadCount.value - ids.length)
     try {
       let count = unreadCount.value
-      for (let i = 0; i < ids.length; i += MENTIONS_READ_MAX_IDS) {
-        count = await markMentionsRead({ ids: ids.slice(i, i + MENTIONS_READ_MAX_IDS) })
+      for (let i = 0; i < ids.length; i += NOTIFICATIONS_READ_MAX_IDS) {
+        count = await markNotificationsRead({ ids: ids.slice(i, i + NOTIFICATIONS_READ_MAX_IDS) })
       }
       if (current === generation) {
         setReadAt(flipped, readAt)
@@ -183,14 +202,14 @@ export const useMentionsStore = defineStore('mentions', () => {
   async function markAllRead(): Promise<boolean> {
     const before = unreadCount.value
     const current = generation
-    const flipped = new Set(mentions.value.filter((mention) => mention.read_at === null).map((mention) => mention.id))
+    const flipped = new Set(notifications.value.filter((row) => row.read_at === null).map((row) => row.id))
     const readAt = new Date().toISOString()
     setReadAt(flipped, readAt)
     setUnread(0)
     try {
-      const count = await markMentionsRead({ all: true })
+      const count = await markNotificationsRead({ all: true })
       if (current !== generation) return true
-      setReadAt(new Set(mentions.value.filter((m) => m.read_at === null).map((m) => m.id)), readAt)
+      setReadAt(new Set(notifications.value.filter((row) => row.read_at === null).map((row) => row.id)), readAt)
       setUnread(count)
       readAllAt = readAt
       readAllVersion++
@@ -205,37 +224,21 @@ export const useMentionsStore = defineStore('mentions', () => {
     }
   }
 
-  function onMention(payload: MentionCreatedPayload): void {
+  function onNotificationCreated(payload: NotificationCreatedPayload): void {
     if (payload.organizationId !== organization.activeId) return
-    const messageId = payload.message.id
-    if (liveMessages.has(messageId) || mentions.value.some((mention) => mention.message.id === messageId)) return
-    liveMessages.add(messageId)
-    removedMessages.delete(messageId)
-    setUnread(unreadCount.value + 1)
-    void refresh()
+    const incoming = parseNotification(payload.notification)
+    if (incoming === null) return
+    if (notifications.value.some((row) => row.id === incoming.id)) return
+    liveArrivals.set(incoming.id, ++liveSequence)
+    notifications.value = mergeNotifications(notifications.value, [incoming])
+    if (incoming.read_at === null) setUnread(unreadCount.value + 1)
   }
 
-  /** The payload has only ids: drop the row by message id; if it is not loaded the counter is resynced from the API. */
-  function onMentionRemoved(payload: MentionRemovedPayload): void {
-    if (payload.organizationId !== organization.activeId) return
-    const messageId = payload.messageId
-    removedMessages.set(messageId, fetchVersion)
-    liveMessages.delete(messageId)
-    const row = mentions.value.find((mention) => mention.message.id === messageId)
-    if (row === undefined) {
-      void refresh()
-      return
-    }
-    mentions.value = mentions.value.filter((mention) => mention !== row)
-    if (row.read_at === null) setUnread(unreadCount.value - 1)
-    invalidateInFlight()
-  }
-
-  /** Subscribes to `mention.created` and `mention.removed` in the user channel and refreshes on reconnect; call `stop()` on logout or unmount. */
+  /** Subscribes to `notification.created` in the user channel and refreshes on reconnect; call `stop()` on logout or unmount. */
   function start(userId: number): void {
     stop()
     live = true
-    const unsubscribeUser = subscribeToUser(userId, { onMention, onMentionRemoved })
+    const unsubscribeUser = subscribeToUser(userId, { onNotificationCreated })
     const unsubscribeReconnect = onReconnect(() => void refresh())
     stopLive = () => {
       unsubscribeUser()
@@ -252,7 +255,7 @@ export const useMentionsStore = defineStore('mentions', () => {
   }
 
   return {
-    mentions,
+    notifications,
     unreadCount,
     nextCursor,
     loaded,

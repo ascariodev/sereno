@@ -118,8 +118,8 @@
     "expand": "Expandir barra lateral",
     "openGroups": "{n} grupo de logs abierto | {n} grupos de logs abiertos",
     "projectOpen": "{name}: {groups}, nivel máximo {level}",
-    "mentions": "Menciones",
-    "mentionsUnread": "{n} mención sin leer | {n} menciones sin leer"
+    "notifications": "Notificaciones",
+    "notificationsUnread": "{n} notificación sin leer | {n} notificaciones sin leer"
   },
   "command": {
     "open": "Buscar",
@@ -249,6 +249,7 @@
     "failed": "No se pudo enviar la invitación. Inténtalo de nuevo."
   },
   "userMenu": {
+    "notificationPreferences": "Notificaciones por correo",
     "invitations": "Invitaciones",
     "members": "Miembros",
     "label": "Menú de usuario",
@@ -256,6 +257,19 @@
       "system": "Tema del sistema",
       "light": "Tema claro",
       "dark": "Tema oscuro"
+    }
+  },
+  "notificationPreferences": {
+    "title": "Notificaciones por correo",
+    "description": "Elige qué eventos te envían también un correo. Siempre los ves en la aplicación.",
+    "close": "Cerrar",
+    "loadFailed": "No se pudieron cargar tus preferencias.",
+    "saveFailed": "No se pudo guardar el cambio. Inténtalo de nuevo.",
+    "types": {
+      "task_assigned": "Me asignan una tarea",
+      "task_comment_mention": "Me mencionan en un comentario de tarea",
+      "task_commented": "Alguien comenta en mi tarea",
+      "chat_mention": "Me mencionan en el chat"
     }
   },
   "layout": {
@@ -349,17 +363,19 @@
     "openFailedRetry": "No se pudo abrir el archivo. Revisa tu conexión e inténtalo de nuevo.",
     "popupBlocked": "El navegador bloqueó la pestaña nueva. Permite las ventanas emergentes de este sitio e inténtalo de nuevo."
   },
-  "mentions": {
-    "title": "Menciones",
-    "empty": "Nadie te ha mencionado todavía.",
-    "loadFailed": "No se pudieron cargar tus menciones.",
+  "notifications": {
+    "title": "Notificaciones",
+    "empty": "Todavía no tienes notificaciones.",
+    "loadFailed": "No se pudieron cargar tus notificaciones.",
     "loadMore": "Cargar más",
-    "loadMoreFailed": "No se pudieron cargar más menciones.",
+    "loadMoreFailed": "No se pudieron cargar más notificaciones.",
     "markAllRead": "Marcar todas como leídas",
     "unread": "Sin leer",
-    "someone": "Alguien",
-    "attachments": "{n} adjunto | {n} adjuntos",
-    "from": "{name} te mencionó en {channel}"
+    "taskAssigned": "{name} te asignó {task}",
+    "taskCommentMention": "{name} te mencionó en un comentario de {task}",
+    "taskCommented": "{name} comentó en {task}",
+    "chatMention": "{name} te mencionó en {channel}",
+    "unknown": "Notificación nueva"
   },
   "thread": {
     "label": "Hilo",

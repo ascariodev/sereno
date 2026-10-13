@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AtSign, House, PanelLeftClose, PanelLeftOpen, Plus, Search } from '@lucide/vue'
+import { Bell, House, PanelLeftClose, PanelLeftOpen, Plus, Search } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
@@ -7,7 +7,7 @@ import { levelTone } from '../api/logLevels'
 import type { Project } from '../api/types'
 import { useOrganizationStore } from '../stores/organization'
 import { isApple } from '../platform'
-import { useMentionsStore } from '../stores/mentions'
+import { useNotificationsStore } from '../stores/notifications'
 import { useProjectsStore } from '../stores/projects'
 import OrgSwitcher from './OrgSwitcher.vue'
 import UserMenu from './UserMenu.vue'
@@ -21,7 +21,7 @@ defineEmits<{ search: []; toggle: []; createOrganization: []; createProject: [] 
 const { t } = useI18n()
 const organization = useOrganizationStore()
 const projectsStore = useProjectsStore()
-const mentionsStore = useMentionsStore()
+const notificationsStore = useNotificationsStore()
 const route = useRoute()
 
 const activeProjectId = computed<number | null>(() => {
@@ -54,11 +54,13 @@ const projectRows = computed(() =>
   }),
 )
 
-const unreadText = computed(() =>
-  t('sidebar.mentionsUnread', { n: mentionsStore.unreadCount }, mentionsStore.unreadCount),
+const notificationsUnreadText = computed(() =>
+  t('sidebar.notificationsUnread', { n: notificationsStore.unreadCount }, notificationsStore.unreadCount),
 )
-const mentionsLabel = computed(() =>
-  mentionsStore.unreadCount > 0 ? `${t('sidebar.mentions')}: ${unreadText.value}` : t('sidebar.mentions'),
+const notificationsLabel = computed(() =>
+  notificationsStore.unreadCount > 0
+    ? `${t('sidebar.notifications')}: ${notificationsUnreadText.value}`
+    : t('sidebar.notifications'),
 )
 
 function currentFor(projectId: number): 'page' | undefined {
@@ -123,18 +125,18 @@ function currentFor(projectId: number): 'page' | undefined {
           <span v-if="!collapsed">{{ t('sidebar.home') }}</span>
         </RouterLink>
       </AppTooltip>
-      <AppTooltip :text="t('sidebar.mentions')" side="right" :disabled="!collapsed">
+      <AppTooltip :text="t('sidebar.notifications')" side="right" :disabled="!collapsed">
         <RouterLink
-          :to="{ name: 'mentions' }"
+          :to="{ name: 'notifications' }"
           class="app-sidebar__link app-sidebar__mentions"
-          :aria-label="collapsed ? mentionsLabel : undefined"
+          :aria-label="collapsed ? notificationsLabel : undefined"
         >
-          <AtSign :size="17" aria-hidden="true" />
-          <span v-if="!collapsed" class="app-sidebar__name">{{ t('sidebar.mentions') }}</span>
-          <span v-if="mentionsStore.unreadCount > 0" class="app-sidebar__badge" aria-hidden="true">{{
-            mentionsStore.unreadCount > 99 ? '99+' : mentionsStore.unreadCount
+          <Bell :size="17" aria-hidden="true" />
+          <span v-if="!collapsed" class="app-sidebar__name">{{ t('sidebar.notifications') }}</span>
+          <span v-if="notificationsStore.unreadCount > 0" class="app-sidebar__badge" aria-hidden="true">{{
+            notificationsStore.unreadCount > 99 ? '99+' : notificationsStore.unreadCount
           }}</span>
-          <span v-if="mentionsStore.unreadCount > 0 && !collapsed" class="sr-only">{{ unreadText }}</span>
+          <span v-if="notificationsStore.unreadCount > 0 && !collapsed" class="sr-only">{{ notificationsUnreadText }}</span>
         </RouterLink>
       </AppTooltip>
     </div>

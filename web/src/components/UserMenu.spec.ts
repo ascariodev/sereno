@@ -131,6 +131,39 @@ describe('UserMenu', () => {
     expect(toasts.value.map((t) => t.kind)).toEqual(['error'])
   })
 
+  describe('notification preferences entry', () => {
+    const PREFERENCES = { data: { email: { task_assigned: true, task_comment_mention: true, task_commented: false, chat_mention: true } } }
+
+    function entry(): HTMLElement | undefined {
+      return Array.from(document.querySelectorAll<HTMLElement>('[role=menuitem]')).find(
+        (el) => el.textContent!.trim() === 'Email notifications',
+      )
+    }
+
+    it('opens the dialog, loads the preferences and returns focus to the trigger on close', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValue(PREFERENCES)
+      const push = vi.spyOn(createAppRouter(createMemoryHistory()), 'push')
+      mountMenu()
+      await open()
+      entry()!.click()
+      await settle()
+      expect(push).not.toHaveBeenCalled()
+      expect(get).toHaveBeenCalledWith('/api/me/notification-preferences')
+      expect(document.querySelectorAll('input[role=switch]')).toHaveLength(4)
+      document.querySelector<HTMLButtonElement>('button[name=close-dialog]')!.click()
+      await settle()
+      expect(document.querySelector('input[role=switch]')).toBeNull()
+      expect(document.activeElement).toBe(trigger())
+    })
+
+    it('does not load the preferences until the entry is chosen', async () => {
+      const get = vi.spyOn(api, 'get').mockResolvedValue(PREFERENCES)
+      mountMenu()
+      await open()
+      expect(get).not.toHaveBeenCalled()
+    })
+  })
+
   describe('members entry', () => {
     function membersEntry(): HTMLElement | undefined {
       return Array.from(document.querySelectorAll<HTMLElement>('[role=menuitem]')).find(

@@ -7,6 +7,7 @@ import {
 import { ApiError } from '../api/client'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
+import { useOrganizationStore } from '../stores/organization'
 import ChannelView from '../views/ChannelView.vue'
 import IntegrationsView from '../views/IntegrationsView.vue'
 import InvitationsView from '../views/InvitationsView.vue'
@@ -15,7 +16,7 @@ import LogView from '../views/LogView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import MembersView from '../views/MembersView.vue'
-import MentionsView from '../views/MentionsView.vue'
+import NotificationsView from '../views/NotificationsView.vue'
 import PlanView from '../views/PlanView.vue'
 import ProjectsView from '../views/ProjectsView.vue'
 import SessionErrorView from '../views/SessionErrorView.vue'
@@ -25,6 +26,22 @@ import { safeRedirect } from './safeRedirect'
 function redirectQuery(to: RouteLocationNormalized) {
   const redirect = safeRedirect(to.name === 'session-error' ? to.query.redirect : to.fullPath)
   return redirect && redirect !== '/' ? { redirect } : {}
+}
+
+const ORGANIZATION_QUERY = 'organization'
+
+function linkedOrganizationId(value: unknown): number | null {
+  return typeof value === 'string' && /^[1-9]\d{0,14}$/.test(value) ? Number(value) : null
+}
+
+/** Consumes `?organization=<id>` (email links): activates it before the view loads and drops it from the URL. */
+function withoutLinkedOrganization(to: RouteLocationNormalized) {
+  if (!(ORGANIZATION_QUERY in to.query)) return null
+  const id = linkedOrganizationId(to.query[ORGANIZATION_QUERY])
+  if (id !== null) useOrganizationStore().activateFromLink(id)
+  const query = { ...to.query }
+  delete query[ORGANIZATION_QUERY]
+  return { path: to.path, query, hash: to.hash, replace: true }
 }
 
 export function createAppRouter(history: RouterHistory = createWebHistory()) {
@@ -40,7 +57,8 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         component: AppLayout,
         children: [
           { path: '', name: 'projects', component: ProjectsView },
-          { path: 'mentions', name: 'mentions', component: MentionsView },
+          { path: 'notifications', name: 'notifications', component: NotificationsView },
+          { path: 'mentions', redirect: { name: 'notifications' } },
           { path: 'channels/:id', name: 'channel', component: ChannelView },
           { path: 'projects/:projectId/log', name: 'project-log', component: LogView },
           { path: 'projects/:projectId/plan', name: 'project-plan', component: PlanView },
@@ -81,7 +99,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         }
       }
     }
-    return true
+    return withoutLinkedOrganization(to) ?? true
   })
 
   return router

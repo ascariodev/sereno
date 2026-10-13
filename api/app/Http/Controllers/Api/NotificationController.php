@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Mention\ListMentionsRequest;
-use App\Http\Requests\Mention\MarkMentionsReadRequest;
-use App\Http\Resources\MentionResource;
-use App\Models\MessageMention;
+use App\Http\Requests\Notification\ListNotificationsRequest;
+use App\Http\Requests\Notification\MarkNotificationsReadRequest;
+use App\Http\Resources\NotificationResource;
+use App\Models\AppNotification;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use App\Support\ProjectAccess;
@@ -14,22 +14,21 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
-class MentionController extends Controller
+class NotificationController extends Controller
 {
-    public function index(ListMentionsRequest $request): AnonymousResourceCollection
+    public function index(ListNotificationsRequest $request): AnonymousResourceCollection
     {
         $user = $request->user();
 
-        return MentionResource::collection(
+        return NotificationResource::collection(
             $this->accessible($user)
-                ->with(['message.user:id,name', 'message.mentionedUsers:id,name', 'message.attachments', 'message.channel:id,name,project_id'])
                 ->orderByDesc('id')
                 ->cursorPaginate($request->perPage())
                 ->withQueryString(),
         )->additional(['meta' => ['unread_count' => $this->unreadCount($user)]]);
     }
 
-    public function read(MarkMentionsReadRequest $request): JsonResponse
+    public function read(MarkNotificationsReadRequest $request): JsonResponse
     {
         $user = $request->user();
 
@@ -50,13 +49,13 @@ class MentionController extends Controller
     }
 
     /**
-     * The user's mentions, minus the ones in channels of projects they cannot see (the rows stay).
+     * The user's notifications of the active organization, minus the ones of projects they cannot see (the rows stay).
      *
-     * @return Builder<MessageMention>
+     * @return Builder<AppNotification>
      */
     private function accessible(User $user): Builder
     {
-        $query = MessageMention::query()->where('user_id', $user->id);
+        $query = AppNotification::query()->where('user_id', $user->id);
         $organizationId = app(CurrentOrganization::class)->id();
 
         if (ProjectAccess::seesAll($user, $organizationId)) {
@@ -65,8 +64,6 @@ class MentionController extends Controller
 
         $projectIds = ProjectAccess::visibleProjectIds($user, $organizationId);
 
-        return $query->whereHas('message.channel', fn (Builder $channel) => $channel->where(fn (Builder $scope) => $scope
-            ->whereNull('project_id')
-            ->orWhereIn('project_id', $projectIds)));
+        return $query->where(fn (Builder $scope) => $scope->whereNull('project_id')->orWhereIn('project_id', $projectIds));
     }
 }

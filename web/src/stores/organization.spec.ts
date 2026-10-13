@@ -110,6 +110,62 @@ describe('organization store', () => {
     expect(store.activeId).toBe(2)
   })
 
+  describe('activateFromLink', () => {
+    it('before the first load, the linked organization wins over the stored one', async () => {
+      localStorage.setItem(ORGANIZATION_STORAGE_KEY, '1')
+      const store = setup()
+      store.activateFromLink(2)
+      expect(store.activeId).toBeNull()
+      await store.load()
+      expect(store.activeId).toBe(2)
+      expect(localStorage.getItem(ORGANIZATION_STORAGE_KEY)).toBe('2')
+    })
+
+    it('a linked organization the user is not a member of is ignored and not persisted', async () => {
+      localStorage.setItem(ORGANIZATION_STORAGE_KEY, '2')
+      const store = setup()
+      store.activateFromLink(99)
+      await store.load()
+      expect(store.activeId).toBe(2)
+      expect(localStorage.getItem(ORGANIZATION_STORAGE_KEY)).toBe('2')
+    })
+
+    it('applies only to the next load', async () => {
+      const store = setup()
+      store.activateFromLink(2)
+      await store.load()
+      store.select(1)
+      await store.load()
+      expect(store.activeId).toBe(1)
+    })
+
+    it('once loaded, selects right away and ignores a non member id', async () => {
+      const store = setup()
+      await store.load()
+      store.activateFromLink(99)
+      expect(store.activeId).toBe(1)
+      store.activateFromLink(2)
+      expect(store.activeId).toBe(2)
+    })
+
+    it('a failed load keeps the link for the retry', async () => {
+      const store = setup()
+      vi.spyOn(api, 'get').mockRejectedValueOnce(new ApiError(503, 'Unavailable'))
+      store.activateFromLink(2)
+      await expect(store.load()).rejects.toThrow()
+      await store.load()
+      expect(store.activeId).toBe(2)
+    })
+
+    it('clear drops a pending link', async () => {
+      const store = setup()
+      store.activateFromLink(2)
+      store.clear()
+      await store.load()
+      expect(store.activeId).toBe(1)
+    })
+  })
+
   it('clearing the auth session clears the active organization', async () => {
     const store = setup()
     await store.load()

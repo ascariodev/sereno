@@ -8,7 +8,7 @@ import { i18n } from '../i18n'
 import AppLayout from './AppLayout.vue'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
-import { useMentionsStore } from '../stores/mentions'
+import { useNotificationsStore } from '../stores/notifications'
 import { useOrganizationStore } from '../stores/organization'
 import { THEME_STORAGE_KEY } from '../theme/theme'
 
@@ -30,13 +30,16 @@ const orgs = [
 const channel = { id: 7, project_id: 5, name: 'general', project: { id: 5, name: 'posveapi', key: 'POSVE' }, is_archived: false }
 
 let projectExtra: Record<string, unknown> = {}
-let mentionsUnread = 0
+let notificationsUnread = 0
 
 function sidebarData(path: string, withChannel = true): unknown {
   if (path === '/api/projects') return { data: [{ ...project, ...projectExtra }], meta: { last_page: 1 } }
   if (path === '/api/channels') return withChannel ? { data: [channel] } : { data: [] }
   if (path === '/api/channels/7') return { data: channel }
-  if (path === '/api/mentions') return { data: [], links: {}, meta: { next_cursor: null, unread_count: mentionsUnread } }
+  if (path === '/api/me/notification-preferences') {
+    return { data: { email: { task_assigned: true, task_comment_mention: true, task_commented: true, chat_mention: true } } }
+  }
+  if (path === '/api/notifications') return { data: [], meta: { next_cursor: null, unread_count: notificationsUnread } }
   if (path === '/api/channels/7/messages') return { data: [], meta: { next_cursor: null } }
   if (path === '/api/projects/5/log-groups') return { data: [], links: {}, meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 } }
   if (path === '/api/projects/5/tasks') return { data: [], meta: { done_total: 0, has_more_done: false } }
@@ -98,7 +101,7 @@ describe('AppLayout', () => {
   beforeEach(() => {
     localStorage.clear()
     projectExtra = {}
-    mentionsUnread = 0
+    notificationsUnread = 0
     vi.restoreAllMocks()
     document.documentElement.removeAttribute('data-theme')
   })
@@ -238,6 +241,23 @@ describe('AppLayout', () => {
     expect(dialogs[0].querySelector('#org-create-name')).not.toBeNull()
   })
 
+  it('opening the email preferences from the drawer stacks the dialog and returns focus to the user menu', async () => {
+    await mountApp()
+    document.querySelector<HTMLButtonElement>('button[name=open-sidebar]')!.click()
+    await settle()
+    await openMenu('[role=dialog] button[name=user-menu]')
+    await pick('notification-preferences')
+    expect(document.querySelectorAll('[role=dialog]')).toHaveLength(2)
+    expect(document.querySelectorAll('input[role=switch]')).toHaveLength(4)
+    const dialogs = [...document.querySelectorAll('[role=dialog]')]
+    const preferences = dialogs.find((d) => d.querySelector('input[role=switch]'))!
+    preferences.querySelector<HTMLButtonElement>('button[name=close-dialog]')!.click()
+    await settle()
+    expect(document.querySelectorAll('[role=dialog]')).toHaveLength(1)
+    const trigger = document.querySelector<HTMLButtonElement>('[role=dialog] button[name=user-menu]')!
+    expect(document.activeElement).toBe(trigger)
+  })
+
   it('shows an error when loading fails', async () => {
     const { wrapper } = await mountApp(async () => {
       throw new ApiError(500, 'boom')
@@ -368,31 +388,29 @@ describe('AppLayout', () => {
     expect(useOrganizationStore().activeId).toBeNull()
   })
 
-  it('shows the unread mentions count with a text for screen readers, and hides it at zero', async () => {
-    mentionsUnread = 3
+  it('shows the unread notifications count with a text for screen readers, and hides it at zero', async () => {
+    notificationsUnread = 4
     const { wrapper } = await mountApp()
-    const link = wrapper.find('a[href="/mentions"]')
-    expect(link.exists()).toBe(true)
-    expect(link.find('.app-sidebar__badge').text()).toBe('3')
-    expect(link.find('.app-sidebar__badge').attributes('aria-hidden')).toBe('true')
-    expect(link.find('.sr-only').text()).toBe('3 unread mentions')
-    useMentionsStore().$patch({ unreadCount: 0 })
+    const link = wrapper.find('a[href="/notifications"]')
+    expect(link.find('.app-sidebar__badge').text()).toBe('4')
+    expect(link.find('.sr-only').text()).toBe('4 unread notifications')
+    useNotificationsStore().$patch({ unreadCount: 0 })
     await nextTick()
-    expect(wrapper.find('a[href="/mentions"] .app-sidebar__badge').exists()).toBe(false)
-    expect(wrapper.find('a[href="/mentions"] .sr-only').exists()).toBe(false)
+    expect(wrapper.find('a[href="/notifications"] .app-sidebar__badge').exists()).toBe(false)
+    expect(wrapper.find('a[href="/notifications"] .sr-only').exists()).toBe(false)
   })
 
-  it('names the mentions link with the count when the sidebar is collapsed', async () => {
+  it('names the notifications link with the count when the sidebar is collapsed', async () => {
     localStorage.setItem('workspace.sidebar', 'collapsed')
-    mentionsUnread = 1
+    notificationsUnread = 1
     const { wrapper } = await mountApp()
-    expect(wrapper.find('a[href="/mentions"]').attributes('aria-label')).toBe('Mentions: 1 unread mention')
+    expect(wrapper.find('a[href="/notifications"]').attributes('aria-label')).toBe('Notifications: 1 unread notification')
   })
 
-  it('starts the mentions store for the signed-in user and stops it on logout', async () => {
-    mentionsUnread = 2
-    await mountApp()
-    const store = useMentionsStore()
+  it('starts the notifications store for the signed-in user, stops it on logout and on unmount', async () => {
+    notificationsUnread = 2
+    const { wrapper } = await mountApp()
+    const store = useNotificationsStore()
     expect(store.unreadCount).toBe(2)
     expect(store.loaded).toBe(true)
     vi.spyOn(api, 'post').mockResolvedValue(undefined)
@@ -400,15 +418,9 @@ describe('AppLayout', () => {
     await pick('logout')
     expect(store.unreadCount).toBe(0)
     expect(store.loaded).toBe(false)
-  })
-
-  it('stops the mentions store when the layout unmounts', async () => {
-    mentionsUnread = 2
-    const { wrapper } = await mountApp()
-    expect(useMentionsStore().unreadCount).toBe(2)
     wrapper.unmount()
     mounted = undefined
-    expect(useMentionsStore().unreadCount).toBe(0)
+    expect(store.loaded).toBe(false)
   })
 
   it('the user menu changes and saves the theme', async () => {

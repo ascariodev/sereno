@@ -118,8 +118,8 @@
     "expand": "Expand sidebar",
     "openGroups": "{n} open log group | {n} open log groups",
     "projectOpen": "{name}: {groups}, highest level {level}",
-    "mentions": "Mentions",
-    "mentionsUnread": "{n} unread mention | {n} unread mentions"
+    "notifications": "Notifications",
+    "notificationsUnread": "{n} unread notification | {n} unread notifications"
   },
   "command": {
     "open": "Search",
@@ -249,6 +249,7 @@
     "failed": "Could not send the invitation. Try again."
   },
   "userMenu": {
+    "notificationPreferences": "Email notifications",
     "invitations": "Invitations",
     "members": "Members",
     "label": "User menu",
@@ -256,6 +257,19 @@
       "system": "System theme",
       "light": "Light theme",
       "dark": "Dark theme"
+    }
+  },
+  "notificationPreferences": {
+    "title": "Email notifications",
+    "description": "Choose which events also send you an email. You always see them in the app.",
+    "close": "Close",
+    "loadFailed": "Could not load your preferences.",
+    "saveFailed": "Could not save the change. Try again.",
+    "types": {
+      "task_assigned": "A task is assigned to me",
+      "task_comment_mention": "I am mentioned in a task comment",
+      "task_commented": "Someone comments on my task",
+      "chat_mention": "I am mentioned in the chat"
     }
   },
   "layout": {
@@ -349,17 +363,19 @@
     "openFailedRetry": "Could not open the file. Check your connection and try again.",
     "popupBlocked": "Your browser blocked the new tab. Allow pop-ups for this site and try again."
   },
-  "mentions": {
-    "title": "Mentions",
-    "empty": "Nobody has mentioned you yet.",
-    "loadFailed": "Could not load your mentions.",
+  "notifications": {
+    "title": "Notifications",
+    "empty": "You have no notifications yet.",
+    "loadFailed": "Could not load your notifications.",
     "loadMore": "Load more",
-    "loadMoreFailed": "Could not load more mentions.",
+    "loadMoreFailed": "Could not load more notifications.",
     "markAllRead": "Mark all as read",
     "unread": "Unread",
-    "someone": "Someone",
-    "attachments": "{n} attachment | {n} attachments",
-    "from": "{name} mentioned you in {channel}"
+    "taskAssigned": "{name} assigned you {task}",
+    "taskCommentMention": "{name} mentioned you in a comment on {task}",
+    "taskCommented": "{name} commented on {task}",
+    "chatMention": "{name} mentioned you in {channel}",
+    "unknown": "New notification"
   },
   "thread": {
     "label": "Thread",

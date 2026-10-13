@@ -2,7 +2,9 @@
 
 namespace App\Actions;
 
+use App\Models\AppNotification;
 use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\TaskCommentAttachment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -22,7 +24,12 @@ class DeleteTask
 
             $files = TaskCommentAttachment::query()->where('task_id', $locked->id)->get(['id', 'disk', 'path']);
 
+            $commentIds = TaskComment::query()->where('task_id', $locked->id)->pluck('id')->all();
+
             $locked->delete();
+
+            AppNotification::forgetSubjects(Task::class, [$locked->id]);
+            AppNotification::forgetSubjects(TaskComment::class, $commentIds);
 
             $disk = config('chat.attachments.disk');
             $directory = "tasks/{$locked->organization_id}/{$locked->id}";

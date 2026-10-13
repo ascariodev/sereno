@@ -10,11 +10,10 @@ import {
   LOG_SOURCE_CONNECTED_EVENT,
   MEMBERSHIP_REVOKED_EVENT,
   MEMBERSHIP_ROLE_CHANGED_EVENT,
-  MENTION_CREATED_EVENT,
-  MENTION_REMOVED_EVENT,
   MESSAGE_CREATED_EVENT,
   MESSAGE_DELETED_EVENT,
   MESSAGE_UPDATED_EVENT,
+  NOTIFICATION_CREATED_EVENT,
   onChannelDenied,
   onReconnect,
   ORGANIZATION_MEMBERS_CHANGED_EVENT,
@@ -443,43 +442,18 @@ describe('realtime', () => {
     expect(client.private).toHaveBeenCalledTimes(1)
   })
 
-  it('forwards mention.created with organization, channel, parent and message, ignoring malformed payloads', () => {
+  it('forwards notification.created with the organization and the raw item, ignoring malformed payloads', () => {
     const { client, listeners } = createFakeRealtimeClient()
     setRealtimeClientFactory(() => client)
     const received: unknown[] = []
-    const revoked: number[] = []
-    subscribeToUser(5, { onMembershipRevoked: (id) => revoked.push(id), onMention: (mention) => received.push(mention) })
+    subscribeToUser(5, { onNotificationCreated: (payload) => received.push(payload) })
 
-    const emit = listeners.get(`users.5|${MENTION_CREATED_EVENT}`)
-    emit?.({ channel_id: 4, message: { id: 9 } as Message })
-    emit?.({ organization_id: 3, channel_id: 4 })
-    emit?.({ organization_id: 3, message: { id: 9 } as Message })
-    emit?.({ organization_id: 3, channel_id: 4, parent_id: 2, message: { id: 9 } as Message })
-    emit?.({ organization_id: 3, channel_id: 4, message: { id: 10 } as Message })
-    expect(received).toEqual([
-      { organizationId: 3, channelId: 4, parentId: 2, message: { id: 9 } },
-      { organizationId: 3, channelId: 4, parentId: null, message: { id: 10 } },
-    ])
-    expect(revoked).toEqual([])
-    expect(client.private).toHaveBeenCalledTimes(1)
-  })
-
-  it('forwards mention.removed with ids only, ignoring malformed payloads', () => {
-    const { client, listeners } = createFakeRealtimeClient()
-    setRealtimeClientFactory(() => client)
-    const received: unknown[] = []
-    subscribeToUser(5, { onMentionRemoved: (mention) => received.push(mention) })
-
-    const emit = listeners.get(`users.5|${MENTION_REMOVED_EVENT}`)
-    emit?.({ channel_id: 4, message_id: 9 })
-    emit?.({ organization_id: 3, channel_id: 4 })
-    emit?.({ organization_id: 3, message_id: 9 })
-    emit?.({ organization_id: 3, channel_id: 4, parent_id: 2, message_id: 9 })
-    emit?.({ organization_id: 3, channel_id: 4, message_id: 10 })
-    expect(received).toEqual([
-      { organizationId: 3, channelId: 4, parentId: 2, messageId: 9 },
-      { organizationId: 3, channelId: 4, parentId: null, messageId: 10 },
-    ])
+    const emit = listeners.get(`users.5|${NOTIFICATION_CREATED_EVENT}`)
+    emit?.({ notification: { id: 1 } })
+    emit?.({ organization_id: 3 })
+    emit?.({ organization_id: 3, notification: null })
+    emit?.({ organization_id: 3, notification: { id: 2 } })
+    expect(received).toEqual([{ organizationId: 3, notification: { id: 2 } }])
     expect(client.private).toHaveBeenCalledTimes(1)
   })
 

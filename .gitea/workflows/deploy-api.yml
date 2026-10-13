@@ -37,6 +37,12 @@ jobs:
             echo "error: falta $HOST_DIR/.env en el servidor; se crea a mano antes del primer deploy" >&2
             exit 1
           fi
+          # Solo se lee MAIL_MAILER; sin ella Laravel usa `log` y las notificaciones por email no salen.
+          mail_mailer=$(grep -E '^[[:space:]]*(export[[:space:]]+)?MAIL_MAILER[[:space:]]*=' "$SERVER_DIR/.env" | tail -n 1 \
+            | tr -d '\r' | sed -E 's/^[^=]*=//; s/[[:space:]]#.*$//' | tr -d "\"' \t" || true)
+          if [ -z "$mail_mailer" ] || [ "$mail_mailer" = log ]; then
+            echo "::warning::MAIL_MAILER falta o vale 'log' en $HOST_DIR/.env: el correo no se envía (ver api/docker-compose.prod.yml)"
+          fi
 
       - name: Obtener el código
         uses: actions/checkout@v4
