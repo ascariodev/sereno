@@ -13,6 +13,7 @@ use App\Notifications\Channels\AppChannel;
 use App\Notifications\Concerns\DelaysMail;
 use App\Notifications\Contracts\RevalidatesAfterInsert;
 use App\Support\MailMarkdown;
+use App\Support\NotificationUrl;
 use App\Support\ProjectAccess;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -141,8 +142,6 @@ class ChatMentionNotification extends Notification implements RevalidatesAfterIn
 
     public function toMail(object $notifiable): MailMessage
     {
-        $query = $this->parentId === null ? "message={$this->messageId}" : "thread={$this->parentId}";
-
         return (new MailMessage)
             ->subject(__(':actor mentioned you in #:channel', ['actor' => $this->actorName, 'channel' => $this->channelName]))
             ->line(__(':actor mentioned you in #:channel: :excerpt', [
@@ -150,7 +149,7 @@ class ChatMentionNotification extends Notification implements RevalidatesAfterIn
                 'channel' => MailMarkdown::escape($this->channelName),
                 'excerpt' => MailMarkdown::escape($this->excerpt),
             ]))
-            ->action(__('View message'), rtrim(config('app.frontend_url'), '/')."/channels/{$this->channelId}?{$query}&organization={$this->organizationId}");
+            ->action(__('View message'), NotificationUrl::chatMessage($this->organizationId, $this->channelId, $this->messageId, $this->parentId));
     }
 
     /** @param  array<int, string>  $names */

@@ -2,7 +2,7 @@
 
 **Objetivo:** que las notificaciones de Sereno (tarea asignada, comentario o mención en tarea, mención en el chat) lleguen
 como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin duplicar lo que ya muestra la app abierta.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -54,7 +54,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - **Archivos:** `api/app/Models/User.php`, `UpdateNotificationPreferencesRequest.php`, `AuthController.php`.
 - **Terminado cuando:** tests de GET, PATCH parcial de `push` sin pisar `email` y validación `boolean:strict`.
 
-### [ ] Fase 5 — URL de destino única
+### [x] Fase 5 — URL de destino única
 - **Alcance:** extraer la URL de destino de cada tipo a un solo lugar que trabaje desde la fila `AppNotification` (type + data
   + organización), y que los `toMail` la usen. Refactor sin cambio de comportamiento.
 - **Archivos:** `api/app/Support/NotificationUrl.php` (o similar), `TaskCommentNotification.php`, `TaskAssignedNotification.php`,
@@ -135,6 +135,9 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - Preferencias (fase 4): GET y PATCH `/api/me/notification-preferences` con `{email:{tipo:bool}, push:{tipo:bool}}`; el
   PATCH exige al menos uno de los dos canales y mergea por clave. Falta agregar `push` en `web/src/api/types.ts` (fase 10).
   La fase 7 usa `User::wantsPush()`.
+- URL (fase 5): `App\Support\NotificationUrl::for(AppNotification)` (además `task()` y `chatMessage()`). Con tipo desconocido
+  o `data` incompleto lanza: la fase 6/7 decide si lo captura para no romper el job (reportar y no enviar).
+  `web/src/views/NotificationsView.vue` `target()` sigue duplicando la lógica en el cliente.
 - Fase 1 hecha. Pendiente del usuario: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (de `push:vapid-keys`) y `VAPID_SUBJECT`
   (`mailto:...`) en `api/.env` y los tres nombres en `api/.env.example`; luego `docker compose restart api queue reverb scheduler`.
 - Ejecución en worktree (`.claude/worktrees/notificaciones-push`): los contenedores montan el checkout principal, así que
@@ -154,3 +157,4 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - [ ] M-5 (baja, sonnet): documentar la clave `push` de `users.notification_preferences` en `.claude/rules/database.md`.
 - [ ] M-6 (baja, sonnet): tests de preferencias para `{"email": [], "push": {...}}` (se acepta) y cuerpo `{}` autenticado (422).
 - [ ] M-7 (baja, sonnet): unificar la lógica repetida de `User::wantsEmail` y `wantsPush` en un helper privado.
+- [ ] M-8 (baja, sonnet): test de `NotificationUrl` con `app.frontend_url` sin barra final (hoy solo con barra).
