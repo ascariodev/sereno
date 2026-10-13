@@ -2,7 +2,7 @@
 
 **Objetivo:** que las notificaciones de Sereno (tarea asignada, comentario o mención en tarea, mención en el chat) lleguen
 como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin duplicar lo que ya muestra la app abierta.
-**Estado:** en curso · Fase actual: 11
+**Estado:** terminado · Fase actual: —
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -98,7 +98,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - **Archivos:** `NotificationPreferencesDialog.vue`, `web/src/api/notificationPreferences.ts`, `web/src/i18n/{en,es}.json`.
 - **Terminado cuando:** specs del diálogo (toggle por tipo envía `push`, activar dispositivo llama a la fase 9, estados sin soporte o bloqueado).
 
-### [ ] Fase 11 — Verificación de punta a punta y documentación
+### [x] Fase 11 — Verificación de punta a punta y documentación
 - **Alcance:** con build de producción local de la web y claves VAPID de desarrollo: suscribir, recibir push con la app en
   segundo plano, no recibirlo con la app enfocada, click que abre la tarea o el mensaje. Actualizar CLAUDE.md (Orden del MVP,
   variables) y el deploy (variables VAPID en producción las carga el usuario).
@@ -147,9 +147,11 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   de las tres variables.
 
 ## Notas para la próxima sesión
-- Fase 11 en pausa (2026-10-13): necesita las `VAPID_*` en `api/.env` (las carga el usuario) y que los contenedores
-  (`api`, `queue`) corran el código de la rama, que hoy vive en el worktree: mergear antes a `main` en local o levantar
-  el stack desde el worktree. El permiso de notificaciones del navegador lo acepta el usuario.
+- Fase 11 hecha (2026-10-13): recorrido manual en Brave sobre el build de producción local (`vite preview` en 5174) con
+  claves VAPID de desarrollo: suscripción por FCM con `aes128gcm`; tarea asignada por otro usuario vía API, push recibido
+  con Sereno en segundo plano; click que enfoca y abre la tarea; con Sereno enfocado no se muestra aviso del sistema.
+  Tropiezos del entorno, no del código: Brave necesita "Use Google services for push messaging" y Windows silenciaba las
+  notificaciones del navegador. Safari/WebKit no se probó. Suite completa del API: 1385 tests en verde.
 - Contrato push (fase 3, para las fases 9 y 10): `GET /api/push/vapid-public-key` 200 `{data:{public_key}}` o 503 si falta
   la clave; `POST /api/me/push-subscriptions` `{endpoint, public_key, auth_token, content_encoding?, user_agent?}` 201 si crea,
   200 si existía, `{data:{id, endpoint, content_encoding}}`; `DELETE /api/me/push-subscriptions` `{endpoint}` 204, o 404 si no
@@ -224,3 +226,9 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   bajo la tabla.
 - [ ] M-24 (baja, sonnet): `NotificationPreferencesDialog`: aviso cuando el usuario cierra el prompt de permiso y
   `enablePush` vuelve `inactive` (hoy no hay feedback).
+- [ ] M-25 (baja, sonnet): `.gitea/workflows/deploy-api.yml` avisa con `::warning::` si falta `MAIL_MAILER`; agregar un aviso
+  análogo si faltan `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` o `VAPID_SUBJECT` en el `.env` del servidor.
+- [ ] M-26 (media, sonnet): si `pushManager.subscribe()` falla en el navegador (p. ej. Brave sin el servicio de push de
+  Google), el diálogo muestra el mensaje genérico; distinguir ese caso con un texto que oriente a revisar el navegador.
+- [ ] M-27 (media, sonnet): verificar el push en Safari/WebKit (exige mostrar una notificación por cada push y revoca la
+  suscripción tras push silenciosos); si aplica, mostrar siempre en Safari aunque Sereno esté enfocado.

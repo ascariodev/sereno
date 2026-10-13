@@ -96,7 +96,8 @@ siempre desde la raíz, dentro de `web/` compose usa otro nombre de proyecto):
    `adjuntos-url`): la web pide una nueva a `GET /api/attachments/{id}/url`, que valida el acceso, cuando la guardada vence.
 7. Plan: tareas, tablero, crear tarea desde un aviso. **Hecho.**
 8. Escritorio: PWA instalable hecha; falta Tauri.
-9. Móvil, push y facturación SaaS.
+9. Push web hecho (plan `notificaciones-push`): Web Push con VAPID, preferencias por tipo, no se muestra con Sereno
+   enfocado. Falta el push móvil (va con la app móvil) y la facturación SaaS.
 
 Transversal: Docker de desarrollo y stacks de producción del API y la web (plan `web-docker`) y deploy por Gitea
 (`.gitea/workflows/deploy-api.yml` y `deploy-web.yml`) hechos. Integración simple de sistemas Laravel (plan
@@ -105,6 +106,12 @@ Transversal: Docker de desarrollo y stacks de producción del API y la web (plan
 Notificaciones (plan `notificaciones`) hechas: bandeja in-app en vivo (`/notifications`, reemplaza a la de menciones) y
 email inmediato con preferencias por tipo (tarea asignada, mención o comentario en tarea, mención en el chat). Tabla
 `notifications` propia con canal `app`; en producción el correo necesita las `MAIL_*` en el `.env` del servidor.
+Push web (plan `notificaciones-push`): variables `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (par de `php artisan push:vapid-keys`) y
+`VAPID_SUBJECT` (`mailto:` o `https://`), un par distinto por entorno. En producción las carga el usuario en el `.env` del
+servidor; el par se genera allí con `docker compose -p sereno-prod-api -f docker-compose.prod.yml exec -u app app php artisan push:vapid-keys`.
+Probarlo en local: el service worker solo existe en el build de producción (`npm run build` y `vite preview` en 5174,
+parando antes el servicio `web`); en Brave activar "Use Google services for push messaging" y recordar que Windows
+puede silenciar las notificaciones del navegador.
 
 (No confundir con las fases de un plan de `docs/plans/`.)
 
