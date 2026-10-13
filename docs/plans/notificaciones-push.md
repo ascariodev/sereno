@@ -147,6 +147,9 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   de las tres variables.
 
 ## Notas para la próxima sesión
+- Fase 11 en pausa (2026-10-13): necesita las `VAPID_*` en `api/.env` (las carga el usuario) y que los contenedores
+  (`api`, `queue`) corran el código de la rama, que hoy vive en el worktree: mergear antes a `main` en local o levantar
+  el stack desde el worktree. El permiso de notificaciones del navegador lo acepta el usuario.
 - Contrato push (fase 3, para las fases 9 y 10): `GET /api/push/vapid-public-key` 200 `{data:{public_key}}` o 503 si falta
   la clave; `POST /api/me/push-subscriptions` `{endpoint, public_key, auth_token, content_encoding?, user_agent?}` 201 si crea,
   200 si existía, `{data:{id, endpoint, content_encoding}}`; `DELETE /api/me/push-subscriptions` `{endpoint}` 204, o 404 si no
