@@ -10,14 +10,19 @@ class UpdateNotificationPreferencesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['bail', 'required', 'array', function (string $attribute, mixed $value, \Closure $fail) {
-                $known = array_column(NotificationType::cases(), 'value');
-
-                if (array_diff(array_keys($value), $known) !== []) {
-                    $fail(__('The notification type is not valid.'));
-                }
-            }],
+            'email' => ['bail', 'required_without:push', 'array', $this->knownTypes(...)],
             'email.*' => ['boolean:strict'],
+            'push' => ['bail', 'required_without:email', 'array', $this->knownTypes(...)],
+            'push.*' => ['boolean:strict'],
         ];
+    }
+
+    private function knownTypes(string $attribute, mixed $value, \Closure $fail): void
+    {
+        $known = array_column(NotificationType::cases(), 'value');
+
+        if (array_diff(array_keys($value), $known) !== []) {
+            $fail(__('The notification type is not valid.'));
+        }
     }
 }

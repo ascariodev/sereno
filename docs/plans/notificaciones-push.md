@@ -2,7 +2,7 @@
 
 **Objetivo:** que las notificaciones de Sereno (tarea asignada, comentario o mención en tarea, mención en el chat) lleguen
 como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin duplicar lo que ya muestra la app abierta.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -48,7 +48,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - **Archivos:** `api/app/Http/Controllers/PushSubscriptionController.php`, request de alta, `api/routes/api.php`, `lang/{en,es}.json`.
 - **Terminado cuando:** tests de alta, re-alta idempotente, cambio de dueño, baja ajena rechazada y validación.
 
-### [ ] Fase 4 — Preferencias push por tipo
+### [x] Fase 4 — Preferencias push por tipo
 - **Alcance:** clave `push` en `notification_preferences` (tipo ausente = encendido), `User::wantsPush()`, el PATCH acepta y
   mergea `push` además de `email`, el GET lo devuelve completo.
 - **Archivos:** `api/app/Models/User.php`, `UpdateNotificationPreferencesRequest.php`, `AuthController.php`.
@@ -121,6 +121,8 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - 2026-10-13 — Endpoints push en `Http/Controllers/Api/PushSubscriptionController.php` y `Http/Requests/Push/`, como el
   resto del repo. La baja ajena o inexistente da el mismo 404 desde `authorize()` (L-72). Una re-alta sin
   `content_encoding` conserva el existente.
+- 2026-10-13 — El PATCH de preferencias ya no exige `email`: basta `email` o `push` (`required_without` cruzado); la web
+  actual, que solo manda `email`, sigue igual.
 - 2026-10-13 — Comando `php artisan push:vapid-keys` imprime las líneas `VAPID_*` para el `.env`, no escribe archivos.
   `workspace.push.vapid_subject` no tiene valor por defecto: la fase 7 debe no enviar (y reportar claro) si falta alguna
   de las tres variables.
@@ -130,6 +132,9 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   la clave; `POST /api/me/push-subscriptions` `{endpoint, public_key, auth_token, content_encoding?, user_agent?}` 201 si crea,
   200 si existía, `{data:{id, endpoint, content_encoding}}`; `DELETE /api/me/push-subscriptions` `{endpoint}` 204, o 404 si no
   existe o es ajena (la web tolera el 404 al darse de baja).
+- Preferencias (fase 4): GET y PATCH `/api/me/notification-preferences` con `{email:{tipo:bool}, push:{tipo:bool}}`; el
+  PATCH exige al menos uno de los dos canales y mergea por clave. Falta agregar `push` en `web/src/api/types.ts` (fase 10).
+  La fase 7 usa `User::wantsPush()`.
 - Fase 1 hecha. Pendiente del usuario: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (de `push:vapid-keys`) y `VAPID_SUBJECT`
   (`mailto:...`) en `api/.env` y los tres nombres en `api/.env.example`; luego `docker compose restart api queue reverb scheduler`.
 - Ejecución en worktree (`.claude/worktrees/notificaciones-push`): los contenedores montan el checkout principal, así que
@@ -146,3 +151,6 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   mismo endpoint nuevo dan 500 por el índice único. Capturar `UniqueConstraintViolationException` y reintentar, o `upsert`.
 - [ ] M-4 (baja, sonnet): comentario o test en `DestroyPushSubscriptionRequest` que fije por qué la existencia se valida en
   `authorize()` con 404 y no con `exists` (evitar que un 422 distinga ajeno de inexistente).
+- [ ] M-5 (baja, sonnet): documentar la clave `push` de `users.notification_preferences` en `.claude/rules/database.md`.
+- [ ] M-6 (baja, sonnet): tests de preferencias para `{"email": [], "push": {...}}` (se acepta) y cuerpo `{}` autenticado (422).
+- [ ] M-7 (baja, sonnet): unificar la lógica repetida de `User::wantsEmail` y `wantsPush` en un helper privado.
