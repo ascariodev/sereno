@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -48,7 +48,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 8 — Limpieza al borrar el sujeto
 - Borrar tarea, mensaje o comentario borra sus notificaciones. 2-3 archivos.
 
-### [ ] Fase 9 — Preferencias de email (API)
+### [x] Fase 9 — Preferencias de email (API)
 - `users.notification_preferences` jsonb (email por tipo, por defecto encendido), GET/PATCH en `me`, y `via()` las respeta. 5 archivos.
 
 ### [ ] Fase 10 — Mailpit en desarrollo
@@ -145,6 +145,11 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   y `MessageDeletion` (soft delete; las respuestas de un raíz siguen vivas y conservan las suyas). No hay borrado de canales fuera de
   la cascada de proyecto u organización. `ChatMentionNotification::shouldSend` frena un job en cola porque `MessageDeletion` vacía
   `message_mentions` antes del soft delete (depende de ese orden).
+- 2026-10-13 (fase 9): `users.notification_preferences` jsonb, `User::wantsEmail(NotificationType)`: ausente o null = encendido (un
+  tipo futuro arranca encendido). `GET /api/me/notification-preferences` (sin `X-Organization-Id`) → `{data:{email:{task_assigned,
+  task_comment_mention, task_commented, chat_mention}}}`, siempre los cuatro; `PATCH` con `{email:{tipo:bool}}`, merge parcial, responde
+  el estado completo; 422 si falta `email` (también `[]`), no es array, clave fuera del enum o valor no booleano estricto. `GET /api/me`
+  no las incluye. `via()` omite `mail` si está apagado (optimización) y `shouldSend` lo relee en el worker para el canal `mail`.
 
 ## Notas para la próxima sesión
 - Fase 12: el cliente ignora `notification.created` si `organization_id` no es la organización activa y fusiona por `id`.
@@ -187,3 +192,6 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-14: Que `ChatMentionNotification::shouldSend` mire también `deleted_at` del mensaje, para no depender de que `MessageDeletion`
       vacíe las menciones antes; y que `NotificationSubjectCleanupTest` use una fila `chat_mention` real en el caso del mensaje. (revisor, fase 8)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-15: Test de worker (preferencia de email apagada tras encolar) también para `ChatMentionNotification` y las de comentarios,
+      parametrizado. (revisor, fase 9)
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet

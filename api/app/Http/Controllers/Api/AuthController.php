@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\UpdateLocaleRequest;
+use App\Http\Requests\Auth\UpdateNotificationPreferencesRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -63,6 +64,21 @@ class AuthController extends Controller
         $request->user()->update(['locale' => $request->validated('locale')]);
 
         return new UserResource($request->user());
+    }
+
+    public function notificationPreferences(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $request->user()->notificationPreferences()]);
+    }
+
+    public function updateNotificationPreferences(UpdateNotificationPreferencesRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $current = $user->notification_preferences ?? [];
+        $current['email'] = array_merge($current['email'] ?? [], $request->validated('email'));
+        $user->update(['notification_preferences' => $current]);
+
+        return response()->json(['data' => $user->notificationPreferences()]);
     }
 
     private function tokenResponse(User $user, ?string $deviceName, int $status = 200): JsonResponse

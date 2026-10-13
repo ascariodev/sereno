@@ -39,6 +39,10 @@ abstract class TaskCommentNotification extends Notification implements ShouldQue
 
     public function shouldSend(object $notifiable, string $channel): bool
     {
+        if ($channel === 'mail' && ! $notifiable->wantsEmail($this->type())) {
+            return false;
+        }
+
         return TaskComment::query()->withoutGlobalScopes()->whereKey($this->commentId)->exists()
             && $this->stillRelevant($notifiable)
             && ProjectAccess::canViewId($notifiable, $this->organizationId, $this->projectId);
@@ -47,7 +51,7 @@ abstract class TaskCommentNotification extends Notification implements ShouldQue
     /** @return list<class-string|string> */
     public function via(object $notifiable): array
     {
-        return [AppChannel::class, 'mail'];
+        return $notifiable->wantsEmail($this->type()) ? [AppChannel::class, 'mail'] : [AppChannel::class];
     }
 
     /** @return array<string, mixed> */

@@ -64,6 +64,10 @@ class ChatMentionNotification extends Notification implements ShouldQueue
      */
     public function shouldSend(object $notifiable, string $channel): bool
     {
+        if ($channel === 'mail' && ! $notifiable->wantsEmail(NotificationType::ChatMention)) {
+            return false;
+        }
+
         $alreadyNotified = AppNotification::query()
             ->withoutGlobalScopes()
             ->where('user_id', $notifiable->id)
@@ -95,7 +99,7 @@ class ChatMentionNotification extends Notification implements ShouldQueue
     /** @return list<class-string|string> */
     public function via(object $notifiable): array
     {
-        return [AppChannel::class, 'mail'];
+        return $notifiable->wantsEmail(NotificationType::ChatMention) ? [AppChannel::class, 'mail'] : [AppChannel::class];
     }
 
     /** @return array<string, mixed> */

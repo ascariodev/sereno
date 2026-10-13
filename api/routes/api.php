@@ -29,6 +29,8 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
     Route::patch('me/locale', [AuthController::class, 'updateLocale']);
+    Route::get('me/notification-preferences', [AuthController::class, 'notificationPreferences']);
+    Route::patch('me/notification-preferences', [AuthController::class, 'updateNotificationPreferences']);
     Route::get('organizations', [OrganizationController::class, 'index']);
     Route::post('organizations', [OrganizationController::class, 'store']);
 });

@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\Locale;
+use App\Enums\NotificationType;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -18,7 +19,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'locale'])]
+#[Fillable(['name', 'email', 'password', 'locale', 'notification_preferences'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements HasLocalePreference
 {
@@ -36,12 +37,26 @@ class User extends Authenticatable implements HasLocalePreference
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'locale' => Locale::class,
+            'notification_preferences' => 'array',
         ];
     }
 
     public function preferredLocale(): ?string
     {
         return $this->locale?->value;
+    }
+
+    public function wantsEmail(NotificationType $type): bool
+    {
+        return ($this->notification_preferences['email'][$type->value] ?? true) !== false;
+    }
+
+    /** @return array{email: array<string, bool>} */
+    public function notificationPreferences(): array
+    {
+        return ['email' => collect(NotificationType::cases())
+            ->mapWithKeys(fn (NotificationType $type) => [$type->value => $this->wantsEmail($type)])
+            ->all()];
     }
 
     public function organizations(): BelongsToMany

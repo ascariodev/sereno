@@ -44,6 +44,10 @@ class TaskAssignedNotification extends Notification implements ShouldQueue
 
     public function shouldSend(object $notifiable, string $channel): bool
     {
+        if ($channel === 'mail' && ! $notifiable->wantsEmail(NotificationType::TaskAssigned)) {
+            return false;
+        }
+
         $assigneeId = Task::query()->withoutGlobalScopes()->whereKey($this->taskId)->value('assignee_id');
 
         return $assigneeId === $notifiable->id
@@ -53,7 +57,7 @@ class TaskAssignedNotification extends Notification implements ShouldQueue
     /** @return list<class-string|string> */
     public function via(object $notifiable): array
     {
-        return [AppChannel::class, 'mail'];
+        return $notifiable->wantsEmail(NotificationType::TaskAssigned) ? [AppChannel::class, 'mail'] : [AppChannel::class];
     }
 
     /** @return array<string, mixed> */
