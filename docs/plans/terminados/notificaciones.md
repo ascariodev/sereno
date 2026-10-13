@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 17
+**Estado:** terminado · 17/17 fases
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -190,6 +190,10 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   global, con sesión validada, llama `useOrganizationStore().activateFromLink(id)` si es entero positivo y redirige con `replace` sin el
   parámetro; sin sesión viaja dentro de `?redirect`. `activateFromLink` hace `select` si ya hay organizaciones cargadas o deja el id
   pendiente con prioridad para la próxima carga (se consume una vez, `clear()` lo borra); un id del que no es miembro se ignora.
+
+- 2026-10-13: cierre. Se trajo `main` (arreglo de `AppLayout.spec.ts` de otra sesión; su lección quedó como L-73 y las de este plan
+  pasaron a L-74, L-75 y L-76). Suite API 1276 ok y Pint ok; suite web 1731 ok y typecheck ok; `AppLayout.spec.ts` ya pasa completo.
+  Queda 1 error no manejado previo en `TaskComments.spec.ts` (`scrollIntoView` en jsdom), también en `main`, ajeno al plan (tarea aparte).
 
 ## Notas para la próxima sesión
 - Tras el merge, `docker compose restart queue`.
