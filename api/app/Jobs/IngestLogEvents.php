@@ -19,11 +19,13 @@ class IngestLogEvents implements ShouldBeEncrypted, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
-    /** One attempt: a retry would record the already stored events again and over-count the groups. */
-    public int $tries = 1;
+    public int $tries = 3;
+
+    /** @var list<int> */
+    public array $backoff = [5, 30];
 
     /**
-     * @param  list<array{level: string, message: string, context?: array<mixed>|null, occurred_at?: string|null, fingerprint?: string|null}>  $events
+     * @param  list<array{level: string, message: string, context?: array<mixed>|null, occurred_at?: string|null, fingerprint?: string|null, id?: string|null}>  $events
      */
     public function __construct(public readonly int $sourceId, public readonly array $events) {}
 
@@ -37,7 +39,7 @@ class IngestLogEvents implements ShouldBeEncrypted, ShouldQueue
         }
 
         foreach ($this->events as $event) {
-            $recorder->record($source, $event);
+            $recorder->record($source, $event, $event['id'] ?? null);
         }
     }
 }

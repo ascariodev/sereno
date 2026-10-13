@@ -2,15 +2,18 @@
 
 use App\Http\Requests\LogIngest\IngestEventsRequest;
 use App\Jobs\IngestLogEvents;
+use App\Models\LogEvent;
 use App\Models\LogGroup;
 use App\Models\LogSource;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Providers\AppServiceProvider;
+use App\Support\LogEventRecorder;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
@@ -125,6 +128,9 @@ it('rejects invalid bodies with 422 and never 500', function (mixed $body) {
     'occurred_at garbage' => [['events' => [['level' => 'error', 'message' => 'm', 'occurred_at' => 'not a date']]]],
     'fingerprint array' => [['events' => [['level' => 'error', 'message' => 'm', 'fingerprint' => ['x']]]]],
     'fingerprint too long' => [['events' => [['level' => 'error', 'message' => 'm', 'fingerprint' => str_repeat('a', 256)]]]],
+    'id array' => [['events' => [['id' => ['x'], 'level' => 'error', 'message' => 'm']]]],
+    'id too long' => [['events' => [['id' => str_repeat('a', 65), 'level' => 'error', 'message' => 'm']]]],
+    'null char in id' => [['events' => [['id' => "a\0b", 'level' => 'error', 'message' => 'm']]]],
     'null char in message' => [['events' => [['level' => 'error', 'message' => "a\0b"]]]],
     'null char in fingerprint' => [['events' => [['level' => 'error', 'message' => 'm', 'fingerprint' => "a\0b"]]]],
     'null char in nested context' => [['events' => [['level' => 'error', 'message' => 'm', 'context' => ['a' => ['b' => "x\0y"]]]]]],
@@ -212,12 +218,66 @@ it('throttles per source with 429', function () {
     postIngest(['events' => [validEvent()]])->assertTooManyRequests();
 });
 
-it('tries the job only once', function () {
-    expect((new IngestLogEvents(1, []))->tries)->toBe(1);
+it('retries the job three times with backoff', function () {
+    $job = new IngestLogEvents(1, []);
+
+    expect($job->tries)->toBe(3)->and($job->backoff)->toBe([5, 30]);
+});
+
+it('records only the missing events when the job is retried after a mid-batch failure', function () {
+    $events = [
+        validEvent(['id' => 'evt-1']),
+        validEvent(['id' => 'evt-2']),
+        validEvent(['id' => 'evt-3', 'message' => 'Other']),
+    ];
+    $failures = 0;
+    LogEvent::creating(function () use (&$failures) {
+        if (DB::table('log_events')->count() === 1 && $failures++ === 0) {
+            throw new RuntimeException('transient');
+        }
+    });
+
+    $job = new IngestLogEvents($this->source->id, $events);
+
+    expect(fn () => $job->handle(app(LogEventRecorder::class)))->toThrow(RuntimeException::class);
+    expect(DB::table('log_events')->count())->toBe(1)
+        ->and(DB::table('log_event_receipts')->count())->toBe(1);
+
+    $job->handle(app(LogEventRecorder::class));
+
+    expect(DB::table('log_events')->count())->toBe(3)
+        ->and(DB::table('log_event_receipts')->count())->toBe(3)
+        ->and(LogGroup::query()->withoutGlobalScopes()->where('title', 'Boom')->value('events_count'))->toBe(2)
+        ->and(LogGroup::query()->withoutGlobalScopes()->where('title', 'Other')->value('events_count'))->toBe(1);
 });
 
 it('translates the null character error', function () {
     postIngest(['events' => [['level' => 'error', 'message' => "a\0b"]]], 'es')
         ->assertUnprocessable()
         ->assertJsonPath('errors', fn ($e) => $e['events.0.message'][0] === 'El campo events.0.message no puede contener caracteres nulos.');
+});
+
+it('records a batch with event ids once when it is sent twice', function () {
+    $body = ['events' => [validEvent(['id' => 'evt-1']), validEvent(['id' => 'evt-2', 'message' => 'Other'])]];
+
+    postIngest($body)->assertStatus(202)->assertExactJson(['accepted' => 2]);
+    postIngest($body)->assertStatus(202)->assertExactJson(['accepted' => 2]);
+
+    expect(DB::table('log_events')->count())->toBe(2);
+});
+
+it('gives every event without an id a generated one and keeps the sent ids', function () {
+    Queue::fake();
+
+    postIngest(['events' => [validEvent(), validEvent(['id' => 'mine', 'message' => 'Second']), validEvent(['id' => null])]])
+        ->assertStatus(202)->assertExactJson(['accepted' => 3]);
+
+    Queue::assertPushed(IngestLogEvents::class, function (IngestLogEvents $job) {
+        $ids = array_column($job->events, 'id');
+
+        return $job->events[1]['id'] === 'mine'
+            && $job->events[1]['message'] === 'Second'
+            && Str::isUuid($ids[0]) && Str::isUuid($ids[2])
+            && $ids[0] !== $ids[2];
+    });
 });
