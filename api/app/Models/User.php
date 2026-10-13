@@ -12,10 +12,12 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use LogicException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -57,6 +59,21 @@ class User extends Authenticatable implements HasLocalePreference
         return ['email' => collect(NotificationType::cases())
             ->mapWithKeys(fn (NotificationType $type) => [$type->value => $this->wantsEmail($type)])
             ->all()];
+    }
+
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(AppNotification::class);
+    }
+
+    public function readNotifications(): never
+    {
+        throw new LogicException('Use notifications() filtered by read_at; the Notifiable helpers target the database channel.');
+    }
+
+    public function unreadNotifications(): never
+    {
+        throw new LogicException('Use notifications() filtered by read_at; the Notifiable helpers target the database channel.');
     }
 
     public function organizations(): BelongsToMany

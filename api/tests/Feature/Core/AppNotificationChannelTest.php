@@ -103,3 +103,16 @@ it('removes the notifications when their project is deleted', function () {
 
     expect(AppNotification::query()->count())->toBe(0);
 });
+
+it('exposes the app notifications through the Notifiable relation', function () {
+    $this->user->notify(new AppChannelTestNotification($this->organization->id, null, $this->message));
+    User::factory()->create()->notify(new AppChannelTestNotification($this->organization->id, null, $this->message));
+
+    expect($this->user->notifications()->count())->toBe(1)
+        ->and($this->user->notifications()->sole())->toBeInstanceOf(AppNotification::class);
+});
+
+it('rejects the database-channel read helpers of Notifiable', function () {
+    expect(fn () => $this->user->unreadNotifications())->toThrow(LogicException::class)
+        ->and(fn () => $this->user->readNotifications())->toThrow(LogicException::class);
+});
