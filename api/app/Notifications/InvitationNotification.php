@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Invitation;
+use App\Support\MailMarkdown;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,7 +31,7 @@ class InvitationNotification extends Notification implements ShouldBeEncrypted, 
         return (new MailMessage)
             ->subject(__('You have been invited to :organization', ['organization' => $this->organizationName]))
             ->line(__('You have been invited to join :organization as :role.', [
-                'organization' => $this->organizationName,
+                'organization' => MailMarkdown::escape($this->organizationName),
                 'role' => __($this->role),
             ]))
             ->action(__('Accept invitation'), rtrim(config('app.frontend_url'), '/').'/invite/'.$this->plainToken)

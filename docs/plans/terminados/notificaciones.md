@@ -262,7 +262,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-23: Ampliar el test de `MailMarkdown::escape` con un autolink `<http://evil.test>` y una URL suelta (que no salga `href`),
       para detectar si algún día se suma la extensión de autolinks de GFM. (revisor, M-11)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-24: Escapar con `MailMarkdown::escape` el nombre de la organización y del que invita en las líneas de `InvitationNotification`. (implementador, M-12)
+- [x] M-24: Escapar con `MailMarkdown::escape` el nombre de la organización y del que invita en las líneas de `InvitationNotification`. (implementador, M-12)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-25: Mismo try/catch con `report` en `SyncChatMentionNotification::handleRemoved` (corre tras el commit, un fallo da 500 con el cambio guardado). (revisor, M-13)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
