@@ -164,9 +164,9 @@
 - Plan terminado. Pendientes solo las mejoras propuestas. El plan `notificaciones` escucha `TaskCommentCreated`.
 
 ## Mejoras propuestas
-- [ ] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
+- [x] M-1: Editar y borrar comentarios propios (admin/owner borran cualquiera), con resincronización de menciones.
       Complejidad: alta · Archivos: >5 · Riesgo: contrato público → plan propio (junto con M-2; el borrado afecta al contador)
-- [ ] M-2: Contador de comentarios en `TaskCard`.
+- [x] M-2: Contador de comentarios en `TaskCard`.
       Complejidad: alta · Archivos: ~10 · Riesgo: contrato público → plan propio. Hallazgos: `unassignUser` corre sin
       organización activa, así que el `withCount` debe quitar el scope de `TaskComment` y declararse en un solo lugar;
       `TaskCommentCreated` llega también a quien envía, por lo que el evento debería traer `comments_count` contado tras
@@ -177,7 +177,7 @@
       Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [x] M-5: Docblock de `AttachmentStorage::download` que diga que depende de `expires` de una ruta firmada para el
       `max-age`. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-6: Repartir `api/tests/Feature` en subcarpetas por módulo (Chat, Log, Plan, Core) para alejarse del umbral que
+- [x] M-6: Repartir `api/tests/Feature` en subcarpetas por módulo (Chat, Log, Plan, Core) para alejarse del umbral que
       trunca el descubrimiento de Pest en el montaje de Docker. Decisión del usuario. Complejidad: alta (más de 5
       archivos, mueve toda la suite) → convertir en plan
 - [x] M-7: Compartir `signedDownload()` y `URL_EXPIRY_STEP_SECONDS` entre `MessageAttachment` y `TaskCommentAttachment`

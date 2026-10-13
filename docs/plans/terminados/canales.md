@@ -185,7 +185,7 @@ resolverlo o ignorarlo con la API existente. (Paso 3 del MVP; hilos, menciones y
 - [x] M-17 — Anotar en `database.md` que `LogEventRecorder` usa `RETURNING old.*` y exige PostgreSQL 18. Baja · sonnet.
 - [x] M-18 — `PostLogGroupNoticeTest`: quitar la aserción que solo repite `$tries`, y probar con el worker real
   (no `handle` a mano). Baja · sonnet.
-- [ ] M-19 — Mover `postStatusNotice` del `LogGroupController` a una acción o evento si otro punto llega a cambiar el
+- [x] M-19 — Mover `postStatusNotice` del `LogGroupController` a una acción o evento si otro punto llega a cambiar el
   estado de un grupo (p. ej. el plan). Media · sonnet.
 - [x] M-20 — `bootstrap/app.php`: extraer la condición repetida `is('api/*', 'broadcasting/*') || expectsJson()`.
   Baja · sonnet.
@@ -200,8 +200,12 @@ resolverlo o ignorarlo con la API existente. (Paso 3 del MVP; hilos, menciones y
 - [x] M-25 — `ChannelApiTest`: cursores con `id` fuera de bigint, negativo y float dan 422. Baja · sonnet.
 - [x] M-26 — `ChannelView.loadChannel` recorre todos los canales (incluidos archivados) para encontrar uno: agregar
   `GET /api/channels/{id}` y usarlo. Media · sonnet.
-- [ ] M-27 — Los 404 por `denyAsNotFound` (`ChannelPolicy::view` y las que lo reutilizan, p. ej. `MessagePolicy`) responden
+- [x] M-27 — Los 404 por `denyAsNotFound` (`ChannelPolicy::view` y las que lo reutilizan, p. ej. `MessagePolicy`) responden
   "Not Found" y un id inexistente "Resource not found." (render de `bootstrap/app.php`): un miembro distingue un canal o
   mensaje de un proyecto sin acceso de uno inexistente. Unificar en el render (p. ej. que el 404 de autorización use el
   mismo cuerpo) con un test que compare cuerpos en varios endpoints. `show` (M-26) y `attachments/{id}/url` ya lo hacen.
   Alta (seguridad, varios endpoints) · opus.
+- [ ] M-28 — Los `abort_unless(..., 404)` de `MessageController.php:112`, `LogGroupController.php:59` y `:78` y
+  `LogSourceController.php:49` responden "Not Found": un id de otro canal o proyecto se distingue de uno inexistente
+  ("Resource not found."), la misma fuga leve de M-27. Usar el mismo cuerpo (p. ej. lanzar `ModelNotFoundException`) y
+  extender `tests/Feature/Core/NotFoundBodyTest.php`. Media (seguridad leve, 3 archivos más el test) · sonnet.

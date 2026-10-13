@@ -100,6 +100,6 @@
 - [x] M-13 (baja, haiku): deshabilitar el botón Invitar mientras la lista carga, para que `load` no pise una invitación recién creada.
 - [x] M-14 (baja, haiku): estilo destructivo (rojo) en el botón "Revocar invitación" del diálogo de confirmación.
 - [x] M-15 (baja, haiku): `LoginView.vue` usa `:key="message"` en los `v-for` de errores; pasar a `${index}-${message}` como InviteView.
-- [ ] M-16 (media, sonnet): unificar los botones y campos de los diálogos (CreateLogSourceDialog, InviteDialog,
+- [x] M-16 (media, sonnet): unificar los botones y campos de los diálogos (CreateLogSourceDialog, InviteDialog,
   OrganizationCreateDialog, ProjectCreateDialog, ProjectMembersDialog) sobre `AppInput`/`AppButton` con variantes.
   Va a un plan propio: `docs/plans/dialogos-unificados.md` (aprobado 2026-10-11).

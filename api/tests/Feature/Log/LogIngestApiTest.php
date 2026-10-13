@@ -183,6 +183,20 @@ it('rejects an oversized body without an API key before authenticating', functio
         ->assertJsonPath('message', 'El cuerpo de la petición es demasiado grande.');
 });
 
+it('rejects a declared Content-Length over the limit without reading the body', function () {
+    Queue::fake();
+
+    $server = $this->transformHeadersToServerVars([
+        'Accept-Language' => 'es',
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json',
+    ]) + ['HTTP_CONTENT_LENGTH' => (string) (IngestEventsRequest::MAX_BODY_BYTES + 1)];
+
+    $this->call('POST', '/api/ingest/events', server: $server, content: '{"events":[]}')
+        ->assertStatus(413)
+        ->assertJsonPath('message', 'El cuerpo de la petición es demasiado grande.');
+});
+
 it('translates validation errors', function () {
     postIngest(['events' => [validEvent(['context' => 'x'])]], 'es')
         ->assertUnprocessable()
