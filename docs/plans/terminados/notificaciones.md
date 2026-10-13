@@ -212,7 +212,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-5: Recortar el docblock de `AppChannel` a lo no obvio del contrato `toApp`. (revisor, fase 1)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-6: `ListNotificationsRequest` extiende `ListMessagesRequest` (y hereda `around()` sin uso): extraer una base o trait común
+- [x] M-6: `ListNotificationsRequest` extiende `ListMessagesRequest` (y hereda `around()` sin uso): extraer una base o trait común
       de cursor y `per_page` para no acoplar la bandeja al chat. (revisor, fase 2)
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
 - [x] M-7: Corregir el docblock de `TaskCommentController` (~línea 183) que dice que las menciones de comentarios no notifican. (revisor, fase 5)
