@@ -5,9 +5,10 @@ namespace App\Notifications;
 use App\Enums\NotificationType;
 use App\Models\TaskCommentMention;
 use App\Models\User;
+use App\Notifications\Contracts\RevalidatesAfterInsert;
 use App\Support\MailMarkdown;
 
-class TaskCommentMentionNotification extends TaskCommentNotification
+class TaskCommentMentionNotification extends TaskCommentNotification implements RevalidatesAfterInsert
 {
     protected function type(): NotificationType
     {

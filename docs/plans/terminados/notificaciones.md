@@ -274,7 +274,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-27: `DelaysMail`: castear a entero no negativo `notifications.mail_delay_minutes`, y documentar `NOTIFICATION_MAIL_DELAY_MINUTES`
       (`api/.env.example` lo edita el usuario, L-52). (revisor, M-1)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-28: Reemplazar el `method_exists(stillApplies)` de `AppChannel` por una interfaz (p. ej. `RevalidatesAfterInsert`). (revisor, M-10)
+- [x] M-28: Reemplazar el `method_exists(stillApplies)` de `AppChannel` por una interfaz (p. ej. `RevalidatesAfterInsert`). (revisor, M-10)
       Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
 - [ ] M-29: Cerrar el hueco de M-10 también para `task_commented` y `task_assigned` (tarea o comentario borrados entre `shouldSend` y el insert,
       `forgetSubjects` dentro de la transacción). (implementador y revisor, M-10)
