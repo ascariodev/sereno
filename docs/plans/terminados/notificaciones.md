@@ -266,5 +266,5 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-25: Mismo try/catch con `report` en `SyncChatMentionNotification::handleRemoved` (corre tras el commit, un fallo da 500 con el cambio guardado). (revisor, M-13)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-26: El test de `task_assigned` con `notifyNow` de `NotificationPreferencesTest` (~línea 72) queda enmascarado por `via()` (L-77): quitarlo o pasarlo a `shouldSend` directo. (revisor, M-15)
+- [x] M-26: El test de `task_assigned` con `notifyNow` de `NotificationPreferencesTest` (~línea 72) queda enmascarado por `via()` (L-77): quitarlo o pasarlo a `shouldSend` directo. (revisor, M-15)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet

@@ -2,7 +2,6 @@
 
 use App\Enums\NotificationType;
 use App\Enums\Role;
-use App\Models\AppNotification;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Organization;
@@ -16,9 +15,7 @@ use App\Notifications\TaskAssignedNotification;
 use App\Notifications\TaskCommentedNotification;
 use App\Notifications\TaskCommentMentionNotification;
 use App\Support\CurrentOrganization;
-use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -67,31 +64,6 @@ it('rejects unknown types, non boolean values and a missing body', function (arr
 it('requires authentication', function () {
     $this->getJson('/api/me/notification-preferences')->assertUnauthorized();
     $this->patchJson('/api/me/notification-preferences', ['email' => []])->assertUnauthorized();
-});
-
-it('skips the mail at execution when email was turned off after queueing', function () {
-    $organization = Organization::factory()->create();
-    $actor = User::factory()->create();
-    $organization->addMember($actor, [Role::Member]);
-    $organization->addMember($this->user, [Role::Member]);
-    $project = Project::factory()->for($organization)->create(['key' => 'POSVE']);
-    assignMembersToAllProjects();
-    app(CurrentOrganization::class)->set($organization);
-    $task = tap(new Task(['title' => 'T', 'status' => 'todo', 'position' => 1.0]), function (Task $task) use ($project) {
-        $task->project_id = $project->id;
-        $task->number = 1;
-        $task->assignee_id = $this->user->id;
-        $task->save();
-        $task->setRelation('project', $project);
-    });
-    $notification = TaskAssignedNotification::for($task, $actor);
-    $this->user->update(['notification_preferences' => ['email' => ['task_assigned' => false]]]);
-    Event::fake([NotificationSent::class]);
-
-    $this->user->notifyNow($notification);
-
-    $sent = Event::dispatched(NotificationSent::class)->map(fn (array $args) => $args[0]->channel)->sort()->values()->all();
-    expect($sent)->toBe([AppChannel::class])->and(AppNotification::query()->where('user_id', $this->user->id)->count())->toBe(1);
 });
 
 it('decides the mail channel in the worker from the current preference for every type', function (string $type) {
