@@ -245,7 +245,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-17: Las filas que el API borra (fases 7 y 8) siguen en la lista de la web: en el refresh tras reconectar, reemplazar las filas
       con `id` >= el menor de la página, o un evento `notification.removed`. (revisor, fase 12)
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-18: `markAllRead` marca como leídas también las filas llegadas en vivo durante la petición, que el servidor quizá no marcó:
+- [x] M-18: `markAllRead` marca como leídas también las filas llegadas en vivo durante la petición, que el servidor quizá no marcó:
       restringir a las que había al lanzarla. (revisor, fase 12)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-19: Renombrar la clase `app-sidebar__mentions` (enlace de notificaciones y su CSS de posición colapsada) a
