@@ -127,7 +127,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   subject el `TaskComment`, `data` `{task_id, task_key, task_title, comment_id, comment_excerpt (140 car., <@id> → @Nombre solo con
   los mencionados del comentario), actor_id, actor_name}`. Mención: los de `mentions` del evento. Comentado: asignado y creador sin
   repetir, sin el autor ni los mencionados. `shouldSend`: comentario existe, ve el proyecto, y la mención sigue (o sigue siendo
-  asignado o creador). El mail enlaza a la tarea (la web no admite parámetro de comentario). Editar un comentario no notifica menciones nuevas.
+  asignado o creador). El mail enlaza a la tarea (la web no admite parámetro de comentario). Editar un comentario notifica solo las menciones nuevas y borra la notificación de las quitadas (M-8).
 - 2026-10-13 (fase 6): tipo `chat_mention`, subject el `Message` (no la fila de `message_mentions`, que cambia en cada edición); la fila de
   un usuario es subject + `user_id`; `project_id` del canal, puede ser null. `data` `{channel_id, channel_name, message_id, parent_id|null,
   message_excerpt (140 car.), actor_id, actor_name}`. Mail a `/channels/{id}?message={id}` o `?thread={parent_id}`, como `MentionsView`.
@@ -217,7 +217,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
 - [x] M-7: Corregir el docblock de `TaskCommentController` (~línea 183) que dice que las menciones de comentarios no notifican. (revisor, fase 5)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-8: Notificar las menciones nuevas al editar un comentario (`TaskCommentUpdated`). (implementador, fase 5)
+- [x] M-8: Notificar las menciones nuevas al editar un comentario (`TaskCommentUpdated`). (implementador, fase 5)
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [x] M-9: `TaskCommentNotification::isAssigneeOrCreator` hace una consulta por destinatario en el worker; pasar el estado ya cargado. (revisor, fase 5)
       Descartada: en cola cada canal y destinatario es un job con su propia instancia, así que una caché no ahorra consultas,

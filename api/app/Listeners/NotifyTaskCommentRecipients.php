@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\TaskCommentCreated;
+use App\Events\TaskCommentUpdated;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\TaskCommentedNotification;
@@ -24,6 +25,19 @@ class NotifyTaskCommentRecipients implements ShouldQueue
 
     public function handle(TaskCommentCreated $event): void
     {
+        $this->process($event, null);
+    }
+
+    public function handleUpdated(TaskCommentUpdated $event): void
+    {
+        if ($event->addedMentionIds !== []) {
+            $this->process($event, $event->addedMentionIds);
+        }
+    }
+
+    /** @param  list<int>|null  $onlyMentionIds  On an edit: the new mentions, and nobody gets "commented". */
+    private function process(TaskCommentCreated|TaskCommentUpdated $event, ?array $onlyMentionIds): void
+    {
         $comment = $event->comment;
         $author = $comment['user'] ?? null;
         $task = Task::query()->withoutGlobalScopes()->with('project')->find($comment['task_id']);
@@ -34,7 +48,7 @@ class NotifyTaskCommentRecipients implements ShouldQueue
 
         $mentions = collect($comment['mentions'] ?? []);
         $mentionedIds = $mentions->pluck('id')->map(fn ($id) => (int) $id)->all();
-        $commentedIds = collect([$task->assignee_id, $task->created_by])
+        $commentedIds = collect($onlyMentionIds === null ? [$task->assignee_id, $task->created_by] : [])
             ->filter()
             ->unique()
             ->reject(fn (int $id) => $id === $author['id'] || in_array($id, $mentionedIds, true))
@@ -53,12 +67,12 @@ class NotifyTaskCommentRecipients implements ShouldQueue
             $author['name'],
         ];
 
-        $this->notify($mentionedIds, new TaskCommentMentionNotification(...$arguments), $event);
+        $this->notify($onlyMentionIds === null ? $mentionedIds : array_values(array_intersect($mentionedIds, $onlyMentionIds)), new TaskCommentMentionNotification(...$arguments), $event);
         $this->notify($commentedIds, new TaskCommentedNotification(...$arguments), $event);
     }
 
     /** @param  list<int>  $userIds */
-    private function notify(array $userIds, TaskCommentNotification $notification, TaskCommentCreated $event): void
+    private function notify(array $userIds, TaskCommentNotification $notification, TaskCommentCreated|TaskCommentUpdated $event): void
     {
         foreach (User::query()->whereIn('id', $userIds)->get() as $user) {
             if (ProjectAccess::canViewId($user, $event->organizationId, $event->projectId)) {

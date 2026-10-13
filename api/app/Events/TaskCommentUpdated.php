@@ -26,7 +26,8 @@ class TaskCommentUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
     /** @var array<string, mixed> */
     public readonly array $comment;
 
-    public function __construct(TaskComment $comment, int $projectId)
+    /** @param  list<int>  $addedMentionIds */
+    public function __construct(TaskComment $comment, int $projectId, public readonly array $addedMentionIds = [])
     {
         $this->organizationId = $comment->organization_id;
         $this->projectId = $projectId;
