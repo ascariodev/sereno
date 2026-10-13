@@ -290,3 +290,31 @@ it('drops a comment notice row when the comment is deleted after shouldSend pass
     expect(AppNotification::query()->count())->toBe(0);
     Event::assertNotDispatched(NotificationCreated::class);
 });
+
+it('drops a comment notice row when the recipient loses access after shouldSend passed but before the insert', function () {
+    $notification = mentionNotificationFor($this->mentioned);
+    $commented = new TaskCommentedNotification(
+        $this->organization->id, $this->project->id, $this->task->id, 'POSVE-3', 'Fix it',
+        $notification->commentId, 'x', $this->author->id, 'Ana',
+    );
+    $commented->id = (string) Str::uuid();
+    Event::fake([NotificationCreated::class]);
+    $this->project->removeMember($this->assignee);
+
+    app(AppChannel::class)->send($this->assignee, $commented);
+
+    expect(AppNotification::query()->count())->toBe(0);
+    Event::assertNotDispatched(NotificationCreated::class);
+});
+
+it('drops a mention row when the mentioned user loses access after shouldSend passed but before the insert', function () {
+    $notification = mentionNotificationFor($this->mentioned);
+    $notification->id = (string) Str::uuid();
+    Event::fake([NotificationCreated::class]);
+    $this->project->removeMember($this->mentioned);
+
+    app(AppChannel::class)->send($this->mentioned, $notification);
+
+    expect(AppNotification::query()->count())->toBe(0);
+    Event::assertNotDispatched(NotificationCreated::class);
+});

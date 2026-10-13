@@ -7,6 +7,7 @@ use App\Models\TaskComment;
 use App\Models\User;
 use App\Notifications\Contracts\RevalidatesAfterInsert;
 use App\Support\MailMarkdown;
+use App\Support\ProjectAccess;
 
 class TaskCommentedNotification extends TaskCommentNotification implements RevalidatesAfterInsert
 {
@@ -23,7 +24,8 @@ class TaskCommentedNotification extends TaskCommentNotification implements Reval
     public function stillApplies(User $notifiable): bool
     {
         return TaskComment::query()->withoutGlobalScopes()->whereKey($this->commentId)->sharedLock()->exists()
-            && $this->isAssigneeOrCreator($notifiable, lock: true);
+            && $this->isAssigneeOrCreator($notifiable, lock: true)
+            && ProjectAccess::canViewId($notifiable, $this->organizationId, $this->projectId, lock: true);
     }
 
     protected function mailSubject(): string

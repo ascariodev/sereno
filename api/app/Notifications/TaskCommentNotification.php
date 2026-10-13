@@ -8,7 +8,6 @@ use App\Models\TaskComment;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
 use App\Notifications\Concerns\DelaysMail;
-use App\Support\ProjectAccess;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -50,8 +49,7 @@ abstract class TaskCommentNotification extends Notification implements ShouldQue
         }
 
         return TaskComment::query()->withoutGlobalScopes()->whereKey($this->commentId)->exists()
-            && $this->stillRelevant($notifiable)
-            && ProjectAccess::canViewId($notifiable, $this->organizationId, $this->projectId);
+            && $this->stillRelevant($notifiable);
     }
 
     /** @return list<class-string|string> */
