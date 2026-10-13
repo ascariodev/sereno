@@ -2,7 +2,7 @@
 
 **Objetivo:** que reintentar la ingesta de log (el job en la cola o el POST del cliente) no duplique eventos ni sume de más en
 los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `docs/plans/terminados/log.md`.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -63,7 +63,7 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 - **Archivos:** `api/app/Console/Commands/MaintainLogPartitions.php` (o comando nuevo), `api/routes/console.php`
 - **Terminado cuando:** test del comando: borra los recibos viejos y deja los recientes.
 
-### [ ] Fase 6 — Id por evento en sereno-laravel [riesgo]
+### [x] Fase 6 — Id por evento en sereno-laravel [riesgo]
 - **Alcance:** en `../sereno-laravel`, `EventFormatter` genera un UUID por evento (`id`), para que un reenvío del mismo lote
   no duplique. Test unitario del formateador. Publicar un tag nuevo solo a pedido del usuario.
 - **Archivos:** `../sereno-laravel/src/Logging/EventFormatter.php`, su test, `README.md`/`CHANGELOG` si existe
@@ -92,7 +92,10 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 
 - 2026-10-12 — Fase 5: comando propio y no ampliar `MaintainLogPartitions`, cuya retención es por días de partición y aborta con configuración inválida; la ventana de 48 h es de reintento, no de retención.
 
+- 2026-10-12 — Fase 6: `Str::uuid()` v4 como id; un servidor anterior ignora la clave `id` (las reglas no son estrictas), así que el paquete nuevo es compatible hacia atrás.
+
 ## Notas para la próxima sesión
+- Fase 6 hecha (repo `sereno-laravel`, rama `feat/ingesta-ids`, worktree `../sereno-laravel/.claude/worktrees/ingesta-ids`, 1 commit): `EventFormatter` agrega `id` (UUID); el handler guarda el evento ya formateado. La fase 7 debe reenviar el mismo `$batch` sin volver a formatear y actualizar la línea "No retries" del README de "Delivery behavior" (hoy el README promete que el id sobrevive al reenvío, y solo será cierto con el reintento).
 - Fase 5 hecha: comando propio `log:prune-receipts` (diario 00:40 UTC, lotes de 5000, ventana `LogEventReceipt::RETRY_WINDOW_HOURS` = 48). Al desplegar también `docker compose restart scheduler`. Siguen las fases 6 y 7 en el repo `../sereno-laravel` (propio git; el worktree se crea ahí).
 - Fase 4 hecha: `IngestLogEvents` con `$tries = 3`, `backoff [5, 30]`. Al desplegar: vaciar la cola de ingesta antes (lotes encolados sin id no están protegidos) y `docker compose restart queue` (el worker no recarga código). Siguiente: poda de recibos (fase 5). Al terminar, marcar M-5 de `docs/plans/terminados/log.md`.
 
@@ -101,3 +104,4 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 - [ ] M-2: Test de concurrencia de `LogEventRecorder::record` con dos conexiones reales y el mismo id (como `MessageDeleteConcurrencyTest`, L-41): el segundo worker descarta tras el commit del primero. Complejidad: media · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-3: Test de ids repetidos dentro de un mismo lote (se graba uno solo y `accepted` cuenta los enviados). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-4: Comentario breve sobre `$tries` en `IngestLogEvents` que diga que el reintento es seguro por los recibos de evento. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [ ] M-5: En `sereno-laravel`: afirmar el formato UUID en el test del `id` y agregar un test de que el `id` llega en el payload del `Http::post` del handler. Complejidad: baja · Archivos: 1-2 · sin riesgo → sonnet
