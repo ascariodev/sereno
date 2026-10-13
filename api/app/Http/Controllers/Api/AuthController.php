@@ -75,7 +75,11 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $current = $user->notification_preferences ?? [];
-        $current['email'] = array_merge($current['email'] ?? [], $request->validated('email'));
+        foreach (['email', 'push'] as $channel) {
+            if ($request->validated($channel) !== null) {
+                $current[$channel] = array_merge($current[$channel] ?? [], $request->validated($channel));
+            }
+        }
         $user->update(['notification_preferences' => $current]);
 
         return response()->json(['data' => $user->notificationPreferences()]);

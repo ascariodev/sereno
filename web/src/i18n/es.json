@@ -249,7 +249,7 @@
     "failed": "No se pudo enviar la invitación. Inténtalo de nuevo."
   },
   "userMenu": {
-    "notificationPreferences": "Notificaciones por correo",
+    "notificationPreferences": "Notificaciones",
     "invitations": "Invitaciones",
     "members": "Miembros",
     "label": "Menú de usuario",
@@ -260,16 +260,38 @@
     }
   },
   "notificationPreferences": {
-    "title": "Notificaciones por correo",
-    "description": "Elige qué eventos te envían también un correo. Siempre los ves en la aplicación.",
+    "title": "Notificaciones",
+    "description": "Elige qué eventos te llegan también por correo o como notificación push. Siempre los ves en la aplicación.",
     "close": "Cerrar",
     "loadFailed": "No se pudieron cargar tus preferencias.",
-    "saveFailed": "No se pudo guardar el cambio. Inténtalo de nuevo.",
+    "saveFailed": "No se pudo guardar el cambio de \"{type}\" ({channel}). Inténtalo de nuevo.",
+    "event": "Evento",
+    "switchLabel": "{type}: {channel}",
+    "channels": {
+      "email": "Correo",
+      "push": "Push"
+    },
     "types": {
       "task_assigned": "Me asignan una tarea",
       "task_comment_mention": "Me mencionan en un comentario de tarea",
       "task_commented": "Alguien comenta en mi tarea",
       "chat_mention": "Me mencionan en el chat"
+    },
+    "device": {
+      "title": "Este dispositivo",
+      "enable": "Activar notificaciones push",
+      "disable": "Desactivar notificaciones push",
+      "status": {
+        "unsupported": "Este navegador o sesión no puede recibir notificaciones push. Instala la aplicación o usa un navegador compatible.",
+        "blocked": "Las notificaciones están bloqueadas para Sereno. Permítelas en los ajustes del navegador para activar el push.",
+        "active": "Las notificaciones push están activas en este dispositivo.",
+        "inactive": "Las notificaciones push están desactivadas en este dispositivo."
+      },
+      "errors": {
+        "notConfigured": "Las notificaciones push aún no están configuradas en el servidor.",
+        "enableFailed": "No se pudieron activar las notificaciones push. Inténtalo de nuevo.",
+        "disableFailed": "No se pudieron desactivar las notificaciones push. Inténtalo de nuevo."
+      }
     }
   },
   "layout": {

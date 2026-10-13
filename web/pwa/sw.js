@@ -63,3 +63,75 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(networkFirst(request))
   }
 })
+
+const FALLBACK_URL = '/'
+const ICON = '/icons/icon-192.png'
+
+function sameOriginUrl(value) {
+  const fallback = new URL(FALLBACK_URL, self.location.origin).href
+  if (typeof value !== 'string') return fallback
+  try {
+    const url = new URL(value, self.location.origin)
+    return url.origin === self.location.origin ? url.href : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function readPush(data) {
+  let payload
+  try {
+    payload = data?.json()
+  } catch {
+    payload = null
+  }
+  const valid =
+    payload !== null &&
+    typeof payload === 'object' &&
+    typeof payload.title === 'string' &&
+    payload.title !== '' &&
+    typeof payload.body === 'string' &&
+    typeof payload.url === 'string' &&
+    typeof payload.tag === 'string'
+  // A malformed push still shows something: Chrome would otherwise show its own generic notice.
+  if (!valid) return { title: 'Sereno', options: { icon: ICON, tag: 'sereno', data: { url: FALLBACK_URL } } }
+  return {
+    title: payload.title,
+    options: { body: payload.body, icon: ICON, tag: payload.tag, data: { url: sameOriginUrl(payload.url) } },
+  }
+}
+
+function windowClients() {
+  return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+}
+
+// With a focused Sereno window the in-app inbox already shows it.
+async function showPush(data) {
+  const clients = await windowClients()
+  if (clients.some((client) => client.focused)) return
+  const { title, options } = readPush(data)
+  await self.registration.showNotification(title, options)
+}
+
+async function openFromNotification(url) {
+  const [client] = await windowClients()
+  if (client) {
+    try {
+      const focused = await client.focus()
+      await focused.navigate(url)
+      return
+    } catch {
+      // An uncontrolled window cannot be navigated from here: open a new one instead.
+    }
+  }
+  await self.clients.openWindow(url)
+}
+
+self.addEventListener('push', (event) => {
+  event.waitUntil(showPush(event.data))
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  event.waitUntil(openFromNotification(sameOriginUrl(event.notification.data?.url)))
+})

@@ -269,6 +269,7 @@
     "Log source not found in project :project.": "Log source not found in project :project.",
     "Several log sources are named :name in project :project; pass --id with the source id.": "Several log sources are named :name in project :project; pass --id with the source id.",
     "Log source key rotated. Copy the key now, it will not be shown again.": "Log source key rotated. Copy the key now, it will not be shown again.",
+    "VAPID key pair generated. Add these lines to the API .env and keep the private key secret.": "VAPID key pair generated. Add these lines to the API .env and keep the private key secret.",
     "The organization must keep at least one owner.": "The organization must keep at least one owner.",
     "The attachments do not exist or are already in use.": "The attachments do not exist or are already in use.",
     "A message without text must keep at least one attachment.": "A message without text must keep at least one attachment.",
@@ -296,5 +297,6 @@
     ":actor mentioned you in #:channel": ":actor mentioned you in #:channel",
     ":actor mentioned you in #:channel: :excerpt": ":actor mentioned you in #:channel: :excerpt",
     "View message": "View message",
-    "The notification type is not valid.": "The notification type is not valid."
+    "The notification type is not valid.": "The notification type is not valid.",
+    "Push notifications are not configured.": "Push notifications are not configured."
 }

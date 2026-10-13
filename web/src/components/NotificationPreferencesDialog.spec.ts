@@ -3,15 +3,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import { api, ApiError } from '../api/client'
 import { i18n, setLocale } from '../i18n'
+import { disablePush, enablePush, getPushState, type PushState } from '../pwa/push'
 import NotificationPreferencesDialog from './NotificationPreferencesDialog.vue'
+
+vi.mock('../pwa/push', () => ({ getPushState: vi.fn(), enablePush: vi.fn(), disablePush: vi.fn() }))
 
 let wrapper: VueWrapper | undefined
 
-type Response = { data: { email: Record<'task_assigned' | 'task_comment_mention' | 'task_commented' | 'chat_mention', boolean> } }
+type Channel = Record<'task_assigned' | 'task_comment_mention' | 'task_commented' | 'chat_mention', boolean>
+type Response = { data: { email: Channel; push: Channel } }
 
-const ALL_ON: Response['data'] = Object.freeze({
-  email: Object.freeze({ task_assigned: true, task_comment_mention: true, task_commented: true, chat_mention: true }),
-})
+const ON: Channel = Object.freeze({ task_assigned: true, task_comment_mention: true, task_commented: true, chat_mention: true })
+const ALL_ON: Response['data'] = Object.freeze({ email: ON, push: ON })
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -41,20 +44,29 @@ function switches(): HTMLInputElement[] {
   return Array.from(document.querySelectorAll<HTMLInputElement>('input[role=switch]'))
 }
 
-function switchFor(type: string): HTMLInputElement {
-  return document.querySelector<HTMLInputElement>(`input[name=email-${type}]`)!
+function switchFor(type: string, channel = 'email'): HTMLInputElement {
+  return document.querySelector<HTMLInputElement>(`input[name=${channel}-${type}]`)!
 }
 
-async function toggle(type: string) {
-  const input = switchFor(type)
+function deviceButton(): HTMLButtonElement | null {
+  return document.querySelector<HTMLButtonElement>('button[name=toggle-device]')
+}
+
+async function toggle(type: string, channel = 'email') {
+  const input = switchFor(type, channel)
   input.checked = !input.checked
   input.dispatchEvent(new Event('change', { bubbles: true }))
   await settle()
 }
 
+function mockDevice(state: PushState) {
+  vi.mocked(getPushState).mockResolvedValue(state)
+}
+
 beforeEach(() => {
-  vi.restoreAllMocks()
+  vi.resetAllMocks()
   setLocale('en')
+  mockDevice('inactive')
 })
 
 afterEach(() => {
@@ -64,10 +76,10 @@ afterEach(() => {
 })
 
 describe('NotificationPreferencesDialog', () => {
-  it('loads on open and shows the four switches with the server state', async () => {
+  it('loads on open and shows both channels per type with the server state', async () => {
     const get = vi
       .spyOn(api, 'get')
-      .mockResolvedValue({ data: { email: { ...ALL_ON.email, task_commented: false } } })
+      .mockResolvedValue({ data: { email: { ...ON, task_commented: false }, push: { ...ON, chat_mention: false } } })
     mountDialog()
     await nextTick()
     expect(document.querySelector('[data-test=loading]')).not.toBeNull()
@@ -75,11 +87,17 @@ describe('NotificationPreferencesDialog', () => {
     expect(get).toHaveBeenCalledWith('/api/me/notification-preferences')
     expect(switches().map((input) => [input.name, input.checked])).toEqual([
       ['email-task_assigned', true],
+      ['push-task_assigned', true],
       ['email-task_comment_mention', true],
+      ['push-task_comment_mention', true],
       ['email-task_commented', false],
+      ['push-task_commented', true],
       ['email-chat_mention', true],
+      ['push-chat_mention', false],
     ])
     expect(document.body.textContent).toContain('Someone comments on my task')
+    expect(switchFor('task_commented', 'push').getAttribute('aria-label')).toBe('Someone comments on my task: Push')
+    expect(switchFor('task_commented').getAttribute('aria-label')).toBe('Someone comments on my task: Email')
   })
 
   it('does not load while closed and loads when it opens', async () => {
@@ -87,10 +105,11 @@ describe('NotificationPreferencesDialog', () => {
     mountDialog(false)
     await settle()
     expect(get).not.toHaveBeenCalled()
+    expect(getPushState).not.toHaveBeenCalled()
     await wrapper!.setProps({ open: true })
     await settle()
     expect(get).toHaveBeenCalledTimes(1)
-    expect(switches()).toHaveLength(4)
+    expect(switches()).toHaveLength(8)
   })
 
   it('shows an error with retry when loading fails', async () => {
@@ -103,20 +122,34 @@ describe('NotificationPreferencesDialog', () => {
     document.querySelector<HTMLButtonElement>('button[name=retry]')!.click()
     await settle()
     expect(document.querySelector('[data-test=load-failed]')).toBeNull()
-    expect(switches()).toHaveLength(4)
+    expect(switches()).toHaveLength(8)
   })
 
-  it('saves each change with a partial PATCH', async () => {
+  it('saves an email change with a partial PATCH', async () => {
     vi.spyOn(api, 'get').mockResolvedValue({ data: ALL_ON })
     const patch = vi
       .spyOn(api, 'patch')
-      .mockResolvedValue({ data: { email: { ...ALL_ON.email, chat_mention: false } } })
+      .mockResolvedValue({ data: { email: { ...ON, chat_mention: false }, push: ON } })
     mountDialog()
     await settle()
     await toggle('chat_mention')
     expect(patch).toHaveBeenCalledWith('/api/me/notification-preferences', { email: { chat_mention: false } })
     expect(switchFor('chat_mention').checked).toBe(false)
+    expect(switchFor('chat_mention', 'push').checked).toBe(true)
     expect(switchFor('chat_mention').getAttribute('aria-disabled')).toBeNull()
+  })
+
+  it('saves a push change sending only the push channel', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: ALL_ON })
+    const patch = vi
+      .spyOn(api, 'patch')
+      .mockResolvedValue({ data: { email: ON, push: { ...ON, task_assigned: false } } })
+    mountDialog()
+    await settle()
+    await toggle('task_assigned', 'push')
+    expect(patch).toHaveBeenCalledWith('/api/me/notification-preferences', { push: { task_assigned: false } })
+    expect(switchFor('task_assigned', 'push').checked).toBe(false)
+    expect(switchFor('task_assigned').checked).toBe(true)
   })
 
   it('marks the switch busy during the request and ignores a second change', async () => {
@@ -128,10 +161,11 @@ describe('NotificationPreferencesDialog', () => {
     await toggle('task_assigned')
     expect(switchFor('task_assigned').getAttribute('aria-disabled')).toBe('true')
     expect(switchFor('task_assigned').getAttribute('aria-busy')).toBe('true')
+    expect(switchFor('task_assigned', 'push').getAttribute('aria-disabled')).toBeNull()
     await toggle('task_assigned')
     expect(patch).toHaveBeenCalledTimes(1)
     expect(switchFor('task_assigned').checked).toBe(false)
-    pending.resolve({ data: { email: { ...ALL_ON.email, task_assigned: false } } })
+    pending.resolve({ data: { email: { ...ON, task_assigned: false }, push: ON } })
     await settle()
     expect(switchFor('task_assigned').getAttribute('aria-disabled')).toBeNull()
   })
@@ -144,14 +178,14 @@ describe('NotificationPreferencesDialog', () => {
     mountDialog()
     await settle()
     await toggle('task_assigned')
-    await toggle('chat_mention')
-    first.resolve({ data: { email: { ...ALL_ON.email, task_assigned: false } } })
+    await toggle('chat_mention', 'push')
+    first.resolve({ data: { email: { ...ON, task_assigned: false }, push: ON } })
     await settle()
     expect(switchFor('task_assigned').checked).toBe(false)
-    expect(switchFor('chat_mention').checked).toBe(false)
-    second.resolve({ data: { email: { ...ALL_ON.email, task_assigned: false, chat_mention: false } } })
+    expect(switchFor('chat_mention', 'push').checked).toBe(false)
+    second.resolve({ data: { email: { ...ON, task_assigned: false }, push: { ...ON, chat_mention: false } } })
     await settle()
-    expect(switchFor('chat_mention').checked).toBe(false)
+    expect(switchFor('chat_mention', 'push').checked).toBe(false)
   })
 
   it('reverts and shows a linked error when saving fails', async () => {
@@ -159,13 +193,14 @@ describe('NotificationPreferencesDialog', () => {
     vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(500, 'boom', {}))
     mountDialog()
     await settle()
-    await toggle('task_commented')
-    const input = switchFor('task_commented')
+    await toggle('task_commented', 'push')
+    const input = switchFor('task_commented', 'push')
     expect(input.checked).toBe(true)
     expect(input.getAttribute('aria-invalid')).toBe('true')
     const errorId = input.getAttribute('aria-describedby')!
-    expect(document.getElementById(errorId)?.textContent).toContain('Could not save the change')
-    expect(switchFor('task_assigned').getAttribute('aria-describedby')).toBeNull()
+    expect(document.getElementById(errorId)?.textContent).toContain('Could not save the change for "Someone comments on my task" (Push)')
+    expect(switchFor('task_commented').getAttribute('aria-describedby')).toBeNull()
+    expect(switchFor('task_assigned', 'push').getAttribute('aria-describedby')).toBeNull()
     expect(input.getAttribute('aria-disabled')).toBeNull()
   })
 
@@ -181,7 +216,7 @@ describe('NotificationPreferencesDialog', () => {
     expect(switches()).toHaveLength(0)
     await wrapper!.setProps({ open: true })
     await settle()
-    expect(switches()).toHaveLength(4)
+    expect(switches()).toHaveLength(8)
   })
 
   it('discards a save that resolves after closing and reopening', async () => {
@@ -190,16 +225,16 @@ describe('NotificationPreferencesDialog', () => {
     vi.spyOn(api, 'patch').mockReturnValue(pending.promise)
     mountDialog()
     await settle()
-    await toggle('task_assigned')
+    await toggle('task_assigned', 'push')
     await wrapper!.setProps({ open: false })
     await settle()
-    get.mockResolvedValue({ data: { email: { ...ALL_ON.email, task_assigned: true } } })
+    get.mockResolvedValue({ data: ALL_ON })
     await wrapper!.setProps({ open: true })
     await settle()
-    pending.resolve({ data: { email: { ...ALL_ON.email, task_assigned: false } } })
+    pending.resolve({ data: { email: ON, push: { ...ON, task_assigned: false } } })
     await settle()
-    expect(switchFor('task_assigned').checked).toBe(true)
-    expect(switchFor('task_assigned').getAttribute('aria-disabled')).toBeNull()
+    expect(switchFor('task_assigned', 'push').checked).toBe(true)
+    expect(switchFor('task_assigned', 'push').getAttribute('aria-disabled')).toBeNull()
   })
 
   it('does not set state when unmounted with a pending save', async () => {
@@ -214,5 +249,198 @@ describe('NotificationPreferencesDialog', () => {
     pending.reject(new ApiError(500, 'boom', {}))
     await settle()
     expect(document.querySelector('input[role=switch]')).toBeNull()
+  })
+
+  describe('this device', () => {
+    function status(): string {
+      return document.querySelector('[data-test=device-status]')!.textContent!.trim()
+    }
+
+    beforeEach(() => {
+      vi.spyOn(api, 'get').mockResolvedValue({ data: ALL_ON })
+    })
+
+    it.each([
+      ['unsupported', 'cannot receive push notifications'],
+      ['blocked', 'blocked for Sereno'],
+      ['active', 'are on for this device'],
+      ['inactive', 'are off for this device'],
+    ] as const)('shows the %s state', async (state, text) => {
+      mockDevice(state)
+      mountDialog()
+      await settle()
+      expect(status()).toContain(text)
+      expect(deviceButton() !== null).toBe(state === 'active' || state === 'inactive')
+    })
+
+    it('shows the device state even when the preferences fail to load', async () => {
+      vi.spyOn(api, 'get').mockRejectedValue(new ApiError(500, 'boom', {}))
+      mountDialog()
+      await settle()
+      expect(document.querySelector('[data-test=load-failed]')).not.toBeNull()
+      expect(status()).toContain('are off for this device')
+    })
+
+    it('turns push on, disables the button while it runs and flips the control', async () => {
+      const pending = deferred<PushState>()
+      vi.mocked(enablePush).mockReturnValue(pending.promise)
+      mountDialog()
+      await settle()
+      expect(deviceButton()!.textContent).toContain('Turn on push notifications')
+      deviceButton()!.click()
+      await settle()
+      expect(enablePush).toHaveBeenCalledTimes(1)
+      expect(deviceButton()!.disabled).toBe(true)
+      expect(deviceButton()!.getAttribute('aria-busy')).toBe('true')
+      deviceButton()!.click()
+      await settle()
+      expect(enablePush).toHaveBeenCalledTimes(1)
+      pending.resolve('active')
+      await settle()
+      expect(deviceButton()!.disabled).toBe(false)
+      expect(deviceButton()!.textContent).toContain('Turn off push notifications')
+      expect(status()).toContain('are on for this device')
+    })
+
+    it('turns push off', async () => {
+      mockDevice('active')
+      vi.mocked(disablePush).mockResolvedValue('inactive')
+      mountDialog()
+      await settle()
+      deviceButton()!.click()
+      await settle()
+      expect(disablePush).toHaveBeenCalledTimes(1)
+      expect(status()).toContain('are off for this device')
+    })
+
+    it('moves to blocked when the permission is denied', async () => {
+      vi.mocked(enablePush).mockResolvedValue('blocked')
+      mountDialog()
+      await settle()
+      deviceButton()!.click()
+      await settle()
+      expect(status()).toContain('blocked for Sereno')
+      expect(deviceButton()).toBeNull()
+    })
+
+    it('explains a server without VAPID keys and links the error to the button', async () => {
+      vi.mocked(enablePush).mockRejectedValue(new ApiError(503, 'unavailable', {}))
+      mountDialog()
+      await settle()
+      expect(deviceButton()!.getAttribute('aria-describedby')).toBe('notification-preferences-device-status')
+      deviceButton()!.click()
+      await settle()
+      const button = deviceButton()!
+      expect(button.disabled).toBe(false)
+      expect(button.getAttribute('aria-invalid')).toBe('true')
+      const ids = button.getAttribute('aria-describedby')!.split(' ')
+      expect(ids).toContain('notification-preferences-device-error')
+      expect(document.getElementById('notification-preferences-device-error')?.textContent).toContain('not set up on the server')
+      expect(status()).toContain('are off for this device')
+    })
+
+    it('shows a generic error when enabling fails', async () => {
+      vi.mocked(enablePush).mockRejectedValue(new ApiError(500, 'boom', {}))
+      mountDialog()
+      await settle()
+      deviceButton()!.click()
+      await settle()
+      expect(document.querySelector('[data-test=device-error]')!.textContent).toContain('Could not turn on')
+    })
+
+    it('shows a disabling error and keeps the state when turning off fails', async () => {
+      mockDevice('active')
+      vi.mocked(disablePush).mockRejectedValue(new Error('network'))
+      mountDialog()
+      await settle()
+      deviceButton()!.click()
+      await settle()
+      expect(document.querySelector('[data-test=device-error]')!.textContent).toContain('Could not turn off')
+      expect(status()).toContain('are on for this device')
+    })
+
+    it('clears a previous error when the action runs again', async () => {
+      vi.mocked(enablePush).mockRejectedValueOnce(new ApiError(503, 'unavailable', {})).mockResolvedValueOnce('active')
+      mountDialog()
+      await settle()
+      deviceButton()!.click()
+      await settle()
+      expect(document.querySelector('[data-test=device-error]')).not.toBeNull()
+      deviceButton()!.click()
+      await settle()
+      expect(document.querySelector('[data-test=device-error]')).toBeNull()
+      expect(deviceButton()!.getAttribute('aria-describedby')).toBe('notification-preferences-device-status')
+    })
+
+    it('ignores the result when the dialog closes with the action in flight', async () => {
+      const pending = deferred<PushState>()
+      vi.mocked(enablePush).mockReturnValue(pending.promise)
+      mountDialog()
+      await settle()
+      deviceButton()!.click()
+      await settle()
+      await wrapper!.setProps({ open: false })
+      await settle()
+      expect(document.querySelector('[data-test=device]')).toBeNull()
+      pending.resolve('active')
+      await settle()
+      expect(document.querySelector('[data-test=device]')).toBeNull()
+      await wrapper!.setProps({ open: true })
+      await settle()
+      expect(status()).toContain('are off for this device')
+      expect(deviceButton()!.disabled).toBe(false)
+    })
+
+    it('ignores a failure when the dialog closes and reopens with the action in flight', async () => {
+      const pending = deferred<PushState>()
+      vi.mocked(enablePush).mockReturnValue(pending.promise)
+      mountDialog()
+      await settle()
+      deviceButton()!.click()
+      await settle()
+      await wrapper!.setProps({ open: false })
+      await wrapper!.setProps({ open: true })
+      await settle()
+      pending.reject(new ApiError(503, 'unavailable', {}))
+      await settle()
+      expect(document.querySelector('[data-test=device-error]')).toBeNull()
+      expect(deviceButton()!.disabled).toBe(false)
+    })
+
+    it('does not set state when unmounted with the action in flight', async () => {
+      const pending = deferred<PushState>()
+      vi.mocked(enablePush).mockReturnValue(pending.promise)
+      mountDialog()
+      await settle()
+      deviceButton()!.click()
+      await settle()
+      wrapper!.unmount()
+      wrapper = undefined
+      pending.reject(new ApiError(500, 'boom', {}))
+      await settle()
+      expect(document.querySelector('[data-test=device]')).toBeNull()
+    })
+
+    it('discards a device state that resolves after closing', async () => {
+      const pending = deferred<PushState>()
+      vi.mocked(getPushState).mockReturnValue(pending.promise)
+      mountDialog()
+      await settle()
+      await wrapper!.setProps({ open: false })
+      await settle()
+      pending.resolve('active')
+      await settle()
+      expect(document.querySelector('[data-test=device]')).toBeNull()
+    })
+
+    it('shows the Spanish texts', async () => {
+      setLocale('es')
+      mockDevice('blocked')
+      mountDialog()
+      await settle()
+      expect(document.body.textContent).toContain('Este dispositivo')
+      expect(status()).toContain('bloqueadas')
+      expect(switchFor('chat_mention', 'push').getAttribute('aria-label')).toBe('Me mencionan en el chat: Push')
+    })
   })
 })

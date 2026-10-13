@@ -53,17 +53,30 @@ class User extends Authenticatable implements HasLocalePreference
         return ($this->notification_preferences['email'][$type->value] ?? true) !== false;
     }
 
-    /** @return array{email: array<string, bool>} */
+    public function wantsPush(NotificationType $type): bool
+    {
+        return ($this->notification_preferences['push'][$type->value] ?? true) !== false;
+    }
+
+    /** @return array{email: array<string, bool>, push: array<string, bool>} */
     public function notificationPreferences(): array
     {
-        return ['email' => collect(NotificationType::cases())
-            ->mapWithKeys(fn (NotificationType $type) => [$type->value => $this->wantsEmail($type)])
-            ->all()];
+        $types = collect(NotificationType::cases());
+
+        return [
+            'email' => $types->mapWithKeys(fn (NotificationType $type) => [$type->value => $this->wantsEmail($type)])->all(),
+            'push' => $types->mapWithKeys(fn (NotificationType $type) => [$type->value => $this->wantsPush($type)])->all(),
+        ];
     }
 
     public function notifications(): HasMany
     {
         return $this->hasMany(AppNotification::class);
+    }
+
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
     }
 
     public function readNotifications(): never

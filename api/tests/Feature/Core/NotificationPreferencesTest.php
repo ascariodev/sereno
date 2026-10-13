@@ -69,6 +69,56 @@ it('requires authentication', function () {
     $this->patchJson('/api/me/notification-preferences', ['email' => []])->assertUnauthorized();
 });
 
+it('returns push on by default for every type', function () {
+    Sanctum::actingAs($this->user);
+
+    $response = $this->getJson('/api/me/notification-preferences')->assertOk();
+
+    expect($response->json('data.push'))->toBe(array_fill_keys(array_column(NotificationType::cases(), 'value'), true));
+});
+
+it('patches push alone without touching email and the reverse', function () {
+    Sanctum::actingAs($this->user);
+
+    $this->patchJson('/api/me/notification-preferences', ['email' => ['task_assigned' => false]])->assertOk();
+    $this->patchJson('/api/me/notification-preferences', ['push' => ['chat_mention' => false]])
+        ->assertOk()
+        ->assertJsonPath('data.push.chat_mention', false)
+        ->assertJsonPath('data.push.task_assigned', true)
+        ->assertJsonPath('data.email.task_assigned', false);
+    $this->patchJson('/api/me/notification-preferences', ['email' => ['task_assigned' => true]])
+        ->assertJsonPath('data.email.task_assigned', true)
+        ->assertJsonPath('data.push.chat_mention', false);
+
+    $user = $this->user->fresh();
+    expect($user->wantsPush(NotificationType::ChatMention))->toBeFalse()
+        ->and($user->wantsPush(NotificationType::TaskAssigned))->toBeTrue()
+        ->and($user->wantsEmail(NotificationType::TaskAssigned))->toBeTrue();
+});
+
+it('accepts email and push together', function () {
+    Sanctum::actingAs($this->user);
+
+    $this->patchJson('/api/me/notification-preferences', ['email' => ['task_assigned' => false], 'push' => ['task_assigned' => false]])
+        ->assertOk()
+        ->assertJsonPath('data.email.task_assigned', false)
+        ->assertJsonPath('data.push.task_assigned', false);
+});
+
+it('rejects invalid push payloads', function (array $payload, string $field) {
+    Sanctum::actingAs($this->user);
+
+    $this->patchJson('/api/me/notification-preferences', $payload)->assertUnprocessable()->assertJsonValidationErrors($field);
+    expect($this->user->fresh()->notification_preferences)->toBeNull();
+})->with([
+    'unknown type' => [['push' => ['nope' => false]], 'push'],
+    'string value' => [['push' => ['task_assigned' => 'false']], 'push.task_assigned'],
+    'int value' => [['push' => ['task_assigned' => 0]], 'push.task_assigned'],
+    'null value' => [['push' => ['task_assigned' => null]], 'push.task_assigned'],
+    'string body' => [['push' => 'x'], 'push'],
+    'valid email, invalid push' => [['email' => ['task_assigned' => false], 'push' => ['nope' => true]], 'push'],
+]);
+
 function liveNotificationFor(string $type): Notification
 {
     $organization = Organization::factory()->create();

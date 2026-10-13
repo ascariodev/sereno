@@ -8,6 +8,7 @@ use App\Models\TaskComment;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
 use App\Notifications\Concerns\DelaysMail;
+use App\Support\NotificationUrl;
 use App\Support\ProjectAccess;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -85,7 +86,7 @@ abstract class TaskCommentNotification extends Notification implements ShouldQue
         return (new MailMessage)
             ->subject($this->mailSubject())
             ->line($this->mailLine())
-            ->action(__('View task'), rtrim(config('app.frontend_url'), '/')."/projects/{$this->projectId}/plan?task={$this->taskId}&organization={$this->organizationId}");
+            ->action(__('View task'), NotificationUrl::task($this->organizationId, $this->projectId, $this->taskId));
     }
 
     protected function isAssigneeOrCreator(User $user, bool $lock = false): bool

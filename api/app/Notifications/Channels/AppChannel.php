@@ -3,6 +3,7 @@
 namespace App\Notifications\Channels;
 
 use App\Events\NotificationCreated;
+use App\Jobs\SendPushNotification;
 use App\Models\AppNotification;
 use App\Models\User;
 use App\Notifications\Contracts\RevalidatesAfterInsert;
@@ -13,7 +14,7 @@ use InvalidArgumentException;
 /**
  * `toApp(User $notifiable): array` returns `type`, `organization_id` (explicit: queued notifications have no
  * active one), `subject` (model) and optionally `project_id` and `data`. Idempotent per notification id:
- * `NotificationCreated` goes out only when the row was inserted.
+ * `NotificationCreated` and the push job go out only when the row was inserted and still applies.
  * Nothing is stored for a user who is not a member of `organization_id`.
  *
  * A notification implementing `RevalidatesAfterInsert` is checked again after the insert (see its contract).
@@ -58,6 +59,7 @@ class AppChannel
             NotificationCreated::dispatch(
                 AppNotification::query()->withoutGlobalScopes()->where('uuid', $notification->id)->firstOrFail(),
             );
+            SendPushNotification::dispatchAfterCommit($notification->id);
         }
     }
 }

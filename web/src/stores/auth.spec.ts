@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import { getLocale } from '../i18n'
+import * as push from '../pwa/push'
 import { installAuthOnApi, TOKEN_STORAGE_KEY, useAuthStore } from './auth'
 
 const user = { id: 1, name: 'Test', email: 'test@example.com', locale: 'es' }
@@ -86,6 +87,22 @@ describe('auth store', () => {
     expect(auth.user).toBeNull()
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
     expect(getLocale()).not.toBe('es')
+  })
+
+  it('logout releases the push subscription before calling the API and still clears the session', async () => {
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+    setActivePinia(createPinia())
+    const order: string[] = []
+    vi.spyOn(push, 'releasePushOnLogout').mockImplementation(async () => {
+      order.push('push')
+    })
+    vi.spyOn(api, 'post').mockImplementation(async () => {
+      order.push('logout')
+    })
+    const auth = useAuthStore()
+    await auth.logout()
+    expect(order).toEqual(['push', 'logout'])
+    expect(auth.token).toBeNull()
   })
 
   it('a 401 from the client closes the session and notifies', () => {

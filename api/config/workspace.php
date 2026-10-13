@@ -16,4 +16,10 @@ return [
         'mail_delay_minutes' => (int) env('NOTIFICATION_MAIL_DELAY_MINUTES', 5),
     ],
 
+    'push' => [
+        'vapid_public_key' => env('VAPID_PUBLIC_KEY'),
+        'vapid_private_key' => env('VAPID_PRIVATE_KEY'),
+        'vapid_subject' => env('VAPID_SUBJECT'),
+    ],
+
 ];
