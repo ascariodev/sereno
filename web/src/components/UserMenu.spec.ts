@@ -132,11 +132,12 @@ describe('UserMenu', () => {
   })
 
   describe('notification preferences entry', () => {
-    const PREFERENCES = { data: { email: { task_assigned: true, task_comment_mention: true, task_commented: false, chat_mention: true } } }
+    const ALL = { task_assigned: true, task_comment_mention: true, task_commented: false, chat_mention: true }
+    const PREFERENCES = { data: { email: ALL, push: ALL } }
 
     function entry(): HTMLElement | undefined {
       return Array.from(document.querySelectorAll<HTMLElement>('[role=menuitem]')).find(
-        (el) => el.textContent!.trim() === 'Email notifications',
+        (el) => el.textContent!.trim() === 'Notifications',
       )
     }
 
@@ -149,7 +150,7 @@ describe('UserMenu', () => {
       await settle()
       expect(push).not.toHaveBeenCalled()
       expect(get).toHaveBeenCalledWith('/api/me/notification-preferences')
-      expect(document.querySelectorAll('input[role=switch]')).toHaveLength(4)
+      expect(document.querySelectorAll('input[role=switch]')).toHaveLength(8)
       document.querySelector<HTMLButtonElement>('button[name=close-dialog]')!.click()
       await settle()
       expect(document.querySelector('input[role=switch]')).toBeNull()

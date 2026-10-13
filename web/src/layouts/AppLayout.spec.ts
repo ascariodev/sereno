@@ -37,7 +37,8 @@ function sidebarData(path: string, withChannel = true): unknown {
   if (path === '/api/channels') return withChannel ? { data: [channel] } : { data: [] }
   if (path === '/api/channels/7') return { data: channel }
   if (path === '/api/me/notification-preferences') {
-    return { data: { email: { task_assigned: true, task_comment_mention: true, task_commented: true, chat_mention: true } } }
+    const all = { task_assigned: true, task_comment_mention: true, task_commented: true, chat_mention: true }
+    return { data: { email: all, push: all } }
   }
   if (path === '/api/notifications') return { data: [], meta: { next_cursor: null, unread_count: notificationsUnread } }
   if (path === '/api/channels/7/messages') return { data: [], meta: { next_cursor: null } }
@@ -241,14 +242,14 @@ describe('AppLayout', () => {
     expect(dialogs[0].querySelector('#org-create-name')).not.toBeNull()
   })
 
-  it('opening the email preferences from the drawer stacks the dialog and returns focus to the user menu', async () => {
+  it('opening the notification preferences from the drawer stacks the dialog and returns focus to the user menu', async () => {
     await mountApp()
     document.querySelector<HTMLButtonElement>('button[name=open-sidebar]')!.click()
     await settle()
     await openMenu('[role=dialog] button[name=user-menu]')
     await pick('notification-preferences')
     expect(document.querySelectorAll('[role=dialog]')).toHaveLength(2)
-    expect(document.querySelectorAll('input[role=switch]')).toHaveLength(4)
+    expect(document.querySelectorAll('input[role=switch]')).toHaveLength(8)
     const dialogs = [...document.querySelectorAll('[role=dialog]')]
     const preferences = dialogs.find((d) => d.querySelector('input[role=switch]'))!
     preferences.querySelector<HTMLButtonElement>('button[name=close-dialog]')!.click()

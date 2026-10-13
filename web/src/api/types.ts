@@ -363,11 +363,14 @@ export interface NotificationPage {
   meta: { next_cursor: string | null; unread_count: number }
 }
 
-export type NotificationEmailType = 'task_assigned' | 'task_comment_mention' | 'task_commented' | 'chat_mention'
+export type NotificationType = 'task_assigned' | 'task_comment_mention' | 'task_commented' | 'chat_mention'
 
-/** `GET`/`PATCH /api/me/notification-preferences` (`data`): always the four types. */
+export type NotificationChannel = 'email' | 'push'
+
+/** `GET`/`PATCH /api/me/notification-preferences` (`data`): both channels, always the four types. */
 export interface NotificationPreferences {
-  email: Record<NotificationEmailType, boolean>
+  email: Record<NotificationType, boolean>
+  push: Record<NotificationType, boolean>
 }
 
 export type PushContentEncoding = 'aes128gcm' | 'aesgcm'

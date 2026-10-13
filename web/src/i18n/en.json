@@ -249,7 +249,7 @@
     "failed": "Could not send the invitation. Try again."
   },
   "userMenu": {
-    "notificationPreferences": "Email notifications",
+    "notificationPreferences": "Notifications",
     "invitations": "Invitations",
     "members": "Members",
     "label": "User menu",
@@ -260,16 +260,38 @@
     }
   },
   "notificationPreferences": {
-    "title": "Email notifications",
-    "description": "Choose which events also send you an email. You always see them in the app.",
+    "title": "Notifications",
+    "description": "Choose which events also reach you by email or as a push notification. You always see them in the app.",
     "close": "Close",
     "loadFailed": "Could not load your preferences.",
-    "saveFailed": "Could not save the change. Try again.",
+    "saveFailed": "Could not save the change for \"{type}\" ({channel}). Try again.",
+    "event": "Event",
+    "switchLabel": "{type}: {channel}",
+    "channels": {
+      "email": "Email",
+      "push": "Push"
+    },
     "types": {
       "task_assigned": "A task is assigned to me",
       "task_comment_mention": "I am mentioned in a task comment",
       "task_commented": "Someone comments on my task",
       "chat_mention": "I am mentioned in the chat"
+    },
+    "device": {
+      "title": "This device",
+      "enable": "Turn on push notifications",
+      "disable": "Turn off push notifications",
+      "status": {
+        "unsupported": "This browser or session cannot receive push notifications. Install the app or use a browser that supports them.",
+        "blocked": "Notifications are blocked for Sereno. Allow them in your browser settings to turn push on.",
+        "active": "Push notifications are on for this device.",
+        "inactive": "Push notifications are off for this device."
+      },
+      "errors": {
+        "notConfigured": "Push notifications are not set up on the server yet.",
+        "enableFailed": "Could not turn on push notifications. Try again.",
+        "disableFailed": "Could not turn off push notifications. Try again."
+      }
     }
   },
   "layout": {

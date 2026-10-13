@@ -2,7 +2,7 @@
 
 **Objetivo:** que las notificaciones de Sereno (tarea asignada, comentario o mención en tarea, mención en el chat) lleguen
 como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin duplicar lo que ya muestra la app abierta.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -92,7 +92,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - **Archivos:** `web/src/pwa/push.ts`, `web/src/api/pushSubscriptions.ts`, store o acción de logout, `web/src/api/types.ts`.
 - **Terminado cuando:** specs con `PushManager` y `Notification` simulados: alta, permiso denegado, sin soporte, baja en logout.
 
-### [ ] Fase 10 — Preferencias push en la UI
+### [x] Fase 10 — Preferencias push en la UI
 - **Alcance:** en `NotificationPreferencesDialog`, activar o desactivar push en este dispositivo (estado del permiso, aviso si
   está bloqueado o sin soporte) y una columna push por tipo junto a la de email. i18n `en`/`es`.
 - **Archivos:** `NotificationPreferencesDialog.vue`, `web/src/api/notificationPreferences.ts`, `web/src/i18n/{en,es}.json`.
@@ -138,6 +138,10 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   no admite body); el API lo acepta (`input()`) y está probado. `content_encoding` según
   `PushManager.supportedContentEncodings` (`aes128gcm`, si no `aesgcm`, si no se omite). Una suscripción con otra clave
   VAPID se da de baja y se vuelve a crear.
+- 2026-10-13 — UI: el diálogo y la entrada del menú pasan de "Email notifications" a "Notifications"/"Notificaciones";
+  tabla de tipos con columnas Email y Push; sección "Este dispositivo" independiente de la carga de preferencias. En la
+  web, `NotificationEmailType`/`NOTIFICATION_EMAIL_TYPES` pasan a `NotificationType`/`NOTIFICATION_TYPES` y
+  `updateNotificationPreferences(channel, changes)` manda solo `{[channel]: changes}`.
 - 2026-10-13 — Comando `php artisan push:vapid-keys` imprime las líneas `VAPID_*` para el `.env`, no escribe archivos.
   `workspace.push.vapid_subject` no tiene valor por defecto: la fase 7 debe no enviar (y reportar claro) si falta alguna
   de las tres variables.
@@ -211,3 +215,9 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - [ ] M-20 (baja, sonnet): `push.spec.ts` "unsupported without PushManager": simplificar a `delete window.PushManager`.
 - [ ] M-21 (media, sonnet): una sesión que caduca por 401 (`clearSession`) deja la suscripción ligada al usuario anterior;
   desuscribir el navegador al limpiar la sesión (sin token no se puede borrar en el API: queda hasta 404/410 o la próxima alta).
+- [ ] M-22 (baja, sonnet): `NotificationPreferencesDialog`: revisar el nivel del `<h3>` "Este dispositivo" frente al
+  título que renderiza `AppDialog`.
+- [ ] M-23 (baja, sonnet): `NotificationPreferencesDialog`: mostrar el error de guardado junto al switch afectado en vez de
+  bajo la tabla.
+- [ ] M-24 (baja, sonnet): `NotificationPreferencesDialog`: aviso cuando el usuario cierra el prompt de permiso y
+  `enablePush` vuelve `inactive` (hoy no hay feedback).
