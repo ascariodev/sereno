@@ -238,7 +238,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-14: Que `ChatMentionNotification::shouldSend` mire también `deleted_at` del mensaje, para no depender de que `MessageDeletion`
       vacíe las menciones antes; y que `NotificationSubjectCleanupTest` use una fila `chat_mention` real en el caso del mensaje. (revisor, fase 8)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-15: Test de worker (preferencia de email apagada tras encolar) también para `ChatMentionNotification` y las de comentarios,
+- [x] M-15: Test de worker (preferencia de email apagada tras encolar) también para `ChatMentionNotification` y las de comentarios,
       parametrizado. (revisor, fase 9)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [x] M-16: En las instrucciones de Mailpit de `CLAUDE.md`, quitar el `up -d mailpit` redundante, reiniciar también `reverb` y
@@ -266,3 +266,5 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-25: Mismo try/catch con `report` en `SyncChatMentionNotification::handleRemoved` (corre tras el commit, un fallo da 500 con el cambio guardado). (revisor, M-13)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-26: El test de `task_assigned` con `notifyNow` de `NotificationPreferencesTest` (~línea 72) queda enmascarado por `via()` (L-77): quitarlo o pasarlo a `shouldSend` directo. (revisor, M-15)
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
