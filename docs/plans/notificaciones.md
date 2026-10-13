@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** pendiente · Fase actual: 1
+**Estado:** en curso · Fase actual: 1
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -80,6 +80,13 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - 2026-10-11 — Eventos: tarea asignada, mención en comentario, comentario en tarea propia (asignada o creada), mención en chat (unificada en la bandeja) — elegido por el usuario.
 - 2026-10-11 — Tabla `notifications` propia con `organization_id` y canal `app`, no el canal `database` de Laravel (sin tenant).
 - 2026-10-11 — Sin backfill: las menciones del chat sin leer antes del despliegue no pasan a la bandeja nueva (pendiente de confirmar).
+
+- 2026-10-13: el plan se ejecuta en el worktree `.claude/worktrees/notificaciones` (rama `feat/notificaciones`). Verificación desde el
+  worktree (los contenedores montan el checkout principal), igual que `comentarios-tareas`: web con
+  `MSYS_NO_PATHCONV=1 docker run --rm -v "<worktree>/web:/app" -v workspace_web-node-modules:/app/node_modules -w /app node:24 npx vitest --run <spec>`;
+  API, desde la raíz del checkout principal (solo lectura), con
+  `WT="$(cd .claude/worktrees/notificaciones/api && pwd -W)" && MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps -T -e APP_KEY="base64:$(head -c 32 /dev/urandom | base64)" -e DB_DATABASE=workspace_test -v "$WT:/var/www/api" api php artisan test --compact <archivos>`
+  (igual con `./vendor/bin/pint --test -q`). Nunca leer ni montar `.env` (L-52).
 
 ## Notas para la próxima sesión
 - Último de los tres planes. La fase 10 toca `api/docker-compose.yml`, que hoy tiene cambios sin commit de otra sesión.
