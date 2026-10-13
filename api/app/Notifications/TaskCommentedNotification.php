@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Enums\NotificationType;
 use App\Models\User;
+use App\Support\MailMarkdown;
 
 class TaskCommentedNotification extends TaskCommentNotification
 {
@@ -27,7 +28,7 @@ class TaskCommentedNotification extends TaskCommentNotification
         return __(':actor commented on your task :task: :excerpt', [
             'actor' => $this->actorName,
             'task' => $this->taskKey,
-            'excerpt' => $this->excerpt,
+            'excerpt' => MailMarkdown::escape($this->excerpt),
         ]);
     }
 }

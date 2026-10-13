@@ -102,6 +102,7 @@
 - L-71: Antes de mover una validación "antes de decodificar", confirmar quién decodifica primero: en Laravel los middleware globales de transformación de entrada (`TrimStrings`, `ConvertEmptyStringsToNull`) leen el JSON antes que el Form Request, así que el corte va en un middleware global y por `Content-Length`. — aplicada en: tests-por-modulo M-3
 - L-72: Para que un recurso ajeno sea indistinguible de uno inexistente, la comprobación de pertenencia (404) va en `authorize()` del Form Request, antes del Gate y de la validación: si queda en el controlador, un body inválido da 422 al recurso ajeno y 404 al inexistente. El test compara cuerpos también con body inválido. — aplicada en: canales M-28
 - L-73: Un test de lo que decide el worker de una notificación (`shouldSend`, canales) no usa `Notification::fake()`, que no ejecuta nada y pasa siempre: corre `notifyNow` real con `Event::fake([NotificationSent::class])`, afirma fila y mail, y se comprueba con la mutación de quitar el chequeo. — aplicada en: test (TaskAssignedNotificationTest)
+- L-74: Un texto que escriben los usuarios y va a un `MailMessage` (`line`, `greeting`) se escapa como markdown, con un test sobre el HTML renderizado: si no, `[x](http://...)` llega como enlace clicable en un correo con nuestra marca. — aplicada en: test (ChatMentionNotificationTest)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

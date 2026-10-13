@@ -292,5 +292,8 @@
     ":actor mentioned you in :task": ":actor te mencionó en :task",
     ":actor mentioned you in a comment on :task: :excerpt": ":actor te mencionó en un comentario de :task: :excerpt",
     ":actor commented on :task": ":actor comentó en :task",
-    ":actor commented on your task :task: :excerpt": ":actor comentó en tu tarea :task: :excerpt"
+    ":actor commented on your task :task: :excerpt": ":actor comentó en tu tarea :task: :excerpt",
+    ":actor mentioned you in #:channel": ":actor te mencionó en #:channel",
+    ":actor mentioned you in #:channel: :excerpt": ":actor te mencionó en #:channel: :excerpt",
+    "View message": "Ver mensaje"
 }

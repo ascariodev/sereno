@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -39,7 +39,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - Listener de `TaskCommentCreated`: mención a los mencionados; "comentario en tu tarea" a asignado y creador que no
   sean el autor ni estén mencionados (sin duplicar). 4-5 archivos.
 
-### [ ] Fase 6 — Notificación de mención en el chat [riesgo]
+### [x] Fase 6 — Notificación de mención en el chat [riesgo]
 - Listener de `MentionCreated` crea la notificación; `MentionRemoved` la borra por subject. 3-4 archivos.
 
 ### [ ] Fase 7 — Limpieza al perder acceso [riesgo]
@@ -125,6 +125,15 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   los mencionados del comentario), actor_id, actor_name}`. Mención: los de `mentions` del evento. Comentado: asignado y creador sin
   repetir, sin el autor ni los mencionados. `shouldSend`: comentario existe, ve el proyecto, y la mención sigue (o sigue siendo
   asignado o creador). El mail enlaza a la tarea (la web no admite parámetro de comentario). Editar un comentario no notifica menciones nuevas.
+- 2026-10-13 (fase 6): tipo `chat_mention`, subject el `Message` (no la fila de `message_mentions`, que cambia en cada edición); la fila de
+  un usuario es subject + `user_id`; `project_id` del canal, puede ser null. `data` `{channel_id, channel_name, message_id, parent_id|null,
+  message_excerpt (140 car.), actor_id, actor_name}`. Mail a `/channels/{id}?message={id}` o `?thread={parent_id}`, como `MentionsView`.
+  Listener síncrono `SyncChatMentionNotification` (`handleCreated`/`handleRemoved`): los eventos son `ShouldDispatchAfterCommit` y el
+  borrado debe ver las filas ya guardadas; borra por user, organización, type y subject. Borrar un mensaje emite `MentionRemoved` por mención.
+  `shouldSend`: la mención sigue, ve el canal (sin proyecto, basta la membresía) y no existe otra fila con el mismo (user, type, subject)
+  y distinto uuid (quitar y volver a poner la mención no duplica; el uuid propio se excluye porque el job de mail corre tras el de app).
+- 2026-10-13 (fase 6): `App\Support\MailMarkdown::escape` neutraliza el markdown del extracto en el correo (chat y comentarios); la bandeja
+  guarda el texto sin escapar.
 
 ## Notas para la próxima sesión
 - Fase 12: el cliente ignora `notification.created` si `organization_id` no es la organización activa y fusiona por `id`.
@@ -151,4 +160,16 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-8: Notificar las menciones nuevas al editar un comentario (`TaskCommentUpdated`). (implementador, fase 5)
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-9: `TaskCommentNotification::isAssigneeOrCreator` hace una consulta por destinatario en el worker; pasar el estado ya cargado. (revisor, fase 5)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-10: Cerrar el hueco entre `shouldSend` y el insert de `AppChannel` (una mención quitada justo ahí deja la fila) con un insert
+      condicionado o un índice único parcial por (user, type, subject). (implementador y revisor, fase 6)
+      Complejidad: media · Archivos: 3 · Riesgo: migración → opus
+- [ ] M-11: Reducir el conjunto de `MailMarkdown::escape` a lo que forma enlaces e imágenes (`\ ` * _ [ ] ( ) < >`, `!` antes de `[`):
+      la parte de texto plano del correo muestra las barras; con test de `renderText`. (revisor, fase 6)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-12: Escapar también en las líneas del correo los nombres de actor y canal y los títulos de tarea (`TaskAssignedNotification`
+      incluida), no en el asunto. (implementador y revisor, fase 6)
+      Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
+- [ ] M-13: En `SyncChatMentionNotification::handleCreated`, capturar y reportar un fallo al encolar para que no dé 500 al POST con el
+      mensaje ya guardado. (revisor, fase 6)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
