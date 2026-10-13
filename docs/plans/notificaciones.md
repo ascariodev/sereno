@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 15
+**Estado:** en curso · Fase actual: 16
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -66,7 +66,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 14 — Retirar la bandeja de menciones (web) [riesgo]
 - Quitar `MentionsView` y la parte de bandeja de `stores/mentions.ts`; `/mentions` redirige a la vista nueva. 3-4 archivos.
 
-### [ ] Fase 15 — Retirar la bandeja de menciones (API)
+### [x] Fase 15 — Retirar la bandeja de menciones (API)
 - Quitar `GET mentions` y `POST mentions/read` cuando la web ya no los use; `message_mentions` se conserva para los chips. 2-3 archivos.
 
 ### [ ] Fase 16 — Preferencias de email (web)
@@ -177,10 +177,16 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   ya no escucha `mention.created`/`mention.removed` (el API los sigue emitiendo; `SyncChatMentionNotification` los necesita).
   `/mentions` redirige a `{name:'notifications'}`. La web ya no usa `GET mentions` ni `POST mentions/read`. Suite web: 1698 ok y los
   5 fallos de arrastre previos de `AppLayout.spec.ts` (mismos nombres antes y después).
+- 2026-10-13 (fase 15): borrados `MentionController`, `ListMentionsRequest`, `MarkMentionsReadRequest`, `MentionResource`,
+  `MentionInboxApiTest`, las rutas `GET mentions`/`POST mentions/read` y el limiter `mentions`. Quedan `message_mentions` (chips),
+  `MentionCreated`/`MentionRemoved` con su broadcast y `SyncChatMentionNotification`. `message_mentions.read_at` queda sin uso (M-20).
+  Suite completa del API: 1275 ok.
 
 ## Notas para la próxima sesión
 - Tras el merge, `docker compose restart queue`.
 - Antes de desplegar: poner las `MAIL_*` en el `.env` del servidor de cada ambiente (ver `api/docker-compose.prod.yml`).
+- Al mergear con `main`: otra sesión subió a `main` (3d319aa) un arreglo de `AppLayout.spec.ts` (mock estricto de `api.get`: todo GET
+  nuevo al montar el layout, como el de notificaciones, va en `sidebarData`) y una lección L-73 propia; renumerar las L-73 a L-75 de esta rama.
 - Último de los tres planes. La fase 10 toca `api/docker-compose.yml`, que hoy tiene cambios sin commit de otra sesión.
 
 ## Mejoras propuestas

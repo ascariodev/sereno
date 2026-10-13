@@ -8,7 +8,6 @@ use App\Http\Controllers\Api\LogGroupController;
 use App\Http\Controllers\Api\LogIngestController;
 use App\Http\Controllers\Api\LogSourceController;
 use App\Http\Controllers\Api\MemberController;
-use App\Http\Controllers\Api\MentionController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrganizationController;
@@ -79,10 +78,6 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::post('members/{user}/transfer-ownership', [MemberController::class, 'transferOwnership'])->whereNumber('user');
     Route::get('channels', [ChannelController::class, 'index']);
     Route::get('channels/{channel}', [ChannelController::class, 'show'])->whereNumber('channel');
-    Route::middleware('throttle:mentions')->group(function () {
-        Route::get('mentions', [MentionController::class, 'index']);
-        Route::post('mentions/read', [MentionController::class, 'read']);
-    });
     Route::middleware('throttle:notifications')->group(function () {
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::post('notifications/read', [NotificationController::class, 'read']);

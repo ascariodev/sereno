@@ -308,34 +308,6 @@ it('lists attachments in the channel and the replies without extra queries per m
     $this->getJson($replies)->assertJsonCount(2, 'data.0.attachments');
 });
 
-it('shows the attachments in the mentions inbox without extra queries per mention', function () {
-    $post = function () {
-        attachPost($this, [
-            'body' => "look <@{$this->ana->id}>",
-            'attachment_ids' => [pendingAttachment($this->channel, $this->author)],
-        ])->assertCreated();
-    };
-    $count = function () {
-        Sanctum::actingAs($this->ana);
-        DB::flushQueryLog();
-        DB::enableQueryLog();
-        $response = test()->withHeader('X-Organization-Id', (string) $this->organization->id)->getJson('/api/mentions')->assertOk();
-
-        return [count(DB::getQueryLog()), $response];
-    };
-    $post();
-    $count();
-    [$few] = $count();
-
-    foreach (range(1, 3) as $i) {
-        $post();
-    }
-    [$many, $response] = $count();
-
-    expect($many)->toBe($few);
-    $response->assertJsonCount(4, 'data')->assertJsonCount(1, 'data.0.message.attachments');
-});
-
 it('broadcasts the attachments in message.created and mention.created', function () {
     Event::fake([MessageCreated::class, MentionCreated::class]);
     $attachment = pendingAttachment($this->channel, $this->author);
