@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -54,7 +54,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 10 — Mailpit en desarrollo
 - Servicio `mailpit` en `api/docker-compose.yml` e instrucciones para `MAIL_*` en `CLAUDE.md` (el `.env` lo edita el usuario). 2 archivos.
 
-### [ ] Fase 11 — Correo en producción [riesgo]
+### [x] Fase 11 — Correo en producción [riesgo]
 - Variables SMTP en el stack de producción y el workflow de deploy del API. Revisar con el usuario antes. 2-3 archivos.
 
 ### [ ] Fase 12 — Cliente y store de notificaciones (web)
@@ -156,10 +156,14 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - 2026-10-13 (fase 10): servicio `mailpit` (`axllent/mailpit:v1.31.5`) en `api/docker-compose.yml`, sin perfil (arranca con
   `docker compose up -d`), puertos `127.0.0.1:8026` (web) y `127.0.0.1:1026` (SMTP); dentro de la red, `mailpit:1025`. Instrucciones
   `MAIL_*` en `CLAUDE.md`; `api/.env` lo edita el usuario. Los tests no dependen de él (`phpunit.xml` fuerza `MAIL_MAILER=array`).
+- 2026-10-13 (fase 11): las `MAIL_*` de producción (SMTP genérico) están documentadas en la cabecera de `api/docker-compose.prod.yml`;
+  tras cambiarlas, `compose restart app queue` o redeploy. `deploy-api.yml` emite `::warning::` (sin fallar) si `MAIL_MAILER` falta o
+  vale `log` en el `.env` del servidor; lee solo esa clave.
 
 ## Notas para la próxima sesión
 - Fase 12: el cliente ignora `notification.created` si `organization_id` no es la organización activa y fusiona por `id`.
 - Tras el merge, `docker compose restart queue`.
+- Antes de desplegar: poner las `MAIL_*` en el `.env` del servidor de cada ambiente (ver `api/docker-compose.prod.yml`).
 - Último de los tres planes. La fase 10 toca `api/docker-compose.yml`, que hoy tiene cambios sin commit de otra sesión.
 
 ## Mejoras propuestas

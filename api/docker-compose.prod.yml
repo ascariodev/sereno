@@ -1,5 +1,16 @@
 # Producción: el repo llega por rsync y el .env vive solo en el servidor (Laravel lo lee del bind del repo;
 # compose lo usa para interpolar las credenciales de postgres). TLS lo termina el proxy del host.
+#
+# Correo (notificaciones por email, las envía `queue`): SMTP del proveedor en el .env del servidor. Sin MAIL_MAILER
+# Laravel usa `log` y no envía nada; el deploy avisa en ese caso. Tras cambiarlas, `compose restart app queue` (o redeploy).
+#   MAIL_MAILER=smtp
+#   MAIL_HOST=smtp.proveedor.com
+#   MAIL_PORT=587                  # 587 con STARTTLS; 465 con TLS implícito
+#   MAIL_SCHEME=smtp               # smtp (587, STARTTLS si el servidor lo ofrece) o smtps (465)
+#   MAIL_USERNAME=usuario
+#   MAIL_PASSWORD="contraseña"
+#   MAIL_FROM_ADDRESS="noreply@dominio-verificado.com"
+#   MAIL_FROM_NAME="Sereno"
 
 x-app: &app
   image: ${API_IMAGE:-workspace-api-fpm}
