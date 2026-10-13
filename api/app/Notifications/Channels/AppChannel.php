@@ -13,6 +13,7 @@ use InvalidArgumentException;
  * `toApp(User $notifiable): array` returns `type`, `organization_id` (explicit: queued notifications have no
  * active one), `subject` (model) and optionally `project_id` and `data`. Idempotent per notification id:
  * `NotificationCreated` goes out only when the row was inserted.
+ * Nothing is stored for a user who is not a member of `organization_id`.
  */
 class AppChannel
 {
@@ -27,6 +28,10 @@ class AppChannel
 
         if (! $subject instanceof Model || empty($payload['type']) || empty($payload['organization_id'])) {
             throw new InvalidArgumentException('toApp() must return a type, an organization_id and a subject model.');
+        }
+
+        if (! $notifiable->organizations()->whereKey($payload['organization_id'])->exists()) {
+            return;
         }
 
         $inserted = AppNotification::query()->withoutGlobalScopes()->insertOrIgnore([

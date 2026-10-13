@@ -208,7 +208,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-3: Sobrescribir en `User` `notifications()` (hasMany `AppNotification`) y hacer que `unreadNotifications()`/`readNotifications()`
       lancen, para que el trait `Notifiable` no deje consultas a columnas `notifiable_*` inexistentes. (revisor, fase 1)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-4: Decidir si `AppChannel` comprueba que el destinatario es miembro de la organización, en vez de dejarlo a cada emisor. (revisor, fase 1)
+- [x] M-4: Decidir si `AppChannel` comprueba que el destinatario es miembro de la organización, en vez de dejarlo a cada emisor. (revisor, fase 1)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-5: Recortar el docblock de `AppChannel` a lo no obvio del contrato `toApp`. (revisor, fase 1)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
