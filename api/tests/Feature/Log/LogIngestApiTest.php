@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Requests\LogIngest\IngestEventsRequest;
 use App\Jobs\IngestLogEvents;
 use App\Models\LogGroup;
 use App\Models\LogSource;
@@ -152,7 +153,16 @@ it('accepts 100 events, a 32 KB context and an 8192 character message', function
 it('rejects an oversized body with a translated 413', function () {
     Queue::fake();
 
-    postIngest(['events' => [validEvent(['message' => str_repeat('a', 6 * 1024 * 1024)])]], 'es')
+    // A raw body instead of postJson: the array and its JSON copy would add another payload to the suite's peak.
+    $body = '{"events":[{"level":"error","message":"'.str_repeat('a', IngestEventsRequest::MAX_BODY_BYTES).'"}]}';
+    $server = $this->transformHeadersToServerVars([
+        'Authorization' => "Bearer {$this->plainKey}",
+        'Accept-Language' => 'es',
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json',
+    ]);
+
+    $this->call('POST', '/api/ingest/events', server: $server, content: $body)
         ->assertStatus(413)
         ->assertJsonPath('message', 'El cuerpo de la petición es demasiado grande.');
 });
