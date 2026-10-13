@@ -185,7 +185,7 @@ resolverlo o ignorarlo con la API existente. (Paso 3 del MVP; hilos, menciones y
 - [x] M-17 — Anotar en `database.md` que `LogEventRecorder` usa `RETURNING old.*` y exige PostgreSQL 18. Baja · sonnet.
 - [x] M-18 — `PostLogGroupNoticeTest`: quitar la aserción que solo repite `$tries`, y probar con el worker real
   (no `handle` a mano). Baja · sonnet.
-- [ ] M-19 — Mover `postStatusNotice` del `LogGroupController` a una acción o evento si otro punto llega a cambiar el
+- [x] M-19 — Mover `postStatusNotice` del `LogGroupController` a una acción o evento si otro punto llega a cambiar el
   estado de un grupo (p. ej. el plan). Media · sonnet.
 - [x] M-20 — `bootstrap/app.php`: extraer la condición repetida `is('api/*', 'broadcasting/*') || expectsJson()`.
   Baja · sonnet.
