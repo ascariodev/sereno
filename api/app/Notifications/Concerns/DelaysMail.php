@@ -10,7 +10,7 @@ trait DelaysMail
     /** @return array<string, DateTimeInterface|int|null> */
     public function withDelay(object $notifiable, string $channel): array
     {
-        return $channel === 'mail' ? ['mail' => now()->addMinutes(config('workspace.notifications.mail_delay_minutes'))] : [];
+        return $channel === 'mail' ? ['mail' => now()->addMinutes(max(0, (int) config('workspace.notifications.mail_delay_minutes')))] : [];
     }
 
     protected function readInInbox(object $notifiable, string $channel): bool

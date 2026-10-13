@@ -170,3 +170,12 @@ it('delays only the mail channel by the configured minutes', function (string $t
     expect($delay['mail']->equalTo(now()->addMinutes(7)))->toBeTrue()
         ->and($notification->withDelay($this->user, AppChannel::class))->toBe([]);
 })->with(array_column(NotificationType::cases(), 'value'));
+
+it('treats an empty or negative mail delay as zero minutes', function (mixed $configured) {
+    config(['workspace.notifications.mail_delay_minutes' => $configured]);
+    $this->freezeTime();
+
+    $delay = preferenceNotifications()[NotificationType::cases()[0]->value]->withDelay($this->user, 'mail');
+
+    expect($delay['mail']->equalTo(now()))->toBeTrue();
+})->with(['', -3, null]);

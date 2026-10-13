@@ -270,6 +270,6 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-26: El test de `task_assigned` con `notifyNow` de `NotificationPreferencesTest` (~línea 72) queda enmascarado por `via()` (L-77): quitarlo o pasarlo a `shouldSend` directo. (revisor, M-15)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-27: `DelaysMail`: castear a entero no negativo `notifications.mail_delay_minutes`, y documentar `NOTIFICATION_MAIL_DELAY_MINUTES`
+- [x] M-27: `DelaysMail`: castear a entero no negativo `notifications.mail_delay_minutes`, y documentar `NOTIFICATION_MAIL_DELAY_MINUTES`
       (`api/.env.example` lo edita el usuario, L-52). (revisor, M-1)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
