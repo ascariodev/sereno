@@ -209,7 +209,10 @@ resolverlo o ignorarlo con la API existente. (Paso 3 del MVP; hilos, menciones y
   `LogSourceController.php:49` responden "Not Found": un id de otro canal o proyecto se distingue de uno inexistente
   ("Resource not found."), la misma fuga leve de M-27. Usar el mismo cuerpo (p. ej. lanzar `ModelNotFoundException`) y
   extender `tests/Feature/Core/NotFoundBodyTest.php`. Media (seguridad leve, 3 archivos más el test) · sonnet.
-- [ ] M-29 — Misma fuga de M-27/M-28 en plan: `abort_unless(..., 404)` en `TaskController` (3) y en los Requests
+- [x] M-29 — Misma fuga de M-27/M-28 en plan: `abort_unless(..., 404)` en `TaskController` (3) y en los Requests
   `UpdateTaskRequest`, `DeleteTaskCommentRequest`, `ListTaskCommentsRequest`, `StoreTaskCommentAttachmentRequest` y
   `StoreTaskCommentRequest`. Pasar a `ModelNotFoundException` con la pertenencia en `authorize()` antes del Gate y la
   validación (L-72), y extender `NotFoundBodyTest`. Alta (seguridad, 6 archivos más el test) · opus o plan corto.
+- [ ] M-30 — Quedan con el 404 genérico "Not Found" (no exponen pertenencia): los `abort_if($locked === null, 404)` de
+  `TaskCommentController` y `MessageController` (borrado concurrente) y las descargas firmadas de `AttachmentController` y
+  `TaskCommentAttachmentController`. Unificar en "Resource not found." solo por consistencia. Baja · sonnet.

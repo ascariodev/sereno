@@ -7,7 +7,10 @@ use App\Models\LogSource;
 use App\Models\Message;
 use App\Models\Organization;
 use App\Models\Project;
+use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\User;
+use App\Support\CurrentOrganization;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -123,4 +126,68 @@ it('answers a resource of another channel or project with the same 404 body as a
                 ->and($hiddenBody)->toBe(['message' => __('Resource not found.', [], $locale)]);
         }
     }
+});
+
+function notFoundBodyTask(Project $project): Task
+{
+    $task = new Task(['title' => 'Fix it', 'position' => 1.0]);
+    $task->project_id = $project->id;
+    $task->number = 1;
+    $task->save();
+
+    return $task;
+}
+
+it('answers a task or comment of another project or task with the same 404 body as a missing one, in every locale', function () {
+    $admin = User::factory()->create();
+    $this->organization->addMember($admin, [Role::Admin]);
+    assignMembersToAllProjects();
+    Sanctum::actingAs($admin);
+    $missing = 999999999;
+
+    app(CurrentOrganization::class)->set($this->organization);
+    $task = notFoundBodyTask($this->project);
+    $hiddenTask = notFoundBodyTask($this->hiddenProject);
+    $hiddenComment = TaskComment::factory()->forTask($hiddenTask)->create(['user_id' => $admin->id]);
+
+    $tasksUrl = "/api/projects/{$this->project->id}/tasks";
+    $commentsUrl = "{$tasksUrl}/{$task->id}/comments";
+
+    $pairs = [
+        'show task' => ['GET', "{$tasksUrl}/{$hiddenTask->id}", "{$tasksUrl}/{$missing}", []],
+        'update task' => ['PATCH', "{$tasksUrl}/{$hiddenTask->id}", "{$tasksUrl}/{$missing}", ['title' => 'x']],
+        'update task with an invalid body' => ['PATCH', "{$tasksUrl}/{$hiddenTask->id}", "{$tasksUrl}/{$missing}", ['title' => '']],
+        'delete task' => ['DELETE', "{$tasksUrl}/{$hiddenTask->id}", "{$tasksUrl}/{$missing}", []],
+        'move task' => ['POST', "{$tasksUrl}/{$hiddenTask->id}/move", "{$tasksUrl}/{$missing}/move", ['status' => 'done']],
+        'move task with an invalid body' => ['POST', "{$tasksUrl}/{$hiddenTask->id}/move", "{$tasksUrl}/{$missing}/move", ['status' => 'nope']],
+        'list comments' => ['GET', "{$tasksUrl}/{$hiddenTask->id}/comments", "{$tasksUrl}/{$missing}/comments", []],
+        'list comments with invalid pagination' => [
+            'GET', "{$tasksUrl}/{$hiddenTask->id}/comments?per_page=0", "{$tasksUrl}/{$missing}/comments?per_page=0", [],
+        ],
+        'store comment' => ['POST', "{$tasksUrl}/{$hiddenTask->id}/comments", "{$tasksUrl}/{$missing}/comments", ['body' => 'x']],
+        'store comment with an invalid body' => ['POST', "{$tasksUrl}/{$hiddenTask->id}/comments", "{$tasksUrl}/{$missing}/comments", ['body' => '']],
+        'store comment attachment with an invalid body' => [
+            'POST', "{$tasksUrl}/{$hiddenTask->id}/attachments", "{$tasksUrl}/{$missing}/attachments", [],
+        ],
+        'update comment' => ['PATCH', "{$commentsUrl}/{$hiddenComment->id}", "{$commentsUrl}/{$missing}", ['body' => 'x']],
+        'update comment with an invalid body' => ['PATCH', "{$commentsUrl}/{$hiddenComment->id}", "{$commentsUrl}/{$missing}", ['body' => '']],
+        'delete comment' => ['DELETE', "{$commentsUrl}/{$hiddenComment->id}", "{$commentsUrl}/{$missing}", []],
+    ];
+
+    foreach (['en', 'es'] as $locale) {
+        $headers = ['X-Organization-Id' => (string) $this->organization->id, 'Accept-Language' => $locale];
+
+        foreach ($pairs as $endpoint => [$method, $hidden, $nonexistent, $payload]) {
+            $hiddenBody = $this->json($method, $hidden, $payload, $headers)
+                ->assertNotFound()->assertHeader('Content-Language', $locale)->json();
+            $missingBody = $this->json($method, $nonexistent, $payload, $headers)
+                ->assertNotFound()->assertHeader('Content-Language', $locale)->json();
+
+            expect($hiddenBody)->toBe($missingBody, "{$endpoint} ({$locale})")
+                ->and($hiddenBody)->toBe(['message' => __('Resource not found.', [], $locale)]);
+        }
+    }
+
+    expect(Task::withoutGlobalScopes()->whereKey($hiddenTask->id)->exists())->toBeTrue()
+        ->and(TaskComment::withoutGlobalScopes()->whereKey($hiddenComment->id)->exists())->toBeTrue();
 });

@@ -5,6 +5,7 @@ namespace App\Http\Requests\Task;
 use App\Enums\TaskStatus;
 use App\Models\Project;
 use App\Models\Task;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -18,7 +19,11 @@ class MoveTaskRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return Gate::authorize('update', $this->route('task'))->allowed();
+        $task = $this->route('task');
+
+        throw_unless($task->project_id === $this->route('project')->id, ModelNotFoundException::class);
+
+        return Gate::authorize('update', $task)->allowed();
     }
 
     public function rules(): array

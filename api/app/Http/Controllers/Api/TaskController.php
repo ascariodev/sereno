@@ -26,6 +26,7 @@ use App\Support\ProjectAccess;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -113,7 +114,7 @@ class TaskController extends Controller
     public function show(Project $project, Task $task): TaskResource
     {
         Gate::authorize('view', $project);
-        abort_unless($task->project_id === $project->id, 404);
+        throw_unless($task->project_id === $project->id, ModelNotFoundException::class);
         Gate::authorize('view', $task);
 
         $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
@@ -240,8 +241,6 @@ class TaskController extends Controller
 
     public function destroy(DeleteTaskRequest $request, Project $project, Task $task, DeleteTask $deleteTask): Response
     {
-        abort_unless($task->project_id === $project->id, 404);
-
         $deleteTask($task);
         TaskDeleted::dispatch($task);
 
@@ -250,8 +249,6 @@ class TaskController extends Controller
 
     public function move(MoveTaskRequest $request, Project $project, Task $task, PostLogGroupStatusNotice $postGroupNotice): TaskResource
     {
-        abort_unless($task->project_id === $project->id, 404);
-
         $status = $request->taskStatus();
         $beforeId = $request->beforeId();
         $afterId = $request->afterId();

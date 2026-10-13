@@ -5,6 +5,7 @@ namespace App\Http\Requests\TaskComment;
 use App\Models\Task;
 use App\Models\TaskComment;
 use Closure;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Support\Facades\Gate;
@@ -19,7 +20,8 @@ class ListTaskCommentsRequest extends FormRequest
     {
         /** @var Task $task */
         $task = $this->route('task');
-        abort_unless($task->project_id === $this->route('project')->id, 404);
+
+        throw_unless($task->project_id === $this->route('project')->id, ModelNotFoundException::class);
 
         return Gate::authorize('viewAny', [TaskComment::class, $task])->allowed();
     }
