@@ -79,7 +79,10 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - 2026-10-11 — In-app + email inmediato, con preferencias por tipo; Mailpit en desarrollo, SMTP genérico en producción — elegido por el usuario.
 - 2026-10-11 — Eventos: tarea asignada, mención en comentario, comentario en tarea propia (asignada o creada), mención en chat (unificada en la bandeja) — elegido por el usuario.
 - 2026-10-11 — Tabla `notifications` propia con `organization_id` y canal `app`, no el canal `database` de Laravel (sin tenant).
-- 2026-10-11 — Sin backfill: las menciones del chat sin leer antes del despliegue no pasan a la bandeja nueva (pendiente de confirmar).
+- 2026-10-11 — Sin backfill: las menciones del chat sin leer antes del despliegue no pasan a la bandeja nueva (confirmado por el usuario el 2026-10-13).
+- 2026-10-13 — Fase 11: en producción el `.env` vive solo en el servidor y Laravel lo lee de ahí, así que no hay variables SMTP nuevas
+  en el stack ni en el workflow. La fase documenta las `MAIL_*` del `.env` del servidor y añade al paso "Comprobar .env del servidor"
+  del deploy un aviso (no error) si `MAIL_MAILER` falta o es `log`, sin tocar el servidor — elegido por el usuario.
 
 - 2026-10-13: el plan se ejecuta en el worktree `.claude/worktrees/notificaciones` (rama `feat/notificaciones`). Verificación desde el
   worktree (los contenedores montan el checkout principal), igual que `comentarios-tareas`: web con
