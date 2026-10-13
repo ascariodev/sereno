@@ -3,6 +3,7 @@
 namespace App\Http\Requests\LogSource;
 
 use App\Models\LogSource;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
@@ -14,7 +15,7 @@ class RotateLogSourceKeyRequest extends FormRequest
     {
         $source = $this->route('source');
 
-        abort_unless($source instanceof LogSource && $source->project_id === $this->route('project')?->id, 404);
+        throw_unless($source instanceof LogSource && $source->project_id === $this->route('project')?->id, ModelNotFoundException::class);
 
         return Gate::allows('rotateKey', $source);
     }

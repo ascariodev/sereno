@@ -18,6 +18,7 @@ use App\Models\LogGroup;
 use App\Models\Project;
 use App\Models\Task;
 use App\Support\LogGroupHourlyCounts;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -56,7 +57,7 @@ class LogGroupController extends Controller
 
     public function show(Project $project, LogGroup $group): LogGroupResource
     {
-        abort_unless($group->project_id === $project->id, 404);
+        throw_unless($group->project_id === $project->id, ModelNotFoundException::class);
         Gate::authorize('view', $group);
 
         $group->setRelation('events', LogEvent::query()
@@ -75,8 +76,6 @@ class LogGroupController extends Controller
 
     public function update(UpdateLogGroupRequest $request, Project $project, LogGroup $group, PostLogGroupStatusNotice $postNotice, PostTaskGroupReopenedNotice $postReopened): LogGroupResource
     {
-        abort_unless($group->project_id === $project->id, 404);
-
         $updated = DB::transaction(function () use ($group, $request, $postNotice, $postReopened) {
             // Lock to read the real previous status: ingestion can change it in parallel.
             $locked = LogGroup::query()->whereKey($group->id)->lock('for no key update')->firstOrFail();

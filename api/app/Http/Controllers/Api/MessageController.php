@@ -109,8 +109,6 @@ class MessageController extends Controller
 
     public function replies(ListMessagesRequest $request, Channel $channel, Message $message): AnonymousResourceCollection
     {
-        abort_unless($message->channel_id === $channel->id && $message->parent_id === null, 404);
-
         $page = $channel->messages()
             ->where('parent_id', $message->id)
             ->whereNull('deleted_at')

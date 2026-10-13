@@ -4,6 +4,7 @@ namespace App\Http\Requests\Channel;
 
 use App\Models\Channel;
 use App\Models\Message;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
@@ -17,7 +18,7 @@ class DeleteMessageRequest extends FormRequest
         /** @var Message $message */
         $message = $this->route('message');
 
-        abort_unless($message->channel_id === $channel->id, 404);
+        throw_unless($message->channel_id === $channel->id, ModelNotFoundException::class);
 
         return Gate::authorize('delete', $message)->allowed();
     }

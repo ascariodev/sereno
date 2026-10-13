@@ -8,6 +8,7 @@ use App\Http\Requests\LogSource\StoreLogSourceRequest;
 use App\Http\Resources\LogSourceResource;
 use App\Models\LogSource;
 use App\Models\Project;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
@@ -46,7 +47,7 @@ class LogSourceController extends Controller
 
     public function destroy(Project $project, LogSource $source): LogSourceResource
     {
-        abort_unless($source->project_id === $project->id, 404);
+        throw_unless($source->project_id === $project->id, ModelNotFoundException::class);
         Gate::authorize('revoke', $source);
 
         if (! $source->isRevoked()) {
