@@ -278,6 +278,25 @@ describe('router guard', () => {
       expect(router.currentRoute.value.fullPath).toBe('/projects/5/plan')
     })
 
+    it('the stale-list reload does not let a 401 redirect to login mid-navigation', async () => {
+      localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+      const get = mockApi()
+      const router = setup()
+      await router.push('/')
+      await useOrganizationStore().load()
+      get.mockImplementation(async (path: string) => {
+        if (path === '/api/organizations') {
+          redirectToLogin(router)
+          return { data: orgs }
+        }
+        return { data: user }
+      })
+      const push = vi.spyOn(router, 'push')
+      await router.push('/projects/5/plan?organization=99')
+      expect(push).toHaveBeenCalledOnce()
+      expect(router.currentRoute.value.name).toBe('project-plan')
+    })
+
     it('with organizations already loaded, switches before entering the route', async () => {
       localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
       mockApi()

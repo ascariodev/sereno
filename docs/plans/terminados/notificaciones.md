@@ -256,7 +256,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-21: En `activateFromLink`, si las organizaciones ya están cargadas y el id no está, recargar la lista una vez (miembro recién
       invitado con la lista vieja); y tests del guard para `?organization=abc` y el parámetro repetido. (revisor, fase 17)
       Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
-- [ ] M-22: Envolver en `whileLoadingSession` la recarga de organizaciones que hace el guard al abrir un enlace con `?organization=`
+- [x] M-22: Envolver en `whileLoadingSession` la recarga de organizaciones que hace el guard al abrir un enlace con `?organization=`
       de una organización que no estaba en la lista, para que no quede la pantalla congelada si el servidor tarda. (revisor, M-21)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-23: Ampliar el test de `MailMarkdown::escape` con un autolink `<http://evil.test>` y una URL suelta (que no salga `href`),
