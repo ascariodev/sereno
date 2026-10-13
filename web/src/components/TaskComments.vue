@@ -256,7 +256,7 @@ async function submit(): Promise<void> {
     }
     if (sentId !== null) {
       await nextTick()
-      if (token === sendToken) list.value?.querySelector(`[data-comment-id="${sentId}"]`)?.scrollIntoView({ block: 'nearest' })
+      if (token === sendToken) list.value?.querySelector(`[data-comment-id="${sentId}"]`)?.scrollIntoView?.({ block: 'nearest' })
     }
   } catch (error) {
     if (token !== sendToken) return
