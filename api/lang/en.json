@@ -285,5 +285,8 @@
     "The neighbor tasks are not next to each other.": "The neighbor tasks are not next to each other.",
     "The selected assignee does not have access to this project.": "The selected assignee does not have access to this project.",
     "Only users with the member role can be assigned to a project.": "Only users with the member role can be assigned to a project.",
-    "Only users with the member role can be removed from a project.": "Only users with the member role can be removed from a project."
+    "Only users with the member role can be removed from a project.": "Only users with the member role can be removed from a project.",
+    ":actor assigned you :task": ":actor assigned you :task",
+    ":actor assigned you the task :task: :title": ":actor assigned you the task :task: :title",
+    "View task": "View task"
 }

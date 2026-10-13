@@ -22,6 +22,7 @@ use App\Models\Message;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Notifications\TaskAssignedNotification;
 use App\Support\ProjectAccess;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
@@ -175,7 +176,7 @@ class TaskController extends Controller
 
         $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
         TaskCreated::dispatch($task);
-        $this->notifyAssignee($task, $request->user()->id);
+        $this->notifyAssignee($task, $request->user());
 
         return (new TaskResource($task))->response()->setStatusCode(201);
     }
@@ -224,19 +225,25 @@ class TaskController extends Controller
         $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
         TaskUpdated::dispatch($task);
         if ($newAssigneeId !== null) {
-            $this->notifyAssignee($task, $request->user()->id);
+            $this->notifyAssignee($task, $request->user());
         }
 
         return new TaskResource($task);
     }
 
-    private function notifyAssignee(Task $task, int $actorId): void
+    private function notifyAssignee(Task $task, User $actor): void
     {
-        if ($task->assignee_id === null || $task->assignee_id === $actorId) {
+        if ($task->assignee_id === null || $task->assignee_id === $actor->id) {
             return;
         }
 
         TaskAssigned::dispatch($task->assignee_id, $task->organization_id, $task->project_id, $task->id);
+
+        $assignee = User::query()->find($task->assignee_id);
+
+        if ($assignee !== null && ProjectAccess::canViewId($assignee, $task->organization_id, $task->project_id)) {
+            $assignee->notify(TaskAssignedNotification::for($task, $actor));
+        }
     }
 
     public function destroy(DeleteTaskRequest $request, Project $project, Task $task, DeleteTask $deleteTask): Response

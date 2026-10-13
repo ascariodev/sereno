@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -32,7 +32,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 3 — Evento NotificationCreated
 - Broadcast a `users.{id}` con membresía comprobada en `broadcastOn` (L-42). 2 archivos.
 
-### [ ] Fase 4 — Notificación de tarea asignada
+### [x] Fase 4 — Notificación de tarea asignada
 - Al crear o reasignar, si el asignado no es quien actúa. Canales `app` y `mail`, textos en `lang/*.json`. 3-4 archivos.
 
 ### [ ] Fase 5 — Notificaciones de comentarios
@@ -110,6 +110,15 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   `broadcastOn` devuelve `[]` si el usuario ya no es miembro o, con `project_id`, si `ProjectAccess::canViewId` es falso.
 - 2026-10-13 (fase 3): `data` de cada notificación lleva ids y textos cortos (título, extracto breve), nunca cuerpos completos:
   la comprobación de acceso corre en el worker y queda una ventana hasta la entrega.
+- 2026-10-13 (fase 4): enum `App\Enums\NotificationType` (`TaskAssigned` = `task_assigned`); las fases 5, 6 y 9 le añaden casos.
+  `TaskAssignedNotification` (`ShouldQueue`, `via` `[AppChannel::class, 'mail']`, solo escalares, sin `ShouldBeEncrypted`) con
+  `data` `{task_id, task_key, task_title (120 car.), actor_id, actor_name}`, `project_id` en la columna y subject la `Task`. La web
+  enlaza `projects/:project_id/plan?task=:task_id`; el mail, `rtrim(frontend_url) + /projects/{id}/plan?task={id}`. Se dispara en
+  `TaskController::notifyAssignee` (store y update) si hay asignado, cambió, no es el actor y ve el proyecto.
+- 2026-10-13 (fase 4): toda notificación revalida en el worker con `shouldSend` (L-70; corre por canal, corta fila y mail): la de tarea
+  asignada exige que la tarea exista, siga asignada al destinatario y este vea el proyecto. Las fases 7 y 8 solo limpian filas ya creadas.
+- 2026-10-13 (fase 4): `User` implementa `HasLocalePreference` (`preferredLocale()` = `locale?->value`): las notificaciones toman el
+  idioma del destinatario solas; un `->locale()` explícito (invitaciones) sigue mandando.
 
 ## Notas para la próxima sesión
 - Fase 12: el cliente ignora `notification.created` si `organization_id` no es la organización activa y fusiona por `id`.
