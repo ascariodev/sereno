@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -42,7 +42,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 6 — Notificación de mención en el chat [riesgo]
 - Listener de `MentionCreated` crea la notificación; `MentionRemoved` la borra por subject. 3-4 archivos.
 
-### [ ] Fase 7 — Limpieza al perder acceso [riesgo]
+### [x] Fase 7 — Limpieza al perder acceso [riesgo]
 - `MembershipRevoked` y `ProjectAccessChanged` borran las notificaciones que el usuario ya no puede ver; suite completa (L-49). 2-3 archivos.
 
 ### [ ] Fase 8 — Limpieza al borrar el sujeto
@@ -134,6 +134,12 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   y distinto uuid (quitar y volver a poner la mención no duplica; el uuid propio se excluye porque el job de mail corre tras el de app).
 - 2026-10-13 (fase 6): `App\Support\MailMarkdown::escape` neutraliza el markdown del extracto en el correo (chat y comentarios); la bandeja
   guarda el texto sin escapar.
+- 2026-10-13 (fase 7): listener síncrono autodescubierto `PruneInaccessibleNotifications` sobre `MembershipRevoked`,
+  `ProjectAccessChanged` y también `MembershipRoleChanged` (degradar de admin a member no emite `ProjectAccessChanged`). Lee el
+  acceso vigente, no el payload: sin membresía borra todas las de esa organización; owner/admin nada; member borra las de
+  `project_id` fuera de `ProjectAccess::visibleProjectIds` (conserva las de `project_id` null). Todo en try/catch con `report`:
+  corre en el callback de commit y un fallo daría 500 y cortaría `TerminateUserConnections`. Borrar proyecto, usuario u
+  organización ya lo cubren los FK en cascada; lo que aún está en cola lo frena `shouldSend`. Suite completa (L-49): 1267 ok.
 
 ## Notas para la próxima sesión
 - Fase 12: el cliente ignora `notification.created` si `organization_id` no es la organización activa y fusiona por `id`.

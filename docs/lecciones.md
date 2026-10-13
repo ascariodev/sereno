@@ -103,6 +103,7 @@
 - L-72: Para que un recurso ajeno sea indistinguible de uno inexistente, la comprobación de pertenencia (404) va en `authorize()` del Form Request, antes del Gate y de la validación: si queda en el controlador, un body inválido da 422 al recurso ajeno y 404 al inexistente. El test compara cuerpos también con body inválido. — aplicada en: canales M-28
 - L-73: Un test de lo que decide el worker de una notificación (`shouldSend`, canales) no usa `Notification::fake()`, que no ejecuta nada y pasa siempre: corre `notifyNow` real con `Event::fake([NotificationSent::class])`, afirma fila y mail, y se comprueba con la mutación de quitar el chequeo. — aplicada en: test (TaskAssignedNotificationTest)
 - L-74: Un texto que escriben los usuarios y va a un `MailMessage` (`line`, `greeting`) se escapa como markdown, con un test sobre el HTML renderizado: si no, `[x](http://...)` llega como enlace clicable en un correo con nuestra marca. — aplicada en: test (ChatMentionNotificationTest)
+- L-75: Un listener síncrono de un evento `ShouldDispatchAfterCommit` envuelve su trabajo en try/catch con `report`, con test del fallo: corre en el callback de commit y, si lanza, da 500 con el cambio confirmado y corta los `afterCommit` siguientes (`TerminateUserConnections`). — aplicada en: test (NotificationAccessPruneTest)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
