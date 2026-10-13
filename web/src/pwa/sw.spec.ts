@@ -18,6 +18,36 @@ interface FakeResponse {
 
 type Listener = (event: Record<string, unknown>) => void
 
+interface FakeWindow {
+  focused: boolean
+  focus: ReturnType<typeof vi.fn>
+  navigate: ReturnType<typeof vi.fn>
+}
+
+const later = <T>(value: T) => new Promise<T>((resolve) => setTimeout(() => resolve(value)))
+
+const fakeWindow = ({ focused = false, navigable = true } = {}): FakeWindow => {
+  const client: FakeWindow = {
+    focused,
+    focus: vi.fn(() => later(client)),
+    navigate: vi.fn(() => (navigable ? later(client) : Promise.reject(new TypeError('not controlled')))),
+  }
+  return client
+}
+
+const pushData = (payload: unknown) => ({
+  json: () => (typeof payload === 'string' ? JSON.parse(payload) : payload),
+})
+
+const PAYLOAD = {
+  uuid: 'abc',
+  type: 'task_assigned',
+  title: 'Task assigned',
+  body: 'Fix the login',
+  url: `${ORIGIN}/projects/1/plan?task=2&organization=3`,
+  tag: 'task-2',
+}
+
 const response = (body: string, ok = true): FakeResponse => ({ body, ok, clone: () => response(body, ok) })
 
 const request = (path: string, { method = 'GET', mode = 'cors', origin = ORIGIN } = {}): FakeRequest => ({
@@ -28,14 +58,19 @@ const request = (path: string, { method = 'GET', mode = 'cors', origin = ORIGIN 
 
 const keyOf = (input: string | FakeRequest) => (typeof input === 'string' ? input : new URL(input.url).pathname)
 
-function loadWorker(existingCaches: string[] = []) {
+function loadWorker(existingCaches: string[] = [], windows: FakeWindow[] = []) {
   const listeners = new Map<string, Listener>()
   const stores = new Map<string, Map<string, FakeResponse>>(existingCaches.map((name) => [name, new Map()]))
   const self = {
     location: { origin: ORIGIN },
     addEventListener: (type: string, listener: Listener) => listeners.set(type, listener),
     skipWaiting: vi.fn(),
-    clients: { claim: vi.fn(() => Promise.resolve()) },
+    clients: {
+      claim: vi.fn(() => Promise.resolve()),
+      matchAll: vi.fn(() => later(windows)),
+      openWindow: vi.fn(() => later(null)),
+    },
+    registration: { showNotification: vi.fn(() => later(undefined)) },
   }
   const store = (name: string) => {
     if (!stores.has(name)) stores.set(name, new Map())
@@ -61,10 +96,18 @@ function loadWorker(existingCaches: string[] = []) {
   const source = template.replace('__VERSION__', 'v2').replace('__PRECACHE__', JSON.stringify(PRECACHE))
   new Function('self', 'caches', 'fetch', source)(self, caches, fetch)
 
-  const waitFor = async (type: string, data?: unknown) => {
+  const dispatch = async (type: string, event: Record<string, unknown>) => {
     let pending: Promise<unknown> = Promise.resolve()
-    listeners.get(type)!({ data, waitUntil: (promise: Promise<unknown>) => (pending = promise) })
+    listeners.get(type)!({ ...event, waitUntil: (promise: Promise<unknown>) => (pending = promise) })
     await pending
+  }
+
+  const waitFor = (type: string, data?: unknown) => dispatch(type, { data })
+
+  const click = async (data: unknown) => {
+    const notification = { data, close: vi.fn() }
+    await dispatch('notificationclick', { notification })
+    return notification
   }
 
   const handle = (input: FakeRequest): Promise<FakeResponse> | undefined => {
@@ -73,7 +116,7 @@ function loadWorker(existingCaches: string[] = []) {
     return responded
   }
 
-  return { self, stores, fetch, waitFor, handle }
+  return { self, stores, fetch, waitFor, handle, click }
 }
 
 describe('sw.js', () => {
@@ -144,5 +187,84 @@ describe('sw.js', () => {
 
     fetch.mockRejectedValueOnce(new TypeError('offline'))
     await expect(handle(request('/favicon.svg'))).rejects.toThrow('offline')
+  })
+
+  it('shows a push with its content when no Sereno window is focused', async () => {
+    const { self, waitFor } = loadWorker([], [fakeWindow()])
+    await waitFor('push', pushData(PAYLOAD))
+    expect(self.registration.showNotification).toHaveBeenCalledWith('Task assigned', {
+      body: 'Fix the login',
+      icon: '/icons/icon-192.png',
+      tag: 'task-2',
+      data: { url: PAYLOAD.url },
+    })
+  })
+
+  it('does not show a push while a Sereno window is focused', async () => {
+    const { self, waitFor } = loadWorker([], [fakeWindow(), fakeWindow({ focused: true })])
+    await waitFor('push', pushData(PAYLOAD))
+    expect(self.clients.matchAll).toHaveBeenCalledWith({ type: 'window', includeUncontrolled: true })
+    expect(self.registration.showNotification).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['no data', null],
+    ['invalid json', pushData('{not json')],
+    ['a non object', pushData('"text"')],
+    ['an empty title', pushData({ ...PAYLOAD, title: '' })],
+    ['a non string body', pushData({ ...PAYLOAD, body: 3 })],
+    ['a missing url', pushData({ ...PAYLOAD, url: undefined })],
+    ['a missing tag', pushData({ ...PAYLOAD, tag: undefined })],
+  ])('shows a generic notice for a push with %s', async (_, data) => {
+    const { self, waitFor } = loadWorker()
+    await waitFor('push', data)
+    expect(self.registration.showNotification).toHaveBeenCalledWith('Sereno', {
+      icon: '/icons/icon-192.png',
+      tag: 'sereno',
+      data: { url: '/' },
+    })
+  })
+
+  it('keeps the content of a push whose url is on another origin but points it to the app root', async () => {
+    const { self, waitFor } = loadWorker()
+    await waitFor('push', pushData({ ...PAYLOAD, url: 'https://evil.test/phish' }))
+    expect(self.registration.showNotification).toHaveBeenCalledWith(
+      'Task assigned',
+      expect.objectContaining({ body: 'Fix the login', data: { url: `${ORIGIN}/` } }),
+    )
+  })
+
+  it('focuses an open window and navigates it on click', async () => {
+    const existing = fakeWindow()
+    const { self, click } = loadWorker([], [existing])
+    const notification = await click({ url: PAYLOAD.url })
+    expect(notification.close).toHaveBeenCalledTimes(1)
+    expect(existing.focus).toHaveBeenCalledTimes(1)
+    expect(existing.navigate).toHaveBeenCalledWith(PAYLOAD.url)
+    expect(self.clients.openWindow).not.toHaveBeenCalled()
+  })
+
+  it('opens a new window on click when none is open', async () => {
+    const { self, click } = loadWorker()
+    await click({ url: PAYLOAD.url })
+    expect(self.clients.openWindow).toHaveBeenCalledWith(PAYLOAD.url)
+  })
+
+  it('opens a new window on click when the open one cannot be navigated', async () => {
+    const existing = fakeWindow({ navigable: false })
+    const { self, click } = loadWorker([], [existing])
+    await click({ url: PAYLOAD.url })
+    expect(existing.navigate).toHaveBeenCalledWith(PAYLOAD.url)
+    expect(self.clients.openWindow).toHaveBeenCalledWith(PAYLOAD.url)
+  })
+
+  it.each([
+    ['another origin', { url: 'https://evil.test/phish' }],
+    ['a non string url', { url: 42 }],
+    ['no data', undefined],
+  ])('opens the app root on click for a url with %s', async (_, data) => {
+    const { self, click } = loadWorker()
+    await click(data)
+    expect(self.clients.openWindow).toHaveBeenCalledWith(`${ORIGIN}/`)
   })
 })

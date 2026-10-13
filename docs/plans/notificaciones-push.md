@@ -2,7 +2,7 @@
 
 **Objetivo:** que las notificaciones de Sereno (tarea asignada, comentario o mención en tarea, mención en el chat) lleguen
 como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin duplicar lo que ya muestra la app abierta.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -78,7 +78,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - **Terminado cuando:** tests con el fake: envío a todas las suscripciones, nada si está leída, borrada o con `push` apagado,
   limpieza de expiradas; y que `AppChannel` no lo despacha si `stillApplies` borró la fila (mutación que lo valide).
 
-### [ ] Fase 8 — Service worker: mostrar y abrir [riesgo]
+### [x] Fase 8 — Service worker: mostrar y abrir [riesgo]
 - **Alcance:** en `web/pwa/sw.js`, handler `push` que muestra la notificación (título, cuerpo, ícono, `tag`, url en `data`)
   salvo que haya una ventana de Sereno enfocada; `notificationclick` que enfoca una ventana existente y navega a la url, o
   abre una nueva. Extraer la lógica a funciones testeables si `sw.js` no se puede probar tal cual.
@@ -131,6 +131,9 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   van a un job nuevo solo con ellas (esperas 30 s y 300 s, máximo 3 intentos, luego `Log::warning`); 404/410 borran la
   suscripción; otro 4xx o error al cifrar se registra sin reintento. El worker revalida fila, no leída, usuario y
   `wantsPush`. Sin VAPID completa o con payload null: `Log::warning` y no envía. Cola y conexión por defecto.
+- 2026-10-13 — Service worker: payload inválido o sin datos muestra un aviso genérico "Sereno" (tag `sereno`, abre `/`, sin
+  traducir: el SW no conoce el idioma) para no provocar el aviso de Chrome; url de otro origen se reemplaza por la raíz,
+  al mostrar y al hacer click. Click: enfoca y navega la primera ventana, o `openWindow` si `navigate` falla o no hay.
 - 2026-10-13 — Comando `php artisan push:vapid-keys` imprime las líneas `VAPID_*` para el `.env`, no escribe archivos.
   `workspace.push.vapid_subject` no tiene valor por defecto: la fase 7 debe no enviar (y reportar claro) si falta alguna
   de las tres variables.
@@ -152,6 +155,10 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - Envío (fase 7): `App\Jobs\SendPushNotification` (uuid + ids de suscripción + intento), `App\Support\PushSender`
   (interfaz, resultados `sent|expired|failed|rejected`) enlazada a `WebPushSender` en `AppServiceProvider`; en tests se
   liga un fake. `WebPushSender` (traducción del `MessageSentReport` de minishlink) no tiene test propio: se valida en la fase 11.
+- Service worker (fase 8): handlers en `web/pwa/sw.js` sin módulo aparte (los specs cargan el archivo crudo). Fase 11:
+  verificar en Safari/WebKit, que exige mostrar una notificación por cada push y revoca la suscripción tras varios push
+  silenciosos (con ventana enfocada no se muestra nada); si aplica, mostrar siempre en Safari. Una ventana enfocada de otra
+  cuenta u organización del mismo origen también silencia el push (aceptado).
 - Fase 1 hecha. Pendiente del usuario: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (de `push:vapid-keys`) y `VAPID_SUBJECT`
   (`mailto:...`) en `api/.env` y los tres nombres en `api/.env.example`; luego `docker compose restart api queue reverb scheduler`.
 - Ejecución en worktree (`.claude/worktrees/notificaciones-push`): los contenedores montan el checkout principal, así que
@@ -181,3 +188,11 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   `Throwable` por suscripción, con test.
 - [ ] M-13 (baja, sonnet): `SendPushNotification` con tipo desconocido salta `wantsPush` y depende de que `PushPayload`
   devuelva null; cortar ahí mismo.
+- [ ] M-14 (baja, sonnet): `sw.js` `notificationclick` toma el primer cliente de `matchAll` con `includeUncontrolled`; si no
+  está controlado y otro sí, `navigate` falla y abre una ventana más. Priorizar un cliente controlado, con spec.
+- [ ] M-15 (baja, sonnet): `sw.js` aviso genérico con `data.url` relativo (`/`) mientras el resto es absoluto; y evaluar
+  `renotify: true` para que un push con el mismo `tag` vuelva a sonar.
+- [ ] M-16 (baja, sonnet): `sw.spec.ts` no detecta un `showNotification` sin `await` dentro de `waitUntil`; afirmar que
+  la promesa de `waitUntil` no resuelve antes que la de `showNotification`.
+- [ ] M-17 (media, sonnet): `notificationclick` usa `WindowClient.navigate`, que recarga la SPA; usar `postMessage` al
+  router de la ventana enfocada y navegar en cliente.
