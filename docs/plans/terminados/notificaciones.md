@@ -254,7 +254,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-19: Renombrar la clase `app-sidebar__mentions` (enlace de notificaciones y su CSS de posición colapsada) a
       `app-sidebar__notifications` en `AppSidebar.vue`. (revisor, fase 14)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-20: Migración que quita la columna sin uso `message_mentions.read_at` (la bandeja de menciones se retiró en la fase 15). (revisor, fase 15)
+- [x] M-20: Migración que quita la columna sin uso `message_mentions.read_at` (la bandeja de menciones se retiró en la fase 15). (revisor, fase 15)
       Complejidad: alta · Archivos: 2 · Riesgo: esquema de BD → opus
 - [x] M-21: En `activateFromLink`, si las organizaciones ya están cargadas y el id no está, recargar la lista una vez (miembro recién
       invitado con la lista vieja); y tests del guard para `?organization=abc` y el parámetro repetido. (revisor, fase 17)

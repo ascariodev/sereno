@@ -14,13 +14,6 @@ class MessageMention extends Model
 
     protected $guarded = ['*'];
 
-    protected function casts(): array
-    {
-        return [
-            'read_at' => 'datetime',
-        ];
-    }
-
     public function message(): BelongsTo
     {
         return $this->belongsTo(Message::class);
