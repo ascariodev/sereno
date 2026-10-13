@@ -14,6 +14,8 @@ class LogEventReceipt extends Model
 
     public const UPDATED_AT = null;
 
+    public const RETRY_WINDOW_HOURS = 48;
+
     protected $guarded = ['*'];
 
     protected function casts(): array

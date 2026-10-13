@@ -2,7 +2,7 @@
 
 **Objetivo:** que reintentar la ingesta de log (el job en la cola o el POST del cliente) no duplique eventos ni sume de más en
 los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `docs/plans/terminados/log.md`.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -57,7 +57,7 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 - **Terminado cuando:** test que hace fallar el evento k la primera vez y, al reintentar, deja exactamente n eventos y
   conteos correctos; 'tries the job only once' se reemplaza por uno de 3 intentos.
 
-### [ ] Fase 5 — Poda de recibos
+### [x] Fase 5 — Poda de recibos
 - **Alcance:** borrar recibos con `received_at` más viejo que la ventana de reintento (48 h) desde `MaintainLogPartitions`
   o un comando programado propio.
 - **Archivos:** `api/app/Console/Commands/MaintainLogPartitions.php` (o comando nuevo), `api/routes/console.php`
@@ -90,7 +90,10 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 
 - 2026-10-12 — Fase 4: un error permanente en un evento hace fallar el lote tras 3 intentos (los anteriores se conservan, los posteriores no se graban); aceptable porque la API valida el lote antes de encolar. `PostLogGroupNotice` mantiene `$tries = 1` (L-07): no se duplica, pero un fallo suyo pierde el aviso.
 
+- 2026-10-12 — Fase 5: comando propio y no ampliar `MaintainLogPartitions`, cuya retención es por días de partición y aborta con configuración inválida; la ventana de 48 h es de reintento, no de retención.
+
 ## Notas para la próxima sesión
+- Fase 5 hecha: comando propio `log:prune-receipts` (diario 00:40 UTC, lotes de 5000, ventana `LogEventReceipt::RETRY_WINDOW_HOURS` = 48). Al desplegar también `docker compose restart scheduler`. Siguen las fases 6 y 7 en el repo `../sereno-laravel` (propio git; el worktree se crea ahí).
 - Fase 4 hecha: `IngestLogEvents` con `$tries = 3`, `backoff [5, 30]`. Al desplegar: vaciar la cola de ingesta antes (lotes encolados sin id no están protegidos) y `docker compose restart queue` (el worker no recarga código). Siguiente: poda de recibos (fase 5). Al terminar, marcar M-5 de `docs/plans/terminados/log.md`.
 
 ## Mejoras propuestas
