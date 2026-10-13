@@ -2,7 +2,7 @@
 
 **Objetivo:** que las notificaciones de Sereno (tarea asignada, comentario o mención en tarea, mención en el chat) lleguen
 como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin duplicar lo que ya muestra la app abierta.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -61,7 +61,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   `ChatMentionNotification.php`.
 - **Terminado cuando:** los tests de mail existentes pasan sin cambios y hay tests unitarios de la URL por tipo (hilo y mensaje suelto en chat).
 
-### [ ] Fase 6 — Contenido del push
+### [x] Fase 6 — Contenido del push
 - **Alcance:** armar desde la fila `AppNotification` y el usuario el payload JSON del push: título y cuerpo con `__()` en el
   locale del usuario (mismos textos que el mail; extracto del mensaje o comentario), `url` (fase 5), `tag` por sujeto para
   agrupar, y el uuid. Contenido escrito por personas sin traducir.
@@ -123,6 +123,9 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   `content_encoding` conserva el existente.
 - 2026-10-13 — El PATCH de preferencias ya no exige `email`: basta `email` o `push` (`required_without` cruzado); la web
   actual, que solo manda `email`, sigue igual.
+- 2026-10-13 — Payload push: título = asunto del mail (misma clave `__()`, locale del usuario), cuerpo = texto humano sin
+  traducir (`task_title`, `comment_excerpt`, `message_excerpt`), `tag` `task-{id}` o `channel-{id}`; tope de 3000 bytes
+  recortando solo el cuerpo por caracteres.
 - 2026-10-13 — Comando `php artisan push:vapid-keys` imprime las líneas `VAPID_*` para el `.env`, no escribe archivos.
   `workspace.push.vapid_subject` no tiene valor por defecto: la fase 7 debe no enviar (y reportar claro) si falta alguna
   de las tres variables.
@@ -138,6 +141,9 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - URL (fase 5): `App\Support\NotificationUrl::for(AppNotification)` (además `task()` y `chatMessage()`). Con tipo desconocido
   o `data` incompleto lanza: la fase 6/7 decide si lo captura para no romper el job (reportar y no enviar).
   `web/src/views/NotificationsView.vue` `target()` sigue duplicando la lógica en el cliente.
+- Payload (fase 6): `App\Support\PushPayload::for(AppNotification, User): ?string` devuelve el JSON codificado
+  `{uuid,type,title,body,url,tag}` (máx. 3000 bytes, `MAX_BYTES`). `null` = fila de tipo desconocido o `data` incompleto: la
+  fase 7 lo trata como "omitir sin reintento" y lo registra (`Log::warning` con el uuid). Pasarle el `User` con su `locale`.
 - Fase 1 hecha. Pendiente del usuario: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (de `push:vapid-keys`) y `VAPID_SUBJECT`
   (`mailto:...`) en `api/.env` y los tres nombres en `api/.env.example`; luego `docker compose restart api queue reverb scheduler`.
 - Ejecución en worktree (`.claude/worktrees/notificaciones-push`): los contenedores montan el checkout principal, así que
@@ -158,3 +164,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - [ ] M-6 (baja, sonnet): tests de preferencias para `{"email": [], "push": {...}}` (se acepta) y cuerpo `{}` autenticado (422).
 - [ ] M-7 (baja, sonnet): unificar la lógica repetida de `User::wantsEmail` y `wantsPush` en un helper privado.
 - [ ] M-8 (baja, sonnet): test de `NotificationUrl` con `app.frontend_url` sin barra final (hoy solo con barra).
+- [ ] M-9 (baja, sonnet): `PushPayload` fija y restaura el locale a mano; usar el trait `Localizable::withLocale`.
+- [ ] M-10 (baja, sonnet): `PushPayload` captura `ErrorException`/`TypeError` para las claves ausentes de `data`, lo que
+  también oculta bugs de programación; validar las claves explícitamente y dejar de capturar esas excepciones.
+- [ ] M-11 (baja, sonnet): renombrar `PushPayload::TITLE_LIMIT` (`Str::limit` mide ancho, no caracteres).
