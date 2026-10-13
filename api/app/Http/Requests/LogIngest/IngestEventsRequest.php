@@ -27,6 +27,7 @@ class IngestEventsRequest extends FormRequest
             'events.*' => ['required', 'array'],
             'events.*.level' => ['required', 'string', Rule::enum(LogLevel::class)],
             'events.*.message' => ['required', 'string', 'max:'.self::MAX_MESSAGE_LENGTH, $this->noNullBytesRule(...)],
+            'events.*.id' => ['nullable', 'string', 'min:1', 'max:64', $this->noNullBytesRule(...)],
             'events.*.context' => ['nullable', 'array', $this->contextRule(...)],
             'events.*.occurred_at' => ['nullable', 'string', 'date'],
             'events.*.fingerprint' => ['nullable', 'string', 'max:255', $this->noNullBytesRule(...)],

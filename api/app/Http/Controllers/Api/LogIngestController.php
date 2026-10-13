@@ -8,6 +8,7 @@ use App\Http\Requests\LogIngest\IngestEventsRequest;
 use App\Jobs\IngestLogEvents;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class LogIngestController extends Controller
 {
@@ -24,6 +25,7 @@ class LogIngestController extends Controller
             $occurredAt = isset($event['occurred_at']) ? Carbon::parse($event['occurred_at'])->utc() : null;
 
             return [
+                'id' => $event['id'] ?? (string) Str::uuid(),
                 'level' => $event['level'],
                 'message' => $event['message'],
                 'context' => $event['context'] ?? null,

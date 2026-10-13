@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
@@ -125,6 +126,9 @@ it('rejects invalid bodies with 422 and never 500', function (mixed $body) {
     'occurred_at garbage' => [['events' => [['level' => 'error', 'message' => 'm', 'occurred_at' => 'not a date']]]],
     'fingerprint array' => [['events' => [['level' => 'error', 'message' => 'm', 'fingerprint' => ['x']]]]],
     'fingerprint too long' => [['events' => [['level' => 'error', 'message' => 'm', 'fingerprint' => str_repeat('a', 256)]]]],
+    'id array' => [['events' => [['id' => ['x'], 'level' => 'error', 'message' => 'm']]]],
+    'id too long' => [['events' => [['id' => str_repeat('a', 65), 'level' => 'error', 'message' => 'm']]]],
+    'null char in id' => [['events' => [['id' => "a\0b", 'level' => 'error', 'message' => 'm']]]],
     'null char in message' => [['events' => [['level' => 'error', 'message' => "a\0b"]]]],
     'null char in fingerprint' => [['events' => [['level' => 'error', 'message' => 'm', 'fingerprint' => "a\0b"]]]],
     'null char in nested context' => [['events' => [['level' => 'error', 'message' => 'm', 'context' => ['a' => ['b' => "x\0y"]]]]]],
@@ -220,4 +224,29 @@ it('translates the null character error', function () {
     postIngest(['events' => [['level' => 'error', 'message' => "a\0b"]]], 'es')
         ->assertUnprocessable()
         ->assertJsonPath('errors', fn ($e) => $e['events.0.message'][0] === 'El campo events.0.message no puede contener caracteres nulos.');
+});
+
+it('records a batch with event ids once when it is sent twice', function () {
+    $body = ['events' => [validEvent(['id' => 'evt-1']), validEvent(['id' => 'evt-2', 'message' => 'Other'])]];
+
+    postIngest($body)->assertStatus(202)->assertExactJson(['accepted' => 2]);
+    postIngest($body)->assertStatus(202)->assertExactJson(['accepted' => 2]);
+
+    expect(DB::table('log_events')->count())->toBe(2);
+});
+
+it('gives every event without an id a generated one and keeps the sent ids', function () {
+    Queue::fake();
+
+    postIngest(['events' => [validEvent(), validEvent(['id' => 'mine', 'message' => 'Second']), validEvent(['id' => null])]])
+        ->assertStatus(202)->assertExactJson(['accepted' => 3]);
+
+    Queue::assertPushed(IngestLogEvents::class, function (IngestLogEvents $job) {
+        $ids = array_column($job->events, 'id');
+
+        return $job->events[1]['id'] === 'mine'
+            && $job->events[1]['message'] === 'Second'
+            && Str::isUuid($ids[0]) && Str::isUuid($ids[2])
+            && $ids[0] !== $ids[2];
+    });
 });

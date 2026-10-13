@@ -2,7 +2,7 @@
 
 **Objetivo:** que reintentar la ingesta de log (el job en la cola o el POST del cliente) no duplique eventos ni sume de más en
 los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `docs/plans/terminados/log.md`.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -42,7 +42,7 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 - **Terminado cuando:** test en `LogEventRecorderTest`: el mismo id grabado dos veces deja un solo `log_events` y
   `events_count = 1`, sin segundo `LogGroupOpened`.
 
-### [ ] Fase 3 — Id de evento en el contrato de ingesta
+### [x] Fase 3 — Id de evento en el contrato de ingesta
 - **Alcance:** `IngestEventsRequest` acepta `events.*.id` opcional (string 1–64, sin `\0`); el controlador asigna un UUID
   a cada evento que no lo traiga antes de despachar, para que los reintentos del job también sean idempotentes. La
   respuesta no cambia (`202 {"accepted": n}`).
@@ -86,9 +86,12 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 
 - 2026-10-12 — Fase 2: el recibo se inserta con `ON CONFLICT (log_source_id, event_id) DO NOTHING` al inicio de la transacción del evento y con su mismo `received_at`; un rollback no deja recibo.
 
+- 2026-10-12 — Fase 3: `events.*.id` va después de `message` en las reglas (si va antes, `validated()` reordena el lote); un id vacío se vuelve null y recibe UUID. El `id` del contrato se documenta en el README del paquete (fase 6).
+
 ## Notas para la próxima sesión
-- Fase 2 hecha: `record(LogSource, array, ?string $eventId = null): ?LogEvent`; el job pasa `$event['id'] ?? null`, así que la fase 3 debe dejar el id en la clave `id` de cada evento. Con id null no deduplica; si descarta, devuelve null. Al terminar, marcar M-5 de `docs/plans/terminados/log.md`.
+- Fase 3 hecha: cada evento llega al job con `id` (el enviado o un UUID). La fase 4 solo cambia `$tries`/`backoff` del job y prueba el fallo parcial. Al terminar, marcar M-5 de `docs/plans/terminados/log.md`.
 
 ## Mejoras propuestas
 - [ ] M-1: Mencionar el único `log_sources_id_organization_id_unique` también en la entrada de `log_sources` de `.claude/rules/database.md`. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-2: Test de concurrencia de `LogEventRecorder::record` con dos conexiones reales y el mismo id (como `MessageDeleteConcurrencyTest`, L-41): el segundo worker descarta tras el commit del primero. Complejidad: media · Archivos: 1 · sin riesgo → sonnet
+- [ ] M-3: Test de ids repetidos dentro de un mismo lote (se graba uno solo y `accepted` cuenta los enviados). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
