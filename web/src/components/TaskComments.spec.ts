@@ -50,6 +50,9 @@ describe('TaskComments', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
   })
+  afterEach(() => {
+    delete (Element.prototype as unknown as Record<string, unknown>).scrollIntoView
+  })
 
   it('shows loading and then the comments oldest first with author and time', async () => {
     const pending = deferred<never>()
