@@ -30,6 +30,8 @@ class AppServiceProvider extends ServiceProvider
 
     public const MENTIONS_PER_MINUTE = 60;
 
+    public const NOTIFICATIONS_PER_MINUTE = 60;
+
     public const CHAT_ATTACHMENTS_PER_MINUTE = 20;
 
     public const ATTACHMENT_DOWNLOADS_PER_MINUTE = 300;
@@ -98,6 +100,10 @@ class AppServiceProvider extends ServiceProvider
             ->response($this->tooManyAttemptsResponse(...)));
 
         RateLimiter::for('mentions', fn (Request $request) => Limit::perMinute(self::MENTIONS_PER_MINUTE)
+            ->by('user:'.$request->user()->getKey())
+            ->response($this->tooManyAttemptsResponse(...)));
+
+        RateLimiter::for('notifications', fn (Request $request) => Limit::perMinute(self::NOTIFICATIONS_PER_MINUTE)
             ->by('user:'.$request->user()->getKey())
             ->response($this->tooManyAttemptsResponse(...)));
 

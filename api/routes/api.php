@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\LogSourceController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\MentionController;
 use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectMemberController;
@@ -79,6 +80,10 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::middleware('throttle:mentions')->group(function () {
         Route::get('mentions', [MentionController::class, 'index']);
         Route::post('mentions/read', [MentionController::class, 'read']);
+    });
+    Route::middleware('throttle:notifications')->group(function () {
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::post('notifications/read', [NotificationController::class, 'read']);
     });
 
     Route::get('channels/{channel}/messages', [MessageController::class, 'index']);

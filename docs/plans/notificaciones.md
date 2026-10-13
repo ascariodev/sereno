@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -26,7 +26,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - **Archivos:** migración, `api/app/Models/AppNotification.php`, `api/app/Notifications/Channels/AppChannel.php`, `.claude/rules/database.md`
 - **Terminado cuando:** test que notifica con una clase de prueba y afirma la fila con su organización y proyecto.
 
-### [ ] Fase 2 — API de la bandeja
+### [x] Fase 2 — API de la bandeja
 - GET `notifications` (organización activa, cursor), POST `notifications/read` (ids o todas) y `unread_count`; resource y throttle. 5 archivos.
 
 ### [ ] Fase 3 — Evento NotificationCreated
@@ -98,9 +98,14 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   `InvalidArgumentException`. El canal no comprueba membresía: la comprueba cada emisor.
 - 2026-10-13 (fase 1): `User::notifications()` del trait `Notifiable` apunta a esta tabla con columnas `notifiable_*` inexistentes;
   documentado en `database.md` como "no usarlo" (ver M-3).
+- 2026-10-13 (fase 2): `GET /api/notifications` (`cursor` sobre `id` desc, `per_page` 1-100, def. 50) responde
+  `{data:[{id, type, project_id|null, data(objeto), read_at|null, created_at}], links, meta:{next_cursor, prev_cursor, path, per_page, unread_count}}`;
+  no expone `uuid`, `subject_*`, `user_id` ni `organization_id`: el enlace profundo sale de `data`, que llena cada emisor.
+  `POST /api/notifications/read` con `all: true` o `ids` (máx. 100) → `{unread_count}`, idempotente; ids ajenos se ignoran.
+  Throttle `notifications` 60/min por usuario, compartido. Un member solo ve (y cuenta y marca) las de `project_id` null o de sus
+  proyectos visibles (patrón `MentionController`); las filas ocultas se conservan.
 
 ## Notas para la próxima sesión
-- Fase 2: la bandeja lee `AppNotification` (no `$user->notifications()`), con cursor sobre `id`.
 - Último de los tres planes. La fase 10 toca `api/docker-compose.yml`, que hoy tiene cambios sin commit de otra sesión.
 
 ## Mejoras propuestas
@@ -115,3 +120,6 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-5: Recortar el docblock de `AppChannel` a lo no obvio del contrato `toApp`. (revisor, fase 1)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-6: `ListNotificationsRequest` extiende `ListMessagesRequest` (y hereda `around()` sin uso): extraer una base o trait común
+      de cursor y `per_page` para no acoplar la bandeja al chat. (revisor, fase 2)
+      Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
