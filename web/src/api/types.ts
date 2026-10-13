@@ -307,6 +307,78 @@ export interface MentionPage extends CursorPage<Mention> {
   meta: { next_cursor: string | null; unread_count: number }
 }
 
+interface NotificationBase {
+  id: number
+  project_id: number | null
+  /** ISO timestamp; null while unread. */
+  read_at: string | null
+  created_at: string
+}
+
+export interface TaskAssignedNotificationData {
+  task_id: number
+  task_key: string
+  task_title: string
+  actor_id: number
+  actor_name: string
+}
+
+export interface TaskCommentNotificationData extends TaskAssignedNotificationData {
+  comment_id: number
+  comment_excerpt: string
+}
+
+export interface ChatMentionNotificationData {
+  channel_id: number
+  channel_name: string
+  message_id: number
+  /** Root message id when the mention is in a reply; null otherwise. */
+  parent_id: number | null
+  message_excerpt: string
+  actor_id: number
+  actor_name: string
+}
+
+export interface TaskAssignedNotification extends NotificationBase {
+  type: 'task_assigned'
+  data: TaskAssignedNotificationData
+}
+
+export interface TaskCommentMentionNotification extends NotificationBase {
+  type: 'task_comment_mention'
+  data: TaskCommentNotificationData
+}
+
+export interface TaskCommentedNotification extends NotificationBase {
+  type: 'task_commented'
+  data: TaskCommentNotificationData
+}
+
+export interface ChatMentionNotification extends NotificationBase {
+  type: 'chat_mention'
+  data: ChatMentionNotificationData
+}
+
+/** A type this client does not know, or a known one whose `data` has an unexpected shape; `original_type` is what the API sent. */
+export interface UnknownNotification extends NotificationBase {
+  type: 'unknown'
+  original_type: string
+  data: Record<string, unknown>
+}
+
+/** One row of the notification inbox (`NotificationResource`), discriminated by `type`. */
+export type AppNotification =
+  | TaskAssignedNotification
+  | TaskCommentMentionNotification
+  | TaskCommentedNotification
+  | ChatMentionNotification
+  | UnknownNotification
+
+export interface NotificationPage {
+  data: AppNotification[]
+  meta: { next_cursor: string | null; unread_count: number }
+}
+
 export type InvitationRole = 'owner' | 'admin' | 'member'
 
 export interface Invitation {

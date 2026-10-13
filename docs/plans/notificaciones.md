@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 12
+**Estado:** en curso · Fase actual: 13
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -57,7 +57,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 11 — Correo en producción [riesgo]
 - Variables SMTP en el stack de producción y el workflow de deploy del API. Revisar con el usuario antes. 2-3 archivos.
 
-### [ ] Fase 12 — Cliente y store de notificaciones (web)
+### [x] Fase 12 — Cliente y store de notificaciones (web)
 - API, store con generación (L-10, L-55) y evento en vivo por `subscribeToUser`. 3 archivos.
 
 ### [ ] Fase 13 — Vista de notificaciones (web)
@@ -159,9 +159,17 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - 2026-10-13 (fase 11): las `MAIL_*` de producción (SMTP genérico) están documentadas en la cabecera de `api/docker-compose.prod.yml`;
   tras cambiarlas, `compose restart app queue` o redeploy. `deploy-api.yml` emite `::warning::` (sin fallar) si `MAIL_MAILER` falta o
   vale `log` en el `.env` del servidor; lee solo esa clave.
+- 2026-10-13 (fase 12): tipos en `web/src/api/types.ts`: `AppNotification` unión discriminada por `type` (`task_assigned`,
+  `task_comment_mention`, `task_commented`, `chat_mention`) más `UnknownNotification` (`type: 'unknown'`, `original_type`; también
+  si el `data` no cumple su forma). Cliente `web/src/api/notifications.ts` (`parseNotification`, `listNotifications`,
+  `markNotificationsRead`, `NOTIFICATIONS_PER_PAGE` 30). Store `useNotificationsStore` (refs como `mentions`): `notifications`,
+  `unreadCount`, `nextCursor`, `loaded`, `loading`, `loadingMore`, `error`, `loadMoreFailed`; acciones `refresh`, `loadMore`,
+  `markRead(row|rows)`, `markAllRead`, `start(userId)`, `stop`, `clear`; se limpia y recarga al cambiar de organización.
+  `subscribeToUser` tiene handler opcional `onNotificationCreated` (`NOTIFICATION_CREATED_EVENT`). `refresh` fusiona, no reemplaza:
+  una fila borrada en el API sigue en la lista hasta cambiar de organización (ver M-17).
 
 ## Notas para la próxima sesión
-- Fase 12: el cliente ignora `notification.created` si `organization_id` no es la organización activa y fusiona por `id`.
+- Fase 13: `AppLayout.vue` llama `notifications.start(userId)` y `stop()` en el watch de `auth.user?.id`, como con `mentions`; usar `.type` y `.data` tipados, sin casts.
 - Tras el merge, `docker compose restart queue`.
 - Antes de desplegar: poner las `MAIL_*` en el `.env` del servidor de cada ambiente (ver `api/docker-compose.prod.yml`).
 - Último de los tres planes. La fase 10 toca `api/docker-compose.yml`, que hoy tiene cambios sin commit de otra sesión.
@@ -208,3 +216,9 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-16: En las instrucciones de Mailpit de `CLAUDE.md`, quitar el `up -d mailpit` redundante, reiniciar también `reverb` y
       `scheduler` (cargan el `.env`) y quitar `MAIL_SCHEME=null` del bloque. (revisor, fase 10)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-17: Las filas que el API borra (fases 7 y 8) siguen en la lista de la web: en el refresh tras reconectar, reemplazar las filas
+      con `id` >= el menor de la página, o un evento `notification.removed`. (revisor, fase 12)
+      Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
+- [ ] M-18: `markAllRead` marca como leídas también las filas llegadas en vivo durante la petición, que el servidor quizá no marcó:
+      restringir a las que había al lanzarla. (revisor, fase 12)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

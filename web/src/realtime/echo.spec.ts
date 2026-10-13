@@ -15,6 +15,7 @@ import {
   MESSAGE_CREATED_EVENT,
   MESSAGE_DELETED_EVENT,
   MESSAGE_UPDATED_EVENT,
+  NOTIFICATION_CREATED_EVENT,
   onChannelDenied,
   onReconnect,
   ORGANIZATION_MEMBERS_CHANGED_EVENT,
@@ -480,6 +481,21 @@ describe('realtime', () => {
       { organizationId: 3, channelId: 4, parentId: 2, messageId: 9 },
       { organizationId: 3, channelId: 4, parentId: null, messageId: 10 },
     ])
+    expect(client.private).toHaveBeenCalledTimes(1)
+  })
+
+  it('forwards notification.created with the organization and the raw item, ignoring malformed payloads', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const received: unknown[] = []
+    subscribeToUser(5, { onNotificationCreated: (payload) => received.push(payload) })
+
+    const emit = listeners.get(`users.5|${NOTIFICATION_CREATED_EVENT}`)
+    emit?.({ notification: { id: 1 } })
+    emit?.({ organization_id: 3 })
+    emit?.({ organization_id: 3, notification: null })
+    emit?.({ organization_id: 3, notification: { id: 2 } })
+    expect(received).toEqual([{ organizationId: 3, notification: { id: 2 } }])
     expect(client.private).toHaveBeenCalledTimes(1)
   })
 
