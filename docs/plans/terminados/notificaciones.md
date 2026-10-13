@@ -239,7 +239,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-15: Test de worker (preferencia de email apagada tras encolar) también para `ChatMentionNotification` y las de comentarios,
       parametrizado. (revisor, fase 9)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-16: En las instrucciones de Mailpit de `CLAUDE.md`, quitar el `up -d mailpit` redundante, reiniciar también `reverb` y
+- [x] M-16: En las instrucciones de Mailpit de `CLAUDE.md`, quitar el `up -d mailpit` redundante, reiniciar también `reverb` y
       `scheduler` (cargan el `.env`) y quitar `MAIL_SCHEME=null` del bloque. (revisor, fase 10)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-17: Las filas que el API borra (fases 7 y 8) siguen en la lista de la web: en el refresh tras reconectar, reemplazar las filas

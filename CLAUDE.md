@@ -52,10 +52,10 @@ Válidos desde la fase 2 del plan `nucleo`.
   y volumen que `api`. Logs: `docker compose logs --tail=50 queue` (o `scheduler`). El worker no recarga
   el código: tras cambiar un job o algo que use, `docker compose restart queue`.
 - Correo en desarrollo: servicio `mailpit` (captura todo, no envía fuera). Interfaz en http://localhost:8026.
-  El usuario pone en `api/.env` (nadie más lo edita) y luego `docker compose up -d mailpit` y
-  `docker compose restart api queue`:
+  El usuario pone en `api/.env` (nadie más lo edita) y luego
+  `docker compose restart api queue reverb scheduler` (cargan el `.env`):
   `MAIL_MAILER=smtp`, `MAIL_HOST=mailpit`, `MAIL_PORT=1025`, `MAIL_USERNAME=null`, `MAIL_PASSWORD=null`,
-  `MAIL_SCHEME=null` (sin TLS), `MAIL_FROM_ADDRESS="noreply@sereno.test"`, `MAIL_FROM_NAME="Sereno"`.
+  `MAIL_FROM_ADDRESS="noreply@sereno.test"`, `MAIL_FROM_NAME="Sereno"`.
   El puerto 1025 es el interno de la red de Docker; desde el host el SMTP está en `127.0.0.1:1026`.
 - Formato API: `docker compose exec api ./vendor/bin/pint --test -q` (sin `--test` corrige)
 - Traducciones del framework: `docker compose exec api php artisan lang:update`
