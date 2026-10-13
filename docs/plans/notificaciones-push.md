@@ -2,7 +2,7 @@
 
 **Objetivo:** que las notificaciones de Sereno (tarea asignada, comentario o mención en tarea, mención en el chat) lleguen
 como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin duplicar lo que ya muestra la app abierta.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -34,7 +34,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - **Terminado cuando:** test del comando (imprime dos claves base64url válidas) y de la config; pide al usuario las variables
   para `.env` y `.env.example`.
 
-### [ ] Fase 2 — Tabla de suscripciones push
+### [x] Fase 2 — Tabla de suscripciones push
 - **Alcance:** migración `push_subscriptions` (por usuario y dispositivo, sin `organization_id`: no es dato de negocio):
   `user_id`, `endpoint` (único), `public_key`, `auth_token`, `content_encoding`, `user_agent`, `last_used_at`, timestamps.
   Modelo `PushSubscription`, `User::pushSubscriptions()` (hasMany, cascada al borrar el usuario). Documentar en `database.md`.
@@ -116,11 +116,16 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   lleva la organización en la url.
 - 2026-10-13 — Sin `gmp` en el Dockerfile: `minishlink/web-push` v11 genera claves y cifra con `ext-openssl` y `bcmath`
   (presentes); `gmp` es opcional de rendimiento.
+- 2026-10-13 — `push_subscriptions`: `public_key` y `auth_token` ocultos en la serialización (`#[Hidden]`);
+  `content_encoding` por defecto `aes128gcm`; índice en `user_id` además de la FK en cascada.
 - 2026-10-13 — Comando `php artisan push:vapid-keys` imprime las líneas `VAPID_*` para el `.env`, no escribe archivos.
   `workspace.push.vapid_subject` no tiene valor por defecto: la fase 7 debe no enviar (y reportar claro) si falta alguna
   de las tres variables.
 
 ## Notas para la próxima sesión
+- Fase 3: `PushSubscription` no tiene `user_id` en fillable; el alta va con `$user->pushSubscriptions()->updateOrCreate(['endpoint' => ...], ...)`
+  y el cambio de dueño asigna `user_id` explícito. Validar longitudes: `public_key` y `auth_token` `max:255`, `user_agent`
+  `max:512`, `endpoint` URL https acotada (es `text` único), `content_encoding` en `aes128gcm|aesgcm`.
 - Fase 1 hecha. Pendiente del usuario: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (de `push:vapid-keys`) y `VAPID_SUBJECT`
   (`mailto:...`) en `api/.env` y los tres nombres en `api/.env.example`; luego `docker compose restart api queue reverb scheduler`.
 - Ejecución en worktree (`.claude/worktrees/notificaciones-push`): los contenedores montan el checkout principal, así que
@@ -132,3 +137,4 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 
 - [ ] M-1 (baja, sonnet): `GenerateVapidKeysCommandTest` guarda y restaura las variables de entorno a mano; un helper
   compartido de tests lo simplificaría.
+- [ ] M-2 (baja, sonnet): anotar en `database.md` que `push_subscriptions.endpoint` es `text` con índice único (endpoints largos).

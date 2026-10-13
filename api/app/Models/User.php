@@ -66,6 +66,11 @@ class User extends Authenticatable implements HasLocalePreference
         return $this->hasMany(AppNotification::class);
     }
 
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
+
     public function readNotifications(): never
     {
         throw new LogicException('Use notifications() filtered by read_at; the Notifiable helpers target the database channel.');
