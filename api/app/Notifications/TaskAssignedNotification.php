@@ -7,6 +7,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
 use App\Notifications\Concerns\DelaysMail;
+use App\Notifications\Contracts\RevalidatesAfterInsert;
 use App\Support\MailMarkdown;
 use App\Support\ProjectAccess;
 use Illuminate\Bus\Queueable;
@@ -15,7 +16,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 
-class TaskAssignedNotification extends Notification implements ShouldQueue
+class TaskAssignedNotification extends Notification implements RevalidatesAfterInsert, ShouldQueue
 {
     use DelaysMail;
     use Queueable;
@@ -55,10 +56,13 @@ class TaskAssignedNotification extends Notification implements ShouldQueue
             return false;
         }
 
-        $assigneeId = Task::query()->withoutGlobalScopes()->whereKey($this->taskId)->value('assignee_id');
-
-        return $assigneeId === $notifiable->id
+        return $this->stillApplies($notifiable)
             && ProjectAccess::canViewId($notifiable, $this->organizationId, $this->projectId);
+    }
+
+    public function stillApplies(User $notifiable): bool
+    {
+        return Task::query()->withoutGlobalScopes()->whereKey($this->taskId)->sharedLock()->value('assignee_id') === $notifiable->id;
     }
 
     /** @return list<class-string|string> */

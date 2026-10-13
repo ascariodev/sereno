@@ -274,3 +274,19 @@ it('notifies a new mention even when the body did not change', function () {
 
     Notification::assertSentToTimes($this->mentioned, TaskCommentMentionNotification::class, 1);
 });
+
+it('drops a comment notice row when the comment is deleted after shouldSend passed but before the insert', function () {
+    $notification = mentionNotificationFor($this->mentioned);
+    $commented = new TaskCommentedNotification(
+        $this->organization->id, $this->project->id, $this->task->id, 'POSVE-3', 'Fix it',
+        $notification->commentId, 'x', $this->author->id, 'Ana',
+    );
+    $commented->id = (string) Str::uuid();
+    Event::fake([NotificationCreated::class]);
+    TaskComment::query()->whereKey($notification->commentId)->delete();
+
+    app(AppChannel::class)->send($this->assignee, $commented);
+
+    expect(AppNotification::query()->count())->toBe(0);
+    Event::assertNotDispatched(NotificationCreated::class);
+});

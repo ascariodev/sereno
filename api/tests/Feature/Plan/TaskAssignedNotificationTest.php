@@ -3,6 +3,7 @@
 use App\Enums\Locale;
 use App\Enums\NotificationType;
 use App\Enums\Role;
+use App\Events\NotificationCreated;
 use App\Events\TaskAssigned;
 use App\Models\AppNotification;
 use App\Models\Organization;
@@ -16,6 +17,7 @@ use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -184,4 +186,16 @@ it('renders actor and task title in the mail as plain text, not markdown, leavin
         ->not->toContain('href="http://evil.test"')
         ->not->toContain('<strong>b</strong>')
         ->and($mail->subject)->toContain('[a](http://evil.test)');
+});
+
+it('drops its row when the task is deleted after shouldSend passed but before the insert', function () {
+    [$task, $notification] = taskAssignedQueuedJob();
+    $notification->id = (string) Str::uuid();
+    Event::fake([NotificationCreated::class]);
+    $task->delete();
+
+    app(AppChannel::class)->send($this->assignee, $notification);
+
+    expect(AppNotification::query()->count())->toBe(0);
+    Event::assertNotDispatched(NotificationCreated::class);
 });

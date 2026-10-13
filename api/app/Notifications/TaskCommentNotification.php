@@ -88,9 +88,10 @@ abstract class TaskCommentNotification extends Notification implements ShouldQue
             ->action(__('View task'), rtrim(config('app.frontend_url'), '/')."/projects/{$this->projectId}/plan?task={$this->taskId}&organization={$this->organizationId}");
     }
 
-    protected function isAssigneeOrCreator(User $user): bool
+    protected function isAssigneeOrCreator(User $user, bool $lock = false): bool
     {
-        $task = Task::query()->withoutGlobalScopes()->whereKey($this->taskId)->first(['assignee_id', 'created_by']);
+        $query = Task::query()->withoutGlobalScopes()->whereKey($this->taskId);
+        $task = ($lock ? $query->sharedLock() : $query)->first(['assignee_id', 'created_by']);
 
         return $task !== null && ($task->assignee_id === $user->id || $task->created_by === $user->id);
     }
