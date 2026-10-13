@@ -2,7 +2,7 @@
 
 **Objetivo:** que las notificaciones de Sereno (tarea asignada, comentario o mención en tarea, mención en el chat) lleguen
 como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin duplicar lo que ya muestra la app abierta.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -68,7 +68,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - **Archivos:** `api/app/Support/PushPayload.php` (o similar), `lang/{en,es}.json`.
 - **Terminado cuando:** tests por tipo y por locale (`en`/`es`), con límite de tamaño del payload.
 
-### [ ] Fase 7 — Envío del push [riesgo]
+### [x] Fase 7 — Envío del push [riesgo]
 - **Alcance:** job en cola despachado por `AppChannel` solo cuando insertó y la fila sigue en pie. En el worker: la fila
   existe y no está leída, `wantsPush(type)`, y envía a cada suscripción del usuario con un envoltorio propio de la librería
   (ligable a un fake en tests); borra las suscripciones que responden expiradas (404/410) y actualiza `last_used_at`. Sin
@@ -126,6 +126,11 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - 2026-10-13 — Payload push: título = asunto del mail (misma clave `__()`, locale del usuario), cuerpo = texto humano sin
   traducir (`task_title`, `comment_excerpt`, `message_excerpt`), `tag` `task-{id}` o `channel-{id}`; tope de 3000 bytes
   recortando solo el cuerpo por caracteres.
+- 2026-10-13 — Envío push: `AppChannel` despacha el job en `DB::afterCommit` (corre al momento sin transacción) con
+  try/catch y `report`, solo tras insert válido. Job con `$tries = 1` (L-07): las suscripciones con fallo de red, 429 o 5xx
+  van a un job nuevo solo con ellas (esperas 30 s y 300 s, máximo 3 intentos, luego `Log::warning`); 404/410 borran la
+  suscripción; otro 4xx o error al cifrar se registra sin reintento. El worker revalida fila, no leída, usuario y
+  `wantsPush`. Sin VAPID completa o con payload null: `Log::warning` y no envía. Cola y conexión por defecto.
 - 2026-10-13 — Comando `php artisan push:vapid-keys` imprime las líneas `VAPID_*` para el `.env`, no escribe archivos.
   `workspace.push.vapid_subject` no tiene valor por defecto: la fase 7 debe no enviar (y reportar claro) si falta alguna
   de las tres variables.
@@ -144,6 +149,9 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - Payload (fase 6): `App\Support\PushPayload::for(AppNotification, User): ?string` devuelve el JSON codificado
   `{uuid,type,title,body,url,tag}` (máx. 3000 bytes, `MAX_BYTES`). `null` = fila de tipo desconocido o `data` incompleto: la
   fase 7 lo trata como "omitir sin reintento" y lo registra (`Log::warning` con el uuid). Pasarle el `User` con su `locale`.
+- Envío (fase 7): `App\Jobs\SendPushNotification` (uuid + ids de suscripción + intento), `App\Support\PushSender`
+  (interfaz, resultados `sent|expired|failed|rejected`) enlazada a `WebPushSender` en `AppServiceProvider`; en tests se
+  liga un fake. `WebPushSender` (traducción del `MessageSentReport` de minishlink) no tiene test propio: se valida en la fase 11.
 - Fase 1 hecha. Pendiente del usuario: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (de `push:vapid-keys`) y `VAPID_SUBJECT`
   (`mailto:...`) en `api/.env` y los tres nombres en `api/.env.example`; luego `docker compose restart api queue reverb scheduler`.
 - Ejecución en worktree (`.claude/worktrees/notificaciones-push`): los contenedores montan el checkout principal, así que
@@ -168,3 +176,8 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - [ ] M-10 (baja, sonnet): `PushPayload` captura `ErrorException`/`TypeError` para las claves ausentes de `data`, lo que
   también oculta bugs de programación; validar las claves explícitamente y dejar de capturar esas excepciones.
 - [ ] M-11 (baja, sonnet): renombrar `PushPayload::TITLE_LIMIT` (`Str::limit` mide ancho, no caracteres).
+- [ ] M-12 (baja, sonnet): `WebPushSender` captura solo `ErrorException` por suscripción; la librería también lanza
+  `RuntimeException` y `ValueError`, que cortan el bucle sin registrar las ya enviadas ni seguir con las demás. Capturar
+  `Throwable` por suscripción, con test.
+- [ ] M-13 (baja, sonnet): `SendPushNotification` con tipo desconocido salta `wantsPush` y depende de que `PushPayload`
+  devuelva null; cortar ahí mismo.

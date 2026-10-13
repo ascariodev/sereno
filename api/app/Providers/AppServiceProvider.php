@@ -6,6 +6,8 @@ use App\Http\Middleware\AuthenticateLogSource;
 use App\Models\User;
 use App\Policies\MemberPolicy;
 use App\Support\CurrentOrganization;
+use App\Support\PushSender;
+use App\Support\WebPushSender;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(CurrentOrganization::class);
+        $this->app->bind(PushSender::class, WebPushSender::class);
     }
 
     /**
