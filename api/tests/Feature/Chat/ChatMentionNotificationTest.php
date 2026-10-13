@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
 use App\Notifications\ChatMentionNotification;
+use Illuminate\Mail\Markdown;
 use Illuminate\Notifications\ChannelManager;
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Notifications\SendQueuedNotifications;
@@ -200,4 +201,17 @@ it('renders the excerpt in the mail as plain text, not markdown', function () {
     expect($html)->toContain('[x](http://evil.test) **b**')
         ->not->toContain('href="http://evil.test"')
         ->not->toContain('<strong>b</strong>');
+});
+
+it('escapes only link, image and html syntax, so the plain-text part stays readable', function () {
+    $notification = new ChatMentionNotification(
+        $this->organization->id, $this->project->id, $this->channel->id, 'POSVE', 9, null, 'v1.2 - ok! ![i](http://evil.test/a.png) <b>x</b> [x](http://evil.test)', $this->author->id, 'Author',
+    );
+
+    $mail = $notification->toMail($this->ana);
+    $text = (string) app(Markdown::class)->renderText($mail->markdown, $mail->data());
+    $html = (string) $mail->render();
+
+    expect($text)->toContain('v1.2 - ok! \!\[i\]\(http://evil.test/a.png\) \<b\>x\</b\> \[x\]\(http://evil.test\)')
+        ->and($html)->not->toContain('src="http://evil.test')->not->toContain('<b>x</b>')->not->toContain('href="http://evil.test"');
 });

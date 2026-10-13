@@ -226,7 +226,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-10: Cerrar el hueco entre `shouldSend` y el insert de `AppChannel` (una mención quitada justo ahí deja la fila) con un insert
       condicionado o un índice único parcial por (user, type, subject). (implementador y revisor, fase 6)
       Complejidad: media · Archivos: 3 · Riesgo: migración → opus
-- [ ] M-11: Reducir el conjunto de `MailMarkdown::escape` a lo que forma enlaces e imágenes (`\ ` * _ [ ] ( ) < >`, `!` antes de `[`):
+- [x] M-11: Reducir el conjunto de `MailMarkdown::escape` a lo que forma enlaces e imágenes (`\ ` * _ [ ] ( ) < >`, `!` antes de `[`):
       la parte de texto plano del correo muestra las barras; con test de `renderText`. (revisor, fase 6)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-12: Escapar también en las líneas del correo los nombres de actor y canal y los títulos de tarea (`TaskAssignedNotification`
@@ -259,3 +259,6 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-22: Envolver en `whileLoadingSession` la recarga de organizaciones que hace el guard al abrir un enlace con `?organization=`
       de una organización que no estaba en la lista, para que no quede la pantalla congelada si el servidor tarda. (revisor, M-21)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-23: Ampliar el test de `MailMarkdown::escape` con un autolink `<http://evil.test>` y una URL suelta (que no salga `href`),
+      para detectar si algún día se suma la extensión de autolinks de GFM. (revisor, M-11)
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
