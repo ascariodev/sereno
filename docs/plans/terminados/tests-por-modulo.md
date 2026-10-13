@@ -64,6 +64,7 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 - 2026-10-12 — Los planes terminados no se actualizan: son históricos y citan las rutas de su momento.
 - 2026-10-12 — Cuenta base (fase 1): LISTED=1182; la suite reporta 1179 tests (warnings + passed) y 5034 aserciones. Cada fase debe dar exactamente esos números. La línea `Tests:` trae la palabra "warnings" (falta .env en el contenedor): no filtrar con `grep -vi warn`.
 - 2026-10-12 — Fase 4: con Core corriendo tras Chat la suite agotaba los 128M por defecto (Request.php:471, payload de 6MB). Decisión del usuario: `memory_limit` 512M en `api/phpunit.xml`; la fuga queda como M-1.
+- 2026-10-12 — M-3: el JSON lo decodificaba el middleware global de transformación de entrada (TrimStrings), no `authorize()`. El tamaño se corta en el middleware global `RejectOversizedIngestBody` (por `Content-Length`, o midiendo si falta). Un cuerpo grande sin key recibe 413 en vez de 401 y no cuenta en el limitador de fallos de auth (riesgo bajo, aceptado).
 
 ## Notas para la próxima sesión
 - Fase 1 hecha (26 archivos movidos, cuenta idéntica). Cuenta base en Decisiones. `LogGroupTaskApiTest` sigue en `Feature/` y va a Log en la fase 2.
@@ -76,4 +77,5 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 ## Mejoras propuestas
 - [x] M-1: Buscar el test de Chat que acumula memoria (payload de 6MB en `Request.php:471`) y liberar lo retenido, para poder bajar el `memory_limit` de `phpunit.xml`. Complejidad: media · Archivos: 1-3 · sin riesgo → sonnet
 - [x] M-2: Activar `opcache.enable_cli` en `api/docker/php/Dockerfile` (solo desarrollo y tests) para bajar la base de memoria de la suite, que hoy crece con cada código compilado nuevo. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-3: Rechazar el cuerpo de ingesta demasiado grande antes de decodificar el JSON (hoy `IngestEventsRequest::authorize` decodifica antes de comprobar `MAX_BODY_BYTES`, también en producción). Complejidad: media · Archivos: 2 · Riesgo: integración externa (endpoint de ingesta) → sonnet
+- [x] M-3: Rechazar el cuerpo de ingesta demasiado grande antes de decodificar el JSON (hoy `IngestEventsRequest::authorize` decodifica antes de comprobar `MAX_BODY_BYTES`, también en producción). Complejidad: media · Archivos: 2 · Riesgo: integración externa (endpoint de ingesta) → sonnet
+- [ ] M-4: Test de la rama `Content-Length` de `RejectOversizedIngestBody` (hoy el test del 413 pasa por `getContent()`, porque el cliente de test no fija el header; usar `HTTP_CONTENT_LENGTH` en `$server`). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet

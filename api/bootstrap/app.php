@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateLogSource;
+use App\Http\Middleware\RejectOversizedIngestBody;
 use App\Http\Middleware\ResolveOrganization;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Auth\AuthenticationException;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             at: 'REMOTE_ADDR',
             headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO,
         );
+        $middleware->prepend(RejectOversizedIngestBody::class);
         $middleware->api(append: [
             SetLocale::class,
         ]);
