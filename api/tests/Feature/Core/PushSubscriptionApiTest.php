@@ -95,6 +95,25 @@ it('deletes the own subscription', function () {
     expect(PushSubscription::count())->toBe(0);
 });
 
+it('deletes the own subscription by query string', function () {
+    $own = PushSubscription::factory()->create(['user_id' => $this->user->id]);
+
+    $this->deleteJson('/api/me/push-subscriptions?'.http_build_query(['endpoint' => $own->endpoint]))->assertNoContent();
+
+    expect(PushSubscription::count())->toBe(0);
+});
+
+it('rejects deleting a foreign subscription by query string as if it did not exist', function () {
+    $foreign = PushSubscription::factory()->create();
+
+    $missing = $this->deleteJson('/api/me/push-subscriptions?'.http_build_query(['endpoint' => 'https://push.example.test/none']));
+    $other = $this->deleteJson('/api/me/push-subscriptions?'.http_build_query(['endpoint' => $foreign->endpoint]));
+
+    $other->assertNotFound();
+    expect($other->json('message'))->toBe($missing->json('message'))
+        ->and(PushSubscription::count())->toBe(1);
+});
+
 it('rejects deleting a foreign subscription as if it did not exist', function () {
     $foreign = PushSubscription::factory()->create();
 

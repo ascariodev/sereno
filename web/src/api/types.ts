@@ -370,6 +370,23 @@ export interface NotificationPreferences {
   email: Record<NotificationEmailType, boolean>
 }
 
+export type PushContentEncoding = 'aes128gcm' | 'aesgcm'
+
+/** `POST /api/me/push-subscriptions` (`data`): 201 when created, 200 when the endpoint already existed. */
+export interface PushSubscriptionRecord {
+  id: number
+  endpoint: string
+  content_encoding: PushContentEncoding
+}
+
+export interface PushSubscriptionPayload {
+  endpoint: string
+  public_key: string
+  auth_token: string
+  content_encoding?: PushContentEncoding
+  user_agent?: string
+}
+
 export type InvitationRole = 'owner' | 'admin' | 'member'
 
 export interface Invitation {

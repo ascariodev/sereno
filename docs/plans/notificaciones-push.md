@@ -2,7 +2,7 @@
 
 **Objetivo:** que las notificaciones de Sereno (tarea asignada, comentario o mención en tarea, mención en el chat) lleguen
 como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin duplicar lo que ya muestra la app abierta.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -85,7 +85,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - **Archivos:** `web/pwa/sw.js` (+ módulo auxiliar y `serviceWorkerPlugin.ts` si hace falta).
 - **Terminado cuando:** specs de los handlers con `self`/`clients` simulados (enfocada: no muestra; click: enfoca o abre).
 
-### [ ] Fase 9 — Suscripción del dispositivo en la web
+### [x] Fase 9 — Suscripción del dispositivo en la web
 - **Alcance:** `src/pwa/push.ts`: soporte (`PushManager`, SW registrado), pedir permiso, suscribir con la clave VAPID del
   API, enviar la suscripción, darse de baja; en el logout borra la suscripción del API antes de perder el token.
   `src/api/pushSubscriptions.ts`.
@@ -134,6 +134,10 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - 2026-10-13 — Service worker: payload inválido o sin datos muestra un aviso genérico "Sereno" (tag `sereno`, abre `/`, sin
   traducir: el SW no conoce el idioma) para no provocar el aviso de Chrome; url de otro origen se reemplaza por la raíz,
   al mostrar y al hacer click. Click: enfoca y navega la primera ventana, o `openWindow` si `navigate` falla o no hay.
+- 2026-10-13 — La web borra la suscripción con `DELETE /api/me/push-subscriptions?endpoint=...` (query: `api.delete`
+  no admite body); el API lo acepta (`input()`) y está probado. `content_encoding` según
+  `PushManager.supportedContentEncodings` (`aes128gcm`, si no `aesgcm`, si no se omite). Una suscripción con otra clave
+  VAPID se da de baja y se vuelve a crear.
 - 2026-10-13 — Comando `php artisan push:vapid-keys` imprime las líneas `VAPID_*` para el `.env`, no escribe archivos.
   `workspace.push.vapid_subject` no tiene valor por defecto: la fase 7 debe no enviar (y reportar claro) si falta alguna
   de las tres variables.
@@ -159,6 +163,11 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   verificar en Safari/WebKit, que exige mostrar una notificación por cada push y revoca la suscripción tras varios push
   silenciosos (con ventana enfocada no se muestra nada); si aplica, mostrar siempre en Safari. Una ventana enfocada de otra
   cuenta u organización del mismo origen también silencia el push (aceptado).
+- Web push (fase 9): `web/src/pwa/push.ts` exporta `type PushState = 'unsupported'|'blocked'|'active'|'inactive'`,
+  `getPushState()`, `enablePush()` (relanza el `ApiError`, p. ej. 503 sin VAPID: la fase 10 lo captura), `disablePush()`
+  (relanza errores distintos de 404) y `releasePushOnLogout()` (nunca lanza, tope 3 s), llamado por `stores/auth.ts` antes
+  del logout. En dev no hay SW registrado: el estado es `unsupported`. Una sesión que caduca por 401 (`clearSession`) no
+  borra la suscripción del API (queda hasta 404/410).
 - Fase 1 hecha. Pendiente del usuario: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (de `push:vapid-keys`) y `VAPID_SUBJECT`
   (`mailto:...`) en `api/.env` y los tres nombres en `api/.env.example`; luego `docker compose restart api queue reverb scheduler`.
 - Ejecución en worktree (`.claude/worktrees/notificaciones-push`): los contenedores montan el checkout principal, así que
@@ -196,3 +205,9 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   la promesa de `waitUntil` no resuelve antes que la de `showNotification`.
 - [ ] M-17 (media, sonnet): `notificationclick` usa `WindowClient.navigate`, que recarga la SPA; usar `postMessage` al
   router de la ventana enfocada y navegar en cliente.
+- [ ] M-18 (baja, sonnet): `push.spec.ts`: cubrir las guardas de generación intermedias de `enablePush` (tras
+  `getRegistration`, `requestPermission` y `subscribe`); hoy se prueban dos puntos.
+- [ ] M-19 (baja, sonnet): `releasePushOnLogout`: `getSubscription` y `unsubscribe` quedan fuera del tope; meterlos en el race.
+- [ ] M-20 (baja, sonnet): `push.spec.ts` "unsupported without PushManager": simplificar a `delete window.PushManager`.
+- [ ] M-21 (media, sonnet): una sesión que caduca por 401 (`clearSession`) deja la suscripción ligada al usuario anterior;
+  desuscribir el navegador al limpiar la sesión (sin token no se puede borrar en el API: queda hasta 404/410 o la próxima alta).

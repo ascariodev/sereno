@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { api, ApiError } from '../api/client'
 import type { LoginResponse, User } from '../api/types'
 import { chooseLocale, setLocale, type Locale } from '../i18n'
+import { releasePushOnLogout } from '../pwa/push'
 import { disconnectRealtime, setRealtimeTokenProvider } from '../realtime/echo'
 import { useOrganizationStore } from './organization'
 
@@ -80,6 +81,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout(): Promise<void> {
+    await releasePushOnLogout()
     try {
       await api.post('/api/auth/logout')
     } catch (error) {
