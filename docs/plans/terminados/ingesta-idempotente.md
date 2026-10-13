@@ -105,7 +105,7 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 ## Mejoras propuestas
 - [x] M-1: Mencionar el único `log_sources_id_organization_id_unique` también en la entrada de `log_sources` de `.claude/rules/database.md`. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-2: Test de concurrencia de `LogEventRecorder::record` con dos conexiones reales y el mismo id (como `MessageDeleteConcurrencyTest`, L-41): el segundo worker descarta tras el commit del primero. Complejidad: media · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-3: Test de ids repetidos dentro de un mismo lote (se graba uno solo y `accepted` cuenta los enviados). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [x] M-3: Test de ids repetidos dentro de un mismo lote (se graba uno solo y `accepted` cuenta los enviados). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-4: Comentario breve sobre `$tries` en `IngestLogEvents` que diga que el reintento es seguro por los recibos de evento. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [x] M-5: En `sereno-laravel`: afirmar el formato UUID en el test del `id` y agregar un test de que el `id` llega en el payload del `Http::post` del handler. Complejidad: baja · Archivos: 1-2 · sin riesgo → sonnet
 - [ ] M-6: Test del salto del reintento cuando queda menos de `MIN_RETRY_SECONDS` en `sereno-laravel`, y reflowar la sección "Fallback channel" del README. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet

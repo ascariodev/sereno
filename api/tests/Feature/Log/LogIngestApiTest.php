@@ -266,6 +266,14 @@ it('records a batch with event ids once when it is sent twice', function () {
     expect(DB::table('log_events')->count())->toBe(2);
 });
 
+it('records an id repeated inside one batch once and counts every sent event as accepted', function () {
+    postIngest(['events' => [validEvent(['id' => 'evt-1']), validEvent(['id' => 'evt-1'])]])
+        ->assertStatus(202)->assertExactJson(['accepted' => 2]);
+
+    expect(DB::table('log_events')->count())->toBe(1)
+        ->and(LogGroup::withoutGlobalScopes()->sole()->events_count)->toBe(1);
+});
+
 it('gives every event without an id a generated one and keeps the sent ids', function () {
     Queue::fake();
 
