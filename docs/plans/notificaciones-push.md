@@ -2,7 +2,7 @@
 
 **Objetivo:** que las notificaciones de Sereno (tarea asignada, comentario o mención en tarea, mención en el chat) lleguen
 como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin duplicar lo que ya muestra la app abierta.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -41,7 +41,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - **Archivos:** migración, `api/app/Models/PushSubscription.php`, `api/app/Models/User.php`, factory, `.claude/rules/database.md`.
 - **Terminado cuando:** migra y revierte limpio; test del modelo y de la cascada.
 
-### [ ] Fase 3 — Endpoints de suscripción
+### [x] Fase 3 — Endpoints de suscripción
 - **Alcance:** `GET /api/push/vapid-public-key` (autenticado), `POST /api/me/push-subscriptions` (alta o actualización por
   `endpoint`; si el endpoint era de otro usuario, pasa al actual), `DELETE /api/me/push-subscriptions` (por `endpoint`, solo
   el propio). Sin header de organización. Textos por `__()`.
@@ -118,14 +118,18 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   (presentes); `gmp` es opcional de rendimiento.
 - 2026-10-13 — `push_subscriptions`: `public_key` y `auth_token` ocultos en la serialización (`#[Hidden]`);
   `content_encoding` por defecto `aes128gcm`; índice en `user_id` además de la FK en cascada.
+- 2026-10-13 — Endpoints push en `Http/Controllers/Api/PushSubscriptionController.php` y `Http/Requests/Push/`, como el
+  resto del repo. La baja ajena o inexistente da el mismo 404 desde `authorize()` (L-72). Una re-alta sin
+  `content_encoding` conserva el existente.
 - 2026-10-13 — Comando `php artisan push:vapid-keys` imprime las líneas `VAPID_*` para el `.env`, no escribe archivos.
   `workspace.push.vapid_subject` no tiene valor por defecto: la fase 7 debe no enviar (y reportar claro) si falta alguna
   de las tres variables.
 
 ## Notas para la próxima sesión
-- Fase 3: `PushSubscription` no tiene `user_id` en fillable; el alta va con `$user->pushSubscriptions()->updateOrCreate(['endpoint' => ...], ...)`
-  y el cambio de dueño asigna `user_id` explícito. Validar longitudes: `public_key` y `auth_token` `max:255`, `user_agent`
-  `max:512`, `endpoint` URL https acotada (es `text` único), `content_encoding` en `aes128gcm|aesgcm`.
+- Contrato push (fase 3, para las fases 9 y 10): `GET /api/push/vapid-public-key` 200 `{data:{public_key}}` o 503 si falta
+  la clave; `POST /api/me/push-subscriptions` `{endpoint, public_key, auth_token, content_encoding?, user_agent?}` 201 si crea,
+  200 si existía, `{data:{id, endpoint, content_encoding}}`; `DELETE /api/me/push-subscriptions` `{endpoint}` 204, o 404 si no
+  existe o es ajena (la web tolera el 404 al darse de baja).
 - Fase 1 hecha. Pendiente del usuario: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (de `push:vapid-keys`) y `VAPID_SUBJECT`
   (`mailto:...`) en `api/.env` y los tres nombres en `api/.env.example`; luego `docker compose restart api queue reverb scheduler`.
 - Ejecución en worktree (`.claude/worktrees/notificaciones-push`): los contenedores montan el checkout principal, así que
@@ -138,3 +142,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - [ ] M-1 (baja, sonnet): `GenerateVapidKeysCommandTest` guarda y restaura las variables de entorno a mano; un helper
   compartido de tests lo simplificaría.
 - [ ] M-2 (baja, sonnet): anotar en `database.md` que `push_subscriptions.endpoint` es `text` con índice único (endpoints largos).
+- [ ] M-3 (baja, sonnet): `PushSubscriptionController` store hace `firstOrNew` + `save` no atómico; dos altas simultáneas del
+  mismo endpoint nuevo dan 500 por el índice único. Capturar `UniqueConstraintViolationException` y reintentar, o `upsert`.
+- [ ] M-4 (baja, sonnet): comentario o test en `DestroyPushSubscriptionRequest` que fije por qué la existencia se valida en
+  `authorize()` con 404 y no con `exists` (evitar que un 422 distinga ajeno de inexistente).

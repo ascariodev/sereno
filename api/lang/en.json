@@ -297,5 +297,6 @@
     ":actor mentioned you in #:channel": ":actor mentioned you in #:channel",
     ":actor mentioned you in #:channel: :excerpt": ":actor mentioned you in #:channel: :excerpt",
     "View message": "View message",
-    "The notification type is not valid.": "The notification type is not valid."
+    "The notification type is not valid.": "The notification type is not valid.",
+    "Push notifications are not configured.": "Push notifications are not configured."
 }

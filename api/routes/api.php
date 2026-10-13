@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectMemberController;
+use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\TaskCommentAttachmentController;
 use App\Http\Controllers\Api\TaskCommentController;
 use App\Http\Controllers\Api\TaskController;
@@ -30,6 +31,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('me/locale', [AuthController::class, 'updateLocale']);
     Route::get('me/notification-preferences', [AuthController::class, 'notificationPreferences']);
     Route::patch('me/notification-preferences', [AuthController::class, 'updateNotificationPreferences']);
+    Route::get('push/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey']);
+    Route::post('me/push-subscriptions', [PushSubscriptionController::class, 'store']);
+    Route::delete('me/push-subscriptions', [PushSubscriptionController::class, 'destroy']);
     Route::get('organizations', [OrganizationController::class, 'index']);
     Route::post('organizations', [OrganizationController::class, 'store']);
 });
