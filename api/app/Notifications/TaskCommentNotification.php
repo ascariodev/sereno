@@ -7,6 +7,7 @@ use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
+use App\Notifications\Concerns\DelaysMail;
 use App\Support\ProjectAccess;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,6 +16,7 @@ use Illuminate\Notifications\Notification;
 
 abstract class TaskCommentNotification extends Notification implements ShouldQueue
 {
+    use DelaysMail;
     use Queueable;
 
     public function __construct(
@@ -39,6 +41,10 @@ abstract class TaskCommentNotification extends Notification implements ShouldQue
 
     public function shouldSend(object $notifiable, string $channel): bool
     {
+        if ($this->readInInbox($notifiable, $channel)) {
+            return false;
+        }
+
         if ($channel === 'mail' && ! $notifiable->wantsEmail($this->type())) {
             return false;
         }

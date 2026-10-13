@@ -11,4 +11,9 @@ return [
         ],
     ],
 
+    'notifications' => [
+        // Minutes the email waits; it is skipped if the inbox notification was read meanwhile.
+        'mail_delay_minutes' => (int) env('NOTIFICATION_MAIL_DELAY_MINUTES', 5),
+    ],
+
 ];

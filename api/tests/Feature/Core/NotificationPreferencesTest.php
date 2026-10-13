@@ -2,6 +2,7 @@
 
 use App\Enums\NotificationType;
 use App\Enums\Role;
+use App\Models\AppNotification;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Organization;
@@ -15,7 +16,9 @@ use App\Notifications\TaskAssignedNotification;
 use App\Notifications\TaskCommentedNotification;
 use App\Notifications\TaskCommentMentionNotification;
 use App\Support\CurrentOrganization;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -66,11 +69,12 @@ it('requires authentication', function () {
     $this->patchJson('/api/me/notification-preferences', ['email' => []])->assertUnauthorized();
 });
 
-it('decides the mail channel in the worker from the current preference for every type', function (string $type) {
+function liveNotificationFor(string $type): Notification
+{
     $organization = Organization::factory()->create();
     $actor = User::factory()->create();
     $organization->addMember($actor, [Role::Member]);
-    $organization->addMember($this->user, [Role::Member]);
+    $organization->addMember(test()->user, [Role::Member]);
     $project = Project::factory()->for($organization)->create(['key' => 'POSVE']);
     $channel = Channel::factory()->for($project)->create();
     assignMembersToAllProjects();
@@ -78,7 +82,7 @@ it('decides the mail channel in the worker from the current preference for every
     $task = tap(new Task(['title' => 'T', 'status' => 'todo', 'position' => 1.0]), function (Task $task) use ($project, $actor) {
         $task->project_id = $project->id;
         $task->number = 1;
-        $task->assignee_id = $this->user->id;
+        $task->assignee_id = test()->user->id;
         $task->created_by = $actor->id;
         $task->save();
         $task->setRelation('project', $project);
@@ -89,11 +93,11 @@ it('decides the mail channel in the worker from the current preference for every
         $comment->save();
     });
     DB::table('task_comment_mentions')->insert([
-        'organization_id' => $organization->id, 'task_comment_id' => $comment->id, 'user_id' => $this->user->id, 'created_at' => now(),
+        'organization_id' => $organization->id, 'task_comment_id' => $comment->id, 'user_id' => test()->user->id, 'created_at' => now(),
     ]);
     $message = Message::factory()->for($channel)->create(['user_id' => $actor->id]);
     DB::table('message_mentions')->insert([
-        'organization_id' => $organization->id, 'message_id' => $message->id, 'user_id' => $this->user->id, 'created_at' => now(),
+        'organization_id' => $organization->id, 'message_id' => $message->id, 'user_id' => test()->user->id, 'created_at' => now(),
     ]);
     $notification = match ($type) {
         NotificationType::TaskAssigned->value => TaskAssignedNotification::for($task, $actor),
@@ -101,6 +105,12 @@ it('decides the mail channel in the worker from the current preference for every
         NotificationType::TaskCommented->value => new TaskCommentedNotification($organization->id, $project->id, $task->id, 'POSVE-1', 'T', $comment->id, 'x', $actor->id, 'A'),
         NotificationType::ChatMention->value => new ChatMentionNotification($organization->id, $project->id, $channel->id, $channel->name, $message->id, null, 'x', $actor->id, 'A'),
     };
+
+    return $notification;
+}
+
+it('decides the mail channel in the worker from the current preference for every type', function (string $type) {
+    $notification = liveNotificationFor($type);
     $this->user->update(['notification_preferences' => ['email' => [$type => false]]]);
     expect($notification->shouldSend($this->user->fresh(), 'mail'))->toBeFalse()
         ->and($notification->shouldSend($this->user->fresh(), AppChannel::class))->toBeTrue();
@@ -136,3 +146,27 @@ it('treats an absent or null type as on', function () {
     expect($this->user->wantsEmail(NotificationType::TaskAssigned))->toBeFalse()
         ->and($this->user->wantsEmail(NotificationType::ChatMention))->toBeTrue();
 });
+
+it('skips the mail in the worker once the inbox notification was read, for every type', function (string $type) {
+    $notification = liveNotificationFor($type);
+    $notification->id = (string) Str::uuid();
+    $this->user->notifyNow($notification, [AppChannel::class]);
+
+    expect($notification->shouldSend($this->user->fresh(), 'mail'))->toBeTrue();
+
+    AppNotification::query()->withoutGlobalScopes()->where('uuid', $notification->id)->update(['read_at' => now()]);
+
+    expect($notification->shouldSend($this->user->fresh(), 'mail'))->toBeFalse()
+        ->and($notification->shouldSend($this->user->fresh(), AppChannel::class))->toBeTrue();
+})->with(array_column(NotificationType::cases(), 'value'));
+
+it('delays only the mail channel by the configured minutes', function (string $type) {
+    config(['workspace.notifications.mail_delay_minutes' => 7]);
+    $this->freezeTime();
+    $notification = preferenceNotifications()[$type];
+
+    $delay = $notification->withDelay($this->user, 'mail');
+
+    expect($delay['mail']->equalTo(now()->addMinutes(7)))->toBeTrue()
+        ->and($notification->withDelay($this->user, AppChannel::class))->toBe([]);
+})->with(array_column(NotificationType::cases(), 'value'));

@@ -201,7 +201,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - Último de los tres planes. La fase 10 toca `api/docker-compose.yml`, que hoy tiene cambios sin commit de otra sesión.
 
 ## Mejoras propuestas
-- [ ] M-1: Retrasar el email unos minutos y no mandarlo si la notificación ya se leyó.
+- [x] M-1: Retrasar el email unos minutos y no mandarlo si la notificación ya se leyó.
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-2: Notificaciones push (PWA y móvil), del paso 9 del MVP.
       Complejidad: alta · Archivos: 8+ · Riesgo: integración externa → plan nuevo
@@ -269,4 +269,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-25: Mismo try/catch con `report` en `SyncChatMentionNotification::handleRemoved` (corre tras el commit, un fallo da 500 con el cambio guardado). (revisor, M-13)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-26: El test de `task_assigned` con `notifyNow` de `NotificationPreferencesTest` (~línea 72) queda enmascarado por `via()` (L-77): quitarlo o pasarlo a `shouldSend` directo. (revisor, M-15)
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-27: `DelaysMail`: castear a entero no negativo `notifications.mail_delay_minutes`, y documentar `NOTIFICATION_MAIL_DELAY_MINUTES`
+      (`api/.env.example` lo edita el usuario, L-52). (revisor, M-1)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
