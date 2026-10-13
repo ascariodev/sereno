@@ -25,6 +25,13 @@ describe('router guard', () => {
     expect(router.currentRoute.value.name).toBe('login')
   })
 
+  it('the notifications route requires a session and keeps its path as redirect', async () => {
+    const router = setup()
+    await router.push('/notifications')
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBe('/notifications')
+  })
+
   it('from the root without token goes to login without redirect', async () => {
     const router = setup()
     await router.push('/')

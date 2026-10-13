@@ -119,7 +119,9 @@
     "openGroups": "{n} open log group | {n} open log groups",
     "projectOpen": "{name}: {groups}, highest level {level}",
     "mentions": "Mentions",
-    "mentionsUnread": "{n} unread mention | {n} unread mentions"
+    "mentionsUnread": "{n} unread mention | {n} unread mentions",
+    "notifications": "Notifications",
+    "notificationsUnread": "{n} unread notification | {n} unread notifications"
   },
   "command": {
     "open": "Search",
@@ -360,6 +362,20 @@
     "someone": "Someone",
     "attachments": "{n} attachment | {n} attachments",
     "from": "{name} mentioned you in {channel}"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "You have no notifications yet.",
+    "loadFailed": "Could not load your notifications.",
+    "loadMore": "Load more",
+    "loadMoreFailed": "Could not load more notifications.",
+    "markAllRead": "Mark all as read",
+    "unread": "Unread",
+    "taskAssigned": "{name} assigned you {task}",
+    "taskCommentMention": "{name} mentioned you in a comment on {task}",
+    "taskCommented": "{name} commented on {task}",
+    "chatMention": "{name} mentioned you in {channel}",
+    "unknown": "New notification"
   },
   "thread": {
     "label": "Thread",

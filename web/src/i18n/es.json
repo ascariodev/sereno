@@ -119,7 +119,9 @@
     "openGroups": "{n} grupo de logs abierto | {n} grupos de logs abiertos",
     "projectOpen": "{name}: {groups}, nivel máximo {level}",
     "mentions": "Menciones",
-    "mentionsUnread": "{n} mención sin leer | {n} menciones sin leer"
+    "mentionsUnread": "{n} mención sin leer | {n} menciones sin leer",
+    "notifications": "Notificaciones",
+    "notificationsUnread": "{n} notificación sin leer | {n} notificaciones sin leer"
   },
   "command": {
     "open": "Buscar",
@@ -360,6 +362,20 @@
     "someone": "Alguien",
     "attachments": "{n} adjunto | {n} adjuntos",
     "from": "{name} te mencionó en {channel}"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "empty": "Todavía no tienes notificaciones.",
+    "loadFailed": "No se pudieron cargar tus notificaciones.",
+    "loadMore": "Cargar más",
+    "loadMoreFailed": "No se pudieron cargar más notificaciones.",
+    "markAllRead": "Marcar todas como leídas",
+    "unread": "Sin leer",
+    "taskAssigned": "{name} te asignó {task}",
+    "taskCommentMention": "{name} te mencionó en un comentario de {task}",
+    "taskCommented": "{name} comentó en {task}",
+    "chatMention": "{name} te mencionó en {channel}",
+    "unknown": "Notificación nueva"
   },
   "thread": {
     "label": "Hilo",

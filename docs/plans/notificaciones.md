@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 13
+**Estado:** en curso · Fase actual: 14
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -60,7 +60,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 12 — Cliente y store de notificaciones (web)
 - API, store con generación (L-10, L-55) y evento en vivo por `subscribeToUser`. 3 archivos.
 
-### [ ] Fase 13 — Vista de notificaciones (web)
+### [x] Fase 13 — Vista de notificaciones (web)
 - `NotificationsView` con un ítem por tipo y enlace profundo, ruta y badge de la barra lateral. 4 archivos.
 
 ### [ ] Fase 14 — Retirar la bandeja de menciones (web) [riesgo]
@@ -167,11 +167,16 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   `markRead(row|rows)`, `markAllRead`, `start(userId)`, `stop`, `clear`; se limpia y recarga al cambiar de organización.
   `subscribeToUser` tiene handler opcional `onNotificationCreated` (`NOTIFICATION_CREATED_EVENT`). `refresh` fusiona, no reemplaza:
   una fila borrada en el API sigue en la lista hasta cambiar de organización (ver M-17).
+- 2026-10-13 (fase 13): `NotificationsView` en la ruta `/notifications` (name `notifications`), entrada con icono `Bell` y badge en
+  `AppSidebar` antes de Menciones; `AppLayout` arranca y para el store junto a `mentions`. Enlaces: tarea a `project-plan` con
+  `?task=` y el `project_id` de la columna; chat a `channel` con `?message=` o `?thread=` (como `MentionsView`). `unknown` y tarea sin
+  `project_id` son un botón que solo marca leída. Se marca leída al abrir (click y auxclick). `AppLayout.spec.ts` completo tiene 6
+  fallos que ya existían en `main`, ajenos al plan (tarea aparte); los de notificaciones y menciones pasan aislados.
 
 ## Notas para la próxima sesión
-- Fase 13: `AppLayout.vue` llama `notifications.start(userId)` y `stop()` en el watch de `auth.user?.id`, como con `mentions`; usar `.type` y `.data` tipados, sin casts.
 - Tras el merge, `docker compose restart queue`.
 - Antes de desplegar: poner las `MAIL_*` en el `.env` del servidor de cada ambiente (ver `api/docker-compose.prod.yml`).
+- Fase 14: al quitar `MentionsView`, ver si `when()` y `UNITS` quedan solo en `NotificationsView`; `AppLayout.spec.ts` tiene fallos previos (ver Decisiones fase 13).
 - Último de los tres planes. La fase 10 toca `api/docker-compose.yml`, que hoy tiene cambios sin commit de otra sesión.
 
 ## Mejoras propuestas

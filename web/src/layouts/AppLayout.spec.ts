@@ -9,6 +9,7 @@ import AppLayout from './AppLayout.vue'
 import { createAppRouter } from '../router'
 import { TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
 import { useMentionsStore } from '../stores/mentions'
+import { useNotificationsStore } from '../stores/notifications'
 import { useOrganizationStore } from '../stores/organization'
 import { THEME_STORAGE_KEY } from '../theme/theme'
 
@@ -29,11 +30,13 @@ const orgs = [
 
 let projectExtra: Record<string, unknown> = {}
 let mentionsUnread = 0
+let notificationsUnread = 0
 
 function sidebarData(path: string, withChannel = true): unknown {
   if (path === '/api/projects') return { data: [{ ...project, ...projectExtra }], meta: { last_page: 1 } }
   if (path === '/api/channels') return withChannel ? { data: [{ id: 7, project_id: 5, name: 'general', project: { id: 5, name: 'posveapi' }, is_archived: false }] } : { data: [] }
   if (path === '/api/mentions') return { data: [], links: {}, meta: { next_cursor: null, unread_count: mentionsUnread } }
+  if (path === '/api/notifications') return { data: [], meta: { next_cursor: null, unread_count: notificationsUnread } }
   if (path === '/api/channels/7/messages') return { data: [], meta: { next_cursor: null } }
   return undefined
 }
@@ -89,6 +92,7 @@ describe('AppLayout', () => {
     localStorage.clear()
     projectExtra = {}
     mentionsUnread = 0
+    notificationsUnread = 0
     vi.restoreAllMocks()
     document.documentElement.removeAttribute('data-theme')
   })
@@ -399,6 +403,41 @@ describe('AppLayout', () => {
     wrapper.unmount()
     mounted = undefined
     expect(useMentionsStore().unreadCount).toBe(0)
+  })
+
+  it('shows the unread notifications count with a text for screen readers, and hides it at zero', async () => {
+    notificationsUnread = 4
+    const { wrapper } = await mountApp()
+    const link = wrapper.find('a[href="/notifications"]')
+    expect(link.find('.app-sidebar__badge').text()).toBe('4')
+    expect(link.find('.sr-only').text()).toBe('4 unread notifications')
+    useNotificationsStore().$patch({ unreadCount: 0 })
+    await nextTick()
+    expect(wrapper.find('a[href="/notifications"] .app-sidebar__badge').exists()).toBe(false)
+    expect(wrapper.find('a[href="/notifications"] .sr-only').exists()).toBe(false)
+  })
+
+  it('names the notifications link with the count when the sidebar is collapsed', async () => {
+    localStorage.setItem('workspace.sidebar', 'collapsed')
+    notificationsUnread = 1
+    const { wrapper } = await mountApp()
+    expect(wrapper.find('a[href="/notifications"]').attributes('aria-label')).toBe('Notifications: 1 unread notification')
+  })
+
+  it('starts the notifications store for the signed-in user, stops it on logout and on unmount', async () => {
+    notificationsUnread = 2
+    const { wrapper } = await mountApp()
+    const store = useNotificationsStore()
+    expect(store.unreadCount).toBe(2)
+    expect(store.loaded).toBe(true)
+    vi.spyOn(api, 'post').mockResolvedValue(undefined)
+    await openMenu('button[name=user-menu]')
+    await pick('logout')
+    expect(store.unreadCount).toBe(0)
+    expect(store.loaded).toBe(false)
+    wrapper.unmount()
+    mounted = undefined
+    expect(store.loaded).toBe(false)
   })
 
   it('the user menu changes and saves the theme', async () => {
