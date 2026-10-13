@@ -251,6 +251,9 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-19: Renombrar la clase `app-sidebar__mentions` (enlace de notificaciones y su CSS de posición colapsada) a
       `app-sidebar__notifications` en `AppSidebar.vue`. (revisor, fase 14)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-21: En `activateFromLink`, si las organizaciones ya están cargadas y el id no está, recargar la lista una vez (miembro recién
+- [x] M-21: En `activateFromLink`, si las organizaciones ya están cargadas y el id no está, recargar la lista una vez (miembro recién
       invitado con la lista vieja); y tests del guard para `?organization=abc` y el parámetro repetido. (revisor, fase 17)
       Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
+- [ ] M-22: Envolver en `whileLoadingSession` la recarga de organizaciones que hace el guard al abrir un enlace con `?organization=`
+      de una organización que no estaba en la lista, para que no quede la pantalla congelada si el servidor tarda. (revisor, M-21)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

@@ -250,6 +250,34 @@ describe('router guard', () => {
       expect(useOrganizationStore().activeId).toBe(1)
     })
 
+    it('drops a repeated parameter without changing the organization', async () => {
+      localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+      mockApi()
+      const router = setup()
+      await router.push('/channels/3?thread=4&organization=2&organization=2')
+      expect(router.currentRoute.value.fullPath).toBe('/channels/3?thread=4')
+      await useOrganizationStore().load()
+      expect(useOrganizationStore().activeId).toBe(1)
+    })
+
+    it('with organizations loaded but stale, reloads once and switches before entering the route', async () => {
+      localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+      const get = mockApi()
+      const router = setup()
+      await router.push('/')
+      const organization = useOrganizationStore()
+      await organization.load()
+      const fresh = [...orgs, { id: 3, name: 'Three', slug: 'three', settings: null, roles: ['member'] }]
+      get.mockImplementation(async (path: string) => (path === '/api/organizations' ? { data: fresh } : { data: user }))
+      let activeOnEnter: number | null = null
+      router.afterEach(() => {
+        activeOnEnter = organization.activeId
+      })
+      await router.push('/projects/5/plan?organization=3')
+      expect(activeOnEnter).toBe(3)
+      expect(router.currentRoute.value.fullPath).toBe('/projects/5/plan')
+    })
+
     it('with organizations already loaded, switches before entering the route', async () => {
       localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
       mockApi()

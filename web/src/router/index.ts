@@ -35,10 +35,10 @@ function linkedOrganizationId(value: unknown): number | null {
 }
 
 /** Consumes `?organization=<id>` (email links): activates it before the view loads and drops it from the URL. */
-function withoutLinkedOrganization(to: RouteLocationNormalized) {
+async function withoutLinkedOrganization(to: RouteLocationNormalized) {
   if (!(ORGANIZATION_QUERY in to.query)) return null
   const id = linkedOrganizationId(to.query[ORGANIZATION_QUERY])
-  if (id !== null) useOrganizationStore().activateFromLink(id)
+  if (id !== null) await useOrganizationStore().activateFromLink(id)
   const query = { ...to.query }
   delete query[ORGANIZATION_QUERY]
   return { path: to.path, query, hash: to.hash, replace: true }
@@ -99,7 +99,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         }
       }
     }
-    return withoutLinkedOrganization(to) ?? true
+    return (await withoutLinkedOrganization(to)) ?? true
   })
 
   return router

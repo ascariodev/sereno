@@ -111,13 +111,21 @@ export const useOrganizationStore = defineStore('organization', () => {
     setActive(id)
   }
 
-  /** Organization named by a deep link (email): applied now if loaded, else by the next load; ignored if not a member. */
-  function activateFromLink(id: number): void {
-    if (loaded.value) {
+  /** Organization named by a deep link (email): applied now if loaded, else by the next load; a missing id reloads the list once (stale after a new membership) and is ignored if still absent. */
+  async function activateFromLink(id: number): Promise<void> {
+    if (loaded.value && organizations.value.some((o) => o.id === id)) {
       select(id)
       return
     }
     linkedId = id
+    if (!loaded.value) return
+    try {
+      await reloadSettled()
+    } catch {
+      return
+    } finally {
+      linkedId = null
+    }
   }
 
   async function create(name: string): Promise<Organization> {
