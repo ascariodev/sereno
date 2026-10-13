@@ -205,7 +205,11 @@ resolverlo o ignorarlo con la API existente. (Paso 3 del MVP; hilos, menciones y
   mensaje de un proyecto sin acceso de uno inexistente. Unificar en el render (p. ej. que el 404 de autorización use el
   mismo cuerpo) con un test que compare cuerpos en varios endpoints. `show` (M-26) y `attachments/{id}/url` ya lo hacen.
   Alta (seguridad, varios endpoints) · opus.
-- [ ] M-28 — Los `abort_unless(..., 404)` de `MessageController.php:112`, `LogGroupController.php:59` y `:78` y
+- [x] M-28 — Los `abort_unless(..., 404)` de `MessageController.php:112`, `LogGroupController.php:59` y `:78` y
   `LogSourceController.php:49` responden "Not Found": un id de otro canal o proyecto se distingue de uno inexistente
   ("Resource not found."), la misma fuga leve de M-27. Usar el mismo cuerpo (p. ej. lanzar `ModelNotFoundException`) y
   extender `tests/Feature/Core/NotFoundBodyTest.php`. Media (seguridad leve, 3 archivos más el test) · sonnet.
+- [ ] M-29 — Misma fuga de M-27/M-28 en plan: `abort_unless(..., 404)` en `TaskController` (3) y en los Requests
+  `UpdateTaskRequest`, `DeleteTaskCommentRequest`, `ListTaskCommentsRequest`, `StoreTaskCommentAttachmentRequest` y
+  `StoreTaskCommentRequest`. Pasar a `ModelNotFoundException` con la pertenencia en `authorize()` antes del Gate y la
+  validación (L-72), y extender `NotFoundBodyTest`. Alta (seguridad, 6 archivos más el test) · opus o plan corto.

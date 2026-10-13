@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Channel;
 
+use App\Models\Message;
 use Closure;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Support\Facades\Gate;
@@ -15,6 +17,13 @@ class ListMessagesRequest extends FormRequest
 
     public function authorize(): bool
     {
+        $message = $this->route('message');
+
+        throw_if(
+            $message instanceof Message && ($message->channel_id !== $this->route('channel')->id || $message->parent_id !== null),
+            ModelNotFoundException::class,
+        );
+
         return Gate::authorize('view', $this->route('channel'))->allowed();
     }
 
