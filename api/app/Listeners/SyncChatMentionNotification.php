@@ -10,6 +10,7 @@ use App\Models\Channel;
 use App\Models\Message;
 use App\Models\User;
 use App\Notifications\ChatMentionNotification;
+use Throwable;
 
 /**
  * Synchronous: both events are dispatched after the commit that changed the mention rows, so the queued
@@ -19,15 +20,10 @@ class SyncChatMentionNotification
 {
     public function handleCreated(MentionCreated $event): void
     {
-        $user = User::query()->find($event->userId);
-        $channel = Channel::withoutGlobalScopes()
-            ->where('organization_id', $event->organizationId)
-            ->find($event->channelId, ['id', 'project_id', 'name']);
-
-        $notification = $channel === null ? null : ChatMentionNotification::fromEvent($event, $channel);
-
-        if ($user !== null && $notification !== null) {
-            $user->notify($notification);
+        try {
+            $this->notify($event);
+        } catch (Throwable $e) {
+            report($e);
         }
     }
 
@@ -41,5 +37,19 @@ class SyncChatMentionNotification
             ->where('subject_type', Message::class)
             ->where('subject_id', $event->messageId)
             ->delete();
+    }
+
+    private function notify(MentionCreated $event): void
+    {
+        $user = User::query()->find($event->userId);
+        $channel = Channel::withoutGlobalScopes()
+            ->where('organization_id', $event->organizationId)
+            ->find($event->channelId, ['id', 'project_id', 'name']);
+
+        $notification = $channel === null ? null : ChatMentionNotification::fromEvent($event, $channel);
+
+        if ($user !== null && $notification !== null) {
+            $user->notify($notification);
+        }
     }
 }

@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
 use App\Notifications\ChatMentionNotification;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Mail\Markdown;
 use Illuminate\Notifications\ChannelManager;
 use Illuminate\Notifications\Events\NotificationSent;
@@ -18,6 +19,7 @@ use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\Sanctum;
@@ -227,4 +229,18 @@ it('renders actor and channel name in the mail as plain text, leaving the subjec
     expect($html)->toContain('[a](http://evil.test)')->toContain('#[c](http://evil.test)')
         ->not->toContain('href="http://evil.test"')
         ->and($mail->subject)->toContain('[a](http://evil.test)');
+});
+
+it('reports a failed notification without failing the message post', function () {
+    Exceptions::fake();
+    DB::listen(function (QueryExecuted $query) {
+        if (str_starts_with($query->sql, 'insert into "notifications"')) {
+            throw new RuntimeException('notify down');
+        }
+    });
+
+    $message = postChatMention("hi <@{$this->ana->id}>");
+
+    Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'notify down');
+    expect($message->exists)->toBeTrue();
 });
