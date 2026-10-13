@@ -29,14 +29,18 @@ class SyncChatMentionNotification
 
     public function handleRemoved(MentionRemoved $event): void
     {
-        AppNotification::query()
-            ->withoutGlobalScopes()
-            ->where('user_id', $event->userId)
-            ->where('organization_id', $event->organizationId)
-            ->where('type', NotificationType::ChatMention->value)
-            ->where('subject_type', Message::class)
-            ->where('subject_id', $event->messageId)
-            ->delete();
+        try {
+            AppNotification::query()
+                ->withoutGlobalScopes()
+                ->where('user_id', $event->userId)
+                ->where('organization_id', $event->organizationId)
+                ->where('type', NotificationType::ChatMention->value)
+                ->where('subject_type', Message::class)
+                ->where('subject_id', $event->messageId)
+                ->delete();
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     private function notify(MentionCreated $event): void

@@ -266,3 +266,17 @@ it('reports a failed notification without failing the message post', function ()
     Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'notify down');
     expect($message->exists)->toBeTrue();
 });
+
+it('reports a failed notification delete without failing the message edit', function () {
+    $message = postChatMention("hi <@{$this->ana->id}>");
+    Exceptions::fake();
+    DB::listen(function (QueryExecuted $query) {
+        if (str_starts_with($query->sql, 'delete from "notifications"')) {
+            throw new RuntimeException('delete down');
+        }
+    });
+
+    chatMentionCall('PATCH', "/api/channels/{$this->channel->id}/messages/{$message->id}", ['body' => 'no mention'])->assertOk();
+
+    Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'delete down');
+});
