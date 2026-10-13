@@ -3,10 +3,12 @@
 namespace App\Notifications;
 
 use App\Enums\NotificationType;
+use App\Models\TaskComment;
 use App\Models\User;
+use App\Notifications\Contracts\RevalidatesAfterInsert;
 use App\Support\MailMarkdown;
 
-class TaskCommentedNotification extends TaskCommentNotification
+class TaskCommentedNotification extends TaskCommentNotification implements RevalidatesAfterInsert
 {
     protected function type(): NotificationType
     {
@@ -15,7 +17,13 @@ class TaskCommentedNotification extends TaskCommentNotification
 
     protected function stillRelevant(User $notifiable): bool
     {
-        return $this->isAssigneeOrCreator($notifiable);
+        return $this->stillApplies($notifiable);
+    }
+
+    public function stillApplies(User $notifiable): bool
+    {
+        return TaskComment::query()->withoutGlobalScopes()->whereKey($this->commentId)->sharedLock()->exists()
+            && $this->isAssigneeOrCreator($notifiable, lock: true);
     }
 
     protected function mailSubject(): string

@@ -11,6 +11,7 @@ use App\Models\MessageMention;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
 use App\Notifications\Concerns\DelaysMail;
+use App\Notifications\Contracts\RevalidatesAfterInsert;
 use App\Support\MailMarkdown;
 use App\Support\ProjectAccess;
 use Illuminate\Bus\Queueable;
@@ -19,7 +20,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 
-class ChatMentionNotification extends Notification implements ShouldQueue
+class ChatMentionNotification extends Notification implements RevalidatesAfterInsert, ShouldQueue
 {
     use DelaysMail;
     use Queueable;

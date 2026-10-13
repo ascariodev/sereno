@@ -5,6 +5,7 @@ namespace App\Notifications\Channels;
 use App\Events\NotificationCreated;
 use App\Models\AppNotification;
 use App\Models\User;
+use App\Notifications\Contracts\RevalidatesAfterInsert;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notification;
 use InvalidArgumentException;
@@ -15,10 +16,7 @@ use InvalidArgumentException;
  * `NotificationCreated` goes out only when the row was inserted.
  * Nothing is stored for a user who is not a member of `organization_id`.
  *
- * An optional `stillApplies(User $notifiable): bool` is checked again after the insert and drops the row when
- * false: a removal that commits between `shouldSend` and the insert, and whose cleanup ran before the row
- * existed, is seen here; one that commits later finds the row and deletes it itself. It must lock what it
- * reads (`sharedLock`) so a removal still in its transaction is waited for, not read as present.
+ * A notification implementing `RevalidatesAfterInsert` is checked again after the insert (see its contract).
  */
 class AppChannel
 {
@@ -50,7 +48,7 @@ class AppChannel
             'data' => json_encode((object) ($payload['data'] ?? []), JSON_THROW_ON_ERROR),
         ]);
 
-        if (method_exists($notification, 'stillApplies') && ! $notification->stillApplies($notifiable)) {
+        if ($notification instanceof RevalidatesAfterInsert && ! $notification->stillApplies($notifiable)) {
             AppNotification::query()->withoutGlobalScopes()->where('uuid', $notification->id)->delete();
 
             return;
