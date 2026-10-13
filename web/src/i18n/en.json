@@ -249,6 +249,7 @@
     "failed": "Could not send the invitation. Try again."
   },
   "userMenu": {
+    "notificationPreferences": "Email notifications",
     "invitations": "Invitations",
     "members": "Members",
     "label": "User menu",
@@ -256,6 +257,19 @@
       "system": "System theme",
       "light": "Light theme",
       "dark": "Dark theme"
+    }
+  },
+  "notificationPreferences": {
+    "title": "Email notifications",
+    "description": "Choose which events also send you an email. You always see them in the app.",
+    "close": "Close",
+    "loadFailed": "Could not load your preferences.",
+    "saveFailed": "Could not save the change. Try again.",
+    "types": {
+      "task_assigned": "A task is assigned to me",
+      "task_comment_mention": "I am mentioned in a task comment",
+      "task_commented": "Someone comments on my task",
+      "chat_mention": "I am mentioned in the chat"
     }
   },
   "layout": {

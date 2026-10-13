@@ -249,6 +249,7 @@
     "failed": "No se pudo enviar la invitación. Inténtalo de nuevo."
   },
   "userMenu": {
+    "notificationPreferences": "Notificaciones por correo",
     "invitations": "Invitaciones",
     "members": "Miembros",
     "label": "Menú de usuario",
@@ -256,6 +257,19 @@
       "system": "Tema del sistema",
       "light": "Tema claro",
       "dark": "Tema oscuro"
+    }
+  },
+  "notificationPreferences": {
+    "title": "Notificaciones por correo",
+    "description": "Elige qué eventos te envían también un correo. Siempre los ves en la aplicación.",
+    "close": "Cerrar",
+    "loadFailed": "No se pudieron cargar tus preferencias.",
+    "saveFailed": "No se pudo guardar el cambio. Inténtalo de nuevo.",
+    "types": {
+      "task_assigned": "Me asignan una tarea",
+      "task_comment_mention": "Me mencionan en un comentario de tarea",
+      "task_commented": "Alguien comenta en mi tarea",
+      "chat_mention": "Me mencionan en el chat"
     }
   },
   "layout": {

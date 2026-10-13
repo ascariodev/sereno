@@ -363,6 +363,13 @@ export interface NotificationPage {
   meta: { next_cursor: string | null; unread_count: number }
 }
 
+export type NotificationEmailType = 'task_assigned' | 'task_comment_mention' | 'task_commented' | 'chat_mention'
+
+/** `GET`/`PATCH /api/me/notification-preferences` (`data`): always the four types. */
+export interface NotificationPreferences {
+  email: Record<NotificationEmailType, boolean>
+}
+
 export type InvitationRole = 'owner' | 'admin' | 'member'
 
 export interface Invitation {

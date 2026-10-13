@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 16
+**Estado:** en curso · Fase actual: 17
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -69,7 +69,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 15 — Retirar la bandeja de menciones (API)
 - Quitar `GET mentions` y `POST mentions/read` cuando la web ya no los use; `message_mentions` se conserva para los chips. 2-3 archivos.
 
-### [ ] Fase 16 — Preferencias de email (web)
+### [x] Fase 16 — Preferencias de email (web)
 - Diálogo desde `UserMenu` con un interruptor por tipo. 2-3 archivos.
 
 ### [ ] Fase 17 — Enlace del email a la organización correcta [riesgo]
@@ -181,6 +181,10 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   `MentionInboxApiTest`, las rutas `GET mentions`/`POST mentions/read` y el limiter `mentions`. Quedan `message_mentions` (chips),
   `MentionCreated`/`MentionRemoved` con su broadcast y `SyncChatMentionNotification`. `message_mentions.read_at` queda sin uso (M-20).
   Suite completa del API: 1275 ok.
+- 2026-10-13 (fase 16): `NotificationPreferencesDialog` abierto desde `UserMenu` ("Email notifications", icono `Bell`), apilado sobre
+  el cajón móvil sin cerrarlo; al cerrar, el foco vuelve a `user-menu`. Interruptores `input[type=checkbox][role=switch]` nativos (no
+  hay componente switch), guardado optimista por tipo con `aria-busy`/`aria-disabled`; al fallar revierte y muestra `AppFormError`.
+  Cliente `web/src/api/notificationPreferences.ts`. El GET de preferencias está en `sidebarData` de `AppLayout.spec.ts`.
 
 ## Notas para la próxima sesión
 - Tras el merge, `docker compose restart queue`.
