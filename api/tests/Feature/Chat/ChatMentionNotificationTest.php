@@ -215,3 +215,16 @@ it('escapes only link, image and html syntax, so the plain-text part stays reada
     expect($text)->toContain('v1.2 - ok! \!\[i\]\(http://evil.test/a.png\) \<b\>x\</b\> \[x\]\(http://evil.test\)')
         ->and($html)->not->toContain('src="http://evil.test')->not->toContain('<b>x</b>')->not->toContain('href="http://evil.test"');
 });
+
+it('renders actor and channel name in the mail as plain text, leaving the subject unescaped', function () {
+    $notification = new ChatMentionNotification(
+        $this->organization->id, $this->project->id, $this->channel->id, '[c](http://evil.test)', 9, null, 'hi', $this->author->id, '[a](http://evil.test)',
+    );
+
+    $mail = $notification->toMail($this->ana);
+    $html = (string) $mail->render();
+
+    expect($html)->toContain('[a](http://evil.test)')->toContain('#[c](http://evil.test)')
+        ->not->toContain('href="http://evil.test"')
+        ->and($mail->subject)->toContain('[a](http://evil.test)');
+});

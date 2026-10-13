@@ -171,3 +171,17 @@ it('sends the app and mail channels when the assignment still holds at execution
     expect(AppNotification::query()->count())->toBe(1)
         ->and(taskAssignedChannelsSent())->toBe([AppChannel::class, 'mail']);
 });
+
+it('renders actor and task title in the mail as plain text, not markdown, leaving the subject unescaped', function () {
+    $notification = new TaskAssignedNotification(
+        $this->organization->id, $this->project->id, 7, 'POSVE-3', '[t](http://evil.test) **b**', $this->actor->id, '[a](http://evil.test)',
+    );
+
+    $mail = $notification->toMail($this->assignee);
+    $html = (string) $mail->render();
+
+    expect($html)->toContain('[t](http://evil.test) **b**')->toContain('[a](http://evil.test)')
+        ->not->toContain('href="http://evil.test"')
+        ->not->toContain('<strong>b</strong>')
+        ->and($mail->subject)->toContain('[a](http://evil.test)');
+});

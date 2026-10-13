@@ -229,7 +229,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-11: Reducir el conjunto de `MailMarkdown::escape` a lo que forma enlaces e imágenes (`\ ` * _ [ ] ( ) < >`, `!` antes de `[`):
       la parte de texto plano del correo muestra las barras; con test de `renderText`. (revisor, fase 6)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-12: Escapar también en las líneas del correo los nombres de actor y canal y los títulos de tarea (`TaskAssignedNotification`
+- [x] M-12: Escapar también en las líneas del correo los nombres de actor y canal y los títulos de tarea (`TaskAssignedNotification`
       incluida), no en el asunto. (implementador y revisor, fase 6)
       Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
 - [ ] M-13: En `SyncChatMentionNotification::handleCreated`, capturar y reportar un fallo al encolar para que no dé 500 al POST con el
@@ -262,3 +262,5 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-23: Ampliar el test de `MailMarkdown::escape` con un autolink `<http://evil.test>` y una URL suelta (que no salga `href`),
       para detectar si algún día se suma la extensión de autolinks de GFM. (revisor, M-11)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-24: Escapar con `MailMarkdown::escape` el nombre de la organización y del que invita en las líneas de `InvitationNotification`. (implementador, M-12)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

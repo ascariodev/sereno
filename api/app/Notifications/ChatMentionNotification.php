@@ -129,8 +129,8 @@ class ChatMentionNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject(__(':actor mentioned you in #:channel', ['actor' => $this->actorName, 'channel' => $this->channelName]))
             ->line(__(':actor mentioned you in #:channel: :excerpt', [
-                'actor' => $this->actorName,
-                'channel' => $this->channelName,
+                'actor' => MailMarkdown::escape($this->actorName),
+                'channel' => MailMarkdown::escape($this->channelName),
                 'excerpt' => MailMarkdown::escape($this->excerpt),
             ]))
             ->action(__('View message'), rtrim(config('app.frontend_url'), '/')."/channels/{$this->channelId}?{$query}&organization={$this->organizationId}");
