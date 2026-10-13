@@ -72,7 +72,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 16 — Preferencias de email (web)
 - Diálogo desde `UserMenu` con un interruptor por tipo. 2-3 archivos.
 
-### [ ] Fase 17 — Enlace del email a la organización correcta [riesgo]
+### [x] Fase 17 — Enlace del email a la organización correcta [riesgo]
 - El enlace lleva la organización y la web la activa al abrirlo; verificar cómo elige hoy la organización activa. 2-3 archivos.
 
 ## Decisiones
@@ -185,6 +185,11 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   el cajón móvil sin cerrarlo; al cerrar, el foco vuelve a `user-menu`. Interruptores `input[type=checkbox][role=switch]` nativos (no
   hay componente switch), guardado optimista por tipo con `aria-busy`/`aria-disabled`; al fallar revierte y muestra `AppFormError`.
   Cliente `web/src/api/notificationPreferences.ts`. El GET de preferencias está en `sidebarData` de `AppLayout.spec.ts`.
+- 2026-10-13 (fase 17): la web elegía la organización solo en el `load()` de `AppLayout` (en memoria, luego localStorage
+  `workspace.organization`, luego la primera); la URL no la llevaba. Ahora los cuatro correos enlazan con `&organization=<id>` y el guard
+  global, con sesión validada, llama `useOrganizationStore().activateFromLink(id)` si es entero positivo y redirige con `replace` sin el
+  parámetro; sin sesión viaja dentro de `?redirect`. `activateFromLink` hace `select` si ya hay organizaciones cargadas o deja el id
+  pendiente con prioridad para la próxima carga (se consume una vez, `clear()` lo borra); un id del que no es miembro se ignora.
 
 ## Notas para la próxima sesión
 - Tras el merge, `docker compose restart queue`.
@@ -244,3 +249,6 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-19: Renombrar la clase `app-sidebar__mentions` (enlace de notificaciones y su CSS de posición colapsada) a
       `app-sidebar__notifications` en `AppSidebar.vue`. (revisor, fase 14)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-21: En `activateFromLink`, si las organizaciones ya están cargadas y el id no está, recargar la lista una vez (miembro recién
+      invitado con la lista vieja); y tests del guard para `?organization=abc` y el parámetro repetido. (revisor, fase 17)
+      Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet

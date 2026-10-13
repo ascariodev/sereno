@@ -133,7 +133,7 @@ class ChatMentionNotification extends Notification implements ShouldQueue
                 'channel' => $this->channelName,
                 'excerpt' => MailMarkdown::escape($this->excerpt),
             ]))
-            ->action(__('View message'), rtrim(config('app.frontend_url'), '/')."/channels/{$this->channelId}?{$query}");
+            ->action(__('View message'), rtrim(config('app.frontend_url'), '/')."/channels/{$this->channelId}?{$query}&organization={$this->organizationId}");
     }
 
     /** @param  array<int, string>  $names */

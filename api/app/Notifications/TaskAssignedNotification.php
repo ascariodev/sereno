@@ -87,6 +87,6 @@ class TaskAssignedNotification extends Notification implements ShouldQueue
                 'task' => $this->taskKey,
                 'title' => $this->taskTitle,
             ]))
-            ->action(__('View task'), rtrim(config('app.frontend_url'), '/')."/projects/{$this->projectId}/plan?task={$this->taskId}");
+            ->action(__('View task'), rtrim(config('app.frontend_url'), '/')."/projects/{$this->projectId}/plan?task={$this->taskId}&organization={$this->organizationId}");
     }
 }

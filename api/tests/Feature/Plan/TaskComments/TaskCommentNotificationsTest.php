@@ -101,7 +101,16 @@ it('sends the mail in the recipient locale with the task link', function () {
     App::setLocale($previous);
 
     expect($mail->subject)->toBe('Ana comentó en POSVE-3')
-        ->and($mail->actionUrl)->toBe(config('app.frontend_url')."/projects/{$this->project->id}/plan?task=7");
+        ->and($mail->actionUrl)->toBe(config('app.frontend_url')."/projects/{$this->project->id}/plan?task=7&organization={$this->organization->id}");
+});
+
+it('links the comment mention mail to the task in its organization', function () {
+    $notification = new TaskCommentMentionNotification(
+        $this->organization->id, $this->project->id, 7, 'POSVE-3', 'Fix it', 1, 'Hello', $this->author->id, 'Ana',
+    );
+
+    expect($notification->toMail($this->mentioned)->actionUrl)
+        ->toBe(config('app.frontend_url')."/projects/{$this->project->id}/plan?task=7&organization={$this->organization->id}");
 });
 
 function commentNotificationsSent(): array

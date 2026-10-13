@@ -22,6 +22,7 @@ export const useOrganizationStore = defineStore('organization', () => {
   let generation = 0
   let clearCount = 0
   let latestLoad: Promise<void> = Promise.resolve()
+  let linkedId: number | null = null
 
   const active = computed(() => organizations.value.find((o) => o.id === activeId.value) ?? null)
 
@@ -58,7 +59,9 @@ export const useOrganizationStore = defineStore('organization', () => {
     organizations.value = response.data
     loaded.value = true
     const stored = readStoredId()
-    const keep = [activeId.value, stored].find((id) => id !== null && response.data.some((o) => o.id === id))
+    const linked = linkedId
+    linkedId = null
+    const keep = [linked, activeId.value, stored].find((id) => id !== null && response.data.some((o) => o.id === id))
     setActive(keep ?? response.data[0]?.id ?? null)
   }
 
@@ -108,6 +111,15 @@ export const useOrganizationStore = defineStore('organization', () => {
     setActive(id)
   }
 
+  /** Organization named by a deep link (email): applied now if loaded, else by the next load; ignored if not a member. */
+  function activateFromLink(id: number): void {
+    if (loaded.value) {
+      select(id)
+      return
+    }
+    linkedId = id
+  }
+
   async function create(name: string): Promise<Organization> {
     const clearsBefore = clearCount
     const created = await createOrganization(name)
@@ -120,12 +132,13 @@ export const useOrganizationStore = defineStore('organization', () => {
   function clear(): void {
     generation++
     clearCount++
+    linkedId = null
     organizations.value = []
     loaded.value = false
     setActive(null)
   }
 
-  return { organizations, activeId, active, isOwner, isAdmin, canCreateProject, assignableRolesFor, canRemoveMember, canManageInvitations, canManageLogSources, loaded, version, rolesRevision, load, handleMembershipRevoked, handleForbidden, handleMembershipRoleChanged, select, create, clear }
+  return { organizations, activeId, active, isOwner, isAdmin, canCreateProject, assignableRolesFor, canRemoveMember, canManageInvitations, canManageLogSources, loaded, version, rolesRevision, load, handleMembershipRevoked, handleForbidden, handleMembershipRoleChanged, select, activateFromLink, create, clear }
 })
 
 export function installOrganizationOnApi(): void {

@@ -7,6 +7,7 @@ import {
 import { ApiError } from '../api/client'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
+import { useOrganizationStore } from '../stores/organization'
 import ChannelView from '../views/ChannelView.vue'
 import IntegrationsView from '../views/IntegrationsView.vue'
 import InvitationsView from '../views/InvitationsView.vue'
@@ -25,6 +26,22 @@ import { safeRedirect } from './safeRedirect'
 function redirectQuery(to: RouteLocationNormalized) {
   const redirect = safeRedirect(to.name === 'session-error' ? to.query.redirect : to.fullPath)
   return redirect && redirect !== '/' ? { redirect } : {}
+}
+
+const ORGANIZATION_QUERY = 'organization'
+
+function linkedOrganizationId(value: unknown): number | null {
+  return typeof value === 'string' && /^[1-9]\d{0,14}$/.test(value) ? Number(value) : null
+}
+
+/** Consumes `?organization=<id>` (email links): activates it before the view loads and drops it from the URL. */
+function withoutLinkedOrganization(to: RouteLocationNormalized) {
+  if (!(ORGANIZATION_QUERY in to.query)) return null
+  const id = linkedOrganizationId(to.query[ORGANIZATION_QUERY])
+  if (id !== null) useOrganizationStore().activateFromLink(id)
+  const query = { ...to.query }
+  delete query[ORGANIZATION_QUERY]
+  return { path: to.path, query, hash: to.hash, replace: true }
 }
 
 export function createAppRouter(history: RouterHistory = createWebHistory()) {
@@ -82,7 +99,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         }
       }
     }
-    return true
+    return withoutLinkedOrganization(to) ?? true
   })
 
   return router

@@ -3,8 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import { api, ApiError } from '../api/client'
 import { installAuthOnApi, TOKEN_STORAGE_KEY, useAuthStore } from '../stores/auth'
+import { ORGANIZATION_STORAGE_KEY, useOrganizationStore } from '../stores/organization'
 import { createAppRouter } from './index'
 import { redirectToLogin } from './redirectToLogin'
+import { safeRedirect } from './safeRedirect'
 
 const user = { id: 1, name: 'Test', email: 't@e.com', locale: 'en' }
 
@@ -193,6 +195,93 @@ describe('router guard', () => {
       await router.push('/invite/abc')
       expect(router.currentRoute.value.name).toBe('session-error')
       expect(router.currentRoute.value.query.redirect).toBe('/invite/abc')
+    })
+  })
+
+  describe('organization link (?organization=)', () => {
+    const orgs = [
+      { id: 1, name: 'One', slug: 'one', settings: null, roles: ['owner'] },
+      { id: 2, name: 'Two', slug: 'two', settings: null, roles: ['member'] },
+    ]
+
+    function mockApi() {
+      return vi
+        .spyOn(api, 'get')
+        .mockImplementation(async (path: string) => (path === '/api/organizations' ? { data: orgs } : { data: user }))
+    }
+
+    beforeEach(() => {
+      localStorage.setItem(ORGANIZATION_STORAGE_KEY, '1')
+    })
+
+    it('drops the parameter and the first organization load activates the linked one', async () => {
+      localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+      mockApi()
+      const router = setup()
+      await router.push('/projects/5/plan?task=7&organization=2')
+      expect(router.currentRoute.value.name).toBe('project-plan')
+      expect(router.currentRoute.value.fullPath).toBe('/projects/5/plan?task=7')
+      const organization = useOrganizationStore()
+      expect(organization.activeId).toBeNull()
+      const versionBefore = organization.version
+      await organization.load()
+      expect(organization.activeId).toBe(2)
+      expect(organization.version).toBe(versionBefore + 1)
+    })
+
+    it('ignores an organization the user is not a member of', async () => {
+      localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+      mockApi()
+      const router = setup()
+      await router.push('/channels/3?message=9&organization=99')
+      expect(router.currentRoute.value.fullPath).toBe('/channels/3?message=9')
+      await useOrganizationStore().load()
+      expect(useOrganizationStore().activeId).toBe(1)
+      expect(localStorage.getItem(ORGANIZATION_STORAGE_KEY)).toBe('1')
+    })
+
+    it.each(['abc', '0', '-2', '2.5', ''])('drops an invalid value (%s) without changing the organization', async (value) => {
+      localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+      mockApi()
+      const router = setup()
+      await router.push({ path: '/channels/3', query: { thread: '4', organization: value } })
+      expect(router.currentRoute.value.fullPath).toBe('/channels/3?thread=4')
+      await useOrganizationStore().load()
+      expect(useOrganizationStore().activeId).toBe(1)
+    })
+
+    it('with organizations already loaded, switches before entering the route', async () => {
+      localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+      mockApi()
+      const router = setup()
+      await router.push('/')
+      const organization = useOrganizationStore()
+      await organization.load()
+      expect(organization.activeId).toBe(1)
+      let activeOnEnter: number | null = null
+      router.afterEach(() => {
+        activeOnEnter = organization.activeId
+      })
+      await router.push('/projects/5/plan?task=7&organization=2')
+      expect(activeOnEnter).toBe(2)
+      expect(router.currentRoute.value.fullPath).toBe('/projects/5/plan?task=7')
+    })
+
+    it('survives the login redirect and applies after signing in', async () => {
+      const get = mockApi()
+      const router = setup()
+      await router.push('/projects/5/plan?task=7&organization=2')
+      expect(router.currentRoute.value.name).toBe('login')
+      const redirect = safeRedirect(router.currentRoute.value.query.redirect)
+      expect(redirect).toBe('/projects/5/plan?task=7&organization=2')
+      expect(get).not.toHaveBeenCalled()
+
+      vi.spyOn(api, 'post').mockResolvedValue({ token: 'abc', user })
+      await useAuthStore().login('t@e.com', 'secret')
+      await router.push(redirect!)
+      expect(router.currentRoute.value.fullPath).toBe('/projects/5/plan?task=7')
+      await useOrganizationStore().load()
+      expect(useOrganizationStore().activeId).toBe(2)
     })
   })
 

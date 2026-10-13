@@ -86,7 +86,7 @@ it('stores the in-app row with ids and short texts and sends the mail in the ass
     App::setLocale($previous);
 
     expect($mail->subject)->toBe('Ana te asignó POSVE-3')
-        ->and($mail->actionUrl)->toBe(config('app.frontend_url')."/projects/{$this->project->id}/plan?task=7")
+        ->and($mail->actionUrl)->toBe(config('app.frontend_url')."/projects/{$this->project->id}/plan?task=7&organization={$this->organization->id}")
         ->and($mail->actionText)->toBe('Ver tarea');
 });
 

@@ -90,7 +90,7 @@ it('stores the thread root of a reply and links the mail to the thread', functio
 
     expect($row->data['parent_id'])->toBe($root->id)
         ->and($notification->toMail($this->ana)->actionUrl)
-        ->toBe(config('app.frontend_url')."/channels/{$this->channel->id}?thread={$root->id}");
+        ->toBe(config('app.frontend_url')."/channels/{$this->channel->id}?thread={$root->id}&organization={$this->organization->id}");
 });
 
 it('sends the mail in the recipient locale with the message link', function () {
@@ -103,7 +103,7 @@ it('sends the mail in the recipient locale with the message link', function () {
     App::setLocale($previous);
 
     expect($mail->subject)->toBe('Author te mencionó en #POSVE')
-        ->and($mail->actionUrl)->toBe(config('app.frontend_url')."/channels/{$this->channel->id}?message=9");
+        ->and($mail->actionUrl)->toBe(config('app.frontend_url')."/channels/{$this->channel->id}?message=9&organization={$this->organization->id}");
 });
 
 it('notifies in a channel without project with a null project_id', function () {

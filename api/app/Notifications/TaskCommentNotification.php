@@ -79,7 +79,7 @@ abstract class TaskCommentNotification extends Notification implements ShouldQue
         return (new MailMessage)
             ->subject($this->mailSubject())
             ->line($this->mailLine())
-            ->action(__('View task'), rtrim(config('app.frontend_url'), '/')."/projects/{$this->projectId}/plan?task={$this->taskId}");
+            ->action(__('View task'), rtrim(config('app.frontend_url'), '/')."/projects/{$this->projectId}/plan?task={$this->taskId}&organization={$this->organizationId}");
     }
 
     protected function isAssigneeOrCreator(User $user): bool
