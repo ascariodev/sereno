@@ -75,5 +75,5 @@ la convención documentada para que los tests nuevos caigan en su carpeta. Orige
 
 ## Mejoras propuestas
 - [x] M-1: Buscar el test de Chat que acumula memoria (payload de 6MB en `Request.php:471`) y liberar lo retenido, para poder bajar el `memory_limit` de `phpunit.xml`. Complejidad: media · Archivos: 1-3 · sin riesgo → sonnet
-- [ ] M-2: Activar `opcache.enable_cli` en `api/docker/php/Dockerfile` (solo desarrollo y tests) para bajar la base de memoria de la suite, que hoy crece con cada código compilado nuevo. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [x] M-2: Activar `opcache.enable_cli` en `api/docker/php/Dockerfile` (solo desarrollo y tests) para bajar la base de memoria de la suite, que hoy crece con cada código compilado nuevo. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-3: Rechazar el cuerpo de ingesta demasiado grande antes de decodificar el JSON (hoy `IngestEventsRequest::authorize` decodifica antes de comprobar `MAX_BODY_BYTES`, también en producción). Complejidad: media · Archivos: 2 · Riesgo: integración externa (endpoint de ingesta) → sonnet
