@@ -39,14 +39,14 @@ function cleanupTask(Project $project, int $number): Task
     return $task;
 }
 
-function cleanupNotify(Model $subject, ?User $user = null): AppNotification
+function cleanupNotify(Model $subject, ?User $user = null, NotificationType $type = NotificationType::TaskAssigned): AppNotification
 {
     $row = new AppNotification;
     $row->forceFill([
         'uuid' => fake()->uuid(),
         'organization_id' => $subject->organization_id,
         'user_id' => ($user ?? test()->recipient)->id,
-        'type' => NotificationType::TaskAssigned->value,
+        'type' => $type->value,
         'subject_type' => $subject::class,
         'subject_id' => $subject->id,
         'data' => [],
@@ -118,9 +118,9 @@ it('deletes the notifications of a deleted message and keeps those of its replie
     $reply->save();
     DB::table('messages')->where('id', $root->id)->update(['replies_count' => 1]);
     $other = Message::factory()->for($channel)->create(['kind' => Message::KIND_USER, 'user_id' => $this->admin->id, 'body' => 'other']);
-    cleanupNotify($root);
-    $keptReply = cleanupNotify($reply);
-    $keptOther = cleanupNotify($other);
+    cleanupNotify($root, null, NotificationType::ChatMention);
+    $keptReply = cleanupNotify($reply, null, NotificationType::ChatMention);
+    $keptOther = cleanupNotify($other, null, NotificationType::ChatMention);
 
     cleanupAs("/api/channels/{$channel->id}/messages/{$root->id}")->assertOk();
 

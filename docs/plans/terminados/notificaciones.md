@@ -235,7 +235,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-13: En `SyncChatMentionNotification::handleCreated`, capturar y reportar un fallo al encolar para que no dé 500 al POST con el
       mensaje ya guardado. (revisor, fase 6)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-14: Que `ChatMentionNotification::shouldSend` mire también `deleted_at` del mensaje, para no depender de que `MessageDeletion`
+- [x] M-14: Que `ChatMentionNotification::shouldSend` mire también `deleted_at` del mensaje, para no depender de que `MessageDeletion`
       vacíe las menciones antes; y que `NotificationSubjectCleanupTest` use una fila `chat_mention` real en el caso del mensaje. (revisor, fase 8)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-15: Test de worker (preferencia de email apagada tras encolar) también para `ChatMentionNotification` y las de comentarios,

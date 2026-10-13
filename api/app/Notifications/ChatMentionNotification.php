@@ -87,7 +87,13 @@ class ChatMentionNotification extends Notification implements ShouldQueue
             ->where('user_id', $notifiable->id)
             ->exists();
 
-        if (! $stillMentioned) {
+        $messageAlive = Message::query()
+            ->withoutGlobalScopes()
+            ->whereKey($this->messageId)
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if (! $stillMentioned || ! $messageAlive) {
             return false;
         }
 
