@@ -15,7 +15,6 @@ import LogView from '../views/LogView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import MembersView from '../views/MembersView.vue'
-import MentionsView from '../views/MentionsView.vue'
 import NotificationsView from '../views/NotificationsView.vue'
 import PlanView from '../views/PlanView.vue'
 import ProjectsView from '../views/ProjectsView.vue'
@@ -42,7 +41,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         children: [
           { path: '', name: 'projects', component: ProjectsView },
           { path: 'notifications', name: 'notifications', component: NotificationsView },
-          { path: 'mentions', name: 'mentions', component: MentionsView },
+          { path: 'mentions', redirect: { name: 'notifications' } },
           { path: 'channels/:id', name: 'channel', component: ChannelView },
           { path: 'projects/:projectId/log', name: 'project-log', component: LogView },
           { path: 'projects/:projectId/plan', name: 'project-plan', component: PlanView },

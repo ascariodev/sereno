@@ -93,6 +93,15 @@ describe('router guard', () => {
     expect(router.currentRoute.value.query.group).toBe('3')
   })
 
+  it('the old mentions route redirects to notifications', async () => {
+    localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
+    vi.spyOn(api, 'get').mockResolvedValue({ data: user })
+    const router = setup()
+    await router.push('/mentions')
+    expect(router.currentRoute.value.name).toBe('notifications')
+    expect(router.currentRoute.value.path).toBe('/notifications')
+  })
+
   it('an invalid token (401 clears the session) redirects to login', async () => {
     localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
     const router = setup()

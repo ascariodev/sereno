@@ -291,22 +291,6 @@ export interface MessageDeletedEvent {
   root: RootCounters
 }
 
-/** One row of the mention inbox (`MentionResource`); `id` is the mention's, not the message's. */
-export interface Mention {
-  id: number
-  /** ISO timestamp; null while unread. */
-  read_at: string | null
-  created_at: string
-  message: Message
-  channel: { id: number; name: string; project_id: number }
-  /** Root message id when the mention is in a reply; null otherwise. */
-  parent_id: number | null
-}
-
-export interface MentionPage extends CursorPage<Mention> {
-  meta: { next_cursor: string | null; unread_count: number }
-}
-
 interface NotificationBase {
   id: number
   project_id: number | null

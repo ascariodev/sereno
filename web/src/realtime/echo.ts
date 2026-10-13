@@ -10,8 +10,6 @@ export const PROJECT_ACCESS_CHANGED_EVENT = '.project.access_changed'
 export const TASK_ASSIGNED_EVENT = '.task.assigned'
 export const MESSAGE_UPDATED_EVENT = '.message.updated'
 export const MESSAGE_DELETED_EVENT = '.message.deleted'
-export const MENTION_CREATED_EVENT = '.mention.created'
-export const MENTION_REMOVED_EVENT = '.mention.removed'
 export const NOTIFICATION_CREATED_EVENT = '.notification.created'
 export const TASK_CREATED_EVENT = '.task.created'
 export const TASK_UPDATED_EVENT = '.task.updated'
@@ -30,7 +28,6 @@ export interface RealtimePayload {
   channel_id?: number
   parent_id?: number | null
   id?: number
-  message_id?: number
   deleted_at?: string
   root?: MessageDeletedEvent['root']
   task?: Partial<Task>
@@ -41,20 +38,6 @@ export interface RealtimePayload {
   task_id?: number
   granted?: boolean
   last_used_at?: string
-}
-
-export interface MentionCreatedPayload {
-  organizationId: number
-  channelId: number
-  parentId: number | null
-  message: Message
-}
-
-export interface MentionRemovedPayload {
-  organizationId: number
-  channelId: number
-  parentId: number | null
-  messageId: number
 }
 
 export interface NotificationCreatedPayload {
@@ -370,8 +353,6 @@ export interface UserSubscriptionHandlers {
   onRoleChanged?: (organizationId: number, role: string) => void
   onProjectAccessChanged?: (organizationId: number, projectId: number, granted: boolean) => void
   onTaskAssigned?: (organizationId: number, projectId: number, taskId: number) => void
-  onMention?: (mention: MentionCreatedPayload) => void
-  onMentionRemoved?: (mention: MentionRemovedPayload) => void
   onNotificationCreated?: (payload: NotificationCreatedPayload) => void
 }
 
@@ -381,8 +362,6 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
     onRoleChanged = () => {},
     onProjectAccessChanged = () => {},
     onTaskAssigned = () => {},
-    onMention = () => {},
-    onMentionRemoved = () => {},
     onNotificationCreated = () => {},
   } = handlers
   const events = [
@@ -390,8 +369,6 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
     MEMBERSHIP_ROLE_CHANGED_EVENT,
     PROJECT_ACCESS_CHANGED_EVENT,
     TASK_ASSIGNED_EVENT,
-    MENTION_CREATED_EVENT,
-    MENTION_REMOVED_EVENT,
     NOTIFICATION_CREATED_EVENT,
   ]
   return subscribe(userChannelName(userId), events, (event, data) => {
@@ -407,19 +384,6 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
       if (typeof data.project_id === 'number' && typeof data.task_id === 'number') {
         onTaskAssigned(data.organization_id, data.project_id, data.task_id)
       }
-    } else if (event === MENTION_CREATED_EVENT) {
-      const { message, channel_id: channelId, parent_id: parentId } = data
-      if (typeof message?.id !== 'number' || typeof channelId !== 'number') return
-      onMention({ organizationId: data.organization_id, channelId, parentId: typeof parentId === 'number' ? parentId : null, message })
-    } else if (event === MENTION_REMOVED_EVENT) {
-      const { message_id: messageId, channel_id: channelId, parent_id: parentId } = data
-      if (typeof messageId !== 'number' || typeof channelId !== 'number') return
-      onMentionRemoved({
-        organizationId: data.organization_id,
-        channelId,
-        parentId: typeof parentId === 'number' ? parentId : null,
-        messageId,
-      })
     } else if (event === NOTIFICATION_CREATED_EVENT) {
       if (typeof data.notification !== 'object' || data.notification === null) return
       onNotificationCreated({ organizationId: data.organization_id, notification: data.notification })

@@ -26,7 +26,6 @@ async function mountAt(path: string) {
     routes: [
       { path: '/', name: 'projects', component: stub },
       { path: '/notifications', name: 'notifications', component: stub },
-      { path: '/mentions', name: 'mentions', component: stub },
       { path: '/channels/:id', name: 'channel', component: stub },
       { path: '/projects/:projectId/log', name: 'project-log', component: stub },
       { path: '/projects/:projectId/plan', name: 'project-plan', component: stub },
