@@ -27,17 +27,23 @@ const orgs = [
   { id: 2, name: 'Two', slug: 'two', settings: null, roles: ['member'] },
 ]
 
+const channel = { id: 7, project_id: 5, name: 'general', project: { id: 5, name: 'posveapi', key: 'POSVE' }, is_archived: false }
+
 let projectExtra: Record<string, unknown> = {}
 let notificationsUnread = 0
 
 function sidebarData(path: string, withChannel = true): unknown {
   if (path === '/api/projects') return { data: [{ ...project, ...projectExtra }], meta: { last_page: 1 } }
-  if (path === '/api/channels') return withChannel ? { data: [{ id: 7, project_id: 5, name: 'general', project: { id: 5, name: 'posveapi' }, is_archived: false }] } : { data: [] }
+  if (path === '/api/channels') return withChannel ? { data: [channel] } : { data: [] }
+  if (path === '/api/channels/7') return { data: channel }
   if (path === '/api/me/notification-preferences') {
     return { data: { email: { task_assigned: true, task_comment_mention: true, task_commented: true, chat_mention: true } } }
   }
   if (path === '/api/notifications') return { data: [], meta: { next_cursor: null, unread_count: notificationsUnread } }
   if (path === '/api/channels/7/messages') return { data: [], meta: { next_cursor: null } }
+  if (path === '/api/projects/5/log-groups') return { data: [], links: {}, meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 } }
+  if (path === '/api/projects/5/tasks') return { data: [], meta: { done_total: 0, has_more_done: false } }
+  if (path === '/api/auth/registration') return { enabled: false }
   return undefined
 }
 
@@ -75,9 +81,13 @@ async function mountApp(
   localStorage.setItem(TOKEN_STORAGE_KEY, 'abc')
   const pinia = createPinia()
   setActivePinia(pinia)
-  vi.spyOn(api, 'get').mockImplementation(async (url: string) =>
-    sidebarData(url, withChannel) ?? (url === '/api/me' ? { data: user } : ((await organizations()) as never)),
-  )
+  vi.spyOn(api, 'get').mockImplementation(async (url: string) => {
+    const data = sidebarData(url, withChannel)
+    if (data !== undefined) return data as never
+    if (url === '/api/me') return { data: user } as never
+    if (url === '/api/organizations') return (await organizations()) as never
+    throw new Error(`Unmocked GET ${url}`)
+  })
   const router = createAppRouter(createMemoryHistory())
   await router.push(path)
   await router.isReady()

@@ -194,8 +194,6 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ## Notas para la próxima sesión
 - Tras el merge, `docker compose restart queue`.
 - Antes de desplegar: poner las `MAIL_*` en el `.env` del servidor de cada ambiente (ver `api/docker-compose.prod.yml`).
-- Al mergear con `main`: otra sesión subió a `main` (3d319aa) un arreglo de `AppLayout.spec.ts` (mock estricto de `api.get`: todo GET
-  nuevo al montar el layout, como el de notificaciones, va en `sidebarData`) y una lección L-73 propia; renumerar las L-73 a L-75 de esta rama.
 - Último de los tres planes. La fase 10 toca `api/docker-compose.yml`, que hoy tiene cambios sin commit de otra sesión.
 
 ## Mejoras propuestas
