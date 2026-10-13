@@ -3,9 +3,12 @@
 use App\Enums\NotificationType;
 use App\Enums\Role;
 use App\Models\AppNotification;
+use App\Models\Channel;
+use App\Models\Message;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
 use App\Notifications\ChatMentionNotification;
@@ -14,6 +17,7 @@ use App\Notifications\TaskCommentedNotification;
 use App\Notifications\TaskCommentMentionNotification;
 use App\Support\CurrentOrganization;
 use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
 
@@ -89,6 +93,49 @@ it('skips the mail at execution when email was turned off after queueing', funct
     $sent = Event::dispatched(NotificationSent::class)->map(fn (array $args) => $args[0]->channel)->sort()->values()->all();
     expect($sent)->toBe([AppChannel::class])->and(AppNotification::query()->where('user_id', $this->user->id)->count())->toBe(1);
 });
+
+it('decides the mail channel in the worker from the current preference for every type', function (string $type) {
+    $organization = Organization::factory()->create();
+    $actor = User::factory()->create();
+    $organization->addMember($actor, [Role::Member]);
+    $organization->addMember($this->user, [Role::Member]);
+    $project = Project::factory()->for($organization)->create(['key' => 'POSVE']);
+    $channel = Channel::factory()->for($project)->create();
+    assignMembersToAllProjects();
+    app(CurrentOrganization::class)->set($organization);
+    $task = tap(new Task(['title' => 'T', 'status' => 'todo', 'position' => 1.0]), function (Task $task) use ($project, $actor) {
+        $task->project_id = $project->id;
+        $task->number = 1;
+        $task->assignee_id = $this->user->id;
+        $task->created_by = $actor->id;
+        $task->save();
+        $task->setRelation('project', $project);
+    });
+    $comment = tap(new TaskComment(['body' => 'x']), function (TaskComment $comment) use ($task, $actor) {
+        $comment->task_id = $task->id;
+        $comment->user_id = $actor->id;
+        $comment->save();
+    });
+    DB::table('task_comment_mentions')->insert([
+        'organization_id' => $organization->id, 'task_comment_id' => $comment->id, 'user_id' => $this->user->id, 'created_at' => now(),
+    ]);
+    $message = Message::factory()->for($channel)->create(['user_id' => $actor->id]);
+    DB::table('message_mentions')->insert([
+        'organization_id' => $organization->id, 'message_id' => $message->id, 'user_id' => $this->user->id, 'created_at' => now(),
+    ]);
+    $notification = match ($type) {
+        NotificationType::TaskAssigned->value => TaskAssignedNotification::for($task, $actor),
+        NotificationType::TaskCommentMention->value => new TaskCommentMentionNotification($organization->id, $project->id, $task->id, 'POSVE-1', 'T', $comment->id, 'x', $actor->id, 'A'),
+        NotificationType::TaskCommented->value => new TaskCommentedNotification($organization->id, $project->id, $task->id, 'POSVE-1', 'T', $comment->id, 'x', $actor->id, 'A'),
+        NotificationType::ChatMention->value => new ChatMentionNotification($organization->id, $project->id, $channel->id, $channel->name, $message->id, null, 'x', $actor->id, 'A'),
+    };
+    $this->user->update(['notification_preferences' => ['email' => [$type => false]]]);
+    expect($notification->shouldSend($this->user->fresh(), 'mail'))->toBeFalse()
+        ->and($notification->shouldSend($this->user->fresh(), AppChannel::class))->toBeTrue();
+
+    $this->user->update(['notification_preferences' => ['email' => [$type => true]]]);
+    expect($notification->shouldSend($this->user->fresh(), 'mail'))->toBeTrue();
+})->with(array_column(NotificationType::cases(), 'value'));
 
 function preferenceNotifications(): array
 {

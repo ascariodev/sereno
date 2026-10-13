@@ -142,10 +142,51 @@ describe('organization store', () => {
     it('once loaded, selects right away and ignores a non member id', async () => {
       const store = setup()
       await store.load()
-      store.activateFromLink(99)
+      await store.activateFromLink(99)
       expect(store.activeId).toBe(1)
-      store.activateFromLink(2)
+      await store.activateFromLink(2)
       expect(store.activeId).toBe(2)
+    })
+
+    it('once loaded, an id missing from the list reloads it once and activates the new membership', async () => {
+      const store = setup()
+      await store.load()
+      const get = vi.spyOn(api, 'get')
+      get.mockClear()
+      get.mockResolvedValue({ data: [...orgs, { id: 3, name: 'Three', slug: 'three', settings: null, roles: ['member'] }] })
+      await store.activateFromLink(3)
+      expect(get).toHaveBeenCalledTimes(1)
+      expect(store.activeId).toBe(3)
+    })
+
+    it('once loaded, an id still missing after the reload is ignored and not kept for later', async () => {
+      const store = setup()
+      await store.load()
+      const get = vi.spyOn(api, 'get')
+      get.mockClear()
+      await store.activateFromLink(99)
+      expect(get).toHaveBeenCalledTimes(1)
+      expect(store.activeId).toBe(1)
+      store.select(2)
+      await store.load()
+      expect(store.activeId).toBe(2)
+    })
+
+    it('once loaded, a failed reload does not reject', async () => {
+      const store = setup()
+      await store.load()
+      vi.spyOn(api, 'get').mockRejectedValue(new ApiError(503, 'Unavailable'))
+      await expect(store.activateFromLink(99)).resolves.toBeUndefined()
+      expect(store.activeId).toBe(1)
+    })
+
+    it('an id already in the list does not reload', async () => {
+      const store = setup()
+      await store.load()
+      const get = vi.spyOn(api, 'get')
+      get.mockClear()
+      await store.activateFromLink(2)
+      expect(get).not.toHaveBeenCalled()
     })
 
     it('a failed load keeps the link for the retry', async () => {

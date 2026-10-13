@@ -6,6 +6,7 @@ use App\Enums\NotificationType;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
+use App\Support\MailMarkdown;
 use App\Support\ProjectAccess;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -83,9 +84,9 @@ class TaskAssignedNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject(__(':actor assigned you :task', ['actor' => $this->actorName, 'task' => $this->taskKey]))
             ->line(__(':actor assigned you the task :task: :title', [
-                'actor' => $this->actorName,
+                'actor' => MailMarkdown::escape($this->actorName),
                 'task' => $this->taskKey,
-                'title' => $this->taskTitle,
+                'title' => MailMarkdown::escape($this->taskTitle),
             ]))
             ->action(__('View task'), rtrim(config('app.frontend_url'), '/')."/projects/{$this->projectId}/plan?task={$this->taskId}&organization={$this->organizationId}");
     }

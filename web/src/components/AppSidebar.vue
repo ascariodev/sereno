@@ -128,7 +128,7 @@ function currentFor(projectId: number): 'page' | undefined {
       <AppTooltip :text="t('sidebar.notifications')" side="right" :disabled="!collapsed">
         <RouterLink
           :to="{ name: 'notifications' }"
-          class="app-sidebar__link app-sidebar__mentions"
+          class="app-sidebar__link app-sidebar__notifications"
           :aria-label="collapsed ? notificationsLabel : undefined"
         >
           <Bell :size="17" aria-hidden="true" />
@@ -386,7 +386,7 @@ function currentFor(projectId: number): 'page' | undefined {
   text-align: center;
 }
 
-.app-sidebar--collapsed .app-sidebar__mentions,
+.app-sidebar--collapsed .app-sidebar__notifications,
 .app-sidebar--collapsed .app-sidebar__project {
   position: relative;
 }

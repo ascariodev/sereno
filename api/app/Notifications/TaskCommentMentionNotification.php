@@ -31,7 +31,7 @@ class TaskCommentMentionNotification extends TaskCommentNotification
     protected function mailLine(): string
     {
         return __(':actor mentioned you in a comment on :task: :excerpt', [
-            'actor' => $this->actorName,
+            'actor' => MailMarkdown::escape($this->actorName),
             'task' => $this->taskKey,
             'excerpt' => MailMarkdown::escape($this->excerpt),
         ]);

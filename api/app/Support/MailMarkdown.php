@@ -5,11 +5,11 @@ namespace App\Support;
 class MailMarkdown
 {
     /**
-     * Backslash-escapes the Markdown punctuation of user text placed in a MailMessage line, which is rendered as
-     * Markdown (a `[x](url)` would become a link). `&`, `<` and `>` are left alone: Blade already escapes them.
+     * Backslash-escapes only what forms emphasis, links, images or inline HTML in user text placed in a MailMessage
+     * line, which is rendered as Markdown. The plain-text part of the mail shows these backslashes, so nothing else is escaped.
      */
     public static function escape(string $text): string
     {
-        return preg_replace_callback('/[\\\\`*_\[\]()#+\-.!|{}~=]/', fn (array $match) => '\\'.$match[0], $text);
+        return preg_replace_callback('/[\\\\*_\[\]()<>]|!(?=\[)/', fn (array $match) => '\\'.$match[0], $text);
     }
 }

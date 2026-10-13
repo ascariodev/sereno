@@ -340,6 +340,21 @@ describe('notifications store', () => {
       expect(list).toHaveBeenCalledTimes(1)
     })
 
+    it('a mark all does not mark as read a row that arrived live during the request', async () => {
+      vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValue(page([notification(1)], 1))
+      const mark = deferred<number>()
+      vi.spyOn(notificationsApi, 'markNotificationsRead').mockReturnValue(mark.promise)
+      const { listeners, store } = startLive()
+      await vi.waitFor(() => expect(store.loaded).toBe(true))
+      const result = store.markAllRead()
+      emitter(listeners)(live(1, 2))
+      mark.resolve(1)
+      await result
+      expect(store.notifications.find((n) => n.id === 1)?.read_at).not.toBeNull()
+      expect(store.notifications.find((n) => n.id === 2)?.read_at).toBeNull()
+      expect(store.unreadCount).toBe(1)
+    })
+
     it('does not duplicate nor count twice a live notification already loaded or received', async () => {
       vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValue(page([notification(1)], 1))
       const { listeners, store } = startLive()

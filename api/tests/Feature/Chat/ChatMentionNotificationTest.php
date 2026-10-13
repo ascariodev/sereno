@@ -11,12 +11,15 @@ use App\Models\Project;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
 use App\Notifications\ChatMentionNotification;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Mail\Markdown;
 use Illuminate\Notifications\ChannelManager;
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\Sanctum;
@@ -164,6 +167,15 @@ it('does not send when the mention was removed or the access lost before the wor
     expect(AppNotification::query()->withoutGlobalScopes()->count())->toBe(0)->and(chatMentionChannelsSent())->toBe([]);
 })->with(['mention', 'project', 'organization']);
 
+it('does not send when the message was deleted but its mention row is still there', function () {
+    $notification = chatMentionNotificationFor($this->ana);
+    DB::table('messages')->where('id', $notification->messageId)->update(['deleted_at' => now()]);
+
+    $this->ana->notifyNow($notification);
+
+    expect(AppNotification::query()->withoutGlobalScopes()->count())->toBe(0)->and(chatMentionChannelsSent())->toBe([]);
+});
+
 it('does not send in a channel without project once the user left the organization', function () {
     $channel = Channel::factory()->create(['project_id' => null, 'organization_id' => $this->organization->id, 'name' => 'GENERAL']);
     $notification = chatMentionNotificationFor($this->ana, $channel);
@@ -200,4 +212,44 @@ it('renders the excerpt in the mail as plain text, not markdown', function () {
     expect($html)->toContain('[x](http://evil.test) **b**')
         ->not->toContain('href="http://evil.test"')
         ->not->toContain('<strong>b</strong>');
+});
+
+it('escapes only link, image and html syntax, so the plain-text part stays readable', function () {
+    $notification = new ChatMentionNotification(
+        $this->organization->id, $this->project->id, $this->channel->id, 'POSVE', 9, null, 'v1.2 - ok! ![i](http://evil.test/a.png) <b>x</b> [x](http://evil.test)', $this->author->id, 'Author',
+    );
+
+    $mail = $notification->toMail($this->ana);
+    $text = (string) app(Markdown::class)->renderText($mail->markdown, $mail->data());
+    $html = (string) $mail->render();
+
+    expect($text)->toContain('v1.2 - ok! \!\[i\]\(http://evil.test/a.png\) \<b\>x\</b\> \[x\]\(http://evil.test\)')
+        ->and($html)->not->toContain('src="http://evil.test')->not->toContain('<b>x</b>')->not->toContain('href="http://evil.test"');
+});
+
+it('renders actor and channel name in the mail as plain text, leaving the subject unescaped', function () {
+    $notification = new ChatMentionNotification(
+        $this->organization->id, $this->project->id, $this->channel->id, '[c](http://evil.test)', 9, null, 'hi', $this->author->id, '[a](http://evil.test)',
+    );
+
+    $mail = $notification->toMail($this->ana);
+    $html = (string) $mail->render();
+
+    expect($html)->toContain('[a](http://evil.test)')->toContain('#[c](http://evil.test)')
+        ->not->toContain('href="http://evil.test"')
+        ->and($mail->subject)->toContain('[a](http://evil.test)');
+});
+
+it('reports a failed notification without failing the message post', function () {
+    Exceptions::fake();
+    DB::listen(function (QueryExecuted $query) {
+        if (str_starts_with($query->sql, 'insert into "notifications"')) {
+            throw new RuntimeException('notify down');
+        }
+    });
+
+    $message = postChatMention("hi <@{$this->ana->id}>");
+
+    Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'notify down');
+    expect($message->exists)->toBeTrue();
 });

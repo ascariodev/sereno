@@ -2,17 +2,12 @@
 
 namespace App\Http\Requests\Notification;
 
-use App\Http\Requests\Channel\ListMessagesRequest;
+use App\Http\Requests\CursorPaginatedRequest;
 
-class ListNotificationsRequest extends ListMessagesRequest
+class ListNotificationsRequest extends CursorPaginatedRequest
 {
     public function authorize(): bool
     {
         return true;
-    }
-
-    public function rules(): array
-    {
-        return array_diff_key(parent::rules(), ['around' => true]);
     }
 }

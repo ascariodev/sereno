@@ -26,7 +26,7 @@ class TaskCommentedNotification extends TaskCommentNotification
     protected function mailLine(): string
     {
         return __(':actor commented on your task :task: :excerpt', [
-            'actor' => $this->actorName,
+            'actor' => MailMarkdown::escape($this->actorName),
             'task' => $this->taskKey,
             'excerpt' => MailMarkdown::escape($this->excerpt),
         ]);

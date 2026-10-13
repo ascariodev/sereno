@@ -1,5 +1,6 @@
 <?php
 
+use App\Events\NotificationCreated;
 use App\Models\AppNotification;
 use App\Models\Channel;
 use App\Models\Message;
@@ -45,6 +46,7 @@ beforeEach(function () {
     $this->project = Project::factory()->for($this->organization)->create();
     $this->message = Message::factory()->for(Channel::factory()->for($this->project))->create();
     $this->user = User::factory()->create();
+    $this->organization->users()->attach($this->user);
 });
 
 it('stores the notification with its organization, project and subject', function () {
@@ -90,10 +92,21 @@ it('rejects a project from another organization', function () {
 
 it('scopes notifications to the active organization', function () {
     $other = Organization::factory()->create();
+    $other->users()->attach($this->user);
     $this->user->notify(new AppChannelTestNotification($this->organization->id, null, $this->message));
     $this->user->notify(new AppChannelTestNotification($other->id, null, $this->message));
 
     expect(AppNotification::query()->pluck('organization_id')->all())->toBe([$this->organization->id]);
+});
+
+it('stores nothing and broadcasts nothing for a user who is not a member of the organization', function () {
+    Event::fake([NotificationCreated::class]);
+    $outsider = User::factory()->create();
+
+    $outsider->notify(new AppChannelTestNotification($this->organization->id, null, $this->message));
+
+    expect(AppNotification::query()->withoutGlobalScopes()->count())->toBe(0);
+    Event::assertNotDispatched(NotificationCreated::class);
 });
 
 it('removes the notifications when their project is deleted', function () {
@@ -102,4 +115,19 @@ it('removes the notifications when their project is deleted', function () {
     $this->project->delete();
 
     expect(AppNotification::query()->count())->toBe(0);
+});
+
+it('exposes the app notifications through the Notifiable relation', function () {
+    $this->user->notify(new AppChannelTestNotification($this->organization->id, null, $this->message));
+    $stranger = User::factory()->create();
+    $this->organization->users()->attach($stranger);
+    $stranger->notify(new AppChannelTestNotification($this->organization->id, null, $this->message));
+
+    expect($this->user->notifications()->count())->toBe(1)
+        ->and($this->user->notifications()->sole())->toBeInstanceOf(AppNotification::class);
+});
+
+it('rejects the database-channel read helpers of Notifiable', function () {
+    expect(fn () => $this->user->unreadNotifications())->toThrow(LogicException::class)
+        ->and(fn () => $this->user->readNotifications())->toThrow(LogicException::class);
 });

@@ -178,10 +178,12 @@ it('does not send a comment notice when the user is no longer assignee or creato
 
 it('renders the comment excerpt in the mail as plain text, not markdown', function (string $class) {
     $notification = new $class(
-        $this->organization->id, $this->project->id, 7, 'POSVE-3', 'Fix it', 1, '[x](http://evil.test) **b**', $this->author->id, 'Ana',
+        $this->organization->id, $this->project->id, 7, 'POSVE-3', 'Fix it', 1, '[x](http://evil.test) **b**', $this->author->id, '[a](http://evil.test)',
     );
 
     $html = (string) $notification->toMail($this->assignee)->render();
+
+    expect($html)->toContain('[a](http://evil.test)');
 
     expect($html)->toContain('[x](http://evil.test) **b**')
         ->not->toContain('href="http://evil.test"')

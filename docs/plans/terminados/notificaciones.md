@@ -205,52 +205,66 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-2: Notificaciones push (PWA y móvil), del paso 9 del MVP.
       Complejidad: alta · Archivos: 8+ · Riesgo: integración externa → plan nuevo
-- [ ] M-3: Sobrescribir en `User` `notifications()` (hasMany `AppNotification`) y hacer que `unreadNotifications()`/`readNotifications()`
+- [x] M-3: Sobrescribir en `User` `notifications()` (hasMany `AppNotification`) y hacer que `unreadNotifications()`/`readNotifications()`
       lancen, para que el trait `Notifiable` no deje consultas a columnas `notifiable_*` inexistentes. (revisor, fase 1)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-4: Decidir si `AppChannel` comprueba que el destinatario es miembro de la organización, en vez de dejarlo a cada emisor. (revisor, fase 1)
+- [x] M-4: Decidir si `AppChannel` comprueba que el destinatario es miembro de la organización, en vez de dejarlo a cada emisor. (revisor, fase 1)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-5: Recortar el docblock de `AppChannel` a lo no obvio del contrato `toApp`. (revisor, fase 1)
+- [x] M-5: Recortar el docblock de `AppChannel` a lo no obvio del contrato `toApp`. (revisor, fase 1)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-6: `ListNotificationsRequest` extiende `ListMessagesRequest` (y hereda `around()` sin uso): extraer una base o trait común
+- [x] M-6: `ListNotificationsRequest` extiende `ListMessagesRequest` (y hereda `around()` sin uso): extraer una base o trait común
       de cursor y `per_page` para no acoplar la bandeja al chat. (revisor, fase 2)
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-7: Corregir el docblock de `TaskCommentController` (~línea 183) que dice que las menciones de comentarios no notifican. (revisor, fase 5)
+- [x] M-7: Corregir el docblock de `TaskCommentController` (~línea 183) que dice que las menciones de comentarios no notifican. (revisor, fase 5)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-8: Notificar las menciones nuevas al editar un comentario (`TaskCommentUpdated`). (implementador, fase 5)
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-9: `TaskCommentNotification::isAssigneeOrCreator` hace una consulta por destinatario en el worker; pasar el estado ya cargado. (revisor, fase 5)
+- [x] M-9: `TaskCommentNotification::isAssigneeOrCreator` hace una consulta por destinatario en el worker; pasar el estado ya cargado. (revisor, fase 5)
+      Descartada: en cola cada canal y destinatario es un job con su propia instancia, así que una caché no ahorra consultas,
+      y pasar el estado desde el listener lo congelaría al encolar (L-70).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-10: Cerrar el hueco entre `shouldSend` y el insert de `AppChannel` (una mención quitada justo ahí deja la fila) con un insert
       condicionado o un índice único parcial por (user, type, subject). (implementador y revisor, fase 6)
       Complejidad: media · Archivos: 3 · Riesgo: migración → opus
-- [ ] M-11: Reducir el conjunto de `MailMarkdown::escape` a lo que forma enlaces e imágenes (`\ ` * _ [ ] ( ) < >`, `!` antes de `[`):
+- [x] M-11: Reducir el conjunto de `MailMarkdown::escape` a lo que forma enlaces e imágenes (`\ ` * _ [ ] ( ) < >`, `!` antes de `[`):
       la parte de texto plano del correo muestra las barras; con test de `renderText`. (revisor, fase 6)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-12: Escapar también en las líneas del correo los nombres de actor y canal y los títulos de tarea (`TaskAssignedNotification`
+- [x] M-12: Escapar también en las líneas del correo los nombres de actor y canal y los títulos de tarea (`TaskAssignedNotification`
       incluida), no en el asunto. (implementador y revisor, fase 6)
       Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
-- [ ] M-13: En `SyncChatMentionNotification::handleCreated`, capturar y reportar un fallo al encolar para que no dé 500 al POST con el
+- [x] M-13: En `SyncChatMentionNotification::handleCreated`, capturar y reportar un fallo al encolar para que no dé 500 al POST con el
       mensaje ya guardado. (revisor, fase 6)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-14: Que `ChatMentionNotification::shouldSend` mire también `deleted_at` del mensaje, para no depender de que `MessageDeletion`
+- [x] M-14: Que `ChatMentionNotification::shouldSend` mire también `deleted_at` del mensaje, para no depender de que `MessageDeletion`
       vacíe las menciones antes; y que `NotificationSubjectCleanupTest` use una fila `chat_mention` real en el caso del mensaje. (revisor, fase 8)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-15: Test de worker (preferencia de email apagada tras encolar) también para `ChatMentionNotification` y las de comentarios,
+- [x] M-15: Test de worker (preferencia de email apagada tras encolar) también para `ChatMentionNotification` y las de comentarios,
       parametrizado. (revisor, fase 9)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-16: En las instrucciones de Mailpit de `CLAUDE.md`, quitar el `up -d mailpit` redundante, reiniciar también `reverb` y
+- [x] M-16: En las instrucciones de Mailpit de `CLAUDE.md`, quitar el `up -d mailpit` redundante, reiniciar también `reverb` y
       `scheduler` (cargan el `.env`) y quitar `MAIL_SCHEME=null` del bloque. (revisor, fase 10)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-17: Las filas que el API borra (fases 7 y 8) siguen en la lista de la web: en el refresh tras reconectar, reemplazar las filas
       con `id` >= el menor de la página, o un evento `notification.removed`. (revisor, fase 12)
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-18: `markAllRead` marca como leídas también las filas llegadas en vivo durante la petición, que el servidor quizá no marcó:
+- [x] M-18: `markAllRead` marca como leídas también las filas llegadas en vivo durante la petición, que el servidor quizá no marcó:
       restringir a las que había al lanzarla. (revisor, fase 12)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-19: Renombrar la clase `app-sidebar__mentions` (enlace de notificaciones y su CSS de posición colapsada) a
+- [x] M-19: Renombrar la clase `app-sidebar__mentions` (enlace de notificaciones y su CSS de posición colapsada) a
       `app-sidebar__notifications` en `AppSidebar.vue`. (revisor, fase 14)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-21: En `activateFromLink`, si las organizaciones ya están cargadas y el id no está, recargar la lista una vez (miembro recién
+- [x] M-21: En `activateFromLink`, si las organizaciones ya están cargadas y el id no está, recargar la lista una vez (miembro recién
       invitado con la lista vieja); y tests del guard para `?organization=abc` y el parámetro repetido. (revisor, fase 17)
       Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
+- [ ] M-22: Envolver en `whileLoadingSession` la recarga de organizaciones que hace el guard al abrir un enlace con `?organization=`
+      de una organización que no estaba en la lista, para que no quede la pantalla congelada si el servidor tarda. (revisor, M-21)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-23: Ampliar el test de `MailMarkdown::escape` con un autolink `<http://evil.test>` y una URL suelta (que no salga `href`),
+      para detectar si algún día se suma la extensión de autolinks de GFM. (revisor, M-11)
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-24: Escapar con `MailMarkdown::escape` el nombre de la organización y del que invita en las líneas de `InvitationNotification`. (implementador, M-12)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-25: Mismo try/catch con `report` en `SyncChatMentionNotification::handleRemoved` (corre tras el commit, un fallo da 500 con el cambio guardado). (revisor, M-13)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-26: El test de `task_assigned` con `notifyNow` de `NotificationPreferencesTest` (~línea 72) queda enmascarado por `via()` (L-77): quitarlo o pasarlo a `shouldSend` directo. (revisor, M-15)
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet

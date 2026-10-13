@@ -209,7 +209,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     try {
       const count = await markNotificationsRead({ all: true })
       if (current !== generation) return true
-      setReadAt(new Set(notifications.value.filter((row) => row.read_at === null).map((row) => row.id)), readAt)
+      setReadAt(flipped, readAt)
       setUnread(count)
       readAllAt = readAt
       readAllVersion++
