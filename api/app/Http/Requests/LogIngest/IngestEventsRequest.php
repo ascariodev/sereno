@@ -20,13 +20,6 @@ class IngestEventsRequest extends FormRequest
     /** 100 events of 8 KB + 32 KB is about 4 MB; the margin covers JSON overhead. */
     public const MAX_BODY_BYTES = 5 * 1024 * 1024;
 
-    public function authorize(): bool
-    {
-        abort_if(strlen($this->getContent()) > self::MAX_BODY_BYTES, 413, __('The request body is too large.'));
-
-        return true;
-    }
-
     public function rules(): array
     {
         return [

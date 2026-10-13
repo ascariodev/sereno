@@ -99,6 +99,7 @@
 - L-63: Un endpoint que guarda un registro y sus filas hijas (menciones, adjuntos) lo hace en un `DB::transaction`, como `MessageController`, con un test que fuerza el fallo de las hijas y afirma que no queda el registro. — aplicada en: test (TaskCommentMentionsTest)
 - L-64: Una corrida de tests del API sobre un montaje de Docker Desktop se valida por la cuenta, no solo por "sin fallos": el montaje truncó el listado de `tests/Feature` y Pest corrió 8 tests con salida 0. Tras agregar archivos de test, `pest --list-tests | wc -l`. — aplicada en: tests-por-modulo
 - L-65: Un editor en línea que reemplaza un elemento con `v-if` enfoca su campo al abrirse y, al cerrarse, devuelve el foco al botón que lo abrió (con `nextTick`); si no, el foco cae al `body`. Si la acción borra el elemento, el foco va al vecino o al encabezado, calculado antes de quitarlo. — aplicada en: comentarios-editar-contador fases 12 y 13
+- L-71: Antes de mover una validación "antes de decodificar", confirmar quién decodifica primero: en Laravel los middleware globales de transformación de entrada (`TrimStrings`, `ConvertEmptyStringsToNull`) leen el JSON antes que el Form Request, así que el corte va en un middleware global y por `Content-Length`. — aplicada en: tests-por-modulo M-3
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

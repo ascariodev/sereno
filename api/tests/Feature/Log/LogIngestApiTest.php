@@ -167,6 +167,22 @@ it('rejects an oversized body with a translated 413', function () {
         ->assertJsonPath('message', 'El cuerpo de la petición es demasiado grande.');
 });
 
+it('rejects an oversized body without an API key before authenticating', function () {
+    Queue::fake();
+
+    $body = '{"events":[{"level":"error","message":"'.str_repeat('a', IngestEventsRequest::MAX_BODY_BYTES).'"}]}';
+    $server = $this->transformHeadersToServerVars([
+        'Accept-Language' => 'es',
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json',
+    ]);
+
+    $this->call('POST', '/api/ingest/events', server: $server, content: $body)
+        ->assertStatus(413)
+        ->assertHeader('Content-Language', 'es')
+        ->assertJsonPath('message', 'El cuerpo de la petición es demasiado grande.');
+});
+
 it('translates validation errors', function () {
     postIngest(['events' => [validEvent(['context' => 'x'])]], 'es')
         ->assertUnprocessable()
