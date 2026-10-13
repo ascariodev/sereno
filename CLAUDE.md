@@ -102,6 +102,9 @@ Transversal: Docker de desarrollo y stacks de producción del API y la web (plan
 (`.gitea/workflows/deploy-api.yml` y `deploy-web.yml`) hechos. Integración simple de sistemas Laravel (plan
 `integracion-simple`) hecha: paquete `ascariodev/sereno-laravel` en Packagist (repo hermano `../sereno-laravel`),
 `composer require` + `php artisan sereno:install <key>`, variables `SERENO_KEY`/`SERENO_URL`.
+Notificaciones (plan `notificaciones`) hechas: bandeja in-app en vivo (`/notifications`, reemplaza a la de menciones) y
+email inmediato con preferencias por tipo (tarea asignada, mención o comentario en tarea, mención en el chat). Tabla
+`notifications` propia con canal `app`; en producción el correo necesita las `MAIL_*` en el `.env` del servidor.
 
 (No confundir con las fases de un plan de `docs/plans/`.)
 
