@@ -10,13 +10,9 @@ use Illuminate\Notifications\Notification;
 use InvalidArgumentException;
 
 /**
- * Stores in-app notifications with their tenant, unlike Laravel's `database` channel.
- *
- * The notification implements `toApp(User $notifiable): array` returning `type`, `organization_id`,
- * `subject` (the model it refers to), and optionally `project_id` and `data`. The organization is explicit
- * because queued notifications run without an active one. Retries are idempotent: the row is keyed by the
- * notification id, which Laravel fixes per notifiable before queuing; `NotificationCreated` goes out only when
- * the row was inserted, so a retry does not announce it twice.
+ * `toApp(User $notifiable): array` returns `type`, `organization_id` (explicit: queued notifications have no
+ * active one), `subject` (model) and optionally `project_id` and `data`. Idempotent per notification id:
+ * `NotificationCreated` goes out only when the row was inserted.
  */
 class AppChannel
 {
