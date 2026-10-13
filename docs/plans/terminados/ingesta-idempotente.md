@@ -103,9 +103,10 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 - Fase 4 hecha: `IngestLogEvents` con `$tries = 3`, `backoff [5, 30]`. Al desplegar: vaciar la cola de ingesta antes (lotes encolados sin id no están protegidos) y `docker compose restart queue` (el worker no recarga código). Siguiente: poda de recibos (fase 5). Al terminar, marcar M-5 de `docs/plans/terminados/log.md`.
 
 ## Mejoras propuestas
-- [ ] M-1: Mencionar el único `log_sources_id_organization_id_unique` también en la entrada de `log_sources` de `.claude/rules/database.md`. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-2: Test de concurrencia de `LogEventRecorder::record` con dos conexiones reales y el mismo id (como `MessageDeleteConcurrencyTest`, L-41): el segundo worker descarta tras el commit del primero. Complejidad: media · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-3: Test de ids repetidos dentro de un mismo lote (se graba uno solo y `accepted` cuenta los enviados). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-4: Comentario breve sobre `$tries` en `IngestLogEvents` que diga que el reintento es seguro por los recibos de evento. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [x] M-1: Mencionar el único `log_sources_id_organization_id_unique` también en la entrada de `log_sources` de `.claude/rules/database.md`. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [x] M-2: Test de concurrencia de `LogEventRecorder::record` con dos conexiones reales y el mismo id (como `MessageDeleteConcurrencyTest`, L-41): el segundo worker descarta tras el commit del primero. Complejidad: media · Archivos: 1 · sin riesgo → sonnet
+- [x] M-3: Test de ids repetidos dentro de un mismo lote (se graba uno solo y `accepted` cuenta los enviados). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [x] M-4: Comentario breve sobre `$tries` en `IngestLogEvents` que diga que el reintento es seguro por los recibos de evento. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [x] M-5: En `sereno-laravel`: afirmar el formato UUID en el test del `id` y agregar un test de que el `id` llega en el payload del `Http::post` del handler. Complejidad: baja · Archivos: 1-2 · sin riesgo → sonnet
-- [ ] M-6: Test del salto del reintento cuando queda menos de `MIN_RETRY_SECONDS` en `sereno-laravel`, y reflowar la sección "Fallback channel" del README. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
+- [x] M-6: Test del salto del reintento cuando queda menos de `MIN_RETRY_SECONDS` en `sereno-laravel`, y reflowar la sección "Fallback channel" del README. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
+- [ ] M-7: En `sereno-laravel`, inyectar un reloj en `SerenoLogHandler` para que el test de "sin tiempo para reintentar" no duerma ~9,5 s reales (hoy alarga la suite del paquete a ~23 s). Complejidad: baja · Archivos: 2 · sin riesgo → sonnet

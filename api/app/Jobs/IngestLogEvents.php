@@ -19,6 +19,7 @@ class IngestLogEvents implements ShouldBeEncrypted, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
+    // Retrying is safe: every event already stored has a receipt in log_event_receipts and is skipped.
     public int $tries = 3;
 
     /** @var list<int> */
