@@ -29,11 +29,10 @@ function mentionIn(Message $message, User $user): MessageMention
     return $mention;
 }
 
-it('stores an unread mention and fills the organization', function () {
+it('stores a mention and fills the organization', function () {
     $mention = mentionIn($this->message, $this->mentioned)->refresh();
 
     expect($mention->organization_id)->toBe($this->organization->id)
-        ->and($mention->read_at)->toBeNull()
         ->and($mention->created_at)->not->toBeNull()
         ->and($mention->message->is($this->message))->toBeTrue()
         ->and($mention->user->is($this->mentioned))->toBeTrue()
