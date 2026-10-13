@@ -2,7 +2,7 @@
 
 **Objetivo:** que reintentar la ingesta de log (el job en la cola o el POST del cliente) no duplique eventos ni sume de más en
 los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `docs/plans/terminados/log.md`.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -26,7 +26,7 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 
 ## Fases
 
-### [ ] Fase 1 — Tabla de recibos de evento
+### [x] Fase 1 — Tabla de recibos de evento
 - **Alcance:** migración de `log_event_receipts` (`organization_id`, `log_source_id`, `event_id` string(64), `received_at`),
   único `(log_source_id, event_id)` e índice por `received_at` para podarla; FK compuestas según `database.md`. Modelo si
   hace falta. Documentar la tabla en `.claude/rules/database.md`. Sin uso todavía.
@@ -82,7 +82,10 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 - 2026-10-12 — El id es opcional en el contrato y el servidor pone uno si falta: los clientes viejos siguen funcionando y los
   reintentos del job quedan cubiertos siempre; los reenvíos HTTP solo se deduplican si el cliente manda id.
 
+- 2026-10-12 — Fase 1: se agregó a `log_sources` el único `(id, organization_id)` (`log_sources_id_organization_id_unique`) como destino de la FK compuesta de los recibos (patrón `messages_parent_fk`); `received_at` es `timestamp` sin precisión.
+
 ## Notas para la próxima sesión
-- Plan nuevo. Al terminar, marcar M-5 de `docs/plans/terminados/log.md`.
+- Fase 1 hecha: `log_event_receipts` creada; el modelo `LogEventReceipt` tiene `$guarded = ['*']`, así que la fase 2 inserta con SQL crudo y `ON CONFLICT DO NOTHING`. Plan nuevo. Al terminar, marcar M-5 de `docs/plans/terminados/log.md`.
 
 ## Mejoras propuestas
+- [ ] M-1: Mencionar el único `log_sources_id_organization_id_unique` también en la entrada de `log_sources` de `.claude/rules/database.md`. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
