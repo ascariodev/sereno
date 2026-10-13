@@ -2,6 +2,7 @@ import {
   createRouter,
   createWebHistory,
   type RouteLocationNormalized,
+  type Router,
   type RouterHistory,
 } from 'vue-router'
 import { ApiError } from '../api/client'
@@ -35,10 +36,10 @@ function linkedOrganizationId(value: unknown): number | null {
 }
 
 /** Consumes `?organization=<id>` (email links): activates it before the view loads and drops it from the URL. */
-async function withoutLinkedOrganization(to: RouteLocationNormalized) {
+async function withoutLinkedOrganization(router: Router, to: RouteLocationNormalized) {
   if (!(ORGANIZATION_QUERY in to.query)) return null
   const id = linkedOrganizationId(to.query[ORGANIZATION_QUERY])
-  if (id !== null) await useOrganizationStore().activateFromLink(id)
+  if (id !== null) await whileLoadingSession(router, () => useOrganizationStore().activateFromLink(id))
   const query = { ...to.query }
   delete query[ORGANIZATION_QUERY]
   return { path: to.path, query, hash: to.hash, replace: true }
@@ -99,7 +100,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
         }
       }
     }
-    return (await withoutLinkedOrganization(to)) ?? true
+    return (await withoutLinkedOrganization(router, to)) ?? true
   })
 
   return router

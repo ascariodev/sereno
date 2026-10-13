@@ -227,6 +227,19 @@ it('escapes only link, image and html syntax, so the plain-text part stays reada
         ->and($html)->not->toContain('src="http://evil.test')->not->toContain('<b>x</b>')->not->toContain('href="http://evil.test"');
 });
 
+it('renders autolinks and bare urls in the excerpt without an href', function () {
+    $notification = new ChatMentionNotification(
+        $this->organization->id, $this->project->id, $this->channel->id, 'POSVE', 9, null, '<http://evil.test> http://evil2.test www.evil3.test', $this->author->id, 'Author',
+    );
+
+    $html = (string) $notification->toMail($this->ana)->render();
+
+    expect($html)->toContain('http://evil.test')->toContain('http://evil2.test')
+        ->not->toContain('href="http://evil.test')
+        ->not->toContain('href="http://evil2.test')
+        ->not->toContain('href="http://www.evil3.test');
+});
+
 it('renders actor and channel name in the mail as plain text, leaving the subject unescaped', function () {
     $notification = new ChatMentionNotification(
         $this->organization->id, $this->project->id, $this->channel->id, '[c](http://evil.test)', 9, null, 'hi', $this->author->id, '[a](http://evil.test)',
@@ -252,4 +265,18 @@ it('reports a failed notification without failing the message post', function ()
 
     Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'notify down');
     expect($message->exists)->toBeTrue();
+});
+
+it('reports a failed notification delete without failing the message edit', function () {
+    $message = postChatMention("hi <@{$this->ana->id}>");
+    Exceptions::fake();
+    DB::listen(function (QueryExecuted $query) {
+        if (str_starts_with($query->sql, 'delete from "notifications"')) {
+            throw new RuntimeException('delete down');
+        }
+    });
+
+    chatMentionCall('PATCH', "/api/channels/{$this->channel->id}/messages/{$message->id}", ['body' => 'no mention'])->assertOk();
+
+    Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'delete down');
 });

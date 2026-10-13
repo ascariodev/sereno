@@ -253,18 +253,20 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-19: Renombrar la clase `app-sidebar__mentions` (enlace de notificaciones y su CSS de posición colapsada) a
       `app-sidebar__notifications` en `AppSidebar.vue`. (revisor, fase 14)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-20: Migración que quita la columna sin uso `message_mentions.read_at` (la bandeja de menciones se retiró en la fase 15). (revisor, fase 15)
+      Complejidad: alta · Archivos: 2 · Riesgo: esquema de BD → opus
 - [x] M-21: En `activateFromLink`, si las organizaciones ya están cargadas y el id no está, recargar la lista una vez (miembro recién
       invitado con la lista vieja); y tests del guard para `?organization=abc` y el parámetro repetido. (revisor, fase 17)
       Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
-- [ ] M-22: Envolver en `whileLoadingSession` la recarga de organizaciones que hace el guard al abrir un enlace con `?organization=`
+- [x] M-22: Envolver en `whileLoadingSession` la recarga de organizaciones que hace el guard al abrir un enlace con `?organization=`
       de una organización que no estaba en la lista, para que no quede la pantalla congelada si el servidor tarda. (revisor, M-21)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-23: Ampliar el test de `MailMarkdown::escape` con un autolink `<http://evil.test>` y una URL suelta (que no salga `href`),
+- [x] M-23: Ampliar el test de `MailMarkdown::escape` con un autolink `<http://evil.test>` y una URL suelta (que no salga `href`),
       para detectar si algún día se suma la extensión de autolinks de GFM. (revisor, M-11)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-24: Escapar con `MailMarkdown::escape` el nombre de la organización y del que invita en las líneas de `InvitationNotification`. (implementador, M-12)
+- [x] M-24: Escapar con `MailMarkdown::escape` el nombre de la organización y del que invita en las líneas de `InvitationNotification`. (implementador, M-12)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-25: Mismo try/catch con `report` en `SyncChatMentionNotification::handleRemoved` (corre tras el commit, un fallo da 500 con el cambio guardado). (revisor, M-13)
+- [x] M-25: Mismo try/catch con `report` en `SyncChatMentionNotification::handleRemoved` (corre tras el commit, un fallo da 500 con el cambio guardado). (revisor, M-13)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-26: El test de `task_assigned` con `notifyNow` de `NotificationPreferencesTest` (~línea 72) queda enmascarado por `via()` (L-77): quitarlo o pasarlo a `shouldSend` directo. (revisor, M-15)
+- [x] M-26: El test de `task_assigned` con `notifyNow` de `NotificationPreferencesTest` (~línea 72) queda enmascarado por `via()` (L-77): quitarlo o pasarlo a `shouldSend` directo. (revisor, M-15)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet

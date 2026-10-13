@@ -322,6 +322,15 @@ it('links the invitation email to the frontend and no longer shows the token', f
         ->and(implode(' ', $mail->introLines))->not->toContain('tok123');
 });
 
+it('renders the organization name in the invitation mail as plain text, leaving the subject unescaped', function () {
+    $mail = (new InvitationNotification('[o](http://evil.test)', 'member', 'tok'))->toMail(new AnonymousNotifiable);
+    $html = (string) $mail->render();
+
+    expect($html)->toContain('[o](http://evil.test)')
+        ->not->toContain('href="http://evil.test"')
+        ->and($mail->subject)->toContain('[o](http://evil.test)');
+});
+
 function createPreviewInvitation(Organization $organization, User $inviter, array $attributes = []): Invitation
 {
     return Invitation::factory()->withPlainToken('plain')->create([
