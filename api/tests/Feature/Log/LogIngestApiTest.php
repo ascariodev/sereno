@@ -2,11 +2,13 @@
 
 use App\Http\Requests\LogIngest\IngestEventsRequest;
 use App\Jobs\IngestLogEvents;
+use App\Models\LogEvent;
 use App\Models\LogGroup;
 use App\Models\LogSource;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Providers\AppServiceProvider;
+use App\Support\LogEventRecorder;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -216,8 +218,37 @@ it('throttles per source with 429', function () {
     postIngest(['events' => [validEvent()]])->assertTooManyRequests();
 });
 
-it('tries the job only once', function () {
-    expect((new IngestLogEvents(1, []))->tries)->toBe(1);
+it('retries the job three times with backoff', function () {
+    $job = new IngestLogEvents(1, []);
+
+    expect($job->tries)->toBe(3)->and($job->backoff)->toBe([5, 30]);
+});
+
+it('records only the missing events when the job is retried after a mid-batch failure', function () {
+    $events = [
+        validEvent(['id' => 'evt-1']),
+        validEvent(['id' => 'evt-2']),
+        validEvent(['id' => 'evt-3', 'message' => 'Other']),
+    ];
+    $failures = 0;
+    LogEvent::creating(function () use (&$failures) {
+        if (DB::table('log_events')->count() === 1 && $failures++ === 0) {
+            throw new RuntimeException('transient');
+        }
+    });
+
+    $job = new IngestLogEvents($this->source->id, $events);
+
+    expect(fn () => $job->handle(app(LogEventRecorder::class)))->toThrow(RuntimeException::class);
+    expect(DB::table('log_events')->count())->toBe(1)
+        ->and(DB::table('log_event_receipts')->count())->toBe(1);
+
+    $job->handle(app(LogEventRecorder::class));
+
+    expect(DB::table('log_events')->count())->toBe(3)
+        ->and(DB::table('log_event_receipts')->count())->toBe(3)
+        ->and(LogGroup::query()->withoutGlobalScopes()->where('title', 'Boom')->value('events_count'))->toBe(2)
+        ->and(LogGroup::query()->withoutGlobalScopes()->where('title', 'Other')->value('events_count'))->toBe(1);
 });
 
 it('translates the null character error', function () {

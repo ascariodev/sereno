@@ -2,7 +2,7 @@
 
 **Objetivo:** que reintentar la ingesta de log (el job en la cola o el POST del cliente) no duplique eventos ni sume de más en
 los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `docs/plans/terminados/log.md`.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -11,7 +11,7 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 - Apps afectadas: `api/` y el repo hermano `../sereno-laravel` (paquete `ascariodev/sereno-laravel`, último tag v0.2.1,
   con 4 commits sin publicar). Los commits del monorepo van con `git` en la raíz; los del paquete, en su repo.
 - Flujo actual: `POST /api/ingest/events` (`log.source`, `throttle:log-ingest`) → `LogIngestController::store` normaliza
-  y despacha **un** `IngestLogEvents` por lote (`$tries = 1`, ShouldBeEncrypted) → `LogEventRecorder::record()` por evento,
+  y despacha **un** `IngestLogEvents` por lote (`$tries = 3` con backoff desde la fase 4, ShouldBeEncrypted) → `LogEventRecorder::record()` por evento,
   cada uno en su `DB::transaction`: upsert de `log_groups` (`ON CONFLICT (project_id, fingerprint)`, `events_count+1`,
   `RETURNING old.status`), insert en `log_events` y `LogGroupOpened`/`LogGroupReopened` tras el commit.
 - `log_events` está particionada por día (`received_at`, PK `(id, received_at)`, retención 30 días por particiones en
@@ -50,7 +50,7 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 - **Terminado cuando:** tests en `LogIngestApiTest`: el mismo lote con ids enviado dos veces (cola sync) graba una vez; un
   lote sin ids recibe ids en el job; un id inválido da 422.
 
-### [ ] Fase 4 — Reintentos del job de ingesta
+### [x] Fase 4 — Reintentos del job de ingesta
 - **Alcance:** `IngestLogEvents` pasa a `$tries = 3` con `backoff`; con los recibos, un reintento tras fallo parcial salta
   los eventos ya grabados y graba el resto. Revisar que `PostLogGroupNotice` no se duplique (solo se emite en eventos nuevos).
 - **Archivos:** `api/app/Jobs/IngestLogEvents.php`
@@ -88,10 +88,13 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 
 - 2026-10-12 — Fase 3: `events.*.id` va después de `message` en las reglas (si va antes, `validated()` reordena el lote); un id vacío se vuelve null y recibe UUID. El `id` del contrato se documenta en el README del paquete (fase 6).
 
+- 2026-10-12 — Fase 4: un error permanente en un evento hace fallar el lote tras 3 intentos (los anteriores se conservan, los posteriores no se graban); aceptable porque la API valida el lote antes de encolar. `PostLogGroupNotice` mantiene `$tries = 1` (L-07): no se duplica, pero un fallo suyo pierde el aviso.
+
 ## Notas para la próxima sesión
-- Fase 3 hecha: cada evento llega al job con `id` (el enviado o un UUID). La fase 4 solo cambia `$tries`/`backoff` del job y prueba el fallo parcial. Al terminar, marcar M-5 de `docs/plans/terminados/log.md`.
+- Fase 4 hecha: `IngestLogEvents` con `$tries = 3`, `backoff [5, 30]`. Al desplegar: vaciar la cola de ingesta antes (lotes encolados sin id no están protegidos) y `docker compose restart queue` (el worker no recarga código). Siguiente: poda de recibos (fase 5). Al terminar, marcar M-5 de `docs/plans/terminados/log.md`.
 
 ## Mejoras propuestas
 - [ ] M-1: Mencionar el único `log_sources_id_organization_id_unique` también en la entrada de `log_sources` de `.claude/rules/database.md`. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-2: Test de concurrencia de `LogEventRecorder::record` con dos conexiones reales y el mismo id (como `MessageDeleteConcurrencyTest`, L-41): el segundo worker descarta tras el commit del primero. Complejidad: media · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-3: Test de ids repetidos dentro de un mismo lote (se graba uno solo y `accepted` cuenta los enviados). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
+- [ ] M-4: Comentario breve sobre `$tries` en `IngestLogEvents` que diga que el reintento es seguro por los recibos de evento. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
