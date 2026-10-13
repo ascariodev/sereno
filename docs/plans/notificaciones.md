@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -35,7 +35,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ### [x] Fase 4 — Notificación de tarea asignada
 - Al crear o reasignar, si el asignado no es quien actúa. Canales `app` y `mail`, textos en `lang/*.json`. 3-4 archivos.
 
-### [ ] Fase 5 — Notificaciones de comentarios
+### [x] Fase 5 — Notificaciones de comentarios
 - Listener de `TaskCommentCreated`: mención a los mencionados; "comentario en tu tarea" a asignado y creador que no
   sean el autor ni estén mencionados (sin duplicar). 4-5 archivos.
 
@@ -119,6 +119,12 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   asignada exige que la tarea exista, siga asignada al destinatario y este vea el proyecto. Las fases 7 y 8 solo limpian filas ya creadas.
 - 2026-10-13 (fase 4): `User` implementa `HasLocalePreference` (`preferredLocale()` = `locale?->value`): las notificaciones toman el
   idioma del destinatario solas; un `->locale()` explícito (invitaciones) sigue mandando.
+- 2026-10-13 (fase 5): listener en cola `NotifyTaskCommentRecipients` (`tries = 1`, L-07; autodescubierto) sobre `TaskCommentCreated`,
+  con los datos del payload del evento. Tipos `task_comment_mention` y `task_commented` (base abstracta `TaskCommentNotification`),
+  subject el `TaskComment`, `data` `{task_id, task_key, task_title, comment_id, comment_excerpt (140 car., <@id> → @Nombre solo con
+  los mencionados del comentario), actor_id, actor_name}`. Mención: los de `mentions` del evento. Comentado: asignado y creador sin
+  repetir, sin el autor ni los mencionados. `shouldSend`: comentario existe, ve el proyecto, y la mención sigue (o sigue siendo
+  asignado o creador). El mail enlaza a la tarea (la web no admite parámetro de comentario). Editar un comentario no notifica menciones nuevas.
 
 ## Notas para la próxima sesión
 - Fase 12: el cliente ignora `notification.created` si `organization_id` no es la organización activa y fusiona por `id`.
@@ -140,3 +146,9 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [ ] M-6: `ListNotificationsRequest` extiende `ListMessagesRequest` (y hereda `around()` sin uso): extraer una base o trait común
       de cursor y `per_page` para no acoplar la bandeja al chat. (revisor, fase 2)
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
+- [ ] M-7: Corregir el docblock de `TaskCommentController` (~línea 183) que dice que las menciones de comentarios no notifican. (revisor, fase 5)
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-8: Notificar las menciones nuevas al editar un comentario (`TaskCommentUpdated`). (implementador, fase 5)
+      Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
+- [ ] M-9: `TaskCommentNotification::isAssigneeOrCreator` hace una consulta por destinatario en el worker; pasar el estado ya cargado. (revisor, fase 5)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

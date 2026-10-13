@@ -288,5 +288,9 @@
     "Only users with the member role can be removed from a project.": "Only users with the member role can be removed from a project.",
     ":actor assigned you :task": ":actor assigned you :task",
     ":actor assigned you the task :task: :title": ":actor assigned you the task :task: :title",
-    "View task": "View task"
+    "View task": "View task",
+    ":actor mentioned you in :task": ":actor mentioned you in :task",
+    ":actor mentioned you in a comment on :task: :excerpt": ":actor mentioned you in a comment on :task: :excerpt",
+    ":actor commented on :task": ":actor commented on :task",
+    ":actor commented on your task :task: :excerpt": ":actor commented on your task :task: :excerpt"
 }
