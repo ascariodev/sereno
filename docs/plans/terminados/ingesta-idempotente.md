@@ -109,4 +109,4 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 - [x] M-4: Comentario breve sobre `$tries` en `IngestLogEvents` que diga que el reintento es seguro por los recibos de evento. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [x] M-5: En `sereno-laravel`: afirmar el formato UUID en el test del `id` y agregar un test de que el `id` llega en el payload del `Http::post` del handler. Complejidad: baja · Archivos: 1-2 · sin riesgo → sonnet
 - [x] M-6: Test del salto del reintento cuando queda menos de `MIN_RETRY_SECONDS` en `sereno-laravel`, y reflowar la sección "Fallback channel" del README. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
-- [ ] M-7: En `sereno-laravel`, inyectar un reloj en `SerenoLogHandler` para que el test de "sin tiempo para reintentar" no duerma ~9,5 s reales (hoy alarga la suite del paquete a ~23 s). Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
+- [x] M-7: En `sereno-laravel`, inyectar un reloj en `SerenoLogHandler` para que el test de "sin tiempo para reintentar" no duerma ~9,5 s reales (hoy alarga la suite del paquete a ~23 s). Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
