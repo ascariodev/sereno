@@ -2,7 +2,7 @@
 
 **Objetivo:** bandeja de notificaciones in-app en vivo y email inmediato (con preferencias por tipo) para: tarea asignada,
 mención en comentario, comentario en una tarea propia (asignada o creada) y mención en el chat. La bandeja reemplaza a la de menciones.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -19,7 +19,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 
 ## Fases
 
-### [ ] Fase 1 — Tabla de notificaciones y canal propio [riesgo]
+### [x] Fase 1 — Tabla de notificaciones y canal propio [riesgo]
 - **Alcance:** tabla `notifications` (uuid, organization_id, user_id, project_id nullable, type, subject_type + subject_id
   para poder borrarlas, data jsonb, read_at, created_at; índice `(user_id, organization_id, read_at)`), modelo y un
   canal de notificación propio (`app`) que escribe en ella, en lugar del canal `database` de Laravel que no lleva tenant.
@@ -87,8 +87,20 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   API, desde la raíz del checkout principal (solo lectura), con
   `WT="$(cd .claude/worktrees/notificaciones/api && pwd -W)" && MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps -T -e APP_KEY="base64:$(head -c 32 /dev/urandom | base64)" -e DB_DATABASE=workspace_test -v "$WT:/var/www/api" api php artisan test --compact <archivos>`
   (igual con `./vendor/bin/pint --test -q`). Nunca leer ni montar `.env` (L-52).
+- 2026-10-13 (fase 1): tabla `notifications` con PK `id` bigint (cursor de la fase 2) y columna `uuid` única con el id de la
+  `Notification` de Laravel (`database.md` prohíbe PK UUID); `AppChannel` inserta con `insertOrIgnore`, así un reintento no duplica.
+  Columnas: `uuid`, `organization_id`, `user_id`, `project_id` (nullable, FK compuesta `(project_id, organization_id)` con cascade),
+  `type` string(64), `subject_type` (clase del modelo, sin morph map), `subject_id`, `data` jsonb (siempre objeto), `read_at`, `created_at`.
+  Índices `(user_id, organization_id, read_at)`, `(subject_type, subject_id)`, `project_id`. `App\Models\AppNotification` usa
+  `BelongsToOrganization`, relaciones `user`, `project`, `subject`. Contrato: `via()` devuelve `AppChannel::class` y la notificación
+  implementa `toApp(User $notifiable): array` con `type`, `organization_id` y `subject` (Model) obligatorios, `project_id` y `data`
+  opcionales; `organization_id` explícito porque en la cola no hay organización activa. Falta algo obligatorio o destinatario no `User`:
+  `InvalidArgumentException`. El canal no comprueba membresía: la comprueba cada emisor.
+- 2026-10-13 (fase 1): `User::notifications()` del trait `Notifiable` apunta a esta tabla con columnas `notifiable_*` inexistentes;
+  documentado en `database.md` como "no usarlo" (ver M-3).
 
 ## Notas para la próxima sesión
+- Fase 2: la bandeja lee `AppNotification` (no `$user->notifications()`), con cursor sobre `id`.
 - Último de los tres planes. La fase 10 toca `api/docker-compose.yml`, que hoy tiene cambios sin commit de otra sesión.
 
 ## Mejoras propuestas
@@ -96,3 +108,10 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-2: Notificaciones push (PWA y móvil), del paso 9 del MVP.
       Complejidad: alta · Archivos: 8+ · Riesgo: integración externa → plan nuevo
+- [ ] M-3: Sobrescribir en `User` `notifications()` (hasMany `AppNotification`) y hacer que `unreadNotifications()`/`readNotifications()`
+      lancen, para que el trait `Notifiable` no deje consultas a columnas `notifiable_*` inexistentes. (revisor, fase 1)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-4: Decidir si `AppChannel` comprueba que el destinatario es miembro de la organización, en vez de dejarlo a cada emisor. (revisor, fase 1)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-5: Recortar el docblock de `AppChannel` a lo no obvio del contrato `toApp`. (revisor, fase 1)
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
