@@ -201,6 +201,26 @@ it('drops its row when the project access is lost after shouldSend passed but be
     Event::assertNotDispatched(NotificationCreated::class);
 });
 
+it('drops its row in a channel without project when the user leaves the organization right after the insert', function () {
+    $channel = Channel::factory()->create(['project_id' => null, 'organization_id' => $this->organization->id, 'name' => 'GENERAL']);
+    $notification = chatMentionNotificationFor($this->ana, $channel);
+    $notification->id = (string) Str::uuid();
+    Event::fake([NotificationCreated::class]);
+    $left = false;
+    DB::listen(function (QueryExecuted $query) use (&$left) {
+        if (! $left && str_starts_with($query->sql, 'insert into "notifications"')) {
+            $left = true;
+            $this->organization->removeMember($this->ana);
+        }
+    });
+
+    app(AppChannel::class)->send($this->ana, $notification);
+
+    expect($left)->toBeTrue()
+        ->and(AppNotification::query()->withoutGlobalScopes()->count())->toBe(0);
+    Event::assertNotDispatched(NotificationCreated::class);
+});
+
 it('does not send in a channel without project once the user left the organization', function () {
     $channel = Channel::factory()->create(['project_id' => null, 'organization_id' => $this->organization->id, 'name' => 'GENERAL']);
     $notification = chatMentionNotificationFor($this->ana, $channel);

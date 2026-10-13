@@ -62,8 +62,9 @@ class ChatMentionNotification extends Notification implements RevalidatesAfterIn
 
     /**
      * Runs in the worker for each channel: the mention may have been removed (edit, delete) or the access lost
-     * while the job waited. MentionRemoved deletes the row if the mention goes after it was stored. A mention
-     * removed and added back before the first job ran queues a second one: the row of another job wins.
+     * while the job waited; `stillApplies` checks both again after the insert.
+     * MentionRemoved deletes the row if the mention goes after it was stored. A mention removed and added back
+     * before the first job ran queues a second one: the row of another job wins.
      */
     public function shouldSend(object $notifiable, string $channel): bool
     {
