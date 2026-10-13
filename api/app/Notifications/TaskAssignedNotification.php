@@ -6,6 +6,7 @@ use App\Enums\NotificationType;
 use App\Models\Task;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
+use App\Notifications\Concerns\DelaysMail;
 use App\Support\MailMarkdown;
 use App\Support\ProjectAccess;
 use Illuminate\Bus\Queueable;
@@ -16,6 +17,7 @@ use Illuminate\Support\Str;
 
 class TaskAssignedNotification extends Notification implements ShouldQueue
 {
+    use DelaysMail;
     use Queueable;
 
     private const TITLE_LIMIT = 120;
@@ -45,6 +47,10 @@ class TaskAssignedNotification extends Notification implements ShouldQueue
 
     public function shouldSend(object $notifiable, string $channel): bool
     {
+        if ($this->readInInbox($notifiable, $channel)) {
+            return false;
+        }
+
         if ($channel === 'mail' && ! $notifiable->wantsEmail(NotificationType::TaskAssigned)) {
             return false;
         }

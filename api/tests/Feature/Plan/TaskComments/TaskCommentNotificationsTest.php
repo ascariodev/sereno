@@ -189,3 +189,75 @@ it('renders the comment excerpt in the mail as plain text, not markdown', functi
         ->not->toContain('href="http://evil.test"')
         ->not->toContain('<strong>b</strong>');
 })->with([TaskCommentedNotification::class, TaskCommentMentionNotification::class]);
+
+function editComment(TaskComment $comment, string $body)
+{
+    Sanctum::actingAs(test()->author);
+
+    return test()->withHeader('X-Organization-Id', (string) test()->organization->id)
+        ->patchJson('/api/projects/'.test()->project->id.'/tasks/'.test()->task->id.'/comments/'.$comment->id, ['body' => $body]);
+}
+
+it('notifies only the newly mentioned users when a comment is edited', function () {
+    $other = User::factory()->create();
+    $this->organization->addMember($other, [Role::Member]);
+    assignMembersToAllProjects();
+    $id = commentOnTask("Hi <@{$this->mentioned->id}>")->assertCreated()->json('data.id');
+    Notification::fake();
+
+    editComment(TaskComment::query()->findOrFail($id), "Hi <@{$this->mentioned->id}> and <@{$other->id}> and <@{$this->author->id}>")->assertOk();
+
+    Notification::assertSentToTimes($other, TaskCommentMentionNotification::class, 1);
+    Notification::assertNotSentTo($this->mentioned, TaskCommentMentionNotification::class);
+    Notification::assertNotSentTo($this->author, TaskCommentMentionNotification::class);
+    Notification::assertNotSentTo($this->assignee, TaskCommentedNotification::class);
+    Notification::assertNotSentTo($this->creator, TaskCommentedNotification::class);
+});
+
+it('sends nothing when an edit adds no mention', function () {
+    $id = commentOnTask("Hi <@{$this->mentioned->id}>")->assertCreated()->json('data.id');
+    Notification::fake();
+
+    editComment(TaskComment::query()->findOrFail($id), "Hello <@{$this->mentioned->id}>")->assertOk();
+
+    Notification::assertNothingSent();
+});
+
+it('drops the mention notification when an edit removes the mention', function () {
+    $id = commentOnTask("Hi <@{$this->mentioned->id}> and <@{$this->assignee->id}>")->assertCreated()->json('data.id');
+    expect(AppNotification::query()->withoutGlobalScopes()->where('type', NotificationType::TaskCommentMention->value)->count())->toBe(2);
+    $otherType = AppNotification::query()->withoutGlobalScopes()->where('user_id', $this->mentioned->id)->first()->replicate();
+    $otherType->uuid = (string) Str::uuid();
+    $otherType->type = NotificationType::TaskCommented->value;
+    $otherType->save();
+
+    editComment(TaskComment::query()->findOrFail($id), "Hi <@{$this->assignee->id}>")->assertOk();
+
+    $left = AppNotification::query()->withoutGlobalScopes()->where('type', NotificationType::TaskCommentMention->value)->pluck('user_id')->all();
+    expect($left)->toBe([$this->assignee->id])
+        ->and(AppNotification::query()->withoutGlobalScopes()->where('type', NotificationType::TaskCommented->value)->where('user_id', $this->mentioned->id)->count())->toBe(1);
+});
+
+it('does not send the mention notification after an edit removes the mention', function () {
+    $id = commentOnTask("Hi <@{$this->mentioned->id}>")->assertCreated()->json('data.id');
+    $notification = new TaskCommentMentionNotification(
+        $this->organization->id, $this->project->id, $this->task->id, 'POSVE-3', 'Fix it', $id, 'x', $this->author->id, 'Ana',
+    );
+    expect($notification->shouldSend($this->mentioned->fresh(), 'mail'))->toBeTrue()
+        ->and($notification->shouldSend($this->mentioned->fresh(), AppChannel::class))->toBeTrue();
+
+    editComment(TaskComment::query()->findOrFail($id), 'Plain')->assertOk();
+
+    expect($notification->shouldSend($this->mentioned->fresh(), 'mail'))->toBeFalse()
+        ->and($notification->shouldSend($this->mentioned->fresh(), AppChannel::class))->toBeFalse();
+});
+
+it('notifies a new mention even when the body did not change', function () {
+    $id = commentOnTask("Hi <@{$this->mentioned->id}>")->assertCreated()->json('data.id');
+    DB::table('task_comment_mentions')->where('task_comment_id', $id)->delete();
+    Notification::fake();
+
+    editComment(TaskComment::query()->findOrFail($id), "Hi <@{$this->mentioned->id}>")->assertOk();
+
+    Notification::assertSentToTimes($this->mentioned, TaskCommentMentionNotification::class, 1);
+});

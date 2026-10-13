@@ -127,7 +127,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
   subject el `TaskComment`, `data` `{task_id, task_key, task_title, comment_id, comment_excerpt (140 car., <@id> → @Nombre solo con
   los mencionados del comentario), actor_id, actor_name}`. Mención: los de `mentions` del evento. Comentado: asignado y creador sin
   repetir, sin el autor ni los mencionados. `shouldSend`: comentario existe, ve el proyecto, y la mención sigue (o sigue siendo
-  asignado o creador). El mail enlaza a la tarea (la web no admite parámetro de comentario). Editar un comentario no notifica menciones nuevas.
+  asignado o creador). El mail enlaza a la tarea (la web no admite parámetro de comentario). Editar un comentario notifica solo las menciones nuevas y borra la notificación de las quitadas (M-8).
 - 2026-10-13 (fase 6): tipo `chat_mention`, subject el `Message` (no la fila de `message_mentions`, que cambia en cada edición); la fila de
   un usuario es subject + `user_id`; `project_id` del canal, puede ser null. `data` `{channel_id, channel_name, message_id, parent_id|null,
   message_excerpt (140 car.), actor_id, actor_name}`. Mail a `/channels/{id}?message={id}` o `?thread={parent_id}`, como `MentionsView`.
@@ -201,7 +201,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - Último de los tres planes. La fase 10 toca `api/docker-compose.yml`, que hoy tiene cambios sin commit de otra sesión.
 
 ## Mejoras propuestas
-- [ ] M-1: Retrasar el email unos minutos y no mandarlo si la notificación ya se leyó.
+- [x] M-1: Retrasar el email unos minutos y no mandarlo si la notificación ya se leyó.
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-2: Notificaciones push (PWA y móvil), del paso 9 del MVP.
       Complejidad: alta · Archivos: 8+ · Riesgo: integración externa → plan nuevo
@@ -217,7 +217,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
 - [x] M-7: Corregir el docblock de `TaskCommentController` (~línea 183) que dice que las menciones de comentarios no notifican. (revisor, fase 5)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-8: Notificar las menciones nuevas al editar un comentario (`TaskCommentUpdated`). (implementador, fase 5)
+- [x] M-8: Notificar las menciones nuevas al editar un comentario (`TaskCommentUpdated`). (implementador, fase 5)
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [x] M-9: `TaskCommentNotification::isAssigneeOrCreator` hace una consulta por destinatario en el worker; pasar el estado ya cargado. (revisor, fase 5)
       Descartada: en cola cada canal y destinatario es un job con su propia instancia, así que una caché no ahorra consultas,
@@ -244,7 +244,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-16: En las instrucciones de Mailpit de `CLAUDE.md`, quitar el `up -d mailpit` redundante, reiniciar también `reverb` y
       `scheduler` (cargan el `.env`) y quitar `MAIL_SCHEME=null` del bloque. (revisor, fase 10)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-17: Las filas que el API borra (fases 7 y 8) siguen en la lista de la web: en el refresh tras reconectar, reemplazar las filas
+- [x] M-17: Las filas que el API borra (fases 7 y 8) siguen en la lista de la web: en el refresh tras reconectar, reemplazar las filas
       con `id` >= el menor de la página, o un evento `notification.removed`. (revisor, fase 12)
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [x] M-18: `markAllRead` marca como leídas también las filas llegadas en vivo durante la petición, que el servidor quizá no marcó:
@@ -269,4 +269,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-25: Mismo try/catch con `report` en `SyncChatMentionNotification::handleRemoved` (corre tras el commit, un fallo da 500 con el cambio guardado). (revisor, M-13)
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-26: El test de `task_assigned` con `notifyNow` de `NotificationPreferencesTest` (~línea 72) queda enmascarado por `via()` (L-77): quitarlo o pasarlo a `shouldSend` directo. (revisor, M-15)
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-27: `DelaysMail`: castear a entero no negativo `notifications.mail_delay_minutes`, y documentar `NOTIFICATION_MAIL_DELAY_MINUTES`
+      (`api/.env.example` lo edita el usuario, L-52). (revisor, M-1)
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet

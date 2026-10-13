@@ -10,6 +10,7 @@ use App\Models\Message;
 use App\Models\MessageMention;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
+use App\Notifications\Concerns\DelaysMail;
 use App\Support\MailMarkdown;
 use App\Support\ProjectAccess;
 use Illuminate\Bus\Queueable;
@@ -20,6 +21,7 @@ use Illuminate\Support\Str;
 
 class ChatMentionNotification extends Notification implements ShouldQueue
 {
+    use DelaysMail;
     use Queueable;
 
     private const EXCERPT_LIMIT = 140;
@@ -64,6 +66,10 @@ class ChatMentionNotification extends Notification implements ShouldQueue
      */
     public function shouldSend(object $notifiable, string $channel): bool
     {
+        if ($this->readInInbox($notifiable, $channel)) {
+            return false;
+        }
+
         if ($channel === 'mail' && ! $notifiable->wantsEmail(NotificationType::ChatMention)) {
             return false;
         }

@@ -60,6 +60,36 @@ describe('notifications store', () => {
   })
 
   describe('loading', () => {
+    it('a refresh drops rows deleted in the API within the first page range and keeps older ones loaded by cursor', async () => {
+      const { store } = await loaded([notification(9), notification(8), notification(7), notification(2)], 4)
+      vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValueOnce(page([notification(9), notification(7)], 2, 'c1'))
+      await store.refresh()
+      expect(store.notifications.map((n) => n.id)).toEqual([9, 7, 2])
+    })
+
+    it('a refresh whose page has no next cursor replaces everything loaded', async () => {
+      const { store } = await loaded([notification(3), notification(2), notification(1)], 3)
+      vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValueOnce(page([notification(3)], 1))
+      await store.refresh()
+      expect(store.notifications.map((n) => n.id)).toEqual([3])
+    })
+
+    it('a refresh keeps a row that arrived live after it started', async () => {
+      const fake = createFakeRealtimeClient()
+      setRealtimeClientFactory(() => fake.client)
+      vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValueOnce(page([notification(2), notification(1)], 2))
+      const { store } = setup()
+      store.start(7)
+      await vi.waitFor(() => expect(store.loaded).toBe(true))
+      const pending = deferred<NotificationPage>()
+      vi.spyOn(notificationsApi, 'listNotifications').mockReturnValueOnce(pending.promise)
+      const refreshing = store.refresh()
+      ;(fake.listeners.get(`users.7|${NOTIFICATION_CREATED_EVENT}`) as (data: unknown) => void)(live(1, 5))
+      pending.resolve(page([notification(2), notification(1)], 2))
+      await refreshing
+      expect(store.notifications.map((n) => n.id)).toEqual([5, 2, 1])
+    })
+
     it('loads the first page with its unread count', async () => {
       const list = vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValue(page([notification(3), notification(2, true)], 5, 'c1'))
       const { store } = setup()

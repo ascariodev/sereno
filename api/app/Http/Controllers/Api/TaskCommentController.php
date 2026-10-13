@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\NotificationType;
 use App\Events\TaskCommentCreated;
 use App\Events\TaskCommentDeleted;
 use App\Events\TaskCommentUpdated;
@@ -63,8 +64,9 @@ class TaskCommentController extends Controller
         $body = $request->validated('body');
         $removeIds = $request->removeAttachmentIds();
         $edited = false;
+        $addedMentionIds = [];
 
-        DB::transaction(function () use ($request, $task, &$comment, $body, $removeIds, &$edited) {
+        DB::transaction(function () use ($request, $task, &$comment, $body, $removeIds, &$edited, &$addedMentionIds) {
             // Reread after the lock: a delete or another edit committed while waiting must not be overwritten.
             $locked = TaskComment::query()->whereKey($comment->id)->lockForUpdate()->first();
             abort_if($locked === null, 404);
@@ -79,13 +81,13 @@ class TaskCommentController extends Controller
                 $comment->save();
             }
 
-            $this->syncMentions($comment, $task, $request->user()->id);
+            $addedMentionIds = $this->syncMentions($comment, $task, $request->user()->id);
         });
 
         $comment->load(self::RELATIONS);
 
-        if ($edited) {
-            TaskCommentUpdated::dispatch($comment, $project->id);
+        if ($edited || $addedMentionIds !== []) {
+            TaskCommentUpdated::dispatch($comment, $project->id, $addedMentionIds);
         }
 
         return new TaskCommentResource($comment);
@@ -184,9 +186,12 @@ class TaskCommentController extends Controller
     /**
      * Only syncs the mention rows; notifications are sent by the NotifyTaskCommentRecipients listener. `$currentIds` skips the lookup (new comment: []).
      *
+     * A removed mention also drops its notification, as the chat does. Returns the ids of the newly mentioned users.
+     *
      * @param  list<int>|null  $currentIds
+     * @return list<int>
      */
-    private function syncMentions(TaskComment $comment, Task $task, int $authorId, ?array $currentIds = null): void
+    private function syncMentions(TaskComment $comment, Task $task, int $authorId, ?array $currentIds = null): array
     {
         $targets = MentionTargets::resolve(
             $comment->body,
@@ -210,10 +215,18 @@ class TaskCommentController extends Controller
                 ->where('task_comment_id', $comment->id)
                 ->whereIn('user_id', $removed)
                 ->delete();
+            AppNotification::query()
+                ->withoutGlobalScopes()
+                ->where('organization_id', $comment->organization_id)
+                ->where('type', NotificationType::TaskCommentMention->value)
+                ->where('subject_type', TaskComment::class)
+                ->where('subject_id', $comment->id)
+                ->whereIn('user_id', $removed)
+                ->delete();
         }
 
         if ($added->isEmpty()) {
-            return;
+            return [];
         }
 
         $now = now();
@@ -223,5 +236,7 @@ class TaskCommentController extends Controller
             'user_id' => $user->id,
             'created_at' => $now,
         ])->values()->all());
+
+        return $added->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
     }
 }
