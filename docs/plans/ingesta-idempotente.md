@@ -69,7 +69,7 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 - **Archivos:** `../sereno-laravel/src/Logging/EventFormatter.php`, su test, `README.md`/`CHANGELOG` si existe
 - **Terminado cuando:** los tests del paquete pasan y cada evento formateado lleva un `id` estable dentro del lote.
 
-### [ ] Fase 7 — Un reintento en el envío de sereno-laravel [riesgo]
+### [x] Fase 7 — Un reintento en el envío de sereno-laravel [riesgo]
 - **Alcance:** `SerenoLogHandler` reintenta una vez ante timeout o 5xx (no ante 4xx), dentro del tope de tiempo actual, antes
   de caer al canal de respaldo. Seguro gracias a los ids de la fase 6.
 - **Archivos:** `../sereno-laravel/src/Logging/SerenoLogHandler.php`, su test
@@ -94,6 +94,8 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 
 - 2026-10-12 — Fase 6: `Str::uuid()` v4 como id; un servidor anterior ignora la clave `id` (las reglas no son estrictas), así que el paquete nuevo es compatible hacia atrás.
 
+- 2026-10-12 — Fase 7: el reintento reenvía el mismo lote ya formateado, solo ante `ConnectionException` o 5xx (no 4xx, tampoco 429); presupuesto total de 10 s por lote (`MAX_TIMEOUT_SECONDS`), y no reintenta si quedan menos de `MIN_RETRY_SECONDS` (0,5 s). Si el reintento falla, respaldo y descarte como antes.
+
 ## Notas para la próxima sesión
 - Fase 6 hecha (repo `sereno-laravel`, rama `feat/ingesta-ids`, worktree `../sereno-laravel/.claude/worktrees/ingesta-ids`, 1 commit): `EventFormatter` agrega `id` (UUID); el handler guarda el evento ya formateado. La fase 7 debe reenviar el mismo `$batch` sin volver a formatear y actualizar la línea "No retries" del README de "Delivery behavior" (hoy el README promete que el id sobrevive al reenvío, y solo será cierto con el reintento).
 - Fase 5 hecha: comando propio `log:prune-receipts` (diario 00:40 UTC, lotes de 5000, ventana `LogEventReceipt::RETRY_WINDOW_HOURS` = 48). Al desplegar también `docker compose restart scheduler`. Siguen las fases 6 y 7 en el repo `../sereno-laravel` (propio git; el worktree se crea ahí).
@@ -104,4 +106,5 @@ los grupos, y que un fallo a mitad de lote no pierda el resto. Origen: M-5 de `d
 - [ ] M-2: Test de concurrencia de `LogEventRecorder::record` con dos conexiones reales y el mismo id (como `MessageDeleteConcurrencyTest`, L-41): el segundo worker descarta tras el commit del primero. Complejidad: media · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-3: Test de ids repetidos dentro de un mismo lote (se graba uno solo y `accepted` cuenta los enviados). Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
 - [ ] M-4: Comentario breve sobre `$tries` en `IngestLogEvents` que diga que el reintento es seguro por los recibos de evento. Complejidad: baja · Archivos: 1 · sin riesgo → sonnet
-- [ ] M-5: En `sereno-laravel`: afirmar el formato UUID en el test del `id` y agregar un test de que el `id` llega en el payload del `Http::post` del handler. Complejidad: baja · Archivos: 1-2 · sin riesgo → sonnet
+- [x] M-5: En `sereno-laravel`: afirmar el formato UUID en el test del `id` y agregar un test de que el `id` llega en el payload del `Http::post` del handler. Complejidad: baja · Archivos: 1-2 · sin riesgo → sonnet
+- [ ] M-6: Test del salto del reintento cuando queda menos de `MIN_RETRY_SECONDS` en `sereno-laravel`, y reflowar la sección "Fallback channel" del README. Complejidad: baja · Archivos: 2 · sin riesgo → sonnet
