@@ -94,13 +94,7 @@ class ChatMentionNotification extends Notification implements RevalidatesAfterIn
             ->whereNull('deleted_at')
             ->exists();
 
-        if (! $this->stillApplies($notifiable) || ! $messageAlive) {
-            return false;
-        }
-
-        return $this->projectId === null
-            ? $notifiable->organizations()->whereKey($this->organizationId)->exists()
-            : ProjectAccess::canViewId($notifiable, $this->organizationId, $this->projectId);
+        return $messageAlive && $this->stillApplies($notifiable);
     }
 
     public function stillApplies(User $notifiable): bool
@@ -110,7 +104,10 @@ class ChatMentionNotification extends Notification implements RevalidatesAfterIn
             ->where('message_id', $this->messageId)
             ->where('user_id', $notifiable->id)
             ->sharedLock()
-            ->exists();
+            ->exists()
+            && ($this->projectId === null
+                ? $notifiable->organizations()->whereKey($this->organizationId)->exists()
+                : ProjectAccess::canViewId($notifiable, $this->organizationId, $this->projectId, lock: true));
     }
 
     /** @return list<class-string|string> */

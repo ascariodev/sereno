@@ -189,6 +189,18 @@ it('does not send when the message was deleted but its mention row is still ther
     expect(AppNotification::query()->withoutGlobalScopes()->count())->toBe(0)->and(chatMentionChannelsSent())->toBe([]);
 });
 
+it('drops its row when the project access is lost after shouldSend passed but before the insert', function () {
+    $notification = chatMentionNotificationFor($this->ana);
+    $notification->id = (string) Str::uuid();
+    Event::fake([NotificationCreated::class]);
+    $this->project->removeMember($this->ana);
+
+    app(AppChannel::class)->send($this->ana, $notification);
+
+    expect(AppNotification::query()->withoutGlobalScopes()->count())->toBe(0);
+    Event::assertNotDispatched(NotificationCreated::class);
+});
+
 it('does not send in a channel without project once the user left the organization', function () {
     $channel = Channel::factory()->create(['project_id' => null, 'organization_id' => $this->organization->id, 'name' => 'GENERAL']);
     $notification = chatMentionNotificationFor($this->ana, $channel);
