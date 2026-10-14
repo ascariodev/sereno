@@ -191,12 +191,12 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - [x] M-2 (baja, sonnet): anotar en `database.md` que `push_subscriptions.endpoint` es `text` con índice único (endpoints largos).
 - [x] M-3 (baja, sonnet): `PushSubscriptionController` store hace `firstOrNew` + `save` no atómico; dos altas simultáneas del
   mismo endpoint nuevo dan 500 por el índice único. Capturar `UniqueConstraintViolationException` y reintentar, o `upsert`.
-- [ ] M-4 (baja, sonnet): comentario o test en `DestroyPushSubscriptionRequest` que fije por qué la existencia se valida en
+- [x] M-4 (baja, sonnet): comentario o test en `DestroyPushSubscriptionRequest` que fije por qué la existencia se valida en
   `authorize()` con 404 y no con `exists` (evitar que un 422 distinga ajeno de inexistente).
 - [x] M-5 (baja, sonnet): documentar la clave `push` de `users.notification_preferences` en `.claude/rules/database.md`.
-- [ ] M-6 (baja, sonnet): tests de preferencias para `{"email": [], "push": {...}}` (se acepta) y cuerpo `{}` autenticado (422).
+- [x] M-6 (baja, sonnet): tests de preferencias para `{"email": [], "push": {...}}` (se acepta) y cuerpo `{}` autenticado (422).
 - [ ] M-7 (baja, sonnet): unificar la lógica repetida de `User::wantsEmail` y `wantsPush` en un helper privado.
-- [ ] M-8 (baja, sonnet): test de `NotificationUrl` con `app.frontend_url` sin barra final (hoy solo con barra).
+- [x] M-8 (baja, sonnet): test de `NotificationUrl` con `app.frontend_url` sin barra final (hoy solo con barra).
 - [ ] M-9 (baja, sonnet): `PushPayload` fija y restaura el locale a mano; usar el trait `Localizable::withLocale`.
 - [ ] M-10 (baja, sonnet): `PushPayload` captura `ErrorException`/`TypeError` para las claves ausentes de `data`, lo que
   también oculta bugs de programación; validar las claves explícitamente y dejar de capturar esas excepciones.

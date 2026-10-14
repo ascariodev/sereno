@@ -105,6 +105,24 @@ it('accepts email and push together', function () {
         ->assertJsonPath('data.push.task_assigned', false);
 });
 
+it('accepts an empty email map together with a push patch', function () {
+    Sanctum::actingAs($this->user);
+
+    $this->patchJson('/api/me/notification-preferences', ['email' => [], 'push' => ['chat_mention' => false]])
+        ->assertOk()
+        ->assertJsonPath('data.push.chat_mention', false)
+        ->assertJsonPath('data.email.chat_mention', true);
+});
+
+it('rejects an empty json object body', function () {
+    Sanctum::actingAs($this->user);
+
+    $this->call('PATCH', '/api/me/notification-preferences', [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], '{}')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('email');
+    expect($this->user->fresh()->notification_preferences)->toBeNull();
+});
+
 it('rejects invalid push payloads', function (array $payload, string $field) {
     Sanctum::actingAs($this->user);
 

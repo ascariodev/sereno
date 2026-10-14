@@ -8,6 +8,7 @@ class DestroyPushSubscriptionRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        // 404 here, not an `exists` rule: a 422 would tell a foreign endpoint apart from a missing one.
         $endpoint = $this->input('endpoint');
 
         if (! is_string($endpoint) || ! $this->user()->pushSubscriptions()->where('endpoint', $endpoint)->exists()) {
