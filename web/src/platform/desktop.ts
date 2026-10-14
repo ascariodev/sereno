@@ -9,8 +9,8 @@ export function openExternal(url: string): Promise<void> {
   return openUrl(url)
 }
 
-function externalHref(event: MouseEvent): string | null {
-  if (event.defaultPrevented || event.button !== 0) return null
+function externalHref(event: MouseEvent, button: number): string | null {
+  if (event.defaultPrevented || event.button !== button) return null
   if (!(event.target instanceof Element)) return null
   const anchor = event.target.closest('a')
   if (!anchor || anchor.target !== '_blank') return null
@@ -20,17 +20,21 @@ function externalHref(event: MouseEvent): string | null {
   } catch {
     return null
   }
-  if (url.origin === window.location.origin && url.protocol !== 'mailto:') return null
+  if (url.origin === window.location.origin) return null
   if (!['http:', 'https:', 'mailto:'].includes(url.protocol)) return null
   return url.href
 }
 
 export function installExternalLinks(): void {
   if (!isDesktop()) return
-  document.addEventListener('click', (event) => {
-    const href = externalHref(event)
-    if (!href) return
-    event.preventDefault()
-    openUrl(href).catch(() => {})
-  })
+  const intercept = (type: 'click' | 'auxclick', button: number) => {
+    document.addEventListener(type, (event) => {
+      const href = externalHref(event as MouseEvent, button)
+      if (!href) return
+      event.preventDefault()
+      openUrl(href).catch(() => {})
+    })
+  }
+  intercept('click', 0)
+  intercept('auxclick', 1)
 }

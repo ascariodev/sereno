@@ -276,11 +276,11 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - [ ] M-8: En escritorio, desregistrar al arrancar cualquier service worker que haya quedado en el perfil de WebView2
       (hoy solo pasa con builds de prueba anteriores a la fase 3).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-9: Manejar también `auxclick` (botón medio) en el listener de enlaces externos: hoy abre una ventana nueva del WebView.
+- [x] M-9: Manejar también `auxclick` (botón medio) en el listener de enlaces externos: hoy abre una ventana nueva del WebView.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-10: Un `target="_blank"` del mismo origen (ruta interna en markdown) abre otra ventana WebView: navegar con el router.
       Complejidad: media · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-11: Quitar la condición redundante `url.protocol !== 'mailto:'` en `desktop.ts` (el origen de `mailto:` es `"null"`).
+- [x] M-11: Quitar la condición redundante `url.protocol !== 'mailto:'` en `desktop.ts` (el origen de `mailto:` es `"null"`).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-12: Spec de `MessageAttachments` que instala `installExternalLinks()` en escritorio y afirma que `openUrl` se llama
       una sola vez con la URL nueva; y otro de clic con `ctrlKey` (sin `preventDefault` ni `renew`), que fija que hoy se

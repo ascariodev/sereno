@@ -40,10 +40,10 @@ describe('installExternalLinks', () => {
     document.body.innerHTML = ''
   })
 
-  function click(html: string, init: MouseEventInit = {}): MouseEvent {
+  function click(html: string, init: MouseEventInit = {}, type = 'click'): MouseEvent {
     document.body.innerHTML = html
     const target = document.body.querySelector('[data-t]') as HTMLElement
-    const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...init })
+    const event = new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, ...init })
     target.dispatchEvent(event)
     return event
   }
@@ -59,7 +59,7 @@ describe('installExternalLinks', () => {
     beforeEach(() => {
       vi.stubGlobal('isTauri', true)
       installExternalLinks()
-      expect(added).toHaveLength(1)
+      expect(added).toHaveLength(2)
     })
 
     it('opens http links in the system browser', () => {
@@ -94,6 +94,21 @@ describe('installExternalLinks', () => {
     it('ignores other schemes', () => {
       click('<a data-t href="javascript:void(0)" target="_blank">x</a>')
       click('<a data-t href="file:///c:/x" target="_blank">x</a>')
+      expect(openUrl).not.toHaveBeenCalled()
+    })
+
+    it('opens external links on middle click (auxclick) without opening a window', () => {
+      const event = click('<a data-t href="https://example.com/m" target="_blank">x</a>', { button: 1 }, 'auxclick')
+      expect(event.defaultPrevented).toBe(true)
+      expect(openUrl).toHaveBeenCalledTimes(1)
+      expect(openUrl).toHaveBeenCalledWith('https://example.com/m')
+    })
+
+    it('does not intercept secondary click or a primary-button auxclick', () => {
+      const secondary = click('<a data-t href="https://example.com" target="_blank">x</a>', { button: 2 }, 'auxclick')
+      expect(secondary.defaultPrevented).toBe(false)
+      const odd = click('<a data-t href="https://example.com" target="_blank">x</a>', { button: 0 }, 'auxclick')
+      expect(odd.defaultPrevented).toBe(false)
       expect(openUrl).not.toHaveBeenCalled()
     })
 
