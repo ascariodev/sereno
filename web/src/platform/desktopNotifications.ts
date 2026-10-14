@@ -17,6 +17,7 @@ import { isDesktop } from './desktop'
 
 // Set by `installDesktopNotificationClicks`: without it the notifications carry no destination.
 let router: Router | null = null
+let clicksInstalled = false
 
 // Asked once per session: a denial is not asked again on every notification.
 let permission: Promise<boolean> | null = null
@@ -108,9 +109,12 @@ export async function installDesktopNotificationClicks(
 ): Promise<void> {
   if (!isDesktop()) return
   router = appRouter
+  if (clicksInstalled) return
+  clicksInstalled = true
   try {
     await onAction((event) => void openFromNotification(event, activeOrganizationId))
   } catch {
+    clicksInstalled = false
     // Without the listener a click only brings up whatever Windows does by default.
   }
 }

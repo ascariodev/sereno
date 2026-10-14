@@ -299,11 +299,11 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - [ ] M-17: Cachear unos segundos las preferencias de notificación en `desktopNotifications.ts` (invalidando al guardarlas),
       para no hacer un GET por aviso en ráfagas.
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-18: Spec propio del guard de sesión justo antes de `sendNotification` (tras `ensurePermission`).
+- [x] M-18: Spec propio del guard de sesión justo antes de `sendNotification` (tras `ensurePermission`).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-19: Clic en el aviso nativo marca la notificación como leída, como la bandeja in-app.
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-20: Flag de módulo en `installDesktopNotificationClicks` para no registrar dos `onAction` (HMR o segunda llamada).
+- [x] M-20: Flag de módulo en `installDesktopNotificationClicks` para no registrar dos `onAction` (HMR o segunda llamada).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → haiku
 - [ ] M-21: Si Windows ya bloqueó los avisos, `requestPermission` no muestra nada: indicar cómo activarlos en los ajustes del sistema.
       Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
@@ -327,3 +327,6 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - [ ] M-29: Registrar `tauri-plugin-log` también en release (a archivo), o documentar que los `log::warn!` de `lib.rs` solo
       se ven en desarrollo.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-30: Specs de `installDesktopNotificationClicks`: la segunda llamada actualiza el `router`, y tras un `onAction` que
+      rechaza una nueva llamada vuelve a registrar el listener.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku

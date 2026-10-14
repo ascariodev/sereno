@@ -121,6 +121,19 @@ describe('notifyDesktop', () => {
     expect(sendNotification).not.toHaveBeenCalled()
   })
 
+  it('does not show it when the session changes while the permission is being resolved', async () => {
+    let resolvePermission!: (value: boolean) => void
+    isPermissionGranted.mockReturnValue(new Promise((resolve) => (resolvePermission = resolve)))
+    let active: number | null = ORGANIZATION
+    const { notifyDesktop } = await load()
+    const pending = notifyDesktop(notification, ORGANIZATION, () => active)
+    await vi.waitFor(() => expect(isPermissionGranted).toHaveBeenCalled())
+    active = null
+    resolvePermission(true)
+    await pending
+    expect(sendNotification).not.toHaveBeenCalled()
+  })
+
   it('does not ask for the preferences when the session changed while reading the window', async () => {
     let active: number | null = ORGANIZATION
     getCurrentWindow.mockReturnValue({
@@ -265,6 +278,12 @@ describe('installDesktopNotificationClicks', () => {
     await new Promise((resolve) => setTimeout(resolve))
     expect(invoke).not.toHaveBeenCalled()
     expect(router.currentRoute.value.fullPath).toBe('/')
+  })
+
+  it('registers a single listener when installed twice', async () => {
+    const { installDesktopNotificationClicks } = await install()
+    await installDesktopNotificationClicks(router, () => active)
+    expect(onAction).toHaveBeenCalledTimes(1)
   })
 
   it('does not listen in a browser', async () => {
