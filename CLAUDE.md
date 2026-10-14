@@ -76,12 +76,12 @@ Escritorio (Tauri, en el **host Windows**, no en Docker; desde `web/`). En Git B
 del contenedor).
 - Desarrollo: `npm run tauri:dev`, con el Vite de Docker ya corriendo en 5174.
 - Instalador de prueba: `npm run tauri:build -- --debug` (deja el NSIS y el MSI en `src-tauri/target/debug/bundle/`). Compila
-  la SPA en el host: sobrescribe `web/dist` y usa `web/.env.production` (lo mantiene el usuario). Los avisos con clic y el
+  la SPA en el host: sobrescribe `web/dist` y usa `web/.env.production` (lo mantiene el usuario y no se lee; lleva las `VITE_*` de producción: `VITE_API_URL`, `VITE_REVERB_*`). Los avisos con clic y el
   autostart solo se comprueban con la app **instalada**.
 - Publicar: la clave de firma está en `C:\Users\Windows 11\.tauri\sereno.key` (fuera del repo; en PowerShell `~` no se
   expande, usar rutas absolutas). En PowerShell: `$env:TAURI_SIGNING_PRIVATE_KEY_PATH` con esa ruta y
   `$env:SERENO_DESKTOP_SCP_TARGET="<usuario>@<host>:/var/www/html/workspace/prod/web/desktop/"`; luego
-  `npm run release:desktop [-- <versión|patch|minor|major>]` (`--dry-run` y `--skip-build` disponibles). Sube la versión,
+  `npm run release:desktop [-- <versión|patch|minor|major>]` (`--dry-run` y `--skip-build` disponibles). `SERENO_DESKTOP_BASE_URL` es opcional (por defecto `https://sereno.ascario.dev/desktop/`). Sube la versión,
   compila, firma y sube por `scp` el instalador y `latest.json`; hay que **commitear el bump de versión**. La carpeta del
   servidor la crea root en el deploy: darle dueño al usuario del `scp` (`sudo chown <usuario>: ...`). El actualizador lee
   `https://sereno.ascario.dev/desktop/latest.json` y la app busca versión nueva al arrancar y cada 6 h.

@@ -319,7 +319,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - [ ] M-26: `--dry-run` del script de publicación no escribe la versión en `tauri.conf.json` ni `package.json` (hoy la deja
       subida y la siguiente corrida sin argumento publicaría esa), y `--help` aclara que el dry-run compila y exige la clave.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-27: En `CLAUDE.md`, decir que `web/.env.production` lleva las `VITE_*` de producción (`VITE_API_URL`, `VITE_REVERB_*`)
+- [x] M-27: En `CLAUDE.md`, decir que `web/.env.production` lleva las `VITE_*` de producción (`VITE_API_URL`, `VITE_REVERB_*`)
       y mencionar `SERENO_DESKTOP_BASE_URL` (opcional) del script de publicación.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-28: En los specs de `MessageAttachments` con `attachTo: document.body`, desmontar en `afterEach` (hoy `unmount()` no corre si falla un `expect`) y extraer un helper `renderAttached`.
