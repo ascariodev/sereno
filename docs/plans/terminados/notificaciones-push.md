@@ -189,7 +189,7 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - [x] M-1 (baja, sonnet): `GenerateVapidKeysCommandTest` guarda y restaura las variables de entorno a mano; un helper
   compartido de tests lo simplificaría.
 - [x] M-2 (baja, sonnet): anotar en `database.md` que `push_subscriptions.endpoint` es `text` con índice único (endpoints largos).
-- [ ] M-3 (baja, sonnet): `PushSubscriptionController` store hace `firstOrNew` + `save` no atómico; dos altas simultáneas del
+- [x] M-3 (baja, sonnet): `PushSubscriptionController` store hace `firstOrNew` + `save` no atómico; dos altas simultáneas del
   mismo endpoint nuevo dan 500 por el índice único. Capturar `UniqueConstraintViolationException` y reintentar, o `upsert`.
 - [ ] M-4 (baja, sonnet): comentario o test en `DestroyPushSubscriptionRequest` que fije por qué la existencia se valida en
   `authorize()` con 404 y no con `exists` (evitar que un 422 distinga ajeno de inexistente).

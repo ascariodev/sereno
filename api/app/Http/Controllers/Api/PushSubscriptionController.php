@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Push\DestroyPushSubscriptionRequest;
 use App\Http\Requests\Push\StorePushSubscriptionRequest;
 use App\Models\PushSubscription;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 
 class PushSubscriptionController extends Controller
 {
@@ -25,12 +27,14 @@ class PushSubscriptionController extends Controller
         $user = $request->user();
         $data = $request->safe()->except('endpoint');
 
-        $subscription = PushSubscription::firstOrNew(['endpoint' => $request->validated('endpoint')]);
-        $subscription->fill($data);
-        $subscription->user_id = $user->id;
-        $subscription->last_used_at = now();
-        $created = ! $subscription->exists;
-        $subscription->save();
+        $endpoint = $request->validated('endpoint');
+
+        try {
+            [$subscription, $created] = $this->upsert($endpoint, $data, $user->id);
+        } catch (UniqueConstraintViolationException) {
+            [$subscription, $created] = $this->upsert($endpoint, $data, $user->id);
+        }
+
         $subscription->refresh();
 
         return response()->json(['data' => [
@@ -38,6 +42,21 @@ class PushSubscriptionController extends Controller
             'endpoint' => $subscription->endpoint,
             'content_encoding' => $subscription->content_encoding,
         ]], $created ? 201 : 200);
+    }
+
+    /**
+     * @return array{0: PushSubscription, 1: bool}
+     */
+    private function upsert(string $endpoint, array $data, int $userId): array
+    {
+        $subscription = PushSubscription::firstOrNew(['endpoint' => $endpoint]);
+        $subscription->fill($data);
+        $subscription->user_id = $userId;
+        $subscription->last_used_at = now();
+        $created = ! $subscription->exists;
+        DB::transaction(fn () => $subscription->save());
+
+        return [$subscription, $created];
     }
 
     public function destroy(DestroyPushSubscriptionRequest $request): Response
