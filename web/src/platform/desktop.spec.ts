@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const openUrl = vi.hoisted(() => vi.fn())
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl }))
 
-import { installExternalLinks, isDesktop } from './desktop'
+import { installExternalLinks, isDesktop, unregisterServiceWorkers } from './desktop'
 
 describe('isDesktop', () => {
   afterEach(() => {
@@ -120,5 +120,47 @@ describe('installExternalLinks', () => {
       document.body.querySelector('[data-t]')!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }))
       expect(openUrl).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('unregisterServiceWorkers', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function stubServiceWorker(getRegistrations: () => Promise<unknown[]>) {
+    Object.defineProperty(navigator, 'serviceWorker', { value: { getRegistrations }, configurable: true })
+  }
+
+  afterEach(() => {
+    Reflect.deleteProperty(navigator, 'serviceWorker')
+  })
+
+  it('unregisters every registration on desktop', async () => {
+    const a = vi.fn().mockResolvedValue(true)
+    const b = vi.fn().mockResolvedValue(true)
+    stubServiceWorker(() => Promise.resolve([{ unregister: a }, { unregister: b }]))
+    vi.stubGlobal('isTauri', true)
+    await unregisterServiceWorkers()
+    expect(a).toHaveBeenCalledTimes(1)
+    expect(b).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not fail without serviceWorker', async () => {
+    vi.stubGlobal('isTauri', true)
+    await expect(unregisterServiceWorkers()).resolves.toBeUndefined()
+  })
+
+  it('does not propagate a rejection', async () => {
+    stubServiceWorker(() => Promise.reject(new Error('boom')))
+    vi.stubGlobal('isTauri', true)
+    await expect(unregisterServiceWorkers()).resolves.toBeUndefined()
+  })
+
+  it('does nothing in a browser', async () => {
+    const getRegistrations = vi.fn().mockResolvedValue([])
+    stubServiceWorker(getRegistrations)
+    await unregisterServiceWorkers()
+    expect(getRegistrations).not.toHaveBeenCalled()
   })
 })

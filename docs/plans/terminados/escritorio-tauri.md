@@ -273,7 +273,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [x] M-7: `desktop.spec.ts` simula `isTauri` con `vi.stubGlobal`/`unstubAllGlobals` en vez de borrar el global con un cast.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-8: En escritorio, desregistrar al arrancar cualquier service worker que haya quedado en el perfil de WebView2
+- [x] M-8: En escritorio, desregistrar al arrancar cualquier service worker que haya quedado en el perfil de WebView2
       (hoy solo pasa con builds de prueba anteriores a la fase 3).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-9: Manejar también `auxclick` (botón medio) en el listener de enlaces externos: hoy abre una ventana nueva del WebView.
@@ -333,4 +333,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - [ ] M-31: Script de publicación: con `--dry-run --skip-build` no imprimir "Dry run: building"; y comprobar en un primer
       dry-run real que `--config {"version": ...}` da `Sereno_<v>_x64-setup.exe` con su `.sig` (la fusión no se verificó en
       el código del CLI).
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-32: Spec de `unregisterServiceWorkers` donde un `unregister` rechaza y los demás igual se llaman; unir los dos
+      `afterEach` de `desktop.spec.ts`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku

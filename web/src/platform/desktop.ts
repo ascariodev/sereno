@@ -38,3 +38,13 @@ export function installExternalLinks(): void {
   intercept('click', 0)
   intercept('auxclick', 1)
 }
+
+export async function unregisterServiceWorkers(): Promise<void> {
+  if (!isDesktop()) return
+  try {
+    const registrations = await navigator.serviceWorker?.getRegistrations()
+    await Promise.all((registrations ?? []).map((registration) => registration.unregister()))
+  } catch {
+    return
+  }
+}

@@ -7,7 +7,7 @@ import { initTheme } from './theme/theme'
 import App from './App.vue'
 import { i18n, installI18nOnApi } from './i18n'
 import { toast } from './components/ui/toast'
-import { installExternalLinks, isDesktop } from './platform/desktop'
+import { installExternalLinks, isDesktop, unregisterServiceWorkers } from './platform/desktop'
 import { installDesktopNotificationClicks } from './platform/desktopNotifications'
 import { installDesktopUpdater } from './platform/desktopUpdater'
 import { listenForNavigation, registerServiceWorker } from './pwa/serviceWorker'
@@ -32,6 +32,7 @@ installExternalLinks()
 const organization = useOrganizationStore()
 void installDesktopNotificationClicks(router, () => organization.activeId)
 installDesktopUpdater()
+void unregisterServiceWorkers()
 
 if (import.meta.env.PROD && !isDesktop() && 'serviceWorker' in navigator) {
   listenForNavigation({ navigate: (path) => void router.push(path) })
