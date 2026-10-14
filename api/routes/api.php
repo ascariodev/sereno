@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChannelController;
+use App\Http\Controllers\Api\ExpoPushTokenController;
 use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\LogGroupController;
 use App\Http\Controllers\Api\LogIngestController;
@@ -34,6 +35,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('push/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey']);
     Route::post('me/push-subscriptions', [PushSubscriptionController::class, 'store']);
     Route::delete('me/push-subscriptions', [PushSubscriptionController::class, 'destroy']);
+    Route::post('me/expo-push-tokens', [ExpoPushTokenController::class, 'store']);
+    Route::delete('me/expo-push-tokens', [ExpoPushTokenController::class, 'destroy']);
     Route::get('organizations', [OrganizationController::class, 'index']);
     Route::post('organizations', [OrganizationController::class, 'store']);
 });

@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -39,7 +39,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Terminado cuando:** test de modelo: crear, relación con el usuario, borrar el access token borra el push token,
   token duplicado falla y plataforma inválida falla.
 
-### [ ] Fase 2 — Endpoints para registrar y borrar el token
+### [x] Fase 2 — Endpoints para registrar y borrar el token
 - **Alcance:** `POST /api/me/expo-push-tokens` (upsert por `token`, ligado al access token actual; valida el formato) y
   `DELETE /api/me/expo-push-tokens` (por `token`, solo los propios). Controlador, Form Request, rutas, `lang/*.json`.
 - **Terminado cuando:** test de API: alta, re-alta desde otra sesión mueve el token, borrar ajeno no borra, 401 sin auth.
@@ -258,9 +258,13 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Aceptar invitaciones sigue en la web (no hay deep links de `sereno.ascario.dev` en esta versión).
 
 ## Notas para la próxima sesión
-- Fase 1 hecha: tabla `expo_push_tokens`, modelo `ExpoPushToken` (Fillable: token, platform, device_name, last_used_at; `user_id` y
-  `personal_access_token_id` se asignan por propiedad, no por mass assignment), `User::expoPushTokens()`, factory que crea un
-  access token real. En la fase 2 hay que comprobar que el access token sea del usuario autenticado (`currentAccessToken()`).
+- Fase 2 hecha: `POST` y `DELETE /api/me/expo-push-tokens` (`ExpoPushTokenController`). POST responde 201 al crear y 200 al
+  re-registrar, `{data:{id,token,platform,device_name}}`; formato `ExponentPushToken[...]`/`ExpoPushToken[...]`. DELETE lee `token`
+  por query (la app móvil hace igual que la web) o body; token ajeno o inexistente da el mismo 404. Modelo: `user_id` y
+  `personal_access_token_id` por propiedad. En tests de dos requests seguidos con tokens distintos hace falta
+  `$this->app['auth']->forgetGuards()`.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
+- [ ] M-1: Tests de `ExpoPushTokenApiTest` para la rama 403 con token transitorio y para `device_name` nulo y `max:255`.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
