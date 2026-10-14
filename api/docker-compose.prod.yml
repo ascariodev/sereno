@@ -2,7 +2,8 @@
 # compose lo usa para interpolar las credenciales de postgres). TLS lo termina el proxy del host.
 #
 # Correo (notificaciones por email, las envía `queue`): SMTP del proveedor en el .env del servidor. Sin MAIL_MAILER
-# Laravel usa `log` y no envía nada; el deploy avisa en ese caso. Tras cambiarlas, `compose restart app queue` (o redeploy).
+# Laravel usa `log` y no envía nada; el deploy avisa en ese caso. Tras cambiarlas, `compose exec -u app app php artisan
+# optimize`, `compose restart app queue scheduler reverb` y `compose restart nginx` (o redeploy).
 #   MAIL_MAILER=smtp
 #   MAIL_HOST=smtp.proveedor.com
 #   MAIL_PORT=587                  # 587 con STARTTLS; 465 con TLS implícito

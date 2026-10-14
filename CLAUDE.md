@@ -112,6 +112,9 @@ servidor; el par se genera allí con `docker compose -p sereno-prod-api -f docke
 Probarlo en local: el service worker solo existe en el build de producción (`npm run build` y `vite preview` en 5174,
 parando antes el servicio `web`); en Brave activar "Use Google services for push messaging" y recordar que Windows
 puede silenciar las notificaciones del navegador.
+Tras cambiar el `.env` del servidor (desde `api/` en producción, con `sudo docker compose -p sereno-prod-api -f docker-compose.prod.yml`):
+`exec -u app app php artisan optimize` (la config está cacheada), `restart app queue scheduler reverb` y luego
+`restart nginx`, que resuelve la IP de `app` al arrancar y sin reiniciarlo da 502. Un redeploy hace todo eso.
 
 (No confundir con las fases de un plan de `docs/plans/`.)
 
