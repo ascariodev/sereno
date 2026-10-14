@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 23
+**Estado:** en curso · Fase actual: 23b
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -142,8 +142,14 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** menú de mensaje con editar y borrar.
 - **Terminado cuando:** tests de permisos y de ambas acciones.
 
-### [ ] Fase 23 — Hilos
-- **Alcance:** ver respuestas y responder (`.../messages/{m}/replies`), contador en vivo.
+### [x] Fase 23a — Contadores y resumen de hilo en el canal
+- **Alcance:** `replies_count`, `last_reply_at` y `recent_participants` en el store del canal (`applyReply`, `replace` que
+  conserva contadores, `root` de `.message.deleted` y de `meta.root` del DELETE) y `ThreadSummary` bajo cada mensaje.
+- **Terminado cuando:** tests de contadores en vivo y del resumen.
+
+### [ ] Fase 23b — Pantalla de hilo
+- **Alcance:** ver respuestas y responder (`.../messages/{m}/replies`): store del hilo, pantalla, `MessageRow` extraído,
+  compositor y editor que sirven al hilo, eventos en vivo y `catchUp` del hilo.
 - **Terminado cuando:** tests de carga y respuesta.
 
 ### [ ] Fase 24 — Ver adjuntos
@@ -272,20 +278,20 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Fase 17 (por la elección "Paridad con la web"): la web no renderiza markdown en el chat (`MessageBody.vue`:
   texto plano con chips de mención); solo en tareas y comentarios (`MarkdownContent.vue`). La app hace lo mismo: el chat
   usa `MessageBody` con menciones y la fase 17 deja además `MarkdownContent` RN (markdown-it) para las fases 34 y 36.
+- 2026-10-14 — Fase 23 dividida en 23a (contadores y resumen en el canal) y 23b (pantalla de hilo): pasaba de ~8 archivos.
 
 ## Notas para la próxima sesión
+- Fase 23a hecha: `messages/store.ts` con campos de hilo y la reconciliación de `web/src/stores/messages.ts`
+  (`applyReply`/`bumpRoot`/`snapshotCounts` exportado, `withLiveReplies`/`reconcile` vía `fromServer(page, since)`,
+  `keepNewerContent` en `catchUp`, `Removal` con `seq`, `settle`: una raíz borrada sin respuestas sale de la lista, con
+  respuestas queda marcador). `echo.ts` pasa `root` de `.message.deleted`; `channel.tsx` usa `meta.root` del DELETE.
+  `components/ThreadSummary.tsx` (conteo, iniciales, última respuesta relativa; "Responder en hilo" sin respuestas) acepta
+  `onOpen`, que la 23b debe conectar a la pantalla de hilo; el store del hilo reutiliza `snapshotCounts`.
 - Fase 22 hecha: menú por mensaje en `channel.tsx` (editar solo el autor en `user` no borrados; borrar el autor o
   `canModerate()`, nuevo en `organization/store.ts`; confirmación con `Alert`; "(editado)"), y
   `components/MessageEditor.tsx` (PATCH con menciones vía `parseMentionDraft`, ahora en `mentionToken.ts`; luego
   `replace`; 404 hace `catchUp`). Errores como `ChannelView.vue`. Adjuntos no se editan (fases 24 y 25). El borrado de
   respuestas y el `root` del evento quedan para la fase 23.
-- Fase 21 hecha: `realtime/echo.ts` suma `subscribeToChannel` (`organizations.{org}.channels.{id}`, `.message.*`, conteo
-  de referencias). `messages/store.ts` suma `replace` (ignora ediciones más viejas por `edited_at`), `remove` (marcador),
-  `catchUp` tras reconexión y borrados anticipados (`liveDeletions`); `open` conserva lo recibido en vivo durante la carga.
-  `projects/store.ts` porta `refreshCounts` (debounce 300 ms), disparado por avisos de log abiertos o con cambio de estado y
-  al reconectar. Para la fase 23: `replace` sustituye el mensaje entero y las respuestas (`parent_id`) se ignoran; portar
-  `applyReply`, conservar `replies_count`/`last_reply_at`/`recent_participants` y usar el `root` de `.message.deleted`.
-  `project.members_changed` no se escucha (fase 41, junto con `invalidate` de miembros).
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -334,3 +340,5 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-27: Tests de `app/src/projects/members.ts` (TTL, dedupe en vuelo, vaciado al cambiar de organización). Complejidad baja, sonnet.
 - [ ] M-28: `catchUp` sale si `loading`; la web solo si `hasNewer`. Si la carga de `open` falla y hay reconexión, no se recupera nada. Complejidad baja, sonnet.
 - [ ] M-29: Tests de errores 404/422/429 del borrado y del `catchUp` en 404 (borrar y editar) en `messageActions.test.tsx`; tipar `t` de `deleteMessage` con `TFunction`. Complejidad baja, sonnet.
+- [ ] M-30: Store de mensajes: separar el tope de 200 de `deletedRoots` (al expulsar una entrada un snapshot tardío puede resucitar la raíz; la web solo limita `unloadedDeletions`) y sumar la guarda `listVersion` en `loadOlder` como la web. Complejidad baja, sonnet.
+- [ ] M-31: `settle` debe vaciar `attachments` al borrar, como `asDeleted` de la web (cuando lleguen los adjuntos, fase 24). Complejidad baja, sonnet.

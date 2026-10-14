@@ -31,6 +31,9 @@ function message(id: number, extra: Record<string, unknown> = {}) {
     body: `Body ${id}`,
     payload: null,
     parent_id: null,
+    replies_count: 0,
+    last_reply_at: null,
+    recent_participants: [],
     user: { id: 1, name: 'Ana' },
     mentions: [],
     created_at: '2026-01-01T00:00:00Z',
@@ -164,10 +167,31 @@ describe('deleting', () => {
     return alert;
   }
 
-  it('asks for confirmation and marks the message as deleted', async () => {
+  it('removes a deleted message without replies from the list', async () => {
     const alert = confirmDelete();
-    const fetchMock = mockApi([message(1)], (url, init) =>
+    mockApi([message(1)], (url, init) =>
       init?.method === 'DELETE' ? json({ data: message(1, { body: null, deleted_at: '2026-01-04T00:00:00Z' }) }) : undefined,
+    );
+    await render(<Channel />);
+    await screen.findByText('Body 1');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Message actions' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));
+    await act(async () => alert.mock.calls[0][2]![1].onPress?.());
+
+    expect(screen.queryByText('Body 1')).toBeNull();
+    expect(screen.queryByText('This message was deleted.')).toBeNull();
+  });
+
+  it('asks for confirmation and marks a message with replies as deleted', async () => {
+    const alert = confirmDelete();
+    const fetchMock = mockApi([message(1, { replies_count: 2, last_reply_at: '2026-01-03T00:00:00Z' })], (url, init) =>
+      init?.method === 'DELETE'
+        ? json({
+            data: message(1, { body: null, deleted_at: '2026-01-04T00:00:00Z', replies_count: 2 }),
+            meta: { root: { id: 1, replies_count: 2, last_reply_at: '2026-01-03T00:00:00Z' } },
+          })
+        : undefined,
     );
     await render(<Channel />);
     await screen.findByText('Body 1');

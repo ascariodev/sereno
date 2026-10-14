@@ -156,6 +156,12 @@
       "ignored": "ignorado"
     }
   },
+  "thread": {
+    "replyAction": "Responder en hilo",
+    "replies_one": "{{count}} respuesta",
+    "replies_other": "{{count}} respuestas",
+    "lastReply": "Última respuesta {{when}}"
+  },
   "message": {
     "actions": "Acciones del mensaje",
     "edit": "Editar",

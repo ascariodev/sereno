@@ -30,6 +30,9 @@ function message(id: number, extra: Partial<Message> = {}): Message {
     body: `Body ${id}`,
     payload: null,
     parent_id: null,
+    replies_count: 0,
+    last_reply_at: null,
+    recent_participants: [],
     user: { id: 1, name: 'Ana' },
     mentions: [],
     created_at: '2026-01-01T00:00:00Z',
@@ -125,7 +128,7 @@ describe('Channel live messages', () => {
     await act(async () =>
       fake.emit('.message.deleted', { id: 2, channel_id: 50, parent_id: null, deleted_at: '2026-01-03T00:00:00Z' }),
     );
-    expect(screen.getByText('This message was deleted.')).toBeOnTheScreen();
+    expect(screen.queryByText('This message was deleted.')).toBeNull();
     expect(screen.queryByText('Body 2')).toBeNull();
 
     await act(async () => view.unmount());
@@ -141,8 +144,14 @@ describe('Channel live messages', () => {
       fake.emit('.message.deleted', { id: 9, channel_id: 50, parent_id: null, deleted_at: '2026-01-03T00:00:00Z' }),
     );
     await act(async () => fake.emit('.message.created', { message: message(9) }));
-
     expect(screen.queryByText('Body 9')).toBeNull();
+    expect(screen.queryByText('This message was deleted.')).toBeNull();
+
+    await act(async () =>
+      fake.emit('.message.deleted', { id: 10, channel_id: 50, parent_id: null, deleted_at: '2026-01-03T00:00:00Z' }),
+    );
+    await act(async () => fake.emit('.message.created', { message: message(10, { replies_count: 2 }) }));
+    expect(screen.queryByText('Body 10')).toBeNull();
     expect(screen.getByText('This message was deleted.')).toBeOnTheScreen();
   });
 
@@ -156,6 +165,54 @@ describe('Channel live messages', () => {
     await act(async () => fake.emit('.message.created', {}));
 
     expect(useMessagesStore.getState().messages.map((m) => m.id)).toEqual([1]);
+  });
+
+  it('shows the thread summary and updates its counters live', async () => {
+    globalThis.fetch = jest.fn(async () =>
+      json({ data: [message(1, { replies_count: 1, last_reply_at: '2026-01-01T10:00:00Z', recent_participants: [{ id: 1, name: 'Ana' }] })], meta: { next_cursor: null } }),
+    ) as never;
+    await render(<Channel />);
+    expect(await screen.findByText('1 reply')).toBeOnTheScreen();
+
+    const reply = message(6, { parent_id: 1, created_at: '2026-01-01T11:00:00Z', user: { id: 2, name: 'Beto' } });
+    await act(async () => fake.emit('.message.created', { message: reply }));
+    expect(screen.getByText('2 replies')).toBeOnTheScreen();
+    expect(useMessagesStore.getState().messages[0].recent_participants.map((u) => u.id)).toEqual([2, 1]);
+
+    await act(async () => fake.emit('.message.created', { message: reply }));
+    expect(screen.getByText('2 replies')).toBeOnTheScreen();
+
+    await act(async () =>
+      fake.emit('.message.created', { message: message(5, { parent_id: 1, created_at: '2026-01-01T09:00:00Z' }) }),
+    );
+    expect(screen.getByText('2 replies')).toBeOnTheScreen();
+
+    await act(async () =>
+      fake.emit('.message.deleted', {
+        id: 6,
+        channel_id: 50,
+        parent_id: 1,
+        deleted_at: '2026-01-01T12:00:00Z',
+        root: { id: 1, replies_count: 1, last_reply_at: '2026-01-01T10:00:00Z' },
+      }),
+    );
+    expect(screen.getByText('1 reply')).toBeOnTheScreen();
+    await act(async () => fake.emit('.message.created', { message: reply }));
+    expect(screen.getByText('1 reply')).toBeOnTheScreen();
+  });
+
+  it('keeps thread counters when a root is edited and offers to reply when empty', async () => {
+    globalThis.fetch = jest.fn(async () =>
+      json({ data: [message(1), message(2, { replies_count: 3, last_reply_at: '2026-01-01T10:00:00Z' })], meta: { next_cursor: null } }),
+    ) as never;
+    await render(<Channel />);
+    expect(await screen.findByText('Reply in thread')).toBeOnTheScreen();
+
+    await act(async () =>
+      fake.emit('.message.updated', { message: message(2, { body: 'Edited', edited_at: '2026-01-02T00:00:00Z' }) }),
+    );
+    expect(screen.getByText('Edited')).toBeOnTheScreen();
+    expect(screen.getByText('3 replies')).toBeOnTheScreen();
   });
 
   it('catches up after a reconnection', async () => {

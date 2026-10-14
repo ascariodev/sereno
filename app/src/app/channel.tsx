@@ -8,7 +8,8 @@ import { MessageComposer } from '@/components/MessageComposer';
 import { MessageEditor } from '@/components/MessageEditor';
 import { MessageBody } from '@/components/MessageBody';
 import { SystemNotice } from '@/components/SystemNotice';
-import { type Message, useMessagesStore } from '@/messages/store';
+import { ThreadSummary } from '@/components/ThreadSummary';
+import { type Message, type RootCounters, useMessagesStore } from '@/messages/store';
 import { useOrganizationStore } from '@/organization/store';
 import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '@/messages/payload';
 import { useProjectsStore } from '@/projects/store';
@@ -33,12 +34,13 @@ function deleteErrorKey(status: number): string {
 
 async function deleteMessage(message: Message, t: (key: string) => string): Promise<void> {
   try {
-    const response = await api.delete<{ data: Message }>(`/api/channels/${message.channel_id}/messages/${message.id}`);
+    const response = await api.delete<{ data: Message; meta?: { root?: RootCounters } }>(`/api/channels/${message.channel_id}/messages/${message.id}`);
     useMessagesStore.getState().remove({
       id: message.id,
       channel_id: message.channel_id,
       parent_id: message.parent_id,
       deleted_at: response.data.deleted_at ?? new Date().toISOString(),
+      root: response.meta?.root ?? { id: message.parent_id ?? message.id, replies_count: response.data.replies_count, last_reply_at: response.data.last_reply_at },
     });
   } catch (caught) {
     const status = caught instanceof ApiError ? caught.status : 0;
@@ -113,6 +115,7 @@ function MessageRow({ message }: { message: Message }) {
       ) : (
         <MessageBody body={message.body} mentions={message.mentions} ownUserId={ownUserId} style={styles.body} />
       )}
+      {message.parent_id === null && (message.deleted_at === null || message.replies_count > 0) ? <ThreadSummary message={message} /> : null}
     </View>
   );
 }

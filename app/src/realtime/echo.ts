@@ -25,6 +25,7 @@ export interface RealtimePayload {
   parent_id?: number | null
   id?: number
   deleted_at?: string
+  root?: { id?: number; replies_count?: number; last_reply_at?: string | null; recent_participants?: { id: number; name: string }[] }
 }
 
 export interface NotificationCreatedPayload {
@@ -183,11 +184,23 @@ export function subscribeToChannel(
     if (event === MESSAGE_DELETED_EVENT) {
       const { id, channel_id: deletedChannelId, parent_id: parentId, deleted_at: deletedAt } = data
       if (typeof id !== 'number' || typeof deletedChannelId !== 'number' || typeof deletedAt !== 'string') return
+      const root = data.root
+      const validRoot = typeof root?.id === 'number' && typeof root.replies_count === 'number'
       onDeleted({
         id,
         channel_id: deletedChannelId,
         parent_id: typeof parentId === 'number' ? parentId : null,
         deleted_at: deletedAt,
+        ...(validRoot
+          ? {
+              root: {
+                id: root.id as number,
+                replies_count: root.replies_count as number,
+                last_reply_at: typeof root.last_reply_at === 'string' ? root.last_reply_at : null,
+                recent_participants: root.recent_participants,
+              },
+            }
+          : {}),
       })
       return
     }

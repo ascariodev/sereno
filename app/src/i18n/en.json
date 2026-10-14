@@ -156,6 +156,12 @@
       "ignored": "ignored"
     }
   },
+  "thread": {
+    "replyAction": "Reply in thread",
+    "replies_one": "{{count}} reply",
+    "replies_other": "{{count}} replies",
+    "lastReply": "Last reply {{when}}"
+  },
   "message": {
     "actions": "Message actions",
     "edit": "Edit",
