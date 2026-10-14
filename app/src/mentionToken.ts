@@ -1,3 +1,5 @@
+import type { InsertedMention, MentionState } from '@/mentions/mentionInput';
+
 // Same token as the API (StoreMessageRequest): ids without leading zeros, up to 18 digits.
 // Global flag: use it with matchAll/replace, never with test/exec (they keep lastIndex).
 export const MENTION_TOKEN = /<@([1-9][0-9]{0,17})>/g;
@@ -27,4 +29,22 @@ export function splitMentions(
   }
   if (last < text.length) parts.push({ text: text.slice(last) });
   return parts;
+}
+
+export function parseMentionDraft(body: string, mentions: readonly { id: number; name: string }[]): MentionState {
+  const names = new Map(mentions.map((m) => [m.id, m.name]));
+  const inserted: InsertedMention[] = [];
+  let text = '';
+  let last = 0;
+  for (const match of body.matchAll(MENTION_TOKEN)) {
+    const id = Number(match[1]);
+    const name = names.get(id);
+    if (name === undefined || !Number.isSafeInteger(id)) continue;
+    text += body.slice(last, match.index);
+    const start = text.length;
+    text += `@${name}`;
+    inserted.push({ id, name, start, end: text.length });
+    last = match.index + match[0].length;
+  }
+  return { text: text + body.slice(last), caret: null, mentions: inserted };
 }

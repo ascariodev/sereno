@@ -155,5 +155,24 @@
       "resolved": "resuelto",
       "ignored": "ignorado"
     }
+  },
+  "message": {
+    "actions": "Acciones del mensaje",
+    "edit": "Editar",
+    "editLabel": "Editar mensaje",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "edited": "(editado)",
+    "editForbidden": "No puedes editar este mensaje.",
+    "editGone": "El mensaje ya no existe.",
+    "editFailed": "No se pudieron guardar los cambios.",
+    "delete": "Eliminar",
+    "deleteTitle": "Eliminar mensaje",
+    "deleteConfirm": "Este mensaje se eliminará para todos. No se puede deshacer.",
+    "deleteForbidden": "No puedes eliminar este mensaje.",
+    "deleteGone": "El mensaje ya estaba eliminado.",
+    "deleteArchived": "Este canal está archivado; no se pueden eliminar mensajes.",
+    "deleteThrottled": "Demasiadas solicitudes. Inténtalo de nuevo en un momento.",
+    "deleteFailed": "No se pudo eliminar el mensaje."
   }
 }

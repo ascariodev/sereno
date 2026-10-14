@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 22
+**Estado:** en curso · Fase actual: 23
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -138,7 +138,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** `message.created/updated/deleted` en el canal abierto.
 - **Terminado cuando:** test con eventos simulados.
 
-### [ ] Fase 22 — Editar y borrar mensajes propios
+### [x] Fase 22 — Editar y borrar mensajes propios
 - **Alcance:** menú de mensaje con editar y borrar.
 - **Terminado cuando:** tests de permisos y de ambas acciones.
 
@@ -274,6 +274,11 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   usa `MessageBody` con menciones y la fase 17 deja además `MarkdownContent` RN (markdown-it) para las fases 34 y 36.
 
 ## Notas para la próxima sesión
+- Fase 22 hecha: menú por mensaje en `channel.tsx` (editar solo el autor en `user` no borrados; borrar el autor o
+  `canModerate()`, nuevo en `organization/store.ts`; confirmación con `Alert`; "(editado)"), y
+  `components/MessageEditor.tsx` (PATCH con menciones vía `parseMentionDraft`, ahora en `mentionToken.ts`; luego
+  `replace`; 404 hace `catchUp`). Errores como `ChannelView.vue`. Adjuntos no se editan (fases 24 y 25). El borrado de
+  respuestas y el `root` del evento quedan para la fase 23.
 - Fase 21 hecha: `realtime/echo.ts` suma `subscribeToChannel` (`organizations.{org}.channels.{id}`, `.message.*`, conteo
   de referencias). `messages/store.ts` suma `replace` (ignora ediciones más viejas por `edited_at`), `remove` (marcador),
   `catchUp` tras reconexión y borrados anticipados (`liveDeletions`); `open` conserva lo recibido en vivo durante la carga.
@@ -281,12 +286,6 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   al reconectar. Para la fase 23: `replace` sustituye el mensaje entero y las respuestas (`parent_id`) se ignoran; portar
   `applyReply`, conservar `replies_count`/`last_reply_at`/`recent_participants` y usar el `root` de `.message.deleted`.
   `project.members_changed` no se escucha (fase 41, junto con `invalidate` de miembros).
-- Fase 20 hecha: `app/src/mentions/mentionInput.ts` (port puro de `useMentionInput.ts`: `findQuery`, `reconcile`,
-  `suggestionsFor`, `selectMember`, `serializeMentions`) y `app/src/projects/members.ts` (directorio de
-  `/api/projects/{id}/members`, TTL 5 min, dedupe en vuelo, se vacía al cambiar de organización; sin `invalidate`: la fase
-  41 debe sumarlo al cambiar miembros). El compositor busca el proyecto con `channelByProject`; sin store de proyectos
-  cargado no hay sugerencias (como la web). El caret se estima en `onChangeText` y lo corrige `onSelectionChange`. Falta
-  `parseMentionDraft` (para editar, fase 22).
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -334,3 +333,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-26: Envolver el canal en `KeyboardAvoidingView` (o el equivalente de Expo) si en el teléfono el teclado tapa el compositor. Complejidad baja, sonnet.
 - [ ] M-27: Tests de `app/src/projects/members.ts` (TTL, dedupe en vuelo, vaciado al cambiar de organización). Complejidad baja, sonnet.
 - [ ] M-28: `catchUp` sale si `loading`; la web solo si `hasNewer`. Si la carga de `open` falla y hay reconexión, no se recupera nada. Complejidad baja, sonnet.
+- [ ] M-29: Tests de errores 404/422/429 del borrado y del `catchUp` en 404 (borrar y editar) en `messageActions.test.tsx`; tipar `t` de `deleteMessage` con `TFunction`. Complejidad baja, sonnet.
