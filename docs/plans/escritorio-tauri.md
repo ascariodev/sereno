@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -73,7 +73,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   `web/src/platform/desktop.ts`.
 - **Terminado cuando:** specs del componente con escritorio simulado; en la app, descargar un adjunto funciona.
 
-### [ ] Fase 7 — Bandeja del sistema e instancia única [riesgo]
+### [x] Fase 7 — Bandeja del sistema e instancia única [riesgo]
 - **Alcance:** cerrar la ventana la oculta (la sesión y Reverb siguen vivos); icono en la bandeja con menú Abrir y Salir;
   clic en el icono muestra la ventana. Plugin `single-instance`: abrir Sereno otra vez enfoca la ventana existente.
 - **Archivos:** `web/src-tauri/Cargo.toml`, `web/src-tauri/src/lib.rs`, `web/src-tauri/tauri.conf.json`,
@@ -163,11 +163,19 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - 2026-10-13 — Fase 6: `openExternal(url)` en `desktop.ts` es el único punto que llama a `openUrl`. En escritorio,
   `MessageAttachments` (también lo usa `TaskComments`) pide la URL nueva y la abre con `openExternal`, sin el
   `window.open` previo al await; un fallo muestra el toast de error existente.
+- 2026-10-13 — Fase 7: bandeja e instancia única solo en Rust (`lib.rs`, feature `tray-icon`,
+  `tauri-plugin-single-instance` registrado primero), sin permisos de capabilities. Menú de la bandeja en inglés ("Open
+  Sereno", "Quit"): seguir el idioma exige otra dependencia (`sys-locale`). Clic izquierdo muestra la ventana; el menú sale
+  con clic derecho. `backgroundThrottling` no tiene efecto en Windows (wry 0.57 solo lo aplica en macOS) y `window.hide()`
+  no marca el WebView2 como invisible.
 - 2026-10-13 — Fase 2: `src-tauri/target` y `gen/` los ignora el `.gitignore` que genera Tauri en `web/src-tauri/`; no se
   tocó `web/.gitignore`. `beforeDevCommand` vacío (Vite corre en Docker). Sin iconos android/ios (el móvil va con Expo).
   Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
 
 ## Notas para la próxima sesión
+- Fase 7: revisión manual pendiente: icono en la bandeja, Quit cierra del todo, y con la ventana oculta más de 1-2 minutos
+  un mensaje enviado desde otro cliente aparece al reabrir sin recargar. Si no llega (Chromium estrangula por oclusión),
+  plan B: `additional_browser_args` con `--disable-features=CalculateNativeWinOcclusion` en la ventana (decisión nueva).
 - Fase 6: revisión manual pendiente: descargar y previsualizar un adjunto en la app abre el navegador del sistema.
 - Fase 5: la miniatura de `MessageAttachments.vue` tiene `target="_blank"` y `@click="openFresh"`; si `openFresh` hace
   `preventDefault`, el listener de enlaces la ignora (comprobarlo en la fase 6). `openUrl` ya cubre URLs firmadas http(s).
@@ -215,3 +223,9 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-13: Separar el toast de fallo de `openUrl` del de la URL firmada: un fallo del navegador del sistema no debería decir "reintenta".
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
+- [ ] M-14: Menú de la bandeja en el idioma del sistema (crate `sys-locale`), con los textos de `en` y `es`.
+      Complejidad: media · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-15: Clic izquierdo en la bandeja alterna ocultar y mostrar si la ventana ya está visible y enfocada.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-16: `log::warn!` en vez de `let _` para los errores de `show`, `unminimize` y `set_focus` en `lib.rs`.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
