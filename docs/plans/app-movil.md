@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 20
+**Estado:** en curso · Fase actual: 21
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -130,7 +130,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** compositor con envío y estado de error.
 - **Terminado cuando:** test de envío y de error.
 
-### [ ] Fase 20 — Autocompletar menciones
+### [x] Fase 20 — Autocompletar menciones
 - **Alcance:** al escribir `@`, sugerir miembros e insertar el token de mención.
 - **Terminado cuando:** test del autocompletado.
 
@@ -274,18 +274,17 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   usa `MessageBody` con menciones y la fase 17 deja además `MarkdownContent` RN (markdown-it) para las fases 34 y 36.
 
 ## Notas para la próxima sesión
+- Fase 20 hecha: `app/src/mentions/mentionInput.ts` (port puro de `useMentionInput.ts`: `findQuery`, `reconcile`,
+  `suggestionsFor`, `selectMember`, `serializeMentions`) y `app/src/projects/members.ts` (directorio de
+  `/api/projects/{id}/members`, TTL 5 min, dedupe en vuelo, se vacía al cambiar de organización; sin `invalidate`: la fase
+  41 debe sumarlo al cambiar miembros). El compositor busca el proyecto con `channelByProject`; sin store de proyectos
+  cargado no hay sugerencias (como la web). El caret se estima en `onChangeText` y lo corrige `onSelectionChange`. Falta
+  `parseMentionDraft` (para editar, fase 22).
 - Fase 19 hecha: `app/src/components/MessageComposer.tsx` (como `MessageComposer.vue`: 4000 caracteres contados con
   `[...s]`, 422 por `body` o `message`, 429, genérico; conserva el texto al fallar y solo vacía si no cambió; envío solo por
   botón, el campo es multilínea). `messages/store.ts` suma `send` (POST con generación) e `insert` (deduplica por id, ignora
   otro canal y `parent_id`, ordena por id), listo para la fase 21. La pantalla del canal no conoce `archived_at`: un envío a
   un canal archivado muestra el 422 del API. Falta comprobar en el teléfono que el teclado no tape el compositor.
-- Fase 18 hecha: `app/src/messages/payload.ts` (tipos y guardas de payload de `web/src/api/types.ts`, `levelTone`) y
-  `app/src/components/SystemNotice.tsx` (tarjeta de grupo abierto/reabierto con nivel, título, eventos y hora; líneas de
-  cambio de estado, tarea creada desde el grupo y grupo reabierto de una tarea; genérico si el payload no es válido),
-  usado en `channel.tsx`. Las líneas se pintan como una frase sin negritas (la web usa `i18n-t`). Para la fase 26 (acciones
-  resolver/ignorar/crear tarea): la pantalla del canal solo recibe `id` y `name`; hará falta `projectId` y un estado
-  compartido del grupo como `useLogGroupStatuses`. Abrir el grupo al tocar el título va con la fase 39; `ThreadSummary`
-  con la 23.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -331,3 +330,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-24: Negritas en actor y estado de las líneas de aviso con `Trans` de react-i18next, como `i18n-t` en la web. Complejidad baja, sonnet.
 - [ ] M-25: Ocultar el compositor en canales archivados (`archived_at` de `ChannelResource`, pasarlo a la pantalla del canal), como la web. Complejidad baja, sonnet.
 - [ ] M-26: Envolver el canal en `KeyboardAvoidingView` (o el equivalente de Expo) si en el teléfono el teclado tapa el compositor. Complejidad baja, sonnet.
+- [ ] M-27: Tests de `app/src/projects/members.ts` (TTL, dedupe en vuelo, vaciado al cambiar de organización). Complejidad baja, sonnet.

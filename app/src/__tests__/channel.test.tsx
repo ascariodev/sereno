@@ -1,9 +1,10 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { api } from '@/api/client';
 import Channel from '@/app/channel';
 import Projects from '@/app/(tabs)/index';
 import { useMessagesStore } from '@/messages/store';
+import { useMemberDirectoryStore } from '@/projects/members';
 import { useOrganizationStore } from '@/organization/store';
 import { useProjectsStore } from '@/projects/store';
 import { useAuthStore } from '@/session/auth';
@@ -320,5 +321,78 @@ describe('Message composer', () => {
       expect(useMessagesStore.getState().insert(message(9, { channel_id: 99 }) as never)).toBe(false);
     });
     expect(useMessagesStore.getState().messages.map((m) => m.id)).toEqual([1]);
+  });
+});
+
+describe('Mention autocomplete', () => {
+  const members = [
+    { id: 1, name: 'Ana' },
+    { id: 7, name: 'Bea Díaz' },
+    { id: 8, name: 'Carlos Beas' },
+  ];
+
+  function mockMentions() {
+    const fetchMock = jest.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') return json({ data: message(2, { body: JSON.parse(String(init.body)).body, mentions: [members[1]] }) }, 201);
+      if (String(url).includes('/members')) return json({ data: members });
+      if (String(url).includes('/api/projects?')) return json({ data: [], meta: { last_page: 1 } });
+      if (/\/api\/channels(\?|$)/.test(String(url))) return json({ data: [{ id: 50, project_id: 9 }], meta: { next_cursor: null } });
+      return json({ data: [message(1)], meta: { next_cursor: null } });
+    });
+    globalThis.fetch = fetchMock as never;
+    return fetchMock;
+  }
+
+  beforeEach(() => {
+    useOrganizationStore.setState({ activeId: null });
+    useProjectsStore.getState().clear();
+    useAuthStore.setState({ user: { id: 1, name: 'Ana' } as never });
+    useMemberDirectoryStore.getState().clear();
+  });
+
+  it('suggests members after @, excluding yourself, and sends the token', async () => {
+    const fetchMock = mockMentions();
+    await act(async () => useOrganizationStore.setState({ activeId: 3 }));
+    await waitFor(() => expect(useProjectsStore.getState().channelByProject).toEqual({ 9: 50 }));
+    await render(<Channel />);
+    await screen.findByText('Body 1');
+    const input = screen.getByLabelText('Write a message');
+
+    await fireEvent.changeText(input, 'Hi @be');
+    await fireEvent(input, 'selectionChange', { nativeEvent: { selection: { start: 6, end: 6 } } });
+
+    expect(await screen.findByRole('button', { name: 'Mention Bea Díaz' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Mention Carlos Beas' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Mention Ana' })).toBeNull();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/api/projects/9/members'))).toBe(true);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Mention Bea Díaz' }));
+    expect(screen.getByLabelText('Write a message').props.value).toBe('Hi @Bea Díaz ');
+    expect(screen.queryByRole('button', { name: 'Mention Bea Díaz' })).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    await screen.findByText('Hi @Bea Díaz');
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!;
+    expect(JSON.parse(String(post[1]?.body))).toEqual({ body: 'Hi <@7> ' });
+  });
+
+  it('does not open for an @ inside a word and drops a mention that is edited', async () => {
+    mockMentions();
+    await act(async () => useOrganizationStore.setState({ activeId: 3 }));
+    await waitFor(() => expect(useProjectsStore.getState().channelByProject).toEqual({ 9: 50 }));
+    await render(<Channel />);
+    await screen.findByText('Body 1');
+    const input = screen.getByLabelText('Write a message');
+
+    await fireEvent.changeText(input, 'mail@be');
+    expect(screen.queryByRole('button', { name: /Mention/ })).toBeNull();
+
+    await fireEvent.changeText(input, '@bea');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Mention Bea Díaz' }));
+    await fireEvent.changeText(screen.getByLabelText('Write a message'), '@Bea Dí ');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+
+    const post = (globalThis.fetch as jest.Mock).mock.calls.find(([, init]) => init?.method === 'POST')!;
+    expect(JSON.parse(String(post[1]?.body))).toEqual({ body: '@Bea Dí ' });
   });
 });

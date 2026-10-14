@@ -120,7 +120,8 @@
       "send": "Enviar",
       "tooLong": "El mensaje no puede superar {{max}} caracteres.",
       "rateLimited": "Estás enviando mensajes demasiado rápido. Inténtalo de nuevo en un momento.",
-      "sendFailed": "No se pudo enviar el mensaje."
+      "sendFailed": "No se pudo enviar el mensaje.",
+      "mention": "Mencionar a {{name}}"
     }
   },
   "notifications": {
