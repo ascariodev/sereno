@@ -116,8 +116,8 @@ del contenedor).
    `adjuntos-url`): la web pide una nueva a `GET /api/attachments/{id}/url`, que valida el acceso, cuando la guardada vence.
 7. Plan: tareas, tablero, crear tarea desde un aviso. **Hecho.**
 8. Escritorio: PWA instalable y app Tauri para Windows (plan `escritorio-tauri`): bandeja, instancia única, avisos nativos,
-   iniciar con Windows y actualizador firmado. **Hecho**, salvo las revisiones manuales con la app instalada y la primera
-   publicación (0.1.0 y 0.1.1), que quedan pendientes. Linux y Mac, sin hacer.
+   iniciar con Windows y actualizador firmado. **Hecho** y verificado con la app instalada (publicadas 0.1.0 y 0.1.1).
+   Linux y Mac, sin hacer.
 9. Push web hecho (plan `notificaciones-push`): Web Push con VAPID, preferencias por tipo, no se muestra con Sereno
    enfocado. Falta el push móvil (va con la app móvil) y la facturación SaaS.
 

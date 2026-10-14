@@ -229,6 +229,9 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - Fase 12: en PowerShell `~` no se expande: `tauri signer generate -w ~/.tauri/...` dejó el par en `web/~/.tauri/` (se movió
   sin llegar a git). Rutas absolutas en la fase 14. El build del host sobrescribe `web/dist`.
 - 0.1.0 publicada el 2026-10-14: `latest.json` responde y el `.sig` trae `version:0.1.0`.
+- Fase 14 verificada el 2026-10-14: con 0.1.0 instalada y 0.1.1 publicada, al arrancar aparece el toast y Reiniciar
+  instala 0.1.1 (modo passive: parece un refresco). La búsqueda solo corre al arrancar el proceso y cada 6 h: reabrir la
+  ventana desde la bandeja no busca.
 - Fase 13: verificada el 2026-10-14 tras el deploy de la web: `https://sereno.ascario.dev/desktop/latest.json` da 404
   y el resto de la web sigue igual.
 - Fase 11: verificada el 2026-10-14 con la app instalada. Revisión original (el autostart registra la ruta del exe actual): activar el
