@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -75,13 +75,15 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   `X-Organization-Id`, errores tipados, 401 y 403 `organization_forbidden` como en `web/src/api/client.ts`.
 - **Terminado cuando:** tests del cliente (headers, errores, callbacks de 401/403).
 
-### [ ] Fase 8 — Idioma
+### [x] Fase 8 — Idioma
 - **Alcance:** i18n `es`/`en` con el idioma del sistema (expo-localization) y cambio manual; textos portados de la web solo
   para lo que use la app.
 - **Terminado cuando:** test: idioma inicial según el sistema y cambio en vivo.
 
 ### [ ] Fase 9 — Sesión
 - **Alcance:** token en `expo-secure-store`, store de sesión (login, logout, `GET /api/me`), `device_name` del dispositivo.
+  Además: llamar a `installI18nOnApi()` al arrancar, aplicar `users.locale` con `setLocale` tras `GET /api/me` y persistir la
+  elección manual de idioma (como `workspace.locale` de la web).
 - **Terminado cuando:** tests del store (persistencia, logout borra el token, 401 cierra la sesión).
 
 ### [ ] Fase 10 — Login y protección de rutas
@@ -257,19 +259,19 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — La app se desarrolla en el host Windows, no en Docker (Metro y el teléfono necesitan la red local).
 - 2026-10-14 — Proyecto de EAS creado por el usuario en expo.dev: id `13898f47-6f81-4a6d-82e3-2b8e1b3a667d`. La fase 6 lo
   vincula con `npx eas-cli init --id <id>` desde `app/` (no crear otro proyecto de EAS).
+- 2026-10-14 — Fase 8: el i18n de la app queda como módulo; su conexión al arranque, el idioma de la cuenta y la persistencia
+  de la elección manual pasan a la fase 9.
 - 2026-10-14 — Aceptar invitaciones sigue en la web (no hay deep links de `sereno.ascario.dev` en esta versión).
 
 ## Notas para la próxima sesión
+- Fase 8 hecha: `app/src/i18n/` (i18next ^26 + react-i18next ^17 + expo-localization ~57) con la API de `web/src/i18n`
+  (`resolveLocale`, `setLocale`, `getLocale`, `installI18nOnApi`, `LOCALE_LABELS`), instancia propia con `useSuspense:false`,
+  `en` por defecto. Solo la clave `app.name`; los textos de la web se copian cuando una pantalla los use. Aún nadie llama a
+  `installI18nOnApi()` ni usa `useTranslation` (queda para la fase 9).
 - Fase 7 hecha: `app/src/config.ts` (`readConfig(env)` testeable; `config` lee cada `process.env.EXPO_PUBLIC_*` de forma estática,
   porque Expo solo inlinea así; defaults `http://10.0.2.2:8003` y Reverb `10.0.2.2:8086`, key vacía) y `app/src/api/client.ts`,
   igual que el de la web: `api` singleton y `createApiClient`, `set*Provider` de token, locale y organización, handlers de 401 y
   403 `organization_forbidden`, `ApiError` con `code`. URL armada sin `new URL` (Hermes). `FieldErrors` vive en `client.ts`.
-- Fase 6 hecha: Expo SDK 57 (expo ~57.0.29), React Native 0.86.3, React 19.2.3, TypeScript ~6.0.3, expo-router ~57,
-  jest-expo ~57 (preset `jest-expo`, no `jest-expo/android`), @testing-library/react-native 14.1. Plantilla `default` reducida:
-  código en `app/src/app/` (rutas) y tests en `app/src/__tests__/` (fuera de las rutas). Alias `@/*`. Metro en el puerto 8087
-  (8081 es de medic). `android.package` `dev.ascario.sereno`, scheme `sereno`, EAS vinculado (owner `ascariodev`).
-  En el emulador, si Expo Go queda en el splash: `adb shell am start -a android.intent.action.VIEW -d exp://10.0.2.2:8087 host.exp.exponent`.
-  El texto de la pantalla inicial es negro fijo: revisar el tema oscuro en la fase 44.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
