@@ -1,8 +1,10 @@
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 
+import { ApiError } from '@/api/client';
 import { installI18nOnApi } from '@/i18n';
 import { installOrganizationOnApi, useOrganizationStore } from '@/organization/store';
+import { useRealtimeSession } from '@/realtime/useRealtimeSession';
 import { installAuthOnApi, useAuthStore } from '@/session/auth';
 
 installI18nOnApi();
@@ -13,6 +15,8 @@ export default function RootLayout() {
   const hydrate = useAuthStore((state) => state.hydrate);
   const hydrated = useAuthStore((state) => state.hydrated);
   const signedIn = useAuthStore((state) => state.token !== null);
+  const userMissing = useAuthStore((state) => state.user === null);
+  const fetchMe = useAuthStore((state) => state.fetchMe);
 
   const hasOrganization = useOrganizationStore((state) => state.activeId !== null);
   const organizationsSettled = useOrganizationStore((state) => state.loaded || state.loadError);
@@ -25,6 +29,15 @@ export default function RootLayout() {
   useEffect(() => {
     if (signedIn) void loadOrganizations();
   }, [signedIn, loadOrganizations]);
+
+  useEffect(() => {
+    if (!signedIn || !userMissing) return;
+    fetchMe().catch((error: unknown) => {
+      if (!(error instanceof ApiError)) throw error;
+    });
+  }, [signedIn, userMissing, fetchMe]);
+
+  useRealtimeSession();
 
   if (!hydrated || (signedIn && !organizationsSettled)) return null;
 

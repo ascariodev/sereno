@@ -83,7 +83,8 @@ describe('route protection', () => {
     await renderRouter(routes, { initialUrl: '/' });
     await settle();
 
-    expect(screen.getByRole('header', { name: 'Projects' })).toBeOnTheScreen();
+    expect(useAuthStore.getState().user).toEqual(user);
+    expect(screen.getByRole('header', { name: 'Hello, Ana' })).toBeOnTheScreen();
     await openSettings();
     expect(screen.getByText('Beta')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeOnTheScreen();
@@ -112,7 +113,7 @@ describe('route protection', () => {
 
   it('shows the organization selector when the user has no organizations', async () => {
     secureData.set('sereno.token', 'saved');
-    mockFetch((url) => (url.endsWith('/api/organizations') ? json({ data: [] }) : json({})));
+    mockFetch((url) => (url.endsWith('/api/organizations') ? json({ data: [] }) : home([])(url)));
     await renderRouter(routes, { initialUrl: '/' });
     await settle();
 
@@ -157,6 +158,7 @@ describe('route protection', () => {
 function home(list: unknown[]) {
   return (url: string) => {
     if (url.endsWith('/api/organizations')) return json({ data: list });
+    if (url.endsWith('/api/me')) return json({ data: user });
     if (url.includes('/api/projects')) return json({ data: [], meta: { last_page: 1 } });
     if (url.includes('/api/channels')) return json({ data: [], meta: { next_cursor: null } });
     return json({});

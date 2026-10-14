@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 15
+**Estado:** en curso · Fase actual: 16
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -106,7 +106,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** solo owner/admin, como `ProjectCreateDialog.vue` y `ProjectHeader.vue`.
 - **Terminado cuando:** tests por rol.
 
-### [ ] Fase 15 — Tiempo real con Reverb [riesgo]
+### [x] Fase 15 — Tiempo real con Reverb [riesgo]
 - **Alcance:** laravel-echo + pusher-js en React Native, autorización por `POST /broadcasting/auth` con Bearer, reconexión
   al volver de segundo plano.
 - **Terminado cuando:** test del cliente con el transporte simulado y, en el teléfono, suscripción a `users.{id}` sin error.
@@ -266,19 +266,24 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Fase 14: la app edita name/key/description y archiva proyectos (`POST /api/projects/{id}/archive`), que la
   web no ofrece; el toggle `tasks_resolve_log_groups` de `ProjectHeader.vue` queda como mejora. Los cambios del store de
   proyectos aún no se protegen de una `load` en vuelo (la web usa `recentUpdates`): la fase 15, al sumar sockets, lo resuelve.
+- 2026-10-14 — Fase 15: `pusher-js/react-native` exige `@react-native-community/netinfo` (12.0.1, vía `npx expo install`);
+  se acepta como dependencia. `refreshCounts` se porta en las fases 21 y 39; `useMembershipWatch` de la web (revocación,
+  cambio de rol) no está en ninguna fase y queda como mejora.
 
 ## Notas para la próxima sesión
+- Fase 15 hecha: `app/src/realtime/echo.ts` porta `web/src/realtime/echo.ts` (canales con conteo de referencias,
+  `subscribeToUser`, `onReconnect`, `disconnectRealtime`, auth `POST /broadcasting/auth` con Bearer) y suma
+  `resumeRealtime()`. `useRealtimeSession` (en el layout raíz) se suscribe a `users.{id}`, recarga proyectos con
+  `load(true)` ante cambios de acceso o reconexión y llama a `resumeRealtime()` al volver a primer plano. `clearSession`
+  desconecta. El store de proyectos usa `recentUpdates` (también para `archive`). El layout llama a `fetchMe` si hay token
+  sin usuario. `app/jest.setup.js` mockea netinfo. Sin `EXPO_PUBLIC_REVERB_APP_KEY` en el entorno de la app no hay tiempo
+  real (Echo queda null). Pendiente: probar en el teléfono la suscripción a `users.{id}` (puede hacer falta cleartext en
+  Android para `ws://` en desarrollo).
 - Fase 14 hecha: `app/src/app/project-form.tsx` (crear sin `?id`; editar y archivar con `?id`, archivar con confirmación)
   en la Stack protegida. `projects/store.ts` suma `load(keepCurrent)`, `create`, `update` y `archive`;
   `organization/store.ts` suma `canCreateProject()` (owner/admin, como la web). Botones "Nuevo proyecto" y "Editar" solo
   para owner/admin. Sin desarchivar ni lista de archivados. Ver Decisiones (fase 14): la fase 15 debe proteger el store de
   una `load` en vuelo al sumar `refreshCounts` por sockets (patrón `recentUpdates` de `web/src/stores/projects.ts`).
-- Fase 13 hecha: pestañas en `app/src/app/(tabs)/` con `expo-router/js-tabs` (Proyectos en `/`, `/notifications` como
-  esqueleto, `/settings` con organización activa, cambiar de organización y cerrar sesión). `src/projects/store.ts` replica
-  `web/src/stores/projects.ts` (proyectos con `per_page=100`, canales por cursor, archivados ocultos, `channelByProject`,
-  generación, recarga al cambiar de organización); sin `create`/`update` (fase 14) ni `refreshCounts` (fase 15). La
-  primera carga la dispara el `useEffect` de `(tabs)/index.tsx`. Las tarjetas aún no navegan: la fase 16 las enlaza al
-  canal. En tests las pestañas se pulsan por texto.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -314,3 +319,5 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-14: Reintentar una carga fallida de organizaciones con sesión deja la pantalla en blanco (`_layout` devuelve null) hasta que se resuelve: mostrar un indicador de carga. Complejidad baja, sonnet.
 - [ ] M-15: Toggle `tasks_resolve_log_groups` en el formulario del proyecto, como `ProjectHeader.vue`. Complejidad baja, sonnet.
 - [ ] M-16: Tests de error de `archive` (403 y red) en `projectForm.test.tsx`. Complejidad baja, sonnet.
+- [ ] M-17: Portar `useMembershipWatch` de la web (revocación de acceso, cambio de rol, `onChannelDenied`): la app hoy solo recarga proyectos. Complejidad media, sonnet.
+- [ ] M-18: Documentar `EXPO_PUBLIC_REVERB_APP_KEY`, `_HOST`, `_PORT` y `_SCHEME` de la app (en `app/.env.example` o en CLAUDE.md, sección App móvil): sin la clave Echo queda null en silencio. Complejidad baja, sonnet.

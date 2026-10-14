@@ -104,3 +104,59 @@ describe('Projects tab', () => {
     expect(screen.queryByText('Project 1')).toBeNull();
   });
 });
+
+describe('projects store during a load in flight', () => {
+  function deferredApi(projects: unknown[]) {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    globalThis.fetch = jest.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'PATCH') return json({ data: project(1, { name: 'Renamed' }) });
+      if (init?.method === 'POST') return json({});
+      await gate;
+      if (url.includes('/api/projects')) return json({ data: projects, meta: { last_page: 1 } });
+      return json({ data: [{ id: 50, project_id: 1 }, { id: 51, project_id: 2 }], meta: { next_cursor: null } });
+    }) as never;
+    return () => release();
+  }
+
+  beforeEach(async () => {
+    mockApi([project(1), project(2)]);
+    await useProjectsStore.getState().load();
+  });
+
+  it('keeps an update saved while an older load was in flight', async () => {
+    const release = deferredApi([project(1), project(2)]);
+    const loading = useProjectsStore.getState().load(true);
+    await useProjectsStore.getState().update(1, { name: 'Renamed' });
+    release();
+    await loading;
+
+    expect(useProjectsStore.getState().projects.map((p) => p.name)).toEqual(['Renamed', 'Project 2']);
+  });
+
+  it('keeps a project archived while an older load was in flight', async () => {
+    const release = deferredApi([project(1), project(2)]);
+    const loading = useProjectsStore.getState().load(true);
+    await useProjectsStore.getState().archive(2);
+    release();
+    await loading;
+
+    expect(useProjectsStore.getState().projects.map((p) => p.id)).toEqual([1]);
+    expect(useProjectsStore.getState().channelByProject).toEqual({ 1: 50 });
+  });
+
+  it('does not apply an old change to a later load', async () => {
+    let release = deferredApi([project(1), project(2)]);
+    const loading = useProjectsStore.getState().load(true);
+    await useProjectsStore.getState().archive(2);
+    release();
+    await loading;
+
+    release = deferredApi([project(1), project(2)]);
+    const later = useProjectsStore.getState().load(true);
+    release();
+    await later;
+
+    expect(useProjectsStore.getState().projects.map((p) => p.id)).toEqual([1, 2]);
+  });
+});

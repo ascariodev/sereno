@@ -40,6 +40,33 @@ interface ProjectsState {
 const PER_PAGE = 100
 
 let generation = 0
+let changeSeq = 0
+let loadsInFlight = 0
+// Saved while a load is in flight, so its older response does not undo them.
+let recentChanges: { seq: number; project?: Project; archivedId?: number }[] = []
+
+function rememberChange(change: { project?: Project; archivedId?: number }): void {
+  if (loadsInFlight > 0) recentChanges.push({ seq: ++changeSeq, ...change })
+}
+
+function archivedIdsSince(since: number): Set<number> {
+  return new Set(
+    recentChanges.flatMap((change) => (change.seq > since && change.archivedId !== undefined ? [change.archivedId] : [])),
+  )
+}
+
+function applyChanges(projects: Project[], since: number): Project[] {
+  const changes = recentChanges.filter((change) => change.seq > since)
+  const archived = archivedIdsSince(since)
+  return projects
+    .filter((project) => !archived.has(project.id))
+    .map((project) =>
+      changes.reduce(
+        (merged, change) => (change.project?.id === merged.id ? { ...merged, ...change.project } : merged),
+        project,
+      ),
+    )
+}
 
 async function fetchProjects(): Promise<Project[]> {
   const all: Project[] = []
@@ -80,18 +107,25 @@ export const useProjectsStore = create<ProjectsState>()((set, get) => ({
     const mine = ++generation
     if (keepCurrent) set({ failed: false, loading: true })
     else set({ projects: [], channelByProject: {}, loaded: false, failed: false, loading: true })
+    const startedAt = changeSeq
+    loadsInFlight++
     try {
       const [projects, channels] = await Promise.all([fetchProjects(), fetchChannels()])
       if (mine !== generation) return
+      const archivedSince = archivedIdsSince(startedAt)
       set({
-        projects: projects.filter((project) => project.archived_at === null),
-        channelByProject: Object.fromEntries(channels.map((channel) => [channel.project_id, channel.id])),
+        projects: applyChanges(projects.filter((project) => project.archived_at === null), startedAt),
+        channelByProject: Object.fromEntries(
+          channels.filter((channel) => !archivedSince.has(channel.project_id)).map((channel) => [channel.project_id, channel.id]),
+        ),
         loaded: true,
         loading: false,
       })
     } catch (error) {
       if (!(error instanceof ApiError)) throw error
       if (mine === generation) set({ failed: true, loading: false })
+    } finally {
+      if (--loadsInFlight === 0) recentChanges = []
     }
   },
 
@@ -103,6 +137,7 @@ export const useProjectsStore = create<ProjectsState>()((set, get) => ({
 
   async update(projectId, input) {
     const response = await api.patch<{ data: Project }>(`/api/projects/${projectId}`, input)
+    rememberChange({ project: response.data })
     set({
       projects: get().projects.map((project) => (project.id === projectId ? { ...project, ...response.data } : project)),
     })
@@ -111,6 +146,7 @@ export const useProjectsStore = create<ProjectsState>()((set, get) => ({
 
   async archive(projectId) {
     await api.post(`/api/projects/${projectId}/archive`)
+    rememberChange({ archivedId: projectId })
     const { [projectId]: _removed, ...channels } = get().channelByProject
     set({ projects: get().projects.filter((project) => project.id !== projectId), channelByProject: channels })
   },
