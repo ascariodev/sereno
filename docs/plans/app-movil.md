@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 24
+**Estado:** en curso · Fase actual: 25
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -152,7 +152,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   compositor y editor que sirven al hilo, eventos en vivo y `catchUp` del hilo.
 - **Terminado cuando:** tests de carga y respuesta.
 
-### [ ] Fase 24 — Ver adjuntos
+### [x] Fase 24 — Ver adjuntos
 - **Alcance:** miniaturas de imágenes y apertura de archivos con URL fresca (`GET /api/attachments/{id}/url`).
 - **Terminado cuando:** test: URL vencida pide una nueva.
 
@@ -281,18 +281,17 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Fase 23 dividida en 23a (contadores y resumen en el canal) y 23b (pantalla de hilo): pasaba de ~8 archivos.
 
 ## Notas para la próxima sesión
+- Fase 24 hecha (y M-31): `components/MessageAttachments.tsx` en `MessageRow` (canal e hilo) y `messages/attachments.ts`
+  (`getAttachmentUrl`, `formatFileSize`). Como `MessageAttachments.vue`: miniatura con la URL guardada, una sola renovación
+  por URL vencida y luego fila de archivo; al tocar se pide URL fresca y se abre con `Linking.openURL`, solo si es http(s)
+  (L-88). `Message.attachments` es opcional en el tipo. Mensajes borrados o en edición no muestran adjuntos. La fase 25
+  sube adjuntos; las 34 y 36 reutilizan `MessageAttachments`.
 - Fase 23b hecha: `messages/threadStore.ts` (port de `web/src/stores/thread.ts` sin el borrador; reutiliza helpers
   exportados de `messages/store.ts`), `app/thread.tsx` (params `channelId` e `id` de la raíz; la raíz sale de `meta.root` o
   del store del canal) y `components/MessageRow.tsx` extraído del canal (muestra `ThreadSummary` solo con
   `onOpenThread`). `MessageComposer` acepta `send`, `channelId` y `placeholder`; editar y borrar actualizan los dos stores
   (404 hace `catchUp` en ambos). `channel.tsx` reenvía created/updated/deleted/reconexión al hilo. Sin adjuntos en el hilo
   (fases 24 y 25) ni estado archivado.
-- Fase 23a hecha: `messages/store.ts` con campos de hilo y la reconciliación de `web/src/stores/messages.ts`
-  (`applyReply`/`bumpRoot`/`snapshotCounts` exportado, `withLiveReplies`/`reconcile` vía `fromServer(page, since)`,
-  `keepNewerContent` en `catchUp`, `Removal` con `seq`, `settle`: una raíz borrada sin respuestas sale de la lista, con
-  respuestas queda marcador). `echo.ts` pasa `root` de `.message.deleted`; `channel.tsx` usa `meta.root` del DELETE.
-  `components/ThreadSummary.tsx` (conteo, iniciales, última respuesta relativa; "Responder en hilo" sin respuestas) acepta
-  `onOpen`, que la 23b debe conectar a la pantalla de hilo; el store del hilo reutiliza `snapshotCounts`.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -342,6 +341,6 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-28: `catchUp` sale si `loading`; la web solo si `hasNewer`. Si la carga de `open` falla y hay reconexión, no se recupera nada. Complejidad baja, sonnet.
 - [ ] M-29: Tests de errores 404/422/429 del borrado y del `catchUp` en 404 (borrar y editar) en `messageActions.test.tsx`; tipar `t` de `deleteMessage` con `TFunction`. Complejidad baja, sonnet.
 - [ ] M-30: Store de mensajes: separar el tope de 200 de `deletedRoots` (al expulsar una entrada un snapshot tardío puede resucitar la raíz; la web solo limita `unloadedDeletions`) y sumar la guarda `listVersion` en `loadOlder` como la web. Complejidad baja, sonnet.
-- [ ] M-31: `settle` debe vaciar `attachments` al borrar, como `asDeleted` de la web (cuando lleguen los adjuntos, fase 24). Complejidad baja, sonnet.
+- [x] M-31: `settle` debe vaciar `attachments` al borrar, como `asDeleted` de la web (cuando lleguen los adjuntos, fase 24). Complejidad baja, sonnet.
 - [ ] M-32: `threadStore.catchUp` relanza errores que no son `ApiError`/`AbortError` y se llama con `void`: tragarlos como la web para evitar rechazos sin capturar. Complejidad baja, sonnet.
 - [ ] M-33: Conservar el borrador de la respuesta del hilo entre aperturas de la misma raíz (`draft` de la web) y usar selectores en `thread.tsx`. Complejidad baja, sonnet.

@@ -120,7 +120,14 @@ describe('messages store thread counters', () => {
 
   it('drops a deleted root without replies and keeps a marker when it has replies', async () => {
     globalThis.fetch = jest.fn(async () =>
-      page([message(2, { replies_count: 2, last_reply_at: '2026-01-01T10:00:00Z' }), message(1)]),
+      page([
+        message(2, {
+          replies_count: 2,
+          last_reply_at: '2026-01-01T10:00:00Z',
+          attachments: [{ id: 9, original_name: 'a.png', mime: 'image/png', size: 1, created_at: '2026-01-01T00:00:00Z', url: 'https://files.test/9' }],
+        }),
+        message(1),
+      ]),
     ) as never;
     await useMessagesStore.getState().open(50);
     const store = useMessagesStore.getState();
@@ -138,5 +145,6 @@ describe('messages store thread counters', () => {
     expect(list.map((m) => m.id)).toEqual([2]);
     expect(list[0].deleted_at).toBe('2026-01-02T00:00:00Z');
     expect(list[0].body).toBeNull();
+    expect(list[0].attachments).toEqual([]);
   });
 });

@@ -87,7 +87,7 @@ function resetLiveState(): void {
 }
 
 function asDeleted(message: Message, deletedAt: string): Message {
-  return { ...message, body: null, mentions: [], deleted_at: deletedAt }
+  return { ...message, body: null, mentions: [], attachments: [], deleted_at: deletedAt }
 }
 
 function sortedById(list: Message[]): Message[] {

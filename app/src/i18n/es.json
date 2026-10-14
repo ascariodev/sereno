@@ -187,5 +187,12 @@
     "deleteArchived": "Este canal está archivado; no se pueden eliminar mensajes.",
     "deleteThrottled": "Demasiadas solicitudes. Inténtalo de nuevo en un momento.",
     "deleteFailed": "No se pudo eliminar el mensaje."
+  },
+  "attachments": {
+    "list": "Archivos adjuntos",
+    "download": "Descargar",
+    "previewUnavailable": "La vista previa ya no está disponible.",
+    "openFailed": "No se pudo abrir el archivo. Puede que ya no esté disponible.",
+    "openFailedRetry": "No se pudo abrir el archivo. Revisa tu conexión e inténtalo de nuevo."
   }
 }

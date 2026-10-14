@@ -5,6 +5,15 @@ import type { MessagePayload } from './payload'
 
 export const MESSAGES_PER_PAGE = 50
 
+export interface MessageAttachment {
+  id: number
+  original_name: string
+  mime: string
+  size: number
+  created_at: string
+  url: string
+}
+
 export interface Message {
   id: number
   channel_id: number
@@ -17,6 +26,7 @@ export interface Message {
   recent_participants: { id: number; name: string }[]
   user: { id: number; name: string } | null
   mentions: { id: number; name: string }[]
+  attachments?: MessageAttachment[]
   created_at: string
   edited_at: string | null
   deleted_at: string | null
@@ -176,7 +186,7 @@ function settle(root: Message): Message | null {
   const deletedAt = deletedRoots.get(root.id)
   if (deletedAt === undefined) return root
   if (root.replies_count === 0) return null
-  return root.deleted_at !== null ? root : { ...root, body: null, mentions: [], deleted_at: deletedAt }
+  return root.deleted_at !== null ? root : { ...root, body: null, mentions: [], attachments: [], deleted_at: deletedAt }
 }
 
 function fromServer(list: Message[], since: number): Message[] {

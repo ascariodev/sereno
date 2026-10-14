@@ -116,6 +116,7 @@
 - L-85: En la app móvil, "paridad con la web" incluye el comportamiento de los stores, no solo las pantallas: antes de decidir un flujo (autoselección, redirecciones, 403) se lee el store equivalente de `web/src/stores/` y se replica. — aplicada en: test (organization.test)
 - L-86: No se filtra en el cliente una lista paginada por cursor: una página puede quedar vacía con `next_cursor` no nulo y la lista no vuelve a pedir (`onEndReached` no se dispara). Se filtra en el API o se muestra todo con un render provisional. — aplicada en: test (channel.test)
 - L-87: Al portar un store con eventos en vivo de la web (mensajes, hilos), se portan también sus reconciliaciones (respuestas vivas durante una carga, contadores del servidor con contenido local más nuevo, borrados con `seq`), no solo el camino feliz; los tests usan fetch diferido para cubrir eventos que llegan con la petición en vuelo. — aplicada en: test (messagesStore.test)
+- L-88: En la app móvil, toda URL que venga del API y se abra con `Linking.openURL` o se use como `uri` se valida como http(s): en Android `openURL` resuelve intents y esquemas arbitrarios (la web no lo necesita con `window.open`). — aplicada en: test (messageAttachments.test)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

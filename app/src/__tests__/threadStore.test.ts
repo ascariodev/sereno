@@ -134,7 +134,14 @@ describe('thread store', () => {
     expect(thread().replace(reply(2, '2026-01-01T10:00:00Z', { body: 'Old', edited_at: '2026-01-01T12:00:00Z' }))).toBe(false);
     expect(thread().replies[0].body).toBe('New');
 
-    thread().replace(message(1, { body: 'Root edited', edited_at: '2026-01-02T00:00:00Z' }));
+    thread().replace(
+      message(1, {
+        body: 'Root edited',
+        edited_at: '2026-01-02T00:00:00Z',
+        attachments: [{ id: 9, original_name: 'a.png', mime: 'image/png', size: 1, created_at: '2026-01-01T00:00:00Z', url: 'https://files.test/9' }],
+      }),
+    );
+    expect(thread().root?.attachments).toHaveLength(1);
     expect(thread().root?.body).toBe('Root edited');
     expect(thread().root?.replies_count).toBe(1);
 
@@ -147,6 +154,7 @@ describe('thread store', () => {
     });
     expect(thread().root?.deleted_at).toBe('2026-01-03T00:00:00Z');
     expect(thread().root?.body).toBeNull();
+    expect(thread().root?.attachments).toEqual([]);
   });
 
   it('ignores events of other threads and channels', async () => {

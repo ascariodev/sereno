@@ -187,5 +187,12 @@
     "deleteArchived": "This channel is archived; messages cannot be deleted.",
     "deleteThrottled": "Too many requests. Try again in a moment.",
     "deleteFailed": "Could not delete the message."
+  },
+  "attachments": {
+    "list": "Attached files",
+    "download": "Download",
+    "previewUnavailable": "The preview is no longer available.",
+    "openFailed": "Could not open the file. It may no longer be available.",
+    "openFailedRetry": "Could not open the file. Check your connection and try again."
   }
 }

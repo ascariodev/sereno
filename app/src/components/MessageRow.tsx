@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { api, ApiError } from '@/api/client';
+import { MessageAttachments } from '@/components/MessageAttachments';
 import { MessageBody } from '@/components/MessageBody';
 import { MessageEditor } from '@/components/MessageEditor';
 import { SystemNotice } from '@/components/SystemNotice';
@@ -116,6 +117,7 @@ export function MessageRow({ message, onOpenThread }: { message: Message; onOpen
       ) : (
         <MessageBody body={message.body} mentions={message.mentions} ownUserId={ownUserId} style={styles.body} />
       )}
+      {message.deleted_at === null && !isEditing && (message.attachments?.length ?? 0) > 0 ? <MessageAttachments attachments={message.attachments ?? []} /> : null}
       {onOpenThread !== undefined && message.parent_id === null && (message.deleted_at === null || message.replies_count > 0) ? <ThreadSummary message={message} onOpen={onOpenThread} /> : null}
     </View>
   );
