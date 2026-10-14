@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -34,7 +34,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - **Terminado cuando:** `rustc -V` y `cargo -V` responden en el host y `npx @tauri-apps/cli info` (desde `web/`) no marca
   faltantes para Windows.
 
-### [ ] Fase 2 — Esqueleto Tauri que abre la SPA [riesgo]
+### [x] Fase 2 — Esqueleto Tauri que abre la SPA [riesgo]
 - **Alcance:** `@tauri-apps/cli` como devDependency de `web/`; `web/src-tauri/` creado con `tauri init` (nombre Sereno,
   identificador `dev.ascario.sereno`, `frontendDist: ../dist`, `devUrl: http://localhost:5174`, `beforeBuildCommand:
   npm run build`), iconos con `tauri icon web/brand/icon-1024.png`, CSP restringida a la API y a Reverb de producción.
@@ -150,8 +150,18 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   este dispositivo".
 - 2026-10-13 — Token sigue en `localStorage` del WebView (decisión de `web-minima` revisada): el perfil de WebView2 es
   local del usuario de Windows; moverlo al llavero del sistema queda como mejora.
+- 2026-10-13 — Fase 2: CSP fija en `tauri.conf.json` con los hosts de producción a mano (`https://sereno-api.ascario.dev`,
+  `wss://sereno-ws.ascario.dev`, tomados de `terminados/web-docker.md`); si cambian los hostnames hay que tocarla. `devCsp`
+  aparte para `tauri:dev` (API 8003, Reverb 8086, HMR 5174). `style-src 'unsafe-inline'` con
+  `dangerousDisableAssetCspModification: ["style-src"]` (si no, el nonce de Tauri anula los `style=` de Vue).
+- 2026-10-13 — Fase 2: `src-tauri/target` y `gen/` los ignora el `.gitignore` que genera Tauri en `web/src-tauri/`; no se
+  tocó `web/.gitignore`. `beforeDevCommand` vacío (Vite corre en Docker). Sin iconos android/ios (el móvil va con Expo).
+  Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
 
 ## Notas para la próxima sesión
+- Fase 2: `npm run tauri:build -- --debug` deja `web/src-tauri/target/debug/bundle/nsis/Sereno_0.1.0_x64-setup.exe` (y el
+  `.msi`). **Revisión manual pendiente**: instalar, login contra producción y mensaje en vivo por Reverb. Si falla, mirar
+  primero la CSP y que `web/.env.production` tenga las `VITE_*` de producción. El build del host sobrescribe `web/dist`.
 - Fase 1 verificada el 2026-10-13: rustc y cargo 1.99.0 (stable MSVC), VS Community 2022 con C++, WebView2 155; `tauri info` sin faltantes (CLI 2.12.2 por npx). En Git Bash, `~/.cargo/bin` no está en el PATH: anteponer `export PATH="/c/Users/Windows 11/.cargo/bin:$PATH"`.
 
 ## Mejoras propuestas
@@ -165,3 +175,5 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: alta · Archivos: 4 · Riesgo: seguridad → opus
 - [ ] M-5: Enlaces profundos `sereno://` para que los enlaces de los correos abran la app de escritorio.
       Complejidad: alta · Archivos: 5 · Riesgo: integración externa → opus
+- [ ] M-6: `bundle.targets` solo NSIS (hoy "all": MSI y NSIS), para un único instalador que use el actualizador.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet

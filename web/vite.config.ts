@@ -11,7 +11,10 @@ export default defineConfig({
     port: 5174,
     strictPort: true,
     ...(devHost ? { host: devHost } : {}),
-    ...(devPolling ? { watch: { usePolling: true } } : {}),
+    watch: {
+      ignored: ['**/src-tauri/**'],
+      ...(devPolling ? { usePolling: true } : {}),
+    },
   },
   preview: {
     port: 5174,
