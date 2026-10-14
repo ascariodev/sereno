@@ -314,7 +314,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [x] M-24: Si se cierra el toast de actualización sin reiniciar, volver a ofrecerlo en el siguiente ciclo de 6 h.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-25: Revertir el reformateo sin relación de `dangerousDisableAssetCspModification` en `tauri.conf.json`.
+- [x] M-25: Revertir el reformateo sin relación de `dangerousDisableAssetCspModification` en `tauri.conf.json`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-26: `--dry-run` del script de publicación no escribe la versión en `tauri.conf.json` ni `package.json` (hoy la deja
       subida y la siguiente corrida sin argumento publicaría esa), y `--help` aclara que el dry-run compila y exige la clave.

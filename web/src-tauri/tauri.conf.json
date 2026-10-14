@@ -36,9 +36,7 @@
         "style-src": "'self' 'unsafe-inline'",
         "font-src": "'self' data:"
       },
-      "dangerousDisableAssetCspModification": [
-        "style-src"
-      ]
+      "dangerousDisableAssetCspModification": ["style-src"]
     }
   },
   "bundle": {
