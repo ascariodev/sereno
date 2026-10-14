@@ -268,7 +268,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: alta · Archivos: 4 · Riesgo: seguridad → opus
 - [ ] M-5: Enlaces profundos `sereno://` para que los enlaces de los correos abran la app de escritorio.
       Complejidad: alta · Archivos: 5 · Riesgo: integración externa → opus
-- [ ] M-6: `bundle.targets` solo NSIS (hoy "all": MSI y NSIS), para un único instalador que use el actualizador (evita que
+- [x] M-6: `bundle.targets` solo NSIS (hoy "all": MSI y NSIS), para un único instalador que use el actualizador (evita que
       una instalación MSI se actualice con el NSIS de `latest.json`; conviene antes de la fase 14).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-7: `desktop.spec.ts` simula `isTauri` con `vi.stubGlobal`/`unstubAllGlobals` en vez de borrar el global con un cast.
