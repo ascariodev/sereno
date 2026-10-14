@@ -5,7 +5,8 @@
   "common": {
     "localeSaveFailed": "Could not save your language. It was applied on this device only.",
     "signOut": "Sign out",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "changeOrganization": "Change organization"
   },
   "login": {
     "subtitle": "Sign in to see your projects' channels.",
@@ -37,5 +38,22 @@
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "network": "Could not reach the server.",
     "failed": "Could not create the account. Try again."
+  },
+  "organization": {
+    "title": "Choose an organization",
+    "subtitle": "Pick the team you want to work with.",
+    "none": "You do not belong to any organization yet.",
+    "noneHint": "Create an organization, or ask an owner or admin of your team to send you an invitation.",
+    "loadFailed": "Could not load your organizations.",
+    "retry": "Retry",
+    "createTitle": "New organization",
+    "nameLabel": "Organization name",
+    "nameRequired": "Enter a name.",
+    "nameTooLong": "The name cannot exceed {{max}} characters.",
+    "submit": "Create organization",
+    "creating": "Creating...",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not create the organization. Try again."
   }
 }

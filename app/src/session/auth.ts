@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 import { api, ApiError } from '@/api/client'
 import { chooseLocale, setChosenLocale, setLocale, type Locale } from '@/i18n'
+import { useOrganizationStore } from '@/organization/store'
 
 import { deviceName } from './deviceName'
 import { LOCALE_STORAGE_KEY, readStored, removeStored, TOKEN_STORAGE_KEY, writeStored } from './storage'
@@ -123,6 +124,7 @@ export const useAuthStore = create<AuthState>()((set, get) => {
     async clearSession() {
       generation++
       set({ token: null, user: null })
+      useOrganizationStore.getState().clear()
       setLocale(null)
       await removeStored(TOKEN_STORAGE_KEY)
     },

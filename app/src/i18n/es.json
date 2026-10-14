@@ -5,7 +5,8 @@
   "common": {
     "localeSaveFailed": "No se pudo guardar tu idioma. Se aplicó solo en este dispositivo.",
     "signOut": "Cerrar sesión",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "changeOrganization": "Cambiar de organización"
   },
   "login": {
     "subtitle": "Inicia sesión para ver los canales de tus proyectos.",
@@ -37,5 +38,22 @@
     "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
     "network": "No se pudo conectar con el servidor.",
     "failed": "No se pudo crear la cuenta. Inténtalo de nuevo."
+  },
+  "organization": {
+    "title": "Elige una organización",
+    "subtitle": "Elige el equipo con el que quieres trabajar.",
+    "none": "Aún no perteneces a ninguna organización.",
+    "noneHint": "Crea una organización o pide a un propietario o administrador de tu equipo que te envíe una invitación.",
+    "loadFailed": "No se pudieron cargar tus organizaciones.",
+    "retry": "Reintentar",
+    "createTitle": "Nueva organización",
+    "nameLabel": "Nombre de la organización",
+    "nameRequired": "Escribe un nombre.",
+    "nameTooLong": "El nombre no puede superar {{max}} caracteres.",
+    "submit": "Crear organización",
+    "creating": "Creando...",
+    "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo crear la organización. Inténtalo de nuevo."
   }
 }

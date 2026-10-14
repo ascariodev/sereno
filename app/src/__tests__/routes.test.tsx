@@ -6,7 +6,9 @@ import RootLayout from '@/app/_layout';
 import Index from '@/app/index';
 import Login from '@/app/login';
 import Register from '@/app/register';
+import SelectOrganization from '@/app/select-organization';
 import { setChosenLocale, setLocale } from '@/i18n';
+import { useOrganizationStore } from '@/organization/store';
 import { installAuthOnApi, useAuthStore } from '@/session/auth';
 
 jest.mock('expo-secure-store', () => {
@@ -28,8 +30,13 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
-function mockFetch(handler: () => Response | Promise<Response>) {
-  const fn = jest.fn(async () => handler());
+const organizations = [
+  { id: 7, name: 'Acme', slug: 'acme', roles: ['owner'] },
+  { id: 8, name: 'Beta', slug: 'beta', roles: ['member'] },
+];
+
+function mockFetch(handler: (url: string) => Response | Promise<Response>) {
+  const fn = jest.fn(async (url: string) => handler(url));
   globalThis.fetch = fn as never;
   return fn;
 }
@@ -57,7 +64,7 @@ async function fillAndSubmit() {
 }
 
 describe('route protection', () => {
-  const routes = { _layout: RootLayout, index: Index, login: Login, register: Register };
+  const routes = { _layout: RootLayout, index: Index, login: Login, register: Register, 'select-organization': SelectOrganization };
 
   it('redirects to the login without a session', async () => {
     await renderRouter(routes, { initialUrl: '/' });
@@ -66,12 +73,44 @@ describe('route protection', () => {
     expect(screen.getByLabelText('Email')).toBeOnTheScreen();
   });
 
-  it('keeps the home screen when a token was stored', async () => {
+  it('keeps the home screen when a token and a valid organization were stored', async () => {
     secureData.set('sereno.token', 'saved');
+    secureData.set('sereno.organization', '8');
+    mockFetch((url) => (url.endsWith('/api/organizations') ? json({ data: organizations }) : json({})));
     await renderRouter(routes, { initialUrl: '/' });
     await settle();
 
+    expect(screen.getByText('Beta')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeOnTheScreen();
+  });
+
+  it('activates the first organization when none is remembered and lets the user switch', async () => {
+    secureData.set('sereno.token', 'saved');
+    mockFetch((url) => (url.endsWith('/api/organizations') ? json({ data: organizations }) : json({})));
+    await renderRouter(routes, { initialUrl: '/' });
+    await settle();
+
+    expect(screen.getByText('Acme')).toBeOnTheScreen();
+    expect(secureData.get('sereno.organization')).toBe('7');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Change organization' }));
+    await settle();
+    await fireEvent.press(screen.getByRole('button', { name: 'Beta' }));
+    await settle();
+
+    expect(screen.getByText('Beta')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Change organization' })).toBeOnTheScreen();
+    expect(secureData.get('sereno.organization')).toBe('8');
+  });
+
+  it('shows the organization selector when the user has no organizations', async () => {
+    secureData.set('sereno.token', 'saved');
+    mockFetch((url) => (url.endsWith('/api/organizations') ? json({ data: [] }) : json({})));
+    await renderRouter(routes, { initialUrl: '/' });
+    await settle();
+
+    expect(screen.getByText('Choose an organization')).toBeOnTheScreen();
+    expect(screen.getByText('You do not belong to any organization yet.')).toBeOnTheScreen();
   });
 
   it('goes from the login to the register screen and back', async () => {
@@ -89,7 +128,10 @@ describe('route protection', () => {
   });
 
   it('a successful login goes home and logout comes back to the login', async () => {
-    mockFetch(() => json({ token: 'tk', user }));
+    mockFetch((url) =>
+      url.endsWith('/api/organizations') ? json({ data: [organizations[0]] }) : json({ token: 'tk', user }),
+    );
+    secureData.set('sereno.organization', '7');
     await renderRouter(routes, { initialUrl: '/login' });
     await settle();
     await settle();
@@ -101,6 +143,7 @@ describe('route protection', () => {
     mockFetch(() => json({}));
     await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
     await settle();
+    expect(useOrganizationStore.getState().activeId).toBeNull();
     expect(screen.getByLabelText('Email')).toBeOnTheScreen();
   });
 });
