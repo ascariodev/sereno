@@ -3,7 +3,10 @@ import { renderRouter, screen } from 'expo-router/testing-library';
 
 import { api } from '@/api/client';
 import RootLayout from '@/app/_layout';
-import Index from '@/app/index';
+import TabsLayout from '@/app/(tabs)/_layout';
+import Notifications from '@/app/(tabs)/notifications';
+import Projects from '@/app/(tabs)/index';
+import Settings from '@/app/(tabs)/settings';
 import Login from '@/app/login';
 import Register from '@/app/register';
 import SelectOrganization from '@/app/select-organization';
@@ -64,7 +67,7 @@ async function fillAndSubmit() {
 }
 
 describe('route protection', () => {
-  const routes = { _layout: RootLayout, index: Index, login: Login, register: Register, 'select-organization': SelectOrganization };
+  const routes = { _layout: RootLayout, '(tabs)/_layout': TabsLayout, '(tabs)/index': Projects, '(tabs)/notifications': Notifications, '(tabs)/settings': Settings, login: Login, register: Register, 'select-organization': SelectOrganization };
 
   it('redirects to the login without a session', async () => {
     await renderRouter(routes, { initialUrl: '/' });
@@ -76,20 +79,23 @@ describe('route protection', () => {
   it('keeps the home screen when a token and a valid organization were stored', async () => {
     secureData.set('sereno.token', 'saved');
     secureData.set('sereno.organization', '8');
-    mockFetch((url) => (url.endsWith('/api/organizations') ? json({ data: organizations }) : json({})));
+    mockFetch(home(organizations));
     await renderRouter(routes, { initialUrl: '/' });
     await settle();
 
+    expect(screen.getByRole('header', { name: 'Projects' })).toBeOnTheScreen();
+    await openSettings();
     expect(screen.getByText('Beta')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeOnTheScreen();
   });
 
   it('activates the first organization when none is remembered and lets the user switch', async () => {
     secureData.set('sereno.token', 'saved');
-    mockFetch((url) => (url.endsWith('/api/organizations') ? json({ data: organizations }) : json({})));
+    mockFetch(home(organizations));
     await renderRouter(routes, { initialUrl: '/' });
     await settle();
 
+    await openSettings();
     expect(screen.getByText('Acme')).toBeOnTheScreen();
     expect(secureData.get('sereno.organization')).toBe('7');
 
@@ -98,6 +104,7 @@ describe('route protection', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Beta' }));
     await settle();
 
+    await openSettings();
     expect(screen.getByText('Beta')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Change organization' })).toBeOnTheScreen();
     expect(secureData.get('sereno.organization')).toBe('8');
@@ -128,9 +135,7 @@ describe('route protection', () => {
   });
 
   it('a successful login goes home and logout comes back to the login', async () => {
-    mockFetch((url) =>
-      url.endsWith('/api/organizations') ? json({ data: [organizations[0]] }) : json({ token: 'tk', user }),
-    );
+    mockFetch((url) => (url.endsWith('/api/auth/login') ? json({ token: 'tk', user }) : home([organizations[0]])(url)));
     secureData.set('sereno.organization', '7');
     await renderRouter(routes, { initialUrl: '/login' });
     await settle();
@@ -138,6 +143,7 @@ describe('route protection', () => {
 
     await fillAndSubmit();
     await settle();
+    await openSettings();
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeOnTheScreen();
 
     mockFetch(() => json({}));
@@ -147,6 +153,20 @@ describe('route protection', () => {
     expect(screen.getByLabelText('Email')).toBeOnTheScreen();
   });
 });
+
+function home(list: unknown[]) {
+  return (url: string) => {
+    if (url.endsWith('/api/organizations')) return json({ data: list });
+    if (url.includes('/api/projects')) return json({ data: [], meta: { last_page: 1 } });
+    if (url.includes('/api/channels')) return json({ data: [], meta: { next_cursor: null } });
+    return json({});
+  };
+}
+
+async function openSettings() {
+  await fireEvent.press(screen.getByText('Settings'));
+  await settle();
+}
 
 async function settle() {
   for (let i = 0; i < 5; i++) {

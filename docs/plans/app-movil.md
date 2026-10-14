@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 13
+**Estado:** en curso · Fase actual: 14
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -98,7 +98,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** organización activa persistida, selector y crear organización.
 - **Terminado cuando:** tests: elegir, recordar la elegida, 403 vuelve al selector.
 
-### [ ] Fase 13 — Navegación principal y proyectos
+### [x] Fase 13 — Navegación principal y proyectos
 - **Alcance:** pestañas o cajón (proyectos, notificaciones, ajustes) y lista de proyectos con su canal.
 - **Terminado cuando:** test de la lista (vacía, con datos, archivados ocultos).
 
@@ -264,17 +264,18 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Aceptar invitaciones sigue en la web (no hay deep links de `sereno.ascario.dev` en esta versión).
 
 ## Notas para la próxima sesión
+- Fase 13 hecha: pestañas en `app/src/app/(tabs)/` con `expo-router/js-tabs` (Proyectos en `/`, `/notifications` como
+  esqueleto, `/settings` con organización activa, cambiar de organización y cerrar sesión). `src/projects/store.ts` replica
+  `web/src/stores/projects.ts` (proyectos con `per_page=100`, canales por cursor, archivados ocultos, `channelByProject`,
+  generación, recarga al cambiar de organización); sin `create`/`update` (fase 14) ni `refreshCounts` (fase 15). La
+  primera carga la dispara el `useEffect` de `(tabs)/index.tsx`. Las tarjetas aún no navegan: la fase 16 las enlaza al
+  canal. En tests las pestañas se pulsan por texto.
 - Fase 12 hecha: `app/src/organization/store.ts` (zustand) con la lista y la activa, persistida en SecureStore
   (`sereno.organization`). Como la web: `load()` conserva la guardada si sigue en la lista, si no activa la primera; null
   solo sin organizaciones. `X-Organization-Id` sale de la activa. `select-organization.tsx` es lista de cambio directo
   (`router.dismissTo('/')`) y permite crear; sin organizaciones es obligatoria. Un 403 de una organización que ya no está
   pasa a la primera disponible o al selector. `_layout.tsx` devuelve null con sesión hasta que la lista carga o falla. El
   inicio (`index.tsx`) sigue provisional: la fase 13 lo reemplaza por la navegación principal.
-- Fase 11 hecha: `app/src/app/register.tsx` (estados cargando, cerrado, fallo con reintento y abierto; 422 por campo
-  vacía las contraseñas; 403, 429, red, doble envío y desmontado). `session/auth.ts` suma `register` y comparte con
-  `login` el helper `startSession` (generación, rollback del token, idioma). `register` manda `explicitLocale` nulo, como
-  la web. Los tipos de rutas de Expo (`app/.expo/types/router.d.ts`, ignorado por git) se regeneran con `expo start`: tras
-  agregar una ruta, arrancar Expo una vez antes de `npm run typecheck`.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->

@@ -55,5 +55,32 @@
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "network": "Could not reach the server.",
     "failed": "Could not create the organization. Try again."
+  },
+  "projects": {
+    "greeting": "Hello, {{name}}",
+    "title": "Projects",
+    "loadFailed": "Could not load the projects.",
+    "retry": "Retry",
+    "empty": "No projects yet.",
+    "emptyHint": "Projects you belong to appear here.",
+    "healthOpen_one": "{{count}} open",
+    "healthOpen_other": "{{count}} open",
+    "healthCalm": "All calm",
+    "level": {
+      "debug": "debug",
+      "info": "info",
+      "notice": "notice",
+      "warning": "warning",
+      "error": "error",
+      "critical": "critical",
+      "alert": "alert",
+      "emergency": "emergency"
+    }
+  },
+  "notifications": {
+    "title": "Notifications"
+  },
+  "settings": {
+    "title": "Settings"
   }
 }

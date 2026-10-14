@@ -55,5 +55,32 @@
     "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
     "network": "No se pudo conectar con el servidor.",
     "failed": "No se pudo crear la organización. Inténtalo de nuevo."
+  },
+  "projects": {
+    "greeting": "Hola, {{name}}",
+    "title": "Proyectos",
+    "loadFailed": "No se pudieron cargar los proyectos.",
+    "retry": "Reintentar",
+    "empty": "Aún no hay proyectos.",
+    "emptyHint": "Los proyectos a los que perteneces aparecen aquí.",
+    "healthOpen_one": "{{count}} abierto",
+    "healthOpen_other": "{{count}} abiertos",
+    "healthCalm": "Todo en calma",
+    "level": {
+      "debug": "depuración",
+      "info": "información",
+      "notice": "aviso",
+      "warning": "advertencia",
+      "error": "error",
+      "critical": "crítico",
+      "alert": "alerta",
+      "emergency": "emergencia"
+    }
+  },
+  "notifications": {
+    "title": "Notificaciones"
+  },
+  "settings": {
+    "title": "Ajustes"
   }
 }
