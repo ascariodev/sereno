@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import type { AttachmentUrl, MessageAttachment } from '../api/types'
 import { ApiError } from '../api/client'
 import { getAttachmentUrl } from '../api/messages'
+import { isDesktop, openExternal } from '../platform/desktop'
 import { formatFileSize } from '../formatFileSize'
 import { toast } from './ui/toast'
 
@@ -59,9 +60,22 @@ function openErrorMessage(error: unknown): string {
   return error instanceof ApiError && error.status === 404 ? t('attachments.openFailed') : t('attachments.openFailedRetry')
 }
 
+async function openFreshExternally(a: MessageAttachment) {
+  try {
+    const { url } = await freshUrl(a.id)
+    await openExternal(url)
+  } catch (error) {
+    toast.error(openErrorMessage(error))
+  }
+}
+
 async function openFresh(event: MouseEvent, a: MessageAttachment) {
   if (!isPlainClick(event)) return
   event.preventDefault()
+  if (isDesktop()) {
+    await openFreshExternally(a)
+    return
+  }
   const win = window.open('', '_blank')
   if (win) win.opener = null
   try {
@@ -85,7 +99,8 @@ async function downloadFresh(event: MouseEvent, a: MessageAttachment) {
   event.preventDefault()
   try {
     const { url } = await freshUrl(a.id)
-    window.location.assign(url)
+    if (isDesktop()) await openExternal(url)
+    else window.location.assign(url)
   } catch (error) {
     toast.error(openErrorMessage(error))
   }

@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -66,7 +66,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - **Terminado cuando:** spec del listener (http, mailto, mismo origen sin tocar); en la app, un enlace de un mensaje se
   abre en el navegador.
 
-### [ ] Fase 6 — Adjuntos con el navegador del sistema
+### [x] Fase 6 — Adjuntos con el navegador del sistema
 - **Alcance:** en escritorio, previsualizar y descargar un adjunto (mensajes y comentarios de tareas) abre la URL firmada
   recién pedida con `opener` en vez de `window.open` y `location.assign`.
 - **Archivos:** `web/src/components/MessageAttachments.vue` y el equivalente de comentarios si no lo reutiliza,
@@ -160,11 +160,15 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - 2026-10-13 — Fase 5: permiso `opener:allow-open-url` con scope `https://*`, `http://*`, `mailto:*` (no `opener:default`,
   que suma `tel:` y `reveal-item-in-dir`). `installExternalLinks()` en `desktop.ts` escucha `click` en `document` y solo
   actúa con botón principal, evento no cancelado, `target="_blank"` y origen distinto (o `mailto:`).
+- 2026-10-13 — Fase 6: `openExternal(url)` en `desktop.ts` es el único punto que llama a `openUrl`. En escritorio,
+  `MessageAttachments` (también lo usa `TaskComments`) pide la URL nueva y la abre con `openExternal`, sin el
+  `window.open` previo al await; un fallo muestra el toast de error existente.
 - 2026-10-13 — Fase 2: `src-tauri/target` y `gen/` los ignora el `.gitignore` que genera Tauri en `web/src-tauri/`; no se
   tocó `web/.gitignore`. `beforeDevCommand` vacío (Vite corre en Docker). Sin iconos android/ios (el móvil va con Expo).
   Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
 
 ## Notas para la próxima sesión
+- Fase 6: revisión manual pendiente: descargar y previsualizar un adjunto en la app abre el navegador del sistema.
 - Fase 5: la miniatura de `MessageAttachments.vue` tiene `target="_blank"` y `@click="openFresh"`; si `openFresh` hace
   `preventDefault`, el listener de enlaces la ignora (comprobarlo en la fase 6). `openUrl` ya cubre URLs firmadas http(s).
   Revisión manual pendiente: un enlace de un mensaje abre el navegador. `prettier --check` no es chequeo del proyecto.
@@ -205,3 +209,9 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: media · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-11: Quitar la condición redundante `url.protocol !== 'mailto:'` en `desktop.ts` (el origen de `mailto:` es `"null"`).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-12: Spec de `MessageAttachments` que instala `installExternalLinks()` en escritorio y afirma que `openUrl` se llama
+      una sola vez con la URL nueva; y otro de clic con `ctrlKey` (sin `preventDefault` ni `renew`), que fija que hoy se
+      abre el `href` guardado, que puede estar vencido.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-13: Separar el toast de fallo de `openUrl` del de la URL firmada: un fallo del navegador del sistema no debería decir "reintenta".
+      Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet

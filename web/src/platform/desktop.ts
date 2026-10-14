@@ -5,6 +5,10 @@ export function isDesktop(): boolean {
   return isTauri()
 }
 
+export function openExternal(url: string): Promise<void> {
+  return openUrl(url)
+}
+
 function externalHref(event: MouseEvent): string | null {
   if (event.defaultPrevented || event.button !== 0) return null
   if (!(event.target instanceof Element)) return null

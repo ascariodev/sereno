@@ -7,6 +7,9 @@ import type { MessageAttachment } from '../api/types'
 import MessageAttachments from './MessageAttachments.vue'
 import { toast, toasts } from './ui/toast'
 
+const openUrl = vi.hoisted(() => vi.fn())
+vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl }))
+
 const image: MessageAttachment = {
   id: 1, original_name: 'foto.png', mime: 'image/png', size: 2048, created_at: '2026-03-04T10:30:00Z', url: 'http://api/attachments/1?sig=a',
 }
@@ -310,5 +313,69 @@ describe('MessageAttachments', () => {
     expect(renewUrl.mock.calls).toEqual([[1], [2]])
     expect(assign).toHaveBeenCalledExactlyOnceWith('http://api/task-attachments/1?sig=renewed')
     expect(renew).not.toHaveBeenCalled()
+  })
+
+  describe('on desktop', () => {
+    const fresh = { url: 'http://api/attachments/9?sig=fresh', expires_at: '2026-03-04T10:35:00Z' }
+    let open: ReturnType<typeof vi.fn>
+    let assign: ReturnType<typeof vi.fn>
+
+    beforeEach(() => {
+      vi.stubGlobal('isTauri', true)
+      openUrl.mockReset().mockResolvedValue(undefined)
+      renew.mockResolvedValue(fresh)
+      open = vi.fn()
+      assign = vi.fn()
+      vi.stubGlobal('open', open)
+      vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, assign } as Location)
+    })
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('opens the freshly requested url of a preview with the system browser', async () => {
+      const w = render([image])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(renew).toHaveBeenCalledExactlyOnceWith(1)
+      expect(openUrl).toHaveBeenCalledExactlyOnceWith(fresh.url)
+      expect(open).not.toHaveBeenCalled()
+      expect(assign).not.toHaveBeenCalled()
+    })
+
+    it('downloads through the system browser', async () => {
+      const w = render([pdf])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(openUrl).toHaveBeenCalledExactlyOnceWith(fresh.url)
+      expect(open).not.toHaveBeenCalled()
+      expect(assign).not.toHaveBeenCalled()
+    })
+
+    it('prevents the default navigation so the global link listener does not open it twice', async () => {
+      const w = render([image])
+      const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 })
+      w.get('a').element.dispatchEvent(event)
+      await flushPromises()
+      expect(event.defaultPrevented).toBe(true)
+    })
+
+    it('shows an error when the url cannot be renewed', async () => {
+      renew.mockRejectedValue(new ApiError(404, 'gone'))
+      const w = render([image])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(openUrl).not.toHaveBeenCalled()
+      expect(toasts.value).toHaveLength(1)
+    })
+
+    it('shows an error when the system browser fails to open', async () => {
+      openUrl.mockRejectedValue(new Error('boom'))
+      const w = render([pdf])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(toasts.value).toHaveLength(1)
+    })
   })
 })
