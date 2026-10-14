@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -64,7 +64,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   USB o un emulador de Android Studio. Firebase (FCM) se configura recién en la fase 30.
 - **Terminado cuando:** `npx eas-cli whoami` responde y `adb devices` lista el teléfono o el emulador.
 
-### [ ] Fase 6 — Proyecto Expo en `app/` [riesgo]
+### [x] Fase 6 — Proyecto Expo en `app/` [riesgo]
 - **Alcance:** `create-expo-app` con TypeScript y Expo Router; jest-expo y Testing Library; scripts `typecheck`, `test`,
   `lint`; `app.json` con nombre Sereno, `package` de Android y esquema `sereno`. Reemplaza `app/README.md`. Comandos de la
   app en `CLAUDE.md`.
@@ -266,6 +266,12 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   `data.organizationId` y recorta a `MOBILE_MAX_BYTES` (4096 - 300 para `to`, medido con unicode escapado). Un job encolado
   antes del deploy se lee con `?? null` (test de deserialización). Limitación conocida: si un emisor lanza, el otro canal no
   sale en ese intento (M-4).
+- Fase 6 hecha: Expo SDK 57 (expo ~57.0.29), React Native 0.86.3, React 19.2.3, TypeScript ~6.0.3, expo-router ~57,
+  jest-expo ~57 (preset `jest-expo`, no `jest-expo/android`), @testing-library/react-native 14.1. Plantilla `default` reducida:
+  código en `app/src/app/` (rutas) y tests en `app/src/__tests__/` (fuera de las rutas). Alias `@/*`. Metro en el puerto 8087
+  (8081 es de medic). `android.package` `dev.ascario.sereno`, scheme `sereno`, EAS vinculado (owner `ascariodev`).
+  En el emulador, si Expo Go queda en el splash: `adb shell am start -a android.intent.action.VIEW -d exp://10.0.2.2:8087 host.exp.exponent`.
+  El texto de la pantalla inicial es negro fijo: revisar el tema oscuro en la fase 44.
 - Fase 5 verificada el 2026-10-14: `eas-cli whoami` con sesión iniciada; emulador `emulator-5554` (Android 16, x86_64) en
   `adb devices`. Desde el emulador el host es `10.0.2.2` (API `http://10.0.2.2:8003`, Reverb `10.0.2.2:8086`); desde un
   teléfono físico, la IP de la PC en la LAN.
@@ -283,4 +289,10 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
       emisor (p. ej. claves VAPID inválidas en `makeWebPush`) no deje sin enviar el otro ni pierda sus FAILED. Con test.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-5: Log "gave up" de `SendPushNotification`: omitir la lista del canal que no falló (hoy sale `subscriptions: []`).
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-6: Quitar restos de la plantilla de Expo que no se usan: `assets/expo.icon/`, `ios.icon` y `web.output` en `app.json`,
+      scripts `ios` y `web`, y dependencias sin uso (`react-native-web`, `react-dom`, `expo-glass-effect`, `expo-symbols`,
+      `@expo/ui`, `expo-web-browser`, `expo-image` si nadie la usa). Verificar con typecheck, tests y `expo lint`.
+      Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
+- [ ] M-7: `app/.vscode/settings.json` reordena imports y miembros al guardar para todos: dejar solo `extensions.json`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku

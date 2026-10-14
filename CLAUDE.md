@@ -12,7 +12,7 @@ api/   Laravel 13 (solo API) + PostgreSQL 18. Sanctum (Bearer), spatie/laravel-p
        (teams = organization), laravel-lang, Reverb, Pest. Pasos 1 a 5 del MVP hechos.
 web/   Vue 3 + TypeScript + Vite SPA, Vitest (jsdom). Corre en Docker (servicio `web`, `node:24`).
        Escritorio: PWA y Tauri v2 (Windows) con la misma SPA, proyecto en `web/src-tauri/`.
-app/   (futuro) Expo, móvil.
+app/   Expo (Expo Router, TypeScript), móvil Android. Corre en el host, no en Docker.
 docker-compose.yml  Solo `include` de `api/docker-compose.yml` y `web/docker-compose.yml` (cada entorno vive en su carpeta).
 docs/  Planes por tarea (docs/plans/), lecciones y diseño.
 ```
@@ -37,6 +37,7 @@ Elegidos para no chocar con posven (8000/5432), bidfletes (8001/5433/8080) y med
 | Mailpit, interfaz web (solo localhost) | 8026 |
 | Mailpit, SMTP desde el host (solo localhost) | 1026 |
 | Web (Vite dev, `strictPort`) | 5174 |
+| Metro (Expo, `app/`) | 8087 |
 
 ## Comandos
 
@@ -90,6 +91,14 @@ del contenedor).
   preferencias `push` por tipo. `plugins.updater.requireSignedVersion` está activo: el primer `.sig` debe traer
   `version:0.1.0` en el comentario de confianza o se rompen las actualizaciones. La CSP de `tauri.conf.json` lleva los hosts
   de producción a mano (`sereno-api` y `sereno-ws`): si cambian, tocarla.
+
+App móvil (Expo, en el **host Windows** con su Node, no en Docker; desde `app/`):
+- Dependencias: `npm install`; librerías nuevas con `npx expo install <paquete>` (no fijar versiones a mano).
+- Desarrollo: `npm start` (`npx expo start --port 8087`); `npm run android` abre la app en Expo Go en el emulador o el
+  teléfono conectado por `adb`.
+- Tests: `npm test` (jest-expo y Testing Library; un archivo: `npm test -- <ruta>`). Tipos: `npm run typecheck`. Lint: `npm run lint`.
+- Desde el emulador de Android el host es `10.0.2.2` (API `http://10.0.2.2:8003`, Reverb `10.0.2.2:8086`); desde un
+  teléfono físico, la IP de la PC en la LAN.
 
 ## Convenciones
 
