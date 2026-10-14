@@ -233,9 +233,10 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - Fase 11: revisión manual pendiente con la app **instalada** (el autostart registra la ruta del exe actual): activar el
   interruptor, mirar el valor en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` y reiniciar la sesión: Sereno
   debe quedar en la bandeja sin ventana.
-- Fase 9: revisión manual pendiente con la app **instalada** (en `target/debug` no hay AppUserModelID): con la ventana
-  oculta, clic en el aviso de una tarea asignada abre `/projects/<id>/plan?task=<n>`. Windows puede no dar el foco.
-- Fase 8: revisión manual pendiente: asignarse una tarea con la ventana oculta muestra el aviso de Windows. Una ronda de
+- Fase 9: verificada el 2026-10-14 con la app instalada (release): con la ventana minimizada, el clic en el aviso de una
+  tarea asignada abrió la tarea.
+- Fase 8: verificada el 2026-10-14: una tarea asignada desde otra cuenta con la ventana minimizada muestra el aviso de
+  Windows (asignarse a uno mismo no avisa). Una ronda de
   corrección: faltaba el spec del cableado en el store y el guard de generación tras los `await` (L-50, L-10, L-32).
 - Fase 7: revisión manual pendiente: icono en la bandeja, Quit cierra del todo, y con la ventana oculta más de 1-2 minutos
   un mensaje enviado desde otro cliente aparece al reabrir sin recargar. Si no llega (Chromium estrangula por oclusión),
@@ -253,7 +254,8 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   que todo `push.ts` queda inactivo en escritorio. Revisión manual pendiente: sin `sw.js` registrado en la app.
   `@tauri-apps/api` se instala en el contenedor y también en el host (`npm install` desde `web/`) para `tauri:build`.
 - Fase 2: `npm run tauri:build -- --debug` deja `web/src-tauri/target/debug/bundle/nsis/Sereno_0.1.0_x64-setup.exe` (y el
-  `.msi`). **Revisión manual pendiente**: instalar, login contra producción y mensaje en vivo por Reverb. Si falla, mirar
+  `.msi`). Login contra producción verificado el 2026-10-14 (el primer build falló porque faltaba `web/.env.production`);
+  **pendiente** el mensaje en vivo por Reverb. Si falla, mirar
   primero la CSP y que `web/.env.production` tenga las `VITE_*` de producción. El build del host sobrescribe `web/dist`.
 - Fase 1 verificada el 2026-10-13: rustc y cargo 1.99.0 (stable MSVC), VS Community 2022 con C++, WebView2 155; `tauri info` sin faltantes (CLI 2.12.2 por npx). En Git Bash, `~/.cargo/bin` no está en el PATH: anteponer `export PATH="/c/Users/Windows 11/.cargo/bin:$PATH"`.
 
