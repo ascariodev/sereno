@@ -11,7 +11,7 @@ logs de posveapi); a futuro, SaaS. Clientes previstos: web, escritorio (Windows,
 api/   Laravel 13 (solo API) + PostgreSQL 18. Sanctum (Bearer), spatie/laravel-permission
        (teams = organization), laravel-lang, Reverb, Pest. Pasos 1 a 5 del MVP hechos.
 web/   Vue 3 + TypeScript + Vite SPA, Vitest (jsdom). Corre en Docker (servicio `web`, `node:24`).
-       Escritorio: primero PWA, luego Tauri con la misma SPA.
+       Escritorio: PWA y Tauri v2 (Windows) con la misma SPA, proyecto en `web/src-tauri/`.
 app/   (futuro) Expo, móvil.
 docker-compose.yml  Solo `include` de `api/docker-compose.yml` y `web/docker-compose.yml` (cada entorno vive en su carpeta).
 docs/  Planes por tarea (docs/plans/), lecciones y diseño.
@@ -71,6 +71,26 @@ siempre desde la raíz, dentro de `web/` compose usa otro nombre de proyecto):
 - Configuración en `web/src/config.ts` (`VITE_API_URL`, `VITE_REVERB_*`, con valores de desarrollo por
   defecto salvo `VITE_REVERB_APP_KEY`, que va en `web/.env.local` y lo crea el usuario).
 
+Escritorio (Tauri, en el **host Windows**, no en Docker; desde `web/`). En Git Bash anteponer
+`export PATH="/c/Users/Windows 11/.cargo/bin:$PATH"`. `npm install` también en el host (su `node_modules` no choca con el
+del contenedor).
+- Desarrollo: `npm run tauri:dev`, con el Vite de Docker ya corriendo en 5174.
+- Instalador de prueba: `npm run tauri:build -- --debug` (deja el NSIS y el MSI en `src-tauri/target/debug/bundle/`). Compila
+  la SPA en el host: sobrescribe `web/dist` y usa `web/.env.production` (lo mantiene el usuario). Los avisos con clic y el
+  autostart solo se comprueban con la app **instalada**.
+- Publicar: la clave de firma está en `C:\Users\Windows 11\.tauri\sereno.key` (fuera del repo; en PowerShell `~` no se
+  expande, usar rutas absolutas). En PowerShell: `$env:TAURI_SIGNING_PRIVATE_KEY_PATH` con esa ruta y
+  `$env:SERENO_DESKTOP_SCP_TARGET="<usuario>@<host>:/var/www/html/workspace/prod/web/desktop/"`; luego
+  `npm run release:desktop [-- <versión|patch|minor|major>]` (`--dry-run` y `--skip-build` disponibles). Sube la versión,
+  compila, firma y sube por `scp` el instalador y `latest.json`; hay que **commitear el bump de versión**. La carpeta del
+  servidor la crea root en el deploy: darle dueño al usuario del `scp` (`sudo chown <usuario>: ...`). El actualizador lee
+  `https://sereno.ascario.dev/desktop/latest.json` y la app busca versión nueva al arrancar y cada 6 h.
+- SPA: `web/src/platform/` concentra lo de escritorio (`isDesktop()` envuelve `isTauri()`; en specs, `vi.stubGlobal('isTauri',
+  true)`). En escritorio no hay service worker ni Web Push: los avisos nativos de las notificaciones en vivo siguen las
+  preferencias `push` por tipo. `plugins.updater.requireSignedVersion` está activo: el primer `.sig` debe traer
+  `version:0.1.0` en el comentario de confianza o se rompen las actualizaciones. La CSP de `tauri.conf.json` lleva los hosts
+  de producción a mano (`sereno-api` y `sereno-ws`): si cambian, tocarla.
+
 ## Convenciones
 
 - Código, BD y dominio en inglés. La comunicación con el usuario, en español.
@@ -95,7 +115,9 @@ siempre desde la raíz, dentro de `web/` compose usa otro nombre de proyecto):
 6. Chat completo: hilos, menciones, adjuntos. **Hecho.** Las URLs firmadas de adjuntos duran 5 min (plan
    `adjuntos-url`): la web pide una nueva a `GET /api/attachments/{id}/url`, que valida el acceso, cuando la guardada vence.
 7. Plan: tareas, tablero, crear tarea desde un aviso. **Hecho.**
-8. Escritorio: PWA instalable hecha; falta Tauri.
+8. Escritorio: PWA instalable y app Tauri para Windows (plan `escritorio-tauri`): bandeja, instancia única, avisos nativos,
+   iniciar con Windows y actualizador firmado. **Hecho**, salvo las revisiones manuales con la app instalada y la primera
+   publicación (0.1.0 y 0.1.1), que quedan pendientes. Linux y Mac, sin hacer.
 9. Push web hecho (plan `notificaciones-push`): Web Push con VAPID, preferencias por tipo, no se muestra con Sereno
    enfocado. Falta el push móvil (va con la app móvil) y la facturación SaaS.
 

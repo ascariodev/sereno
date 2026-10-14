@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 15
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -133,7 +133,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - **Archivos:** `web/scripts/release-desktop.mjs`, `web/package.json`.
 - **Terminado cuando:** publicar 0.1.0 y luego 0.1.1: una app con 0.1.0 instalada se actualiza sola a 0.1.1.
 
-### [ ] Fase 15 — Documentación
+### [x] Fase 15 — Documentación
 - **Alcance:** `CLAUDE.md` (paso 8 hecho, comandos de Tauri, publicación) y lección si hubo retrabajo.
 - **Archivos:** `CLAUDE.md`, `docs/lecciones.md`.
 - **Terminado cuando:** una sesión nueva puede compilar y publicar siguiendo `CLAUDE.md`.
@@ -317,3 +317,6 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - [ ] M-26: `--dry-run` del script de publicación no escribe la versión en `tauri.conf.json` ni `package.json` (hoy la deja
       subida y la siguiente corrida sin argumento publicaría esa), y `--help` aclara que el dry-run compila y exige la clave.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-27: En `CLAUDE.md`, decir que `web/.env.production` lleva las `VITE_*` de producción (`VITE_API_URL`, `VITE_REVERB_*`)
+      y mencionar `SERENO_DESKTOP_BASE_URL` (opcional) del script de publicación.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
