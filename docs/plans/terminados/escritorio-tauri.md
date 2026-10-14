@@ -316,7 +316,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-25: Revertir el reformateo sin relación de `dangerousDisableAssetCspModification` en `tauri.conf.json`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-26: `--dry-run` del script de publicación no escribe la versión en `tauri.conf.json` ni `package.json` (hoy la deja
+- [x] M-26: `--dry-run` del script de publicación no escribe la versión en `tauri.conf.json` ni `package.json` (hoy la deja
       subida y la siguiente corrida sin argumento publicaría esa), y `--help` aclara que el dry-run compila y exige la clave.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [x] M-27: En `CLAUDE.md`, decir que `web/.env.production` lleva las `VITE_*` de producción (`VITE_API_URL`, `VITE_REVERB_*`)
@@ -329,4 +329,8 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-30: Specs de `installDesktopNotificationClicks`: la segunda llamada actualiza el `router`, y tras un `onAction` que
       rechaza una nueva llamada vuelve a registrar el listener.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-31: Script de publicación: con `--dry-run --skip-build` no imprimir "Dry run: building"; y comprobar en un primer
+      dry-run real que `--config {"version": ...}` da `Sereno_<v>_x64-setup.exe` con su `.sig` (la fusión no se verificó en
+      el código del CLI).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku

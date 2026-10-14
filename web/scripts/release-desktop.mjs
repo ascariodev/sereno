@@ -10,7 +10,8 @@ Without a version, publishes the version already in src-tauri/tauri.conf.json.
 Options:
   --notes <text>   Release notes for latest.json (default: "Sereno <version>").
   --skip-build     Reuse the installer already built for the current version.
-  --dry-run        Build and write latest.json, but upload nothing.
+  --dry-run        Build (needs the signing key) and write latest.json, but upload nothing
+                   and leave the versions in tauri.conf.json and package.json unchanged.
   --help           Show this help.
 
 Environment:
@@ -131,19 +132,32 @@ if (!options.dryRun && !scpTarget) {
 const buildEnv = options.skipBuild ? null : signingEnv()
 const baseUrl = (process.env.SERENO_DESKTOP_BASE_URL ?? 'https://sereno.ascario.dev/desktop/').replace(/\/?$/, '/')
 
-setTopLevelVersion(tauriConfPath, version)
-setTopLevelVersion(packageJsonPath, version)
-console.log(`Version ${version} in tauri.conf.json and package.json.`)
+if (options.dryRun) {
+  console.log(`Dry run: building ${version} without changing tauri.conf.json or package.json.`)
+} else {
+  setTopLevelVersion(tauriConfPath, version)
+  setTopLevelVersion(packageJsonPath, version)
+  console.log(`Version ${version} in tauri.conf.json and package.json.`)
+}
+
+const buildConfigOverride = { bundle: { createUpdaterArtifacts: true } }
+if (options.dryRun) buildConfigOverride.version = version
 
 if (!options.skipBuild) {
   if (!existsSync(tauriCli)) fail('the Tauri CLI is not installed on the host; run npm install in web/.')
   const built = run(
     process.execPath,
-    [tauriCli, 'build', '--bundles', 'nsis', '--config', JSON.stringify({ bundle: { createUpdaterArtifacts: true } })],
+    [tauriCli, 'build', '--bundles', 'nsis', '--config', JSON.stringify(buildConfigOverride)],
     webDir,
     buildEnv,
   )
-  if (!built) fail(`the build failed. Version ${version} stays in the files; rerun without a version to retry.`)
+  if (!built) {
+    fail(
+      options.dryRun
+        ? 'the build failed. The versions in the files were not changed.'
+        : `the build failed. Version ${version} stays in the files; rerun without a version to retry.`,
+    )
+  }
 }
 
 const builtInstaller = join(nsisDir, `${tauriConf.productName}_${version}_x64-setup.exe`)
