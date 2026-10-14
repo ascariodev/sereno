@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 28
+**Estado:** en curso · Fase actual: 29
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -170,7 +170,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** lista paginada, marcar leídas, contador en la pestaña y apertura del destino (`notificationTarget`).
 - **Terminado cuando:** tests de la lista y del destino por tipo.
 
-### [ ] Fase 28 — Notificaciones en vivo
+### [x] Fase 28 — Notificaciones en vivo
 - **Alcance:** `notification.created` y menciones quitadas actualizan bandeja y contador.
 - **Terminado cuando:** test con eventos simulados.
 
@@ -282,19 +282,20 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Fase 26: el estado del grupo (`messages/logGroups.ts`) no porta `forgetGroupTask` ni
   `taskWrittenAt`/`dropGroupTaskNotWrittenSince` (sin store de tareas ni hourly counts); un aviso viejo puede ofrecer
   "Crear tarea" y el 422 `log_group_id` lo resuelve. La fase 33 enlaza el chip a la tarea y suma `forgetGroupTask`.
+- 2026-10-14 — Fase 28: la app escucha `.mention.removed` (`users.{id}`, emitido por `MentionRemoved`), que la web no
+  escucha; `removedMentions` evita que una carga en vuelo reviva la fila. Mejora candidata para la web.
 
 ## Notas para la próxima sesión
+- Fase 28 hecha: `notifications/store.ts` con `start(userId)`/`stop()` (los llama `useRealtimeSession`), `liveArrivals`,
+  `unreadMissingFrom`, `startedAt` en `pruneDeleted`, refresh tras reconexión, `notification.created` y `.mention.removed`
+  (nuevo en `echo.ts` con `onMentionRemoved`; ver Decisiones). Las notificaciones nativas del sistema van en las fases 30 a
+  32.
 - Fase 27 hecha: `app/src/notifications/` (`types`, `api` con `parseNotification`, `target`, `text`, `store` port fiel de
   `web/src/stores/notifications.ts` sin lo en vivo) y la pestaña Notificaciones (lista, marcar una y todas, cargar más,
   reintentos; tocar marca leída y navega) con badge del contador (`meta.unread_count`) en `(tabs)/_layout.tsx`.
   `notificationTarget`: `chat_mention` abre `/channel` o `/thread` (padre) sin enfocar el mensaje; tareas y tipos
   desconocidos devuelven null con la nota "Aún no disponible" (la fase 33 los enlaza). Para la fase 28: portar
   `liveArrivals`, `unreadMissingFrom` y `startedAt` de `pruneDeleted`.
-- Fase 26 hecha: `messages/logGroups.ts` (port de `useLogGroupStatuses`, suscrito a `useMessagesStore`, se resetea al
-  cambiar de canal; llamadas al API), `components/TaskCreateModal.tsx` (título y descripción precargados, asignado con
-  `useMemberDirectoryStore`, 422/429/red) y botones Resolver, Ignorar y Crear tarea en `SystemNotice` (el proyecto sale de
-  `channelByProject`; sin filtro por rol, como la web; crear tarea oculto en proyecto archivado). El chip de la tarea es
-  texto: la fase 33 lo enlaza (ver Decisiones). En los tests de RNTL usar `await act(async ...)` y `await fireEvent`.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -350,3 +351,5 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-34: Un 422 de `attachment_ids` al enviar muestra el mensaje genérico: mostrar `errors.attachment_ids[0]`; test directo de `attachment_ids` en `send` del store del canal. Complejidad baja, sonnet.
 - [ ] M-35: `TaskCreateModal`: lista de miembros en un `ScrollView` con altura máxima y comprobar en el teléfono que el teclado no tapa el modal. Complejidad baja, sonnet.
 - [ ] M-36: Enfocar el mensaje mencionado al abrir una notificación `chat_mention` de primer nivel (la web usa `?message=`; la app necesita abrir el canal "around"). Complejidad media, sonnet.
+- [ ] M-37: `notifications/store.ts`: condicionar el `refresh()` del cambio de organización a que el store esté iniciado (como `live` en la web), podar `removedMentions` en sesiones largas y sumar tests de `loadMore` filtrado por `removedMentions` y de cambio de organización con el store iniciado. Complejidad baja, sonnet.
+- [ ] M-38: Web: escuchar `.mention.removed` en el store de notificaciones (hoy solo se entera al refrescar), como la app. Complejidad media, sonnet.

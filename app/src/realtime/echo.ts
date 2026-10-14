@@ -9,6 +9,7 @@ export const MEMBERSHIP_ROLE_CHANGED_EVENT = '.membership.role_changed'
 export const PROJECT_ACCESS_CHANGED_EVENT = '.project.access_changed'
 export const TASK_ASSIGNED_EVENT = '.task.assigned'
 export const NOTIFICATION_CREATED_EVENT = '.notification.created'
+export const MENTION_REMOVED_EVENT = '.mention.removed'
 export const MESSAGE_CREATED_EVENT = '.message.created'
 export const MESSAGE_UPDATED_EVENT = '.message.updated'
 export const MESSAGE_DELETED_EVENT = '.message.deleted'
@@ -24,6 +25,7 @@ export interface RealtimePayload {
   channel_id?: number
   parent_id?: number | null
   id?: number
+  message_id?: number
   deleted_at?: string
   root?: { id?: number; replies_count?: number; last_reply_at?: string | null; recent_participants?: { id: number; name: string }[] }
 }
@@ -32,6 +34,11 @@ export interface NotificationCreatedPayload {
   organizationId: number
   /** Raw item of `NotificationResource`; the consumer validates its shape. */
   notification: unknown
+}
+
+export interface MentionRemovedPayload {
+  organizationId: number
+  messageId: number
 }
 
 export interface SubscriptionErrorPayload {
@@ -130,6 +137,7 @@ export interface UserSubscriptionHandlers {
   onProjectAccessChanged?: (organizationId: number, projectId: number, granted: boolean) => void
   onTaskAssigned?: (organizationId: number, projectId: number, taskId: number) => void
   onNotificationCreated?: (payload: NotificationCreatedPayload) => void
+  onMentionRemoved?: (payload: MentionRemovedPayload) => void
 }
 
 export function subscribeToUser(userId: number, handlers: UserSubscriptionHandlers = {}): () => void {
@@ -139,6 +147,7 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
     onProjectAccessChanged = () => {},
     onTaskAssigned = () => {},
     onNotificationCreated = () => {},
+    onMentionRemoved = () => {},
   } = handlers
   const events = [
     MEMBERSHIP_REVOKED_EVENT,
@@ -146,6 +155,7 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
     PROJECT_ACCESS_CHANGED_EVENT,
     TASK_ASSIGNED_EVENT,
     NOTIFICATION_CREATED_EVENT,
+    MENTION_REMOVED_EVENT,
   ]
   return subscribe(userChannelName(userId), events, (event, data) => {
     if (typeof data.organization_id !== 'number') return
@@ -163,6 +173,8 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
     } else if (event === NOTIFICATION_CREATED_EVENT) {
       if (typeof data.notification !== 'object' || data.notification === null) return
       onNotificationCreated({ organizationId: data.organization_id, notification: data.notification })
+    } else if (event === MENTION_REMOVED_EVENT) {
+      if (typeof data.message_id === 'number') onMentionRemoved({ organizationId: data.organization_id, messageId: data.message_id })
     }
   })
 }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { AppState } from 'react-native'
 
+import { useNotificationsStore } from '@/notifications/store'
 import { useOrganizationStore } from '@/organization/store'
 import { useProjectsStore } from '@/projects/store'
 import { useAuthStore } from '@/session/auth'
@@ -22,7 +23,9 @@ export function useRealtimeSession(): void {
       onProjectAccessChanged: (organizationId) => refreshProjects(organizationId),
     })
     const unsubscribeReconnect = onReconnect(() => refreshProjects())
+    useNotificationsStore.getState().start(userId)
     return () => {
+      useNotificationsStore.getState().stop()
       unsubscribeUser()
       unsubscribeReconnect()
     }
