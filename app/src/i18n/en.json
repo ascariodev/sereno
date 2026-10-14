@@ -1,5 +1,21 @@
 {
   "app": {
     "name": "Sereno"
+  },
+  "common": {
+    "localeSaveFailed": "Could not save your language. It was applied on this device only.",
+    "signOut": "Sign out"
+  },
+  "login": {
+    "subtitle": "Sign in to see your projects' channels.",
+    "invited": "Were you invited to an organization? Open the link in your email.",
+    "title": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in...",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not sign in. Try again."
   }
 }

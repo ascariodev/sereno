@@ -1,5 +1,21 @@
 {
   "app": {
     "name": "Sereno"
+  },
+  "common": {
+    "localeSaveFailed": "No se pudo guardar tu idioma. Se aplicó solo en este dispositivo.",
+    "signOut": "Cerrar sesión"
+  },
+  "login": {
+    "subtitle": "Inicia sesión para ver los canales de tus proyectos.",
+    "invited": "¿Te invitaron a una organización? Abre el enlace de tu correo.",
+    "title": "Iniciar sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "submit": "Iniciar sesión",
+    "submitting": "Iniciando sesión...",
+    "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo iniciar sesión. Inténtalo de nuevo."
   }
 }
