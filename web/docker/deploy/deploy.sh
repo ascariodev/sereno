@@ -24,6 +24,10 @@ for required in .env docker-compose.prod.yml docker/nginx/default.conf dist/inde
   fi
 done
 
+# desktop/ (instaladores y latest.json del escritorio) vive junto a dist/, no dentro: el rsync con --delete-after la
+# borraría. Solo se crea si falta (755); si ya existe no se toca dueño ni permisos, que los ajusta quien publica.
+[ -d "$SERVER_DIR/desktop" ] || mkdir -m 755 -p "$SERVER_DIR/desktop"
+
 COMPOSE_PROJECT="sereno-$DEPLOY_ENV-web"
 STORED_HASH_FILE="$SERVER_DIR/.deploy/nginx.sha256"
 

@@ -6,4 +6,5 @@ services:
       - "${WEB_PORT:-8080}:80"
     volumes:
       - ./dist:/usr/share/nginx/html:ro
+      - ./desktop:/usr/share/nginx/desktop:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro

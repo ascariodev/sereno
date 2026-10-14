@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 12
+**Estado:** en curso · Fase actual: 12 (la 13 se hizo antes: la 12 espera la clave de firma)
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -119,7 +119,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - **Terminado cuando:** spec de `desktopUpdater` (sin versión nueva, con versión nueva, error de red sin ruido); la prueba
   real queda para la fase 14.
 
-### [ ] Fase 13 — Carpeta de descargas en el servidor web
+### [x] Fase 13 — Carpeta de descargas en el servidor web
 - **Alcance:** nginx sirve `/desktop/` desde una carpeta propia montada aparte de `dist/` (el rsync del deploy con
   `--delete-after` la borraría si estuviera dentro), sin caché para `latest.json`.
 - **Archivos:** `web/docker/nginx/default.conf`, `web/docker-compose.prod.yml`, `web/docker/deploy/deploy.sh` (crear la carpeta si falta).
@@ -190,11 +190,20 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   Interruptor en la sección de escritorio del diálogo (`web/src/platform/desktopAutostart.ts`). **Riesgo:** auto-launch 0.6.0
   escribe el valor de `HKCU\...\CurrentVersion\Run` sin comillas (`<exe> --hidden`) y la ruta de instalación tiene espacios
   (`C:\Users\Windows 11\...`); Windows suele resolverlo, pero hay que comprobarlo. El plugin no permite comillas.
+- 2026-10-14 — Usuario: hacer la fase 13 antes que la 12 mientras genera el par de firma del actualizador.
+- 2026-10-14 — Fase 13: carpeta `$SERVER_DIR/desktop` (prod: `/var/www/html/workspace/prod/web/desktop`), hermana de
+  `dist/` (el rsync no la toca), montada en nginx como `/usr/share/nginx/desktop:ro`. `location = /desktop/latest.json`
+  con `no-cache, no-store, must-revalidate`; `/desktop/` con `no-cache` (revalida por ETag), `try_files $uri =404`,
+  `autoindex off`. `deploy.sh` la crea con `mkdir -m 755 -p` solo si falta y no toca dueño ni permisos si ya existe:
+  **para la fase 14**, la crea root en el primer deploy, así que hay que darle dueño o grupo al usuario que sube por `scp`.
 - 2026-10-13 — Fase 2: `src-tauri/target` y `gen/` los ignora el `.gitignore` que genera Tauri en `web/src-tauri/`; no se
   tocó `web/.gitignore`. `beforeDevCommand` vacío (Vite corre en Docker). Sin iconos android/ios (el móvil va con Expo).
   Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
 
 ## Notas para la próxima sesión
+- Fase 13: verificación pendiente tras el próximo deploy de la web: `https://sereno.ascario.dev/desktop/latest.json` da 404
+  y el resto de la web sigue igual. Siguiente: fase 12, cuando exista `~/.tauri/sereno.key.pub` (el usuario la genera con
+  `npx tauri signer generate -w ~/.tauri/sereno.key` desde `web/`).
 - Fase 11: revisión manual pendiente con la app **instalada** (el autostart registra la ruta del exe actual): activar el
   interruptor, mirar el valor en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` y reiniciar la sesión: Sereno
   debe quedar en la bandeja sin ventana.
