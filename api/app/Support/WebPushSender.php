@@ -12,11 +12,7 @@ class WebPushSender implements PushSender
 {
     public function send(iterable $subscriptions, string $payload): array
     {
-        $webPush = new WebPush(['VAPID' => [
-            'subject' => config('workspace.push.vapid_subject'),
-            'publicKey' => config('workspace.push.vapid_public_key'),
-            'privateKey' => config('workspace.push.vapid_private_key'),
-        ]]);
+        $webPush = $this->makeWebPush();
 
         $results = [];
 
@@ -32,7 +28,7 @@ class WebPushSender implements PushSender
                 Log::warning('Push could not be sent to a subscription.', [
                     'subscription' => $subscription->id,
                     'host' => parse_url($subscription->endpoint, PHP_URL_HOST) ?: null,
-                    'exception' => $e::class.': '.$e->getMessage(),
+                    'exception' => $e::class.': '.str_replace($subscription->endpoint, '[endpoint]', $e->getMessage()),
                 ]);
                 $results[$subscription->id] = self::REJECTED;
 
@@ -43,6 +39,15 @@ class WebPushSender implements PushSender
         }
 
         return $results;
+    }
+
+    protected function makeWebPush(): WebPush
+    {
+        return new WebPush(['VAPID' => [
+            'subject' => config('workspace.push.vapid_subject'),
+            'publicKey' => config('workspace.push.vapid_public_key'),
+            'privateKey' => config('workspace.push.vapid_private_key'),
+        ]]);
     }
 
     private function outcome(MessageSentReport $report): string
