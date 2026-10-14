@@ -58,6 +58,7 @@
       "endpoints": [
         "https://sereno.ascario.dev/desktop/latest.json"
       ],
+      "requireSignedVersion": true,
       "windows": {
         "installMode": "passive"
       }

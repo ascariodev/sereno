@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 14
+**Estado:** en curso · Fase actual: 15
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -126,7 +126,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - **Terminado cuando:** tras el deploy, `https://sereno.ascario.dev/desktop/latest.json` responde 404 limpio (carpeta vacía)
   y el resto de la web sigue igual.
 
-### [ ] Fase 14 — Script de publicación [riesgo]
+### [x] Fase 14 — Script de publicación [riesgo]
 - **Alcance:** `web/scripts/release-desktop.mjs`: sube la versión (`package.json` y `tauri.conf.json` a la par),
   compila con la clave de firma tomada del entorno, arma `latest.json` con la firma y la URL del instalador, y lo sube
   a la carpeta del servidor por `scp` (el usuario lo corre; no hay credenciales en el repo).
@@ -190,6 +190,14 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   Interruptor en la sección de escritorio del diálogo (`web/src/platform/desktopAutostart.ts`). **Riesgo:** auto-launch 0.6.0
   escribe el valor de `HKCU\...\CurrentVersion\Run` sin comillas (`<exe> --hidden`) y la ruta de instalación tiene espacios
   (`C:\Users\Windows 11\...`); Windows suele resolverlo, pero hay que comprobarlo. El plugin no permite comillas.
+- 2026-10-14 — Fase 14: `npm run release:desktop [-- <versión|patch|minor|major>] [--notes ..] [--skip-build] [--dry-run]`
+  (`web/scripts/release-desktop.mjs`). La versión que manda es la de `tauri.conf.json`; `package.json` la sigue y
+  `Cargo.toml` queda en 0.1.0. Sin versión publica la actual (primera publicación 0.1.0). Compila solo NSIS con
+  `createUpdaterArtifacts` por `--config`; clave por `TAURI_SIGNING_PRIVATE_KEY_PATH` (reenviada como
+  `TAURI_SIGNING_PRIVATE_KEY`) o `TAURI_SIGNING_PRIVATE_KEY`, contraseña `""` por defecto. `latest.json` con
+  `windows-x86_64-nsis` y `windows-x86_64` apuntando a `Sereno-<v>-x64-setup.exe`; sube por `scp` primero el instalador y
+  luego `latest.json` a `SERENO_DESKTOP_SCP_TARGET` (obligatoria salvo `--dry-run`); `SERENO_DESKTOP_BASE_URL` opcional.
+  Salida en `src-tauri/target/release/desktop-release/`. `plugins.updater.requireSignedVersion: true` activado.
 - 2026-10-14 — Fase 12: par de firma en `C:\Users\Windows 11\.tauri\` (`sereno.key`, sin contraseña, y `sereno.key.pub`;
   fuera del repo). `tauri-plugin-updater` 2.13.3 y `tauri-plugin-process` 2.4.0; pubkey y endpoint
   `https://sereno.ascario.dev/desktop/latest.json` en `plugins.updater`, `windows.installMode: "passive"`. Permisos
@@ -210,6 +218,14 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
 
 ## Notas para la próxima sesión
+- Fase 14: prueba real pendiente (la corre el usuario). Antes, en el servidor:
+  `sudo chown <usuario_scp>: /var/www/html/workspace/prod/web/desktop` (la crea root en el deploy). En PowerShell desde
+  `web/`: `$env:TAURI_SIGNING_PRIVATE_KEY_PATH="C:\Users\Windows 11\.tauri\sereno.key"`,
+  `$env:SERENO_DESKTOP_SCP_TARGET="<usuario>@<host>:/var/www/html/workspace/prod/web/desktop/"`; `npm run release:desktop`
+  (0.1.0), instalar `https://sereno.ascario.dev/desktop/Sereno-0.1.0-x64-setup.exe`, commitear el bump;
+  `npm run release:desktop -- 0.1.1`, commitear; abrir la 0.1.0: toast Reiniciar y queda en 0.1.1. Comprobar en el primer
+  `.sig` (base64 decodificado) que el comentario de confianza trae `version:0.1.0`: si no, `requireSignedVersion` rompe
+  todas las actualizaciones. Si el build falla la versión queda subida: reintentar sin versión.
 - Fase 12: en PowerShell `~` no se expande: `tauri signer generate -w ~/.tauri/...` dejó el par en `web/~/.tauri/` (se movió
   sin llegar a git). Rutas absolutas en la fase 14. El build del host sobrescribe `web/dist`.
 - Fase 13: verificación pendiente tras el próximo deploy de la web: `https://sereno.ascario.dev/desktop/latest.json` da 404
@@ -298,3 +314,6 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-25: Revertir el reformateo sin relación de `dangerousDisableAssetCspModification` en `tauri.conf.json`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-26: `--dry-run` del script de publicación no escribe la versión en `tauri.conf.json` ni `package.json` (hoy la deja
+      subida y la siguiente corrida sin argumento publicaría esa), y `--help` aclara que el dry-run compila y exige la clave.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
