@@ -310,7 +310,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - [x] M-22: Specs pendientes de la fase 10: `aria-busy` del botón con la petición pendiente; tras `requestDesktopPermission()`
       concedido, un aviso no vuelve a pedir permiso; `isDesktop` mockeado a `false` explícito en el `beforeEach` del diálogo.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-23: Quitar los JSDoc de `web/src/platform/desktopAutostart.ts` que repiten el nombre de la función.
+- [x] M-23: Quitar los JSDoc de `web/src/platform/desktopAutostart.ts` que repiten el nombre de la función.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-24: Si se cierra el toast de actualización sin reiniciar, volver a ofrecerlo en el siguiente ciclo de 6 h.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
