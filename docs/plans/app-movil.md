@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 27
+**Estado:** en curso · Fase actual: 28
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -166,7 +166,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 
 ### Bloque D: notificaciones y push
 
-### [ ] Fase 27 — Bandeja de notificaciones
+### [x] Fase 27 — Bandeja de notificaciones
 - **Alcance:** lista paginada, marcar leídas, contador en la pestaña y apertura del destino (`notificationTarget`).
 - **Terminado cuando:** tests de la lista y del destino por tipo.
 
@@ -284,17 +284,17 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   "Crear tarea" y el 422 `log_group_id` lo resuelve. La fase 33 enlaza el chip a la tarea y suma `forgetGroupTask`.
 
 ## Notas para la próxima sesión
+- Fase 27 hecha: `app/src/notifications/` (`types`, `api` con `parseNotification`, `target`, `text`, `store` port fiel de
+  `web/src/stores/notifications.ts` sin lo en vivo) y la pestaña Notificaciones (lista, marcar una y todas, cargar más,
+  reintentos; tocar marca leída y navega) con badge del contador (`meta.unread_count`) en `(tabs)/_layout.tsx`.
+  `notificationTarget`: `chat_mention` abre `/channel` o `/thread` (padre) sin enfocar el mensaje; tareas y tipos
+  desconocidos devuelven null con la nota "Aún no disponible" (la fase 33 los enlaza). Para la fase 28: portar
+  `liveArrivals`, `unreadMissingFrom` y `startedAt` de `pruneDeleted`.
 - Fase 26 hecha: `messages/logGroups.ts` (port de `useLogGroupStatuses`, suscrito a `useMessagesStore`, se resetea al
   cambiar de canal; llamadas al API), `components/TaskCreateModal.tsx` (título y descripción precargados, asignado con
   `useMemberDirectoryStore`, 422/429/red) y botones Resolver, Ignorar y Crear tarea en `SystemNotice` (el proyecto sale de
   `channelByProject`; sin filtro por rol, como la web; crear tarea oculto en proyecto archivado). El chip de la tarea es
   texto: la fase 33 lo enlaza (ver Decisiones). En los tests de RNTL usar `await act(async ...)` y `await fireEvent`.
-- Fase 25 hecha salvo la prueba real: `messages/useAttachmentUploads.ts` (port de `useAttachmentUploads.ts`: 5 MB y 10 por
-  mensaje, cancelar con `AbortController` y generación, 422/413/429/5xx/red, descarta todo al dejar el canal) y botón "+"
-  del compositor (galería con expo-image-picker ~57.0.20, archivos con expo-document-picker ~57.0.3; plugin en `app.json`
-  con cámara y micrófono desactivados). `send(body, attachmentIds)` en canal e hilo. El hook solo sube a canales: la fase
-  37 debe aceptar otro destino (`target` en la web). **Pendiente**: subir de verdad desde el teléfono (picker, multipart en
-  Android, archivos sin tamaño) y revisar el AndroidManifest generado sin permisos de almacenamiento; junto con la fase 30.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -349,3 +349,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-33: Conservar el borrador de la respuesta del hilo entre aperturas de la misma raíz (`draft` de la web) y usar selectores en `thread.tsx`. Complejidad baja, sonnet.
 - [ ] M-34: Un 422 de `attachment_ids` al enviar muestra el mensaje genérico: mostrar `errors.attachment_ids[0]`; test directo de `attachment_ids` en `send` del store del canal. Complejidad baja, sonnet.
 - [ ] M-35: `TaskCreateModal`: lista de miembros en un `ScrollView` con altura máxima y comprobar en el teléfono que el teclado no tapa el modal. Complejidad baja, sonnet.
+- [ ] M-36: Enfocar el mensaje mencionado al abrir una notificación `chat_mention` de primer nivel (la web usa `?message=`; la app necesita abrir el canal "around"). Complejidad media, sonnet.

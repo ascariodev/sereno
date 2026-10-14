@@ -125,7 +125,20 @@
     }
   },
   "notifications": {
-    "title": "Notificaciones"
+    "title": "Notificaciones",
+    "empty": "Aún no tienes notificaciones.",
+    "loadFailed": "No se pudieron cargar tus notificaciones.",
+    "loadMore": "Cargar más",
+    "loadMoreFailed": "No se pudieron cargar más notificaciones.",
+    "markAllRead": "Marcar todas como leídas",
+    "unread": "Sin leer",
+    "taskAssigned": "{{name}} te asignó {{task}}",
+    "taskCommentMention": "{{name}} te mencionó en un comentario de {{task}}",
+    "taskCommented": "{{name}} comentó en {{task}}",
+    "chatMention": "{{name}} te mencionó en {{channel}}",
+    "unknown": "Nueva notificación",
+    "notAvailable": "Aún no disponible en la app.",
+    "unreadBadge": "{{count}} sin leer"
   },
   "settings": {
     "title": "Ajustes"

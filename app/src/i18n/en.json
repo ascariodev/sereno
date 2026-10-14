@@ -125,7 +125,20 @@
     }
   },
   "notifications": {
-    "title": "Notifications"
+    "title": "Notifications",
+    "empty": "You have no notifications yet.",
+    "loadFailed": "Could not load your notifications.",
+    "loadMore": "Load more",
+    "loadMoreFailed": "Could not load more notifications.",
+    "markAllRead": "Mark all as read",
+    "unread": "Unread",
+    "taskAssigned": "{{name}} assigned you {{task}}",
+    "taskCommentMention": "{{name}} mentioned you in a comment on {{task}}",
+    "taskCommented": "{{name}} commented on {{task}}",
+    "chatMention": "{{name}} mentioned you in {{channel}}",
+    "unknown": "New notification",
+    "notAvailable": "Not available in the app yet.",
+    "unreadBadge": "{{count}} unread"
   },
   "settings": {
     "title": "Settings"
