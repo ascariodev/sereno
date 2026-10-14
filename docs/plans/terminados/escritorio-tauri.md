@@ -312,7 +312,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-23: Quitar los JSDoc de `web/src/platform/desktopAutostart.ts` que repiten el nombre de la función.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-24: Si se cierra el toast de actualización sin reiniciar, volver a ofrecerlo en el siguiente ciclo de 6 h.
+- [x] M-24: Si se cierra el toast de actualización sin reiniciar, volver a ofrecerlo en el siguiente ciclo de 6 h.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-25: Revertir el reformateo sin relación de `dangerousDisableAssetCspModification` en `tauri.conf.json`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku

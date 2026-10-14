@@ -2,12 +2,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const check = vi.hoisted(() => vi.fn())
 const relaunch = vi.hoisted(() => vi.fn())
-const toastInfo = vi.hoisted(() => vi.fn())
+const toastState = vi.hoisted(() => ({ items: [] as { id: number; open: boolean }[], nextId: 0 }))
+const toastInfo = vi.hoisted(() =>
+  vi.fn((_message: string, _options: { duration: number; action: { label: string; onSelect: () => void } }) => {
+    const id = ++toastState.nextId
+    toastState.items.push({ id, open: true })
+    return id
+  }),
+)
 const toastError = vi.hoisted(() => vi.fn())
 
 vi.mock('@tauri-apps/plugin-updater', () => ({ check }))
 vi.mock('@tauri-apps/plugin-process', () => ({ relaunch }))
-vi.mock('../components/ui/toast', () => ({ toast: { info: toastInfo, error: toastError } }))
+vi.mock('../components/ui/toast', () => ({ toast: { info: toastInfo, error: toastError }, toasts: { get value() { return toastState.items } } }))
 
 function fakeUpdate() {
   return {
@@ -30,7 +37,8 @@ describe('desktopUpdater', () => {
     vi.stubGlobal('isTauri', true)
     check.mockReset().mockResolvedValue(null)
     relaunch.mockReset().mockResolvedValue(undefined)
-    toastInfo.mockReset()
+    toastInfo.mockClear()
+    toastState.items = []
     toastError.mockReset()
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
@@ -153,5 +161,36 @@ describe('desktopUpdater', () => {
 
     await checkForUpdate()
     expect(check).toHaveBeenCalledTimes(2)
+  })
+
+  it('offers the downloaded update again on the next cycle after the toast is closed, without downloading again', async () => {
+    const update = fakeUpdate()
+    check.mockResolvedValue(update)
+    const { installDesktopUpdater, UPDATE_CHECK_INTERVAL } = await load()
+
+    stop = installDesktopUpdater()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(toastInfo).toHaveBeenCalledTimes(1)
+
+    toastState.items[0]!.open = false
+    await vi.advanceTimersByTimeAsync(UPDATE_CHECK_INTERVAL)
+
+    expect(toastInfo).toHaveBeenCalledTimes(2)
+    expect(check).toHaveBeenCalledTimes(1)
+    expect(update.download).toHaveBeenCalledTimes(1)
+    toastInfo.mock.calls[1]![1].action.onSelect()
+    await vi.waitFor(() => expect(relaunch).toHaveBeenCalledTimes(1))
+    expect(update.install).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not duplicate the toast while it is still open', async () => {
+    check.mockResolvedValue(fakeUpdate())
+    const { installDesktopUpdater, UPDATE_CHECK_INTERVAL } = await load()
+
+    stop = installDesktopUpdater()
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.advanceTimersByTimeAsync(UPDATE_CHECK_INTERVAL * 2)
+
+    expect(toastInfo).toHaveBeenCalledTimes(1)
   })
 })
