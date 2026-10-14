@@ -255,6 +255,8 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — La app no comparte código con la web (Vue y React): porta los módulos puros que necesite (menciones,
   textos y destino de avisos) con sus tests. Un paquete compartido queda como mejora.
 - 2026-10-14 — La app se desarrolla en el host Windows, no en Docker (Metro y el teléfono necesitan la red local).
+- 2026-10-14 — Proyecto de EAS creado por el usuario en expo.dev: id `13898f47-6f81-4a6d-82e3-2b8e1b3a667d`. La fase 6 lo
+  vincula con `npx eas-cli init --id <id>` desde `app/` (no crear otro proyecto de EAS).
 - 2026-10-14 — Aceptar invitaciones sigue en la web (no hay deep links de `sereno.ascario.dev` en esta versión).
 
 ## Notas para la próxima sesión
