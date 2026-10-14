@@ -188,12 +188,12 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 
 - [x] M-1 (baja, sonnet): `GenerateVapidKeysCommandTest` guarda y restaura las variables de entorno a mano; un helper
   compartido de tests lo simplificaría.
-- [ ] M-2 (baja, sonnet): anotar en `database.md` que `push_subscriptions.endpoint` es `text` con índice único (endpoints largos).
+- [x] M-2 (baja, sonnet): anotar en `database.md` que `push_subscriptions.endpoint` es `text` con índice único (endpoints largos).
 - [ ] M-3 (baja, sonnet): `PushSubscriptionController` store hace `firstOrNew` + `save` no atómico; dos altas simultáneas del
   mismo endpoint nuevo dan 500 por el índice único. Capturar `UniqueConstraintViolationException` y reintentar, o `upsert`.
 - [ ] M-4 (baja, sonnet): comentario o test en `DestroyPushSubscriptionRequest` que fije por qué la existencia se valida en
   `authorize()` con 404 y no con `exists` (evitar que un 422 distinga ajeno de inexistente).
-- [ ] M-5 (baja, sonnet): documentar la clave `push` de `users.notification_preferences` en `.claude/rules/database.md`.
+- [x] M-5 (baja, sonnet): documentar la clave `push` de `users.notification_preferences` en `.claude/rules/database.md`.
 - [ ] M-6 (baja, sonnet): tests de preferencias para `{"email": [], "push": {...}}` (se acepta) y cuerpo `{}` autenticado (422).
 - [ ] M-7 (baja, sonnet): unificar la lógica repetida de `User::wantsEmail` y `wantsPush` en un helper privado.
 - [ ] M-8 (baja, sonnet): test de `NotificationUrl` con `app.frontend_url` sin barra final (hoy solo con barra).
