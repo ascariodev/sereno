@@ -100,7 +100,7 @@ interface MessagesState {
   replace(message: Message): boolean
   remove(event: MessageDeletedEvent): boolean
   catchUp(): Promise<void>
-  send(body: string): Promise<void>
+  send(body: string, attachmentIds?: number[]): Promise<void>
   clear(): void
 }
 
@@ -365,11 +365,14 @@ export const useMessagesStore = create<MessagesState>()((set, get) => ({
     set({ messages: sortedById([...merged.values()]) })
   },
 
-  async send(body) {
+  async send(body, attachmentIds = []) {
     const { channelId } = get()
     if (channelId === null) return
     const mine = generation
-    const response = await api.post<{ data: Message }>(`/api/channels/${channelId}/messages`, { body })
+    const response = await api.post<{ data: Message }>(`/api/channels/${channelId}/messages`, {
+      body,
+      ...(attachmentIds.length > 0 ? { attachment_ids: attachmentIds } : {}),
+    })
     if (mine !== generation) return
     get().insert(response.data)
   },

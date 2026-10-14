@@ -225,4 +225,16 @@ describe('thread store', () => {
     expect(thread().root?.replies_count).toBe(1);
     expect(useMessagesStore.getState().messages[0].replies_count).toBe(1);
   });
+
+  it('sends the attachment ids with a reply', async () => {
+    const fetchMock = jest.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === 'POST' ? json({ data: reply(7, '2026-01-01T12:00:00Z') }, 201) : page([], null, message(1)),
+    );
+    globalThis.fetch = fetchMock as never;
+    await thread().open(50, 1);
+    await thread().send('', [3, 4]);
+
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!;
+    expect(JSON.parse(String(post[1]?.body))).toEqual({ body: '', parent_id: 1, attachment_ids: [3, 4] });
+  });
 });

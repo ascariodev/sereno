@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 25
+**Estado:** en curso · Fase actual: 26
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -156,7 +156,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** miniaturas de imágenes y apertura de archivos con URL fresca (`GET /api/attachments/{id}/url`).
 - **Terminado cuando:** test: URL vencida pide una nueva.
 
-### [ ] Fase 25 — Subir adjuntos [riesgo]
+### [x] Fase 25 — Subir adjuntos [riesgo]
 - **Alcance:** elegir foto o archivo y subir multipart a `POST /channels/{c}/attachments` antes de enviar.
 - **Terminado cuando:** test del flujo y subida real desde el teléfono.
 
@@ -281,17 +281,17 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Fase 23 dividida en 23a (contadores y resumen en el canal) y 23b (pantalla de hilo): pasaba de ~8 archivos.
 
 ## Notas para la próxima sesión
+- Fase 25 hecha salvo la prueba real: `messages/useAttachmentUploads.ts` (port de `useAttachmentUploads.ts`: 5 MB y 10 por
+  mensaje, cancelar con `AbortController` y generación, 422/413/429/5xx/red, descarta todo al dejar el canal) y botón "+"
+  del compositor (galería con expo-image-picker ~57.0.20, archivos con expo-document-picker ~57.0.3; plugin en `app.json`
+  con cámara y micrófono desactivados). `send(body, attachmentIds)` en canal e hilo. El hook solo sube a canales: la fase
+  37 debe aceptar otro destino (`target` en la web). **Pendiente**: subir de verdad desde el teléfono (picker, multipart en
+  Android, archivos sin tamaño) y revisar el AndroidManifest generado sin permisos de almacenamiento; junto con la fase 30.
 - Fase 24 hecha (y M-31): `components/MessageAttachments.tsx` en `MessageRow` (canal e hilo) y `messages/attachments.ts`
   (`getAttachmentUrl`, `formatFileSize`). Como `MessageAttachments.vue`: miniatura con la URL guardada, una sola renovación
   por URL vencida y luego fila de archivo; al tocar se pide URL fresca y se abre con `Linking.openURL`, solo si es http(s)
   (L-88). `Message.attachments` es opcional en el tipo. Mensajes borrados o en edición no muestran adjuntos. La fase 25
   sube adjuntos; las 34 y 36 reutilizan `MessageAttachments`.
-- Fase 23b hecha: `messages/threadStore.ts` (port de `web/src/stores/thread.ts` sin el borrador; reutiliza helpers
-  exportados de `messages/store.ts`), `app/thread.tsx` (params `channelId` e `id` de la raíz; la raíz sale de `meta.root` o
-  del store del canal) y `components/MessageRow.tsx` extraído del canal (muestra `ThreadSummary` solo con
-  `onOpenThread`). `MessageComposer` acepta `send`, `channelId` y `placeholder`; editar y borrar actualizan los dos stores
-  (404 hace `catchUp` en ambos). `channel.tsx` reenvía created/updated/deleted/reconexión al hilo. Sin adjuntos en el hilo
-  (fases 24 y 25) ni estado archivado.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -344,3 +344,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [x] M-31: `settle` debe vaciar `attachments` al borrar, como `asDeleted` de la web (cuando lleguen los adjuntos, fase 24). Complejidad baja, sonnet.
 - [ ] M-32: `threadStore.catchUp` relanza errores que no son `ApiError`/`AbortError` y se llama con `void`: tragarlos como la web para evitar rechazos sin capturar. Complejidad baja, sonnet.
 - [ ] M-33: Conservar el borrador de la respuesta del hilo entre aperturas de la misma raíz (`draft` de la web) y usar selectores en `thread.tsx`. Complejidad baja, sonnet.
+- [ ] M-34: Un 422 de `attachment_ids` al enviar muestra el mensaje genérico: mostrar `errors.attachment_ids[0]`; test directo de `attachment_ids` en `send` del store del canal. Complejidad baja, sonnet.

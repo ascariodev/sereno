@@ -47,7 +47,7 @@ interface ThreadState {
   replace(message: Message): boolean
   remove(event: MessageDeletedEvent): boolean
   catchUp(): Promise<void>
-  send(body: string): Promise<void>
+  send(body: string, attachmentIds?: number[]): Promise<void>
   clear(): void
 }
 
@@ -288,11 +288,15 @@ export const useThreadStore = create<ThreadState>()((set, get) => {
       listVersion++
     },
 
-    async send(body) {
+    async send(body, attachmentIds = []) {
       const { channelId, rootId } = get()
       if (channelId === null || rootId === null) return
       const current = generation
-      const response = await api.post<{ data: Message }>(`/api/channels/${channelId}/messages`, { body, parent_id: rootId })
+      const response = await api.post<{ data: Message }>(`/api/channels/${channelId}/messages`, {
+        body,
+        parent_id: rootId,
+        ...(attachmentIds.length > 0 ? { attachment_ids: attachmentIds } : {}),
+      })
       useMessagesStore.getState().insert(response.data)
       if (current !== generation) return
       get().insert(response.data)

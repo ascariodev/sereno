@@ -193,6 +193,22 @@
     "download": "Descargar",
     "previewUnavailable": "La vista previa ya no está disponible.",
     "openFailed": "No se pudo abrir el archivo. Puede que ya no esté disponible.",
-    "openFailedRetry": "No se pudo abrir el archivo. Revisa tu conexión e inténtalo de nuevo."
+    "openFailedRetry": "No se pudo abrir el archivo. Revisa tu conexión e inténtalo de nuevo.",
+    "attach": "Adjuntar",
+    "pickMedia": "Foto o video",
+    "pickFile": "Archivo",
+    "pickFailed": "No se pudo abrir el selector de archivos.",
+    "remove": "Quitar",
+    "removeFile": "Quitar {{name}}",
+    "cancel": "Cancelar",
+    "cancelFile": "Cancelar la subida de {{name}}",
+    "retry": "Reintentar",
+    "retryFile": "Reintentar {{name}}",
+    "uploading": "Subiendo...",
+    "ready": "Listo",
+    "tooLarge": "{{name}} pesa más de {{max}}.",
+    "tooMany": "Puedes adjuntar hasta {{max}} archivos por mensaje.",
+    "failed": "No se pudo subir el archivo.",
+    "rateLimited": "Estás subiendo demasiado rápido. Inténtalo de nuevo en un momento."
   }
 }

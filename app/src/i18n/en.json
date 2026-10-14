@@ -193,6 +193,22 @@
     "download": "Download",
     "previewUnavailable": "The preview is no longer available.",
     "openFailed": "Could not open the file. It may no longer be available.",
-    "openFailedRetry": "Could not open the file. Check your connection and try again."
+    "openFailedRetry": "Could not open the file. Check your connection and try again.",
+    "attach": "Attach",
+    "pickMedia": "Photo or video",
+    "pickFile": "File",
+    "pickFailed": "Could not open the file picker.",
+    "remove": "Remove",
+    "removeFile": "Remove {{name}}",
+    "cancel": "Cancel",
+    "cancelFile": "Cancel the upload of {{name}}",
+    "retry": "Retry",
+    "retryFile": "Retry {{name}}",
+    "uploading": "Uploading...",
+    "ready": "Ready",
+    "tooLarge": "{{name}} is larger than {{max}}.",
+    "tooMany": "You can attach up to {{max}} files per message.",
+    "failed": "Could not upload the file.",
+    "rateLimited": "You are uploading too fast. Try again in a moment."
   }
 }
