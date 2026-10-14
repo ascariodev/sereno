@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -90,7 +90,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - **Terminado cuando:** spec de `desktopNotifications` (enfocada no muestra, oculta sí, preferencia apagada no, otra
   organización no); en la app, asignarse una tarea con la ventana oculta muestra el aviso de Windows.
 
-### [ ] Fase 9 — Clic en el aviso abre el destino [riesgo]
+### [x] Fase 9 — Clic en el aviso abre el destino [riesgo]
 - **Alcance:** clic en el aviso nativo muestra y enfoca la ventana y navega a la URL de la notificación. Verificar en la
   doc si el plugin `notification` expone el clic en Windows; si no, el clic solo enfoca la app y se anota la limitación.
 - **Archivos:** `web/src/platform/desktopNotifications.ts`, `web/src-tauri/src/lib.rs` (si hace falta un comando).
@@ -174,11 +174,19 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   `await` y el store la anula al cambiar de generación (logout, cambio de organización). Sin aviso para `unknown` ni ya
   leídas. Preferencias por `GET /api/me/notification-preferences` en cada aviso con la ventana sin foco (sin caché). Permiso
   pedido una vez por sesión. Títulos y cuerpos de la bandeja in-app movidos a `web/src/notificationText.ts`.
+- 2026-10-13 — Fase 9: el clic se detecta con `onAction` del plugin (permiso `notification:allow-register-listener`): con un
+  listener registrado el plugin muestra con `show_tracked` y reporta `actionId: 'tap'`. **Limitación de Windows:** solo
+  mientras el toast está en pantalla; un clic desde el Centro de actividades no navega. El aviso lleva
+  `extra: { organizationId, path }` (path con `router.resolve(notificationTarget(n)).fullPath`, el mismo destino que la
+  bandeja in-app, ahora en `web/src/notificationTarget.ts`). Al clic, el comando Rust `focus_main_window` enfoca siempre y
+  solo se navega si `safeRedirect` acepta y la organización sigue activa. `installDesktopNotificationClicks` va en `main.ts`.
 - 2026-10-13 — Fase 2: `src-tauri/target` y `gen/` los ignora el `.gitignore` que genera Tauri en `web/src-tauri/`; no se
   tocó `web/.gitignore`. `beforeDevCommand` vacío (Vite corre en Docker). Sin iconos android/ios (el móvil va con Expo).
   Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
 
 ## Notas para la próxima sesión
+- Fase 9: revisión manual pendiente con la app **instalada** (en `target/debug` no hay AppUserModelID): con la ventana
+  oculta, clic en el aviso de una tarea asignada abre `/projects/<id>/plan?task=<n>`. Windows puede no dar el foco.
 - Fase 8: revisión manual pendiente: asignarse una tarea con la ventana oculta muestra el aviso de Windows. Una ronda de
   corrección: faltaba el spec del cableado en el store y el guard de generación tras los `await` (L-50, L-10, L-32).
 - Fase 7: revisión manual pendiente: icono en la bandeja, Quit cierra del todo, y con la ventana oculta más de 1-2 minutos
@@ -242,3 +250,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-18: Spec propio del guard de sesión justo antes de `sendNotification` (tras `ensurePermission`).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-19: Clic en el aviso nativo marca la notificación como leída, como la bandeja in-app.
+      Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
+- [ ] M-20: Flag de módulo en `installDesktopNotificationClicks` para no registrar dos `onAction` (HMR o segunda llamada).
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → haiku

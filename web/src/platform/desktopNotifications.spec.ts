@@ -1,4 +1,6 @@
+import type { ActionPerformed } from '@tauri-apps/plugin-notification'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import type { NotificationPreferences, TaskAssignedNotification } from '../api/types'
 
 const windowState = vi.hoisted(() => ({ visible: true, minimized: false, focused: true }))
@@ -7,9 +9,20 @@ const isPermissionGranted = vi.hoisted(() => vi.fn())
 const requestPermission = vi.hoisted(() => vi.fn())
 const sendNotification = vi.hoisted(() => vi.fn())
 const getNotificationPreferences = vi.hoisted(() => vi.fn())
+const onAction = vi.hoisted(() => vi.fn())
+const invoke = vi.hoisted(() => vi.fn())
 
+vi.mock('@tauri-apps/api/core', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@tauri-apps/api/core')>()),
+  invoke,
+}))
 vi.mock('@tauri-apps/api/window', () => ({ getCurrentWindow }))
-vi.mock('@tauri-apps/plugin-notification', () => ({ isPermissionGranted, requestPermission, sendNotification }))
+vi.mock('@tauri-apps/plugin-notification', () => ({
+  isPermissionGranted,
+  onAction,
+  requestPermission,
+  sendNotification,
+}))
 vi.mock('../api/notificationPreferences', () => ({ getNotificationPreferences }))
 
 const ORGANIZATION = 7
@@ -149,5 +162,114 @@ describe('notifyDesktop', () => {
     expect(getCurrentWindow).not.toHaveBeenCalled()
     expect(getNotificationPreferences).not.toHaveBeenCalled()
     expect(sendNotification).not.toHaveBeenCalled()
+  })
+})
+
+describe('installDesktopNotificationClicks', () => {
+  const PATH = '/projects/3/plan?task=9'
+  let router: Router
+  let active: number | null
+
+  function tap(extra: Record<string, unknown> | null, actionId = 'tap'): ActionPerformed {
+    return {
+      actionId,
+      inputValue: null,
+      notification: extra === null ? null : ({ id: 1, title: 'Ana', extra } as unknown as ActionPerformed['notification']),
+    }
+  }
+
+  async function install() {
+    const module = await load()
+    await module.installDesktopNotificationClicks(router, () => active)
+    const handler = onAction.mock.calls[0]?.[0] as ((event: ActionPerformed) => void) | undefined
+    return { ...module, click: (event: ActionPerformed) => handler?.(event) }
+  }
+
+  beforeEach(async () => {
+    vi.stubGlobal('isTauri', true)
+    active = ORGANIZATION
+    getCurrentWindow.mockReset().mockReturnValue({
+      isVisible: () => Promise.resolve(false),
+      isMinimized: () => Promise.resolve(false),
+      isFocused: () => Promise.resolve(false),
+    })
+    isPermissionGranted.mockReset().mockResolvedValue(true)
+    sendNotification.mockReset()
+    getNotificationPreferences.mockReset().mockResolvedValue(preferences(true))
+    onAction.mockReset().mockResolvedValue({ unregister: vi.fn() })
+    invoke.mockReset().mockResolvedValue(undefined)
+    const view = { template: '<div />' }
+    router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', name: 'projects', component: view },
+        { path: '/channels/:id', name: 'channel', component: view },
+        { path: '/projects/:projectId/plan', name: 'project-plan', component: view },
+      ],
+    })
+    await router.push('/')
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('sends the destination of the notification with its organization', async () => {
+    const { notifyDesktop } = await install()
+    await notifyDesktop(notification, ORGANIZATION, () => ORGANIZATION)
+    expect(sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ extra: { organizationId: ORGANIZATION, path: PATH } }),
+    )
+  })
+
+  it('brings the window back and opens the destination on a click', async () => {
+    const { click } = await install()
+    click(tap({ organizationId: ORGANIZATION, path: PATH }))
+    await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe(PATH))
+    expect(invoke).toHaveBeenCalledWith('focus_main_window')
+  })
+
+  it('only brings the window back when the organization is no longer the active one', async () => {
+    const { click } = await install()
+    active = ORGANIZATION + 1
+    click(tap({ organizationId: ORGANIZATION, path: PATH }))
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('focus_main_window'))
+    await new Promise((resolve) => setTimeout(resolve))
+    expect(router.currentRoute.value.fullPath).toBe('/')
+  })
+
+  it.each(['https://evil.example/projects', '//evil.example', '/login', 42])(
+    'does not navigate to a destination that is not a local route (%s)',
+    async (path) => {
+      const push = vi.spyOn(router, 'push')
+      const { click } = await install()
+      click(tap({ organizationId: ORGANIZATION, path }))
+      await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('focus_main_window'))
+      await new Promise((resolve) => setTimeout(resolve))
+      expect(push).not.toHaveBeenCalled()
+    },
+  )
+
+  it('only brings the window back for a notification without a destination', async () => {
+    const push = vi.spyOn(router, 'push')
+    const { click } = await install()
+    click(tap(null))
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('focus_main_window'))
+    await new Promise((resolve) => setTimeout(resolve))
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('ignores actions other than a click on the notification', async () => {
+    const { click } = await install()
+    click(tap({ organizationId: ORGANIZATION, path: PATH }, 'dismiss'))
+    await new Promise((resolve) => setTimeout(resolve))
+    expect(invoke).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.fullPath).toBe('/')
+  })
+
+  it('does not listen in a browser', async () => {
+    vi.unstubAllGlobals()
+    await install()
+    expect(onAction).not.toHaveBeenCalled()
   })
 })

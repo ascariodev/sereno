@@ -8,11 +8,12 @@ import App from './App.vue'
 import { i18n, installI18nOnApi } from './i18n'
 import { toast } from './components/ui/toast'
 import { installExternalLinks, isDesktop } from './platform/desktop'
+import { installDesktopNotificationClicks } from './platform/desktopNotifications'
 import { listenForNavigation, registerServiceWorker } from './pwa/serviceWorker'
 import { createAppRouter } from './router'
 import { redirectToLogin } from './router/redirectToLogin'
 import { installAuthOnApi } from './stores/auth'
-import { installOrganizationOnApi } from './stores/organization'
+import { installOrganizationOnApi, useOrganizationStore } from './stores/organization'
 
 initTheme()
 
@@ -27,6 +28,8 @@ installAuthOnApi(() => redirectToLogin(router))
 app.use(i18n).use(router).mount('#app')
 
 installExternalLinks()
+const organization = useOrganizationStore()
+void installDesktopNotificationClicks(router, () => organization.activeId)
 
 if (import.meta.env.PROD && !isDesktop() && 'serviceWorker' in navigator) {
   listenForNavigation({ navigate: (path) => void router.push(path) })

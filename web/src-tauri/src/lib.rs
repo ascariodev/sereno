@@ -16,6 +16,11 @@ fn show_main_window(app: &AppHandle) {
   }
 }
 
+#[tauri::command]
+fn focus_main_window(app: AppHandle) {
+  show_main_window(&app);
+}
+
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
   let open = MenuItem::with_id(app, MENU_OPEN, "Open Sereno", true, None::<&str>)?;
   let quit = MenuItem::with_id(app, MENU_QUIT, "Quit", true, None::<&str>)?;
@@ -55,6 +60,7 @@ pub fn run() {
     }))
     .plugin(tauri_plugin_opener::init())
     .plugin(tauri_plugin_notification::init())
+    .invoke_handler(tauri::generate_handler![focus_main_window])
     .on_window_event(|window, event| {
       if let WindowEvent::CloseRequested { api, .. } = event
         && window.label() == MAIN_WINDOW

@@ -1,9 +1,22 @@
+import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification'
+import {
+  type ActionPerformed,
+  isPermissionGranted,
+  onAction,
+  requestPermission,
+  sendNotification,
+} from '@tauri-apps/plugin-notification'
+import type { Router } from 'vue-router'
 import { getNotificationPreferences } from '../api/notificationPreferences'
 import type { AppNotification } from '../api/types'
+import { notificationTarget } from '../notificationTarget'
 import { notificationBody, notificationTitle } from '../notificationText'
+import { safeRedirect } from '../router/safeRedirect'
 import { isDesktop } from './desktop'
+
+// Set by `installDesktopNotificationClicks`: without it the notifications carry no destination.
+let router: Router | null = null
 
 // Asked once per session: a denial is not asked again on every notification.
 let permission: Promise<boolean> | null = null
@@ -13,6 +26,11 @@ function ensurePermission(): Promise<boolean> {
     () => false,
   )
   return permission
+}
+
+function notificationPath(notification: AppNotification): string | null {
+  const target = notificationTarget(notification)
+  return router === null || target === null ? null : router.resolve(target).fullPath
 }
 
 async function windowHasAttention(): Promise<boolean> {
@@ -40,8 +58,40 @@ export async function notifyDesktop(
     if (!isCurrent() || !preferences.push[notification.type]) return
     if (!(await ensurePermission()) || !isCurrent()) return
     const body = notificationBody(notification)
-    sendNotification({ title: notificationTitle(notification), ...(body === null ? {} : { body }) })
+    const path = notificationPath(notification)
+    sendNotification({
+      title: notificationTitle(notification),
+      ...(body === null ? {} : { body }),
+      ...(path === null ? {} : { extra: { organizationId, path } }),
+    })
   } catch {
     // A failed check or a missing notification is not worth interrupting the user for.
+  }
+}
+
+async function openFromNotification(event: ActionPerformed, activeOrganizationId: () => number | null): Promise<void> {
+  if (event.actionId !== 'tap') return
+  await invoke('focus_main_window').catch(() => {})
+  const extra = event.notification?.extra
+  const path = safeRedirect(extra?.path)
+  if (router === null || path === null || extra?.organizationId !== activeOrganizationId()) return
+  await router.push(path).catch(() => {})
+}
+
+/**
+ * On the desktop app, a click on a native notification brings the window back and opens its destination, as long as the
+ * organization it belongs to is still the active one. Must run before the first notification: the plugin only reports
+ * clicks on notifications shown while a listener existed (on Windows, only while the toast is on screen).
+ */
+export async function installDesktopNotificationClicks(
+  appRouter: Router,
+  activeOrganizationId: () => number | null,
+): Promise<void> {
+  if (!isDesktop()) return
+  router = appRouter
+  try {
+    await onAction((event) => void openFromNotification(event, activeOrganizationId))
+  } catch {
+    // Without the listener a click only brings up whatever Windows does by default.
   }
 }
