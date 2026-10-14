@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use finfo;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -62,7 +63,7 @@ class AttachmentStorage
         try {
             $size = $disk->size($path);
         } catch (UnableToRetrieveMetadata) {
-            abort(404, __('Not Found'));
+            throw new ModelNotFoundException;
         }
 
         $inline = in_array($mime, self::INLINE_MIMES, true);

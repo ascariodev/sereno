@@ -19,6 +19,7 @@ use App\Models\MessageAttachment;
 use App\Models\User;
 use Closure;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\Paginator;
@@ -184,7 +185,7 @@ class MessageController extends Controller
             }
 
             $locked = Message::query()->whereKey($message->id)->whereNull('deleted_at')->lockForUpdate()->first();
-            abort_if($locked === null, 404);
+            throw_if($locked === null, ModelNotFoundException::class);
             $message = $locked;
 
             if ($removeIds !== []) {
@@ -231,7 +232,7 @@ class MessageController extends Controller
     public function destroy(DeleteMessageRequest $request, Channel $channel, Message $message, MessageDeletion $deletion): MessageResource
     {
         $result = $deletion->delete($message);
-        abort_if($result === null, 404);
+        throw_if($result === null, ModelNotFoundException::class);
 
         $deleted = $result['message']->load(self::RELATIONS);
         self::loadParticipants([$deleted]);

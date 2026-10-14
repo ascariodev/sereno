@@ -31,6 +31,7 @@ class WebPushSender implements PushSender
             } catch (Throwable $e) {
                 Log::warning('Push could not be sent to a subscription.', [
                     'subscription' => $subscription->id,
+                    'host' => parse_url($subscription->endpoint, PHP_URL_HOST) ?: null,
                     'exception' => $e::class.': '.$e->getMessage(),
                 ]);
                 $results[$subscription->id] = self::REJECTED;

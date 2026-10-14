@@ -151,7 +151,7 @@ su comportamiento ni su accesibilidad. Origen: invitaciones-web M-16.
   el valor mostrado coincide con el modelo y, si falla, reaplicar el valor al cambiar las opciones.
 - [x] M-3 (baja, sonnet): estilo atenuado de AppSelect con `disabled` y test de que un `modelValue` sin opción coincidente
   no emite nada.
-- [ ] M-4 (alta por archivos: 4 diálogos + componente nuevo + spec = 6; no aplicada, convertir en plan con /planificar): el `error-form` (`<p role="alert">` con `__error`) repite en cada diálogo el estilo de
+- [x] M-4 (OBSOLETA: lo resolvió el plan `error-form-compartido` con `ui/AppFormError`) (alta por archivos: 4 diálogos + componente nuevo + spec = 6; no aplicada, convertir en plan con /planificar): el `error-form` (`<p role="alert">` con `__error`) repite en cada diálogo el estilo de
   `.app-input__error`: extraer una clase o componente compartido (también `.proj-create__error`).
 - [x] M-5 (DESCARTADA por el usuario: con el store real "fallo y cargando" es inalcanzable, `load()` limpia `failed` al empezar; el `:disabled` es código defensivo y el test lo fija a mano a propósito) (baja, sonnet): InviteDialog.spec fija `store.loading = true` a mano en el test de retry; usar una carga
   pendiente del store en vez de acoplarse a su estado interno.
