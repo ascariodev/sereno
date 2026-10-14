@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { Bell, Languages, LogOut, Mail, Monitor, Moon, Sun, Users } from '@lucide/vue'
+import { Bell, Languages, LogOut, Mail, Monitor, Moon, Sun, Users, type LucideIcon } from '@lucide/vue'
 import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { LOCALE_LABELS, type Locale } from '../i18n'
+import { LOCALE_LABELS, SUPPORTED_LOCALES, type Locale } from '../i18n'
 import { saveThemePreference, themePreference as theme, type ThemePreference } from '../theme/theme'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 import { toast } from './ui/toast'
 import AppAvatar from './ui/AppAvatar.vue'
-import AppMenu from './ui/AppMenu.vue'
+import AppMenu, { type AppMenuItem } from './ui/AppMenu.vue'
 import NotificationPreferencesDialog from './NotificationPreferencesDialog.vue'
 
 const { t, locale } = useI18n()
@@ -23,15 +23,36 @@ const triggerButton = ref<HTMLButtonElement | null>(null)
 const THEME_PREFIX = 'theme:'
 const LOCALE_PREFIX = 'locale:'
 
-const items = computed(() => [
+const THEMES: ThemePreference[] = ['system', 'light', 'dark']
+const THEME_ICONS = { system: Monitor, light: Sun, dark: Moon } satisfies Record<ThemePreference, LucideIcon>
+
+const items = computed<AppMenuItem[]>(() => [
   { value: 'members', label: t('userMenu.members'), icon: Users },
   ...(organization.canManageInvitations ? [{ value: 'invitations', label: t('userMenu.invitations'), icon: Mail }] : []),
   { value: 'notification-preferences', label: t('userMenu.notificationPreferences'), icon: Bell },
-  { value: `${THEME_PREFIX}system`, label: t('userMenu.theme.system'), icon: Monitor, checked: theme.value === 'system' },
-  { value: `${THEME_PREFIX}light`, label: t('userMenu.theme.light'), icon: Sun, checked: theme.value === 'light' },
-  { value: `${THEME_PREFIX}dark`, label: t('userMenu.theme.dark'), icon: Moon, checked: theme.value === 'dark' },
-  { value: `${LOCALE_PREFIX}es`, label: LOCALE_LABELS.es, icon: Languages, checked: locale.value === 'es' },
-  { value: `${LOCALE_PREFIX}en`, label: LOCALE_LABELS.en, icon: Languages, checked: locale.value === 'en' },
+  {
+    value: 'theme',
+    label: t('userMenu.themeLabel'),
+    icon: THEME_ICONS[theme.value],
+    hint: t(`userMenu.themeOption.${theme.value}`),
+    children: THEMES.map((option) => ({
+      value: `${THEME_PREFIX}${option}`,
+      label: t(`userMenu.themeOption.${option}`),
+      icon: THEME_ICONS[option],
+      checked: theme.value === option,
+    })),
+  },
+  {
+    value: 'language',
+    label: t('userMenu.language'),
+    icon: Languages,
+    hint: LOCALE_LABELS[locale.value as Locale],
+    children: SUPPORTED_LOCALES.map((option) => ({
+      value: `${LOCALE_PREFIX}${option}`,
+      label: LOCALE_LABELS[option],
+      checked: locale.value === option,
+    })),
+  },
   { value: 'logout', label: t('layout.logout'), icon: LogOut, danger: true },
 ])
 
