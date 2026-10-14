@@ -271,7 +271,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - [x] M-6: `bundle.targets` solo NSIS (hoy "all": MSI y NSIS), para un único instalador que use el actualizador (evita que
       una instalación MSI se actualice con el NSIS de `latest.json`; conviene antes de la fase 14).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-7: `desktop.spec.ts` simula `isTauri` con `vi.stubGlobal`/`unstubAllGlobals` en vez de borrar el global con un cast.
+- [x] M-7: `desktop.spec.ts` simula `isTauri` con `vi.stubGlobal`/`unstubAllGlobals` en vez de borrar el global con un cast.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-8: En escritorio, desregistrar al arrancar cualquier service worker que haya quedado en el perfil de WebView2
       (hoy solo pasa con builds de prueba anteriores a la fase 3).
