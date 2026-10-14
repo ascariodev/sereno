@@ -228,6 +228,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   todas las actualizaciones. Si el build falla la versión queda subida: reintentar sin versión.
 - Fase 12: en PowerShell `~` no se expande: `tauri signer generate -w ~/.tauri/...` dejó el par en `web/~/.tauri/` (se movió
   sin llegar a git). Rutas absolutas en la fase 14. El build del host sobrescribe `web/dist`.
+- 0.1.0 publicada el 2026-10-14: `latest.json` responde y el `.sig` trae `version:0.1.0`.
 - Fase 13: verificada el 2026-10-14 tras el deploy de la web: `https://sereno.ascario.dev/desktop/latest.json` da 404
   y el resto de la web sigue igual.
 - Fase 11: verificada el 2026-10-14 con la app instalada. Revisión original (el autostart registra la ruta del exe actual): activar el
@@ -339,3 +340,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - [ ] M-32: Spec de `unregisterServiceWorkers` donde un `unregister` rechaza y los demás igual se llaman; unir los dos
       `afterEach` de `desktop.spec.ts`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-33: Cloudflare cachea los 404 de `/desktop/*.exe` (extensión estática): pedir el instalador antes de subirlo deja
+      el 404 en caché unos minutos (visto al publicar 0.1.0) y el actualizador falla. Agregar `Cache-Control: no-store`
+      con `always` a los 404 de `location /desktop/` en `web/docker/nginx/default.conf`.
+      Complejidad: baja · Archivos: 1 · Riesgo: bajo → sonnet
