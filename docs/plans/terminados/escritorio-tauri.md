@@ -230,7 +230,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   sin llegar a git). Rutas absolutas en la fase 14. El build del host sobrescribe `web/dist`.
 - Fase 13: verificación pendiente tras el próximo deploy de la web: `https://sereno.ascario.dev/desktop/latest.json` da 404
   y el resto de la web sigue igual.
-- Fase 11: revisión manual pendiente con la app **instalada** (el autostart registra la ruta del exe actual): activar el
+- Fase 11: verificada el 2026-10-14 con la app instalada. Revisión original (el autostart registra la ruta del exe actual): activar el
   interruptor, mirar el valor en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` y reiniciar la sesión: Sereno
   debe quedar en la bandeja sin ventana.
 - Fase 9: verificada el 2026-10-14 con la app instalada (release): con la ventana minimizada, el clic en el aviso de una
@@ -238,24 +238,24 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - Fase 8: verificada el 2026-10-14: una tarea asignada desde otra cuenta con la ventana minimizada muestra el aviso de
   Windows (asignarse a uno mismo no avisa). Una ronda de
   corrección: faltaba el spec del cableado en el store y el guard de generación tras los `await` (L-50, L-10, L-32).
-- Fase 7: revisión manual pendiente: icono en la bandeja, Quit cierra del todo, y con la ventana oculta más de 1-2 minutos
+- Fase 7: verificada el 2026-10-14 (sin plan B). Revisión original: icono en la bandeja, Quit cierra del todo, y con la ventana oculta más de 1-2 minutos
   un mensaje enviado desde otro cliente aparece al reabrir sin recargar. Si no llega (Chromium estrangula por oclusión),
   plan B: `additional_browser_args` con `--disable-features=CalculateNativeWinOcclusion` en la ventana (decisión nueva).
-- Fase 6: revisión manual pendiente: descargar y previsualizar un adjunto en la app abre el navegador del sistema.
+- Fase 6: verificada el 2026-10-14: descargar y previsualizar un adjunto en la app abre el navegador del sistema.
 - Fase 5: la miniatura de `MessageAttachments.vue` tiene `target="_blank"` y `@click="openFresh"`; si `openFresh` hace
   `preventDefault`, el listener de enlaces la ignora (comprobarlo en la fase 6). `openUrl` ya cubre URLs firmadas http(s).
-  Revisión manual pendiente: un enlace de un mensaje abre el navegador. `prettier --check` no es chequeo del proyecto.
+  Verificado el 2026-10-14: un enlace de un mensaje abre el navegador. `prettier --check` no es chequeo del proyecto.
 - Fase 4: el perfil de WebView2 de esta máquina tiene un `sw.js` registrado en `http://tauri.localhost` por el exe de la
   fase 2 (anterior a la fase 3). Antes de una revisión manual, recompilar y borrar ese registro (o el perfil). Para
   inspeccionar la app: lanzar el exe con `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9333`.
-  Revisión manual pendiente: con sesión iniciada, F5 en `/projects/<id>/plan` vuelve a esa pantalla.
+  Verificado el 2026-10-14: con sesión iniciada, F5 en `/projects/<id>/plan` vuelve a esa pantalla.
 - Fase 3: `isDesktop()` (en `web/src/platform/desktop.ts`) envuelve `isTauri()` de `@tauri-apps/api/core`, que lee
   `globalThis.isTauri`: en specs se simula con `vi.stubGlobal('isTauri', true)`. Va dentro de `browserSupportsPush()`, así
   que todo `push.ts` queda inactivo en escritorio. Revisión manual pendiente: sin `sw.js` registrado en la app.
   `@tauri-apps/api` se instala en el contenedor y también en el host (`npm install` desde `web/`) para `tauri:build`.
 - Fase 2: `npm run tauri:build -- --debug` deja `web/src-tauri/target/debug/bundle/nsis/Sereno_0.1.0_x64-setup.exe` (y el
   `.msi`). Login contra producción verificado el 2026-10-14 (el primer build falló porque faltaba `web/.env.production`);
-  **pendiente** el mensaje en vivo por Reverb. Si falla, mirar
+  mensaje en vivo por Reverb también verificado. Si falla, mirar
   primero la CSP y que `web/.env.production` tenga las `VITE_*` de producción. El build del host sobrescribe `web/dist`.
 - Fase 1 verificada el 2026-10-13: rustc y cargo 1.99.0 (stable MSVC), VS Community 2022 con C++, WebView2 155; `tauri info` sin faltantes (CLI 2.12.2 por npx). En Git Bash, `~/.cargo/bin` no está en el PATH: anteponer `export PATH="/c/Users/Windows 11/.cargo/bin:$PATH"`.
 
