@@ -114,7 +114,9 @@ describe('auth store', () => {
     const handler = handlerSpy.mock.calls[0][0]!
     const auth = useAuthStore()
     expect(auth.token).toBe('abc')
+    const drop = vi.spyOn(push, 'dropPushOnSessionExpired').mockResolvedValue()
     handler()
+    expect(drop).toHaveBeenCalledOnce()
     expect(auth.token).toBeNull()
     expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull()
     expect(expired).toHaveBeenCalledOnce()

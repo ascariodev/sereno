@@ -2,6 +2,7 @@
 
 use App\Models\Project;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -57,4 +58,25 @@ function archiveProjectBeforeLock(Project $project): void
         $done = true;
         DB::table('projects')->where('id', $project->id)->update(['archived_at' => now()]);
     });
+}
+
+function withEnvironment(array $variables, Closure $callback): mixed
+{
+    $previous = [];
+
+    foreach ($variables as $name => $value) {
+        $previous[$name] = [getenv($name), $_ENV[$name] ?? null, $_SERVER[$name] ?? null];
+        putenv("{$name}={$value}");
+        $_ENV[$name] = $_SERVER[$name] = $value;
+    }
+
+    try {
+        return $callback();
+    } finally {
+        foreach ($previous as $name => [$putenv, $envValue, $serverValue]) {
+            putenv($putenv === false ? $name : "{$name}={$putenv}");
+            $envValue === null ? Arr::forget($_ENV, $name) : $_ENV[$name] = $envValue;
+            $serverValue === null ? Arr::forget($_SERVER, $name) : $_SERVER[$name] = $serverValue;
+        }
+    }
 }

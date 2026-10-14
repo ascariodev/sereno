@@ -288,6 +288,7 @@
       "title": "This device",
       "enable": "Turn on push notifications",
       "disable": "Turn off push notifications",
+      "dismissed": "You closed the permission prompt, so push notifications are still off.",
       "status": {
         "unsupported": "This browser or session cannot receive push notifications. Install the app or use a browser that supports them.",
         "blocked": "Notifications are blocked for Sereno. Allow them in your browser settings to turn push on.",
@@ -296,6 +297,7 @@
       },
       "errors": {
         "notConfigured": "Push notifications are not set up on the server yet.",
+        "browserFailed": "Your browser could not set up push notifications. Check that the browser's push service is available (in Brave, enable \"Use Google Services for Push Messaging\" in Settings) and try again.",
         "enableFailed": "Could not turn on push notifications. Try again.",
         "disableFailed": "Could not turn off push notifications. Try again."
       }

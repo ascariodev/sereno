@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { UPDATE_CHECK_INTERVAL, registerServiceWorker } from './serviceWorker'
+import { UPDATE_CHECK_INTERVAL, listenForNavigation, registerServiceWorker } from './serviceWorker'
 
 class FakeWorker extends EventTarget {
   state = 'installing'
@@ -120,5 +120,36 @@ describe('registerServiceWorker', () => {
     vi.advanceTimersByTime(UPDATE_CHECK_INTERVAL)
     await Promise.resolve()
     expect(registration.update).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('listenForNavigation', () => {
+  const ORIGIN = 'https://sereno.test'
+
+  function listen() {
+    const container = new EventTarget()
+    const navigate = vi.fn()
+    listenForNavigation({ navigate, container: container as unknown as ServiceWorkerContainer, origin: ORIGIN })
+    const send = (data: unknown) => container.dispatchEvent(new MessageEvent('message', { data }))
+    return { navigate, send }
+  }
+
+  it('navigates to the path, query and hash of a same-origin url', () => {
+    const { navigate, send } = listen()
+    send({ type: 'NAVIGATE', url: `${ORIGIN}/projects/1/plan?task=2&organization=3#c` })
+    expect(navigate).toHaveBeenCalledExactlyOnceWith('/projects/1/plan?task=2&organization=3#c')
+  })
+
+  it.each([
+    ['another origin', { type: 'NAVIGATE', url: 'https://evil.test/phish' }],
+    ['a non string url', { type: 'NAVIGATE', url: 42 }],
+    ['a missing url', { type: 'NAVIGATE' }],
+    ['another type', { type: 'SKIP_WAITING', url: `${ORIGIN}/` }],
+    ['null', null],
+    ['a string', 'NAVIGATE'],
+  ])('ignores a message with %s', (_, data) => {
+    const { navigate, send } = listen()
+    send(data)
+    expect(navigate).not.toHaveBeenCalled()
   })
 })

@@ -5,17 +5,14 @@ namespace App\Support;
 use App\Enums\NotificationType;
 use App\Models\AppNotification;
 use App\Models\User;
-use ErrorException;
 use Illuminate\Support\Str;
-use TypeError;
-use UnexpectedValueException;
-use ValueError;
+use Illuminate\Support\Traits\Localizable;
 
 class PushPayload
 {
     public const MAX_BYTES = 3000;
 
-    private const TITLE_LIMIT = 200;
+    private const TITLE_WIDTH_LIMIT = 200;
 
     private const ELLIPSIS = '…';
 
@@ -25,22 +22,44 @@ class PushPayload
      */
     public static function for(AppNotification $notification, User $user): ?string
     {
-        $previous = app()->getLocale();
-        app()->setLocale($user->preferredLocale() ?? config('app.locale'));
+        $type = NotificationType::tryFrom($notification->type);
 
-        try {
-            return self::build($notification);
-        } catch (ValueError|TypeError|ErrorException|UnexpectedValueException) {
+        if ($type === null || ! self::hasRequiredData($notification, $type)) {
             return null;
-        } finally {
-            app()->setLocale($previous);
         }
+
+        $locale = $user->preferredLocale() ?? config('app.locale');
+
+        return (new class
+        {
+            use Localizable;
+        })->withLocale($locale, fn () => self::build($notification, $type));
     }
 
-    private static function build(AppNotification $notification): string
+    private static function hasRequiredData(AppNotification $notification, NotificationType $type): bool
+    {
+        $required = match ($type) {
+            NotificationType::TaskAssigned => ['actor_name', 'task_key', 'task_title', 'task_id'],
+            NotificationType::TaskCommentMention,
+            NotificationType::TaskCommented => ['actor_name', 'task_key', 'comment_excerpt', 'task_id'],
+            NotificationType::ChatMention => ['actor_name', 'channel_name', 'message_excerpt', 'channel_id', 'message_id'],
+        };
+
+        foreach ($required as $key) {
+            $value = $notification->data[$key] ?? null;
+            $valid = str_ends_with($key, '_id') ? is_numeric($value) : is_string($value);
+
+            if (! $valid) {
+                return false;
+            }
+        }
+
+        return $type === NotificationType::ChatMention || is_numeric($notification->project_id);
+    }
+
+    private static function build(AppNotification $notification, NotificationType $type): string
     {
         $data = $notification->data;
-        $type = NotificationType::from($notification->type);
         $actor = self::text($data, 'actor_name');
 
         [$title, $body, $tag] = match ($type) {
@@ -69,7 +88,7 @@ class PushPayload
         return self::encode([
             'uuid' => $notification->uuid,
             'type' => $type->value,
-            'title' => Str::limit($title, self::TITLE_LIMIT, self::ELLIPSIS, preserveWords: false),
+            'title' => Str::limit($title, self::TITLE_WIDTH_LIMIT, self::ELLIPSIS, preserveWords: false),
             'body' => $body,
             'url' => NotificationUrl::for($notification),
             'tag' => $tag,
@@ -107,12 +126,6 @@ class PushPayload
     /** @param  array<string, mixed>  $data */
     private static function text(array $data, string $key): string
     {
-        $value = $data[$key] ?? null;
-
-        if (! is_string($value)) {
-            throw new UnexpectedValueException("Missing {$key}");
-        }
-
-        return $value;
+        return $data[$key];
     }
 }

@@ -20,17 +20,19 @@ type Listener = (event: Record<string, unknown>) => void
 
 interface FakeWindow {
   focused: boolean
+  controlled: boolean
   focus: ReturnType<typeof vi.fn>
-  navigate: ReturnType<typeof vi.fn>
+  postMessage: ReturnType<typeof vi.fn>
 }
 
 const later = <T>(value: T) => new Promise<T>((resolve) => setTimeout(() => resolve(value)))
 
-const fakeWindow = ({ focused = false, navigable = true } = {}): FakeWindow => {
+const fakeWindow = ({ focused = false, controlled = true, focusable = true } = {}): FakeWindow => {
   const client: FakeWindow = {
     focused,
-    focus: vi.fn(() => later(client)),
-    navigate: vi.fn(() => (navigable ? later(client) : Promise.reject(new TypeError('not controlled')))),
+    controlled,
+    focus: vi.fn(() => (focusable ? later(client) : Promise.reject(new TypeError('not focusable')))),
+    postMessage: vi.fn(),
   }
   return client
 }
@@ -67,7 +69,9 @@ function loadWorker(existingCaches: string[] = [], windows: FakeWindow[] = []) {
     skipWaiting: vi.fn(),
     clients: {
       claim: vi.fn(() => Promise.resolve()),
-      matchAll: vi.fn(() => later(windows)),
+      matchAll: vi.fn((options?: { includeUncontrolled?: boolean }) =>
+        later(windows.filter((client) => client.controlled || options?.includeUncontrolled)),
+      ),
       openWindow: vi.fn(() => later(null)),
     },
     registration: { showNotification: vi.fn(() => later(undefined)) },
@@ -196,6 +200,7 @@ describe('sw.js', () => {
       body: 'Fix the login',
       icon: '/icons/icon-192.png',
       tag: 'task-2',
+      renotify: true,
       data: { url: PAYLOAD.url },
     })
   })
@@ -215,13 +220,15 @@ describe('sw.js', () => {
     ['a non string body', pushData({ ...PAYLOAD, body: 3 })],
     ['a missing url', pushData({ ...PAYLOAD, url: undefined })],
     ['a missing tag', pushData({ ...PAYLOAD, tag: undefined })],
+    ['an empty tag', pushData({ ...PAYLOAD, tag: '' })],
   ])('shows a generic notice for a push with %s', async (_, data) => {
     const { self, waitFor } = loadWorker()
     await waitFor('push', data)
     expect(self.registration.showNotification).toHaveBeenCalledWith('Sereno', {
       icon: '/icons/icon-192.png',
       tag: 'sereno',
-      data: { url: '/' },
+      renotify: true,
+      data: { url: `${ORIGIN}/` },
     })
   })
 
@@ -234,13 +241,48 @@ describe('sw.js', () => {
     )
   })
 
-  it('focuses an open window and navigates it on click', async () => {
+  it('waits for the notification to be shown before finishing the push event', async () => {
+    const { self, waitFor } = loadWorker()
+    let release: () => void = () => {}
+    self.registration.showNotification.mockImplementationOnce(
+      () => new Promise<undefined>((resolve) => (release = () => resolve(undefined))),
+    )
+    let finished = false
+    const done = waitFor('push', pushData(PAYLOAD)).then(() => (finished = true))
+    await vi.waitFor(() => expect(self.registration.showNotification).toHaveBeenCalled())
+    await later(undefined)
+    expect(finished).toBe(false)
+    release()
+    await done
+    expect(finished).toBe(true)
+  })
+
+  it('focuses an open window and asks it to navigate on click', async () => {
     const existing = fakeWindow()
     const { self, click } = loadWorker([], [existing])
     const notification = await click({ url: PAYLOAD.url })
     expect(notification.close).toHaveBeenCalledTimes(1)
     expect(existing.focus).toHaveBeenCalledTimes(1)
-    expect(existing.navigate).toHaveBeenCalledWith(PAYLOAD.url)
+    expect(existing.postMessage).toHaveBeenCalledWith({ type: 'NAVIGATE', url: PAYLOAD.url })
+    expect(self.clients.openWindow).not.toHaveBeenCalled()
+  })
+
+  it('prefers a controlled window over an uncontrolled one on click', async () => {
+    const uncontrolled = fakeWindow({ controlled: false })
+    const controlled = fakeWindow()
+    const { self, click } = loadWorker([], [uncontrolled, controlled])
+    await click({ url: PAYLOAD.url })
+    expect(controlled.postMessage).toHaveBeenCalledWith({ type: 'NAVIGATE', url: PAYLOAD.url })
+    expect(uncontrolled.focus).not.toHaveBeenCalled()
+    expect(uncontrolled.postMessage).not.toHaveBeenCalled()
+    expect(self.clients.openWindow).not.toHaveBeenCalled()
+  })
+
+  it('falls back to an uncontrolled window on click when none is controlled', async () => {
+    const uncontrolled = fakeWindow({ controlled: false })
+    const { self, click } = loadWorker([], [uncontrolled])
+    await click({ url: PAYLOAD.url })
+    expect(uncontrolled.postMessage).toHaveBeenCalledWith({ type: 'NAVIGATE', url: PAYLOAD.url })
     expect(self.clients.openWindow).not.toHaveBeenCalled()
   })
 
@@ -250,11 +292,11 @@ describe('sw.js', () => {
     expect(self.clients.openWindow).toHaveBeenCalledWith(PAYLOAD.url)
   })
 
-  it('opens a new window on click when the open one cannot be navigated', async () => {
-    const existing = fakeWindow({ navigable: false })
+  it('opens a new window on click when the open one cannot be focused', async () => {
+    const existing = fakeWindow({ focusable: false })
     const { self, click } = loadWorker([], [existing])
     await click({ url: PAYLOAD.url })
-    expect(existing.navigate).toHaveBeenCalledWith(PAYLOAD.url)
+    expect(existing.postMessage).not.toHaveBeenCalled()
     expect(self.clients.openWindow).toHaveBeenCalledWith(PAYLOAD.url)
   })
 

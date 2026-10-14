@@ -3,6 +3,13 @@ import type { PushContentEncoding } from '../api/types'
 
 export type PushState = 'unsupported' | 'blocked' | 'active' | 'inactive'
 
+export class PushSubscribeError extends Error {
+  constructor(cause: unknown) {
+    super('The browser could not create the push subscription', { cause })
+    this.name = 'PushSubscribeError'
+  }
+}
+
 export const LOGOUT_PUSH_TIMEOUT = 3000
 const READY_TIMEOUT = 10000
 
@@ -82,7 +89,9 @@ export async function enablePush(): Promise<PushState> {
     subscription = null
   }
   if (startedAt !== generation) return 'inactive'
-  subscription ??= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key })
+  subscription ??= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }).catch((error: unknown) => {
+    throw new PushSubscribeError(error)
+  })
   if (startedAt !== generation) {
     await subscription.unsubscribe().catch(() => {})
     return 'inactive'
@@ -126,20 +135,33 @@ export async function disablePush(): Promise<PushState> {
 
 export async function releasePushOnLogout(timeoutMs = LOGOUT_PUSH_TIMEOUT): Promise<void> {
   generation++
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const limit = new Promise<void>((resolve) => (timer = setTimeout(resolve, timeoutMs)))
+  try {
+    await Promise.race([releaseWithin(limit), limit])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+async function releaseWithin(limit: Promise<void>): Promise<void> {
   try {
     const registration = browserSupportsPush() ? await navigator.serviceWorker.getRegistration() : undefined
     const subscription = await registration?.pushManager.getSubscription()
     if (!subscription) return
-    const removal = deletePushSubscription(subscription.endpoint).catch(() => {})
-    let timer: ReturnType<typeof setTimeout> | undefined
-    const limit = new Promise<void>((resolve) => (timer = setTimeout(resolve, timeoutMs)))
-    try {
-      await Promise.race([removal, limit])
-    } finally {
-      clearTimeout(timer)
-    }
+    await Promise.race([deletePushSubscription(subscription.endpoint).catch(() => {}), limit])
     await subscription.unsubscribe()
   } catch {
     // Logging out must not depend on push cleanup.
+  }
+}
+
+export async function dropPushOnSessionExpired(): Promise<void> {
+  generation++
+  try {
+    const registration = browserSupportsPush() ? await navigator.serviceWorker.getRegistration() : undefined
+    await (await registration?.pushManager.getSubscription())?.unsubscribe()
+  } catch {
+    // Without a token the API row cannot be removed; the browser side is best effort.
   }
 }

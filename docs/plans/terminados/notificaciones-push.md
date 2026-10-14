@@ -184,51 +184,55 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   red `workspace_default`, `.env` principal montado solo lectura). El vendor compartido ya tiene `minishlink/web-push`:
   no correr `composer install` en el checkout principal antes del merge.
 
+- 2026-10-13 (mejoras) — Service worker: el click enfoca y manda `postMessage {type:'NAVIGATE', url}` a la ventana, que navega con el router (`listenForNavigation` en `web/src/pwa/serviceWorker.ts`), sin recargar; sin ventana o si falla, `openWindow`. `renotify: true` con `tag` obligatorio (un tag vacío cae al aviso genérico). Una pestaña con SPA anterior al listener se enfoca pero no navega.
+
 ## Mejoras propuestas
 
-- [ ] M-1 (baja, sonnet): `GenerateVapidKeysCommandTest` guarda y restaura las variables de entorno a mano; un helper
+- [x] M-1 (baja, sonnet): `GenerateVapidKeysCommandTest` guarda y restaura las variables de entorno a mano; un helper
   compartido de tests lo simplificaría.
-- [ ] M-2 (baja, sonnet): anotar en `database.md` que `push_subscriptions.endpoint` es `text` con índice único (endpoints largos).
-- [ ] M-3 (baja, sonnet): `PushSubscriptionController` store hace `firstOrNew` + `save` no atómico; dos altas simultáneas del
+- [x] M-2 (baja, sonnet): anotar en `database.md` que `push_subscriptions.endpoint` es `text` con índice único (endpoints largos).
+- [x] M-3 (baja, sonnet): `PushSubscriptionController` store hace `firstOrNew` + `save` no atómico; dos altas simultáneas del
   mismo endpoint nuevo dan 500 por el índice único. Capturar `UniqueConstraintViolationException` y reintentar, o `upsert`.
-- [ ] M-4 (baja, sonnet): comentario o test en `DestroyPushSubscriptionRequest` que fije por qué la existencia se valida en
+- [x] M-4 (baja, sonnet): comentario o test en `DestroyPushSubscriptionRequest` que fije por qué la existencia se valida en
   `authorize()` con 404 y no con `exists` (evitar que un 422 distinga ajeno de inexistente).
-- [ ] M-5 (baja, sonnet): documentar la clave `push` de `users.notification_preferences` en `.claude/rules/database.md`.
-- [ ] M-6 (baja, sonnet): tests de preferencias para `{"email": [], "push": {...}}` (se acepta) y cuerpo `{}` autenticado (422).
-- [ ] M-7 (baja, sonnet): unificar la lógica repetida de `User::wantsEmail` y `wantsPush` en un helper privado.
-- [ ] M-8 (baja, sonnet): test de `NotificationUrl` con `app.frontend_url` sin barra final (hoy solo con barra).
-- [ ] M-9 (baja, sonnet): `PushPayload` fija y restaura el locale a mano; usar el trait `Localizable::withLocale`.
-- [ ] M-10 (baja, sonnet): `PushPayload` captura `ErrorException`/`TypeError` para las claves ausentes de `data`, lo que
+- [x] M-5 (baja, sonnet): documentar la clave `push` de `users.notification_preferences` en `.claude/rules/database.md`.
+- [x] M-6 (baja, sonnet): tests de preferencias para `{"email": [], "push": {...}}` (se acepta) y cuerpo `{}` autenticado (422).
+- [x] M-7 (baja, sonnet): unificar la lógica repetida de `User::wantsEmail` y `wantsPush` en un helper privado.
+- [x] M-8 (baja, sonnet): test de `NotificationUrl` con `app.frontend_url` sin barra final (hoy solo con barra).
+- [x] M-9 (baja, sonnet): `PushPayload` fija y restaura el locale a mano; usar el trait `Localizable::withLocale`.
+- [x] M-10 (baja, sonnet): `PushPayload` captura `ErrorException`/`TypeError` para las claves ausentes de `data`, lo que
   también oculta bugs de programación; validar las claves explícitamente y dejar de capturar esas excepciones.
-- [ ] M-11 (baja, sonnet): renombrar `PushPayload::TITLE_LIMIT` (`Str::limit` mide ancho, no caracteres).
-- [ ] M-12 (baja, sonnet): `WebPushSender` captura solo `ErrorException` por suscripción; la librería también lanza
+- [x] M-11 (baja, sonnet): renombrar `PushPayload::TITLE_LIMIT` (`Str::limit` mide ancho, no caracteres).
+- [x] M-12 (baja, sonnet): `WebPushSender` captura solo `ErrorException` por suscripción; la librería también lanza
   `RuntimeException` y `ValueError`, que cortan el bucle sin registrar las ya enviadas ni seguir con las demás. Capturar
   `Throwable` por suscripción, con test.
-- [ ] M-13 (baja, sonnet): `SendPushNotification` con tipo desconocido salta `wantsPush` y depende de que `PushPayload`
+- [x] M-13 (baja, sonnet): `SendPushNotification` con tipo desconocido salta `wantsPush` y depende de que `PushPayload`
   devuelva null; cortar ahí mismo.
-- [ ] M-14 (baja, sonnet): `sw.js` `notificationclick` toma el primer cliente de `matchAll` con `includeUncontrolled`; si no
+- [x] M-14 (baja, sonnet): `sw.js` `notificationclick` toma el primer cliente de `matchAll` con `includeUncontrolled`; si no
   está controlado y otro sí, `navigate` falla y abre una ventana más. Priorizar un cliente controlado, con spec.
-- [ ] M-15 (baja, sonnet): `sw.js` aviso genérico con `data.url` relativo (`/`) mientras el resto es absoluto; y evaluar
+- [x] M-15 (baja, sonnet): `sw.js` aviso genérico con `data.url` relativo (`/`) mientras el resto es absoluto; y evaluar
   `renotify: true` para que un push con el mismo `tag` vuelva a sonar.
-- [ ] M-16 (baja, sonnet): `sw.spec.ts` no detecta un `showNotification` sin `await` dentro de `waitUntil`; afirmar que
+- [x] M-16 (baja, sonnet): `sw.spec.ts` no detecta un `showNotification` sin `await` dentro de `waitUntil`; afirmar que
   la promesa de `waitUntil` no resuelve antes que la de `showNotification`.
-- [ ] M-17 (media, sonnet): `notificationclick` usa `WindowClient.navigate`, que recarga la SPA; usar `postMessage` al
+- [x] M-17 (media, sonnet): `notificationclick` usa `WindowClient.navigate`, que recarga la SPA; usar `postMessage` al
   router de la ventana enfocada y navegar en cliente.
-- [ ] M-18 (baja, sonnet): `push.spec.ts`: cubrir las guardas de generación intermedias de `enablePush` (tras
+- [x] M-18 (baja, sonnet): `push.spec.ts`: cubrir las guardas de generación intermedias de `enablePush` (tras
   `getRegistration`, `requestPermission` y `subscribe`); hoy se prueban dos puntos.
-- [ ] M-19 (baja, sonnet): `releasePushOnLogout`: `getSubscription` y `unsubscribe` quedan fuera del tope; meterlos en el race.
-- [ ] M-20 (baja, sonnet): `push.spec.ts` "unsupported without PushManager": simplificar a `delete window.PushManager`.
-- [ ] M-21 (media, sonnet): una sesión que caduca por 401 (`clearSession`) deja la suscripción ligada al usuario anterior;
+- [x] M-19 (baja, sonnet): `releasePushOnLogout`: `getSubscription` y `unsubscribe` quedan fuera del tope; meterlos en el race.
+- [x] M-20 (baja, sonnet): `push.spec.ts` "unsupported without PushManager": simplificar a `delete window.PushManager`.
+- [x] M-21 (media, sonnet): una sesión que caduca por 401 (`clearSession`) deja la suscripción ligada al usuario anterior;
   desuscribir el navegador al limpiar la sesión (sin token no se puede borrar en el API: queda hasta 404/410 o la próxima alta).
-- [ ] M-22 (baja, sonnet): `NotificationPreferencesDialog`: revisar el nivel del `<h3>` "Este dispositivo" frente al
+- [x] M-22 (baja, sonnet): `NotificationPreferencesDialog`: revisar el nivel del `<h3>` "Este dispositivo" frente al
   título que renderiza `AppDialog`.
-- [ ] M-23 (baja, sonnet): `NotificationPreferencesDialog`: mostrar el error de guardado junto al switch afectado en vez de
+- [x] M-23 (baja, sonnet): `NotificationPreferencesDialog`: mostrar el error de guardado junto al switch afectado en vez de
   bajo la tabla.
-- [ ] M-24 (baja, sonnet): `NotificationPreferencesDialog`: aviso cuando el usuario cierra el prompt de permiso y
+- [x] M-24 (baja, sonnet): `NotificationPreferencesDialog`: aviso cuando el usuario cierra el prompt de permiso y
   `enablePush` vuelve `inactive` (hoy no hay feedback).
-- [ ] M-25 (baja, sonnet): `.gitea/workflows/deploy-api.yml` avisa con `::warning::` si falta `MAIL_MAILER`; agregar un aviso
+- [x] M-25 (baja, sonnet): `.gitea/workflows/deploy-api.yml` avisa con `::warning::` si falta `MAIL_MAILER`; agregar un aviso
   análogo si faltan `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` o `VAPID_SUBJECT` en el `.env` del servidor.
-- [ ] M-26 (media, sonnet): si `pushManager.subscribe()` falla en el navegador (p. ej. Brave sin el servicio de push de
+- [x] M-26 (media, sonnet): si `pushManager.subscribe()` falla en el navegador (p. ej. Brave sin el servicio de push de
   Google), el diálogo muestra el mensaje genérico; distinguir ese caso con un texto que oriente a revisar el navegador.
 - [ ] M-27 (media, sonnet): verificar el push en Safari/WebKit (exige mostrar una notificación por cada push y revoca la
   suscripción tras push silenciosos); si aplica, mostrar siempre en Safari aunque Sereno esté enfocado.
+- [ ] M-28 (baja, sonnet): `WebPushSender` registra el rechazo con el id de la suscripción; sumar el host del endpoint (sin el token) para diagnosticar.
+- [ ] M-29 (baja, sonnet): un 401 tardío de la sesión anterior con un login nuevo en curso limpia la sesión y ahora también desuscribe el navegador; comparar el token con el que salió la petición antes de actuar.

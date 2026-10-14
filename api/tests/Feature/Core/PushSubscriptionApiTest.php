@@ -2,6 +2,8 @@
 
 use App\Models\PushSubscription;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -52,6 +54,26 @@ it('creates a subscription and updates it idempotently', function () {
         ->and(PushSubscription::first())->user_id->toBe($this->user->id)
         ->auth_token->toBe('rotated')
         ->last_used_at->not->toBeNull();
+});
+
+it('retries when the same endpoint is created concurrently', function () {
+    $other = User::factory()->create();
+    $raced = false;
+    DB::listen(function (QueryExecuted $query) use (&$raced, $other) {
+        if ($raced || ! str_starts_with($query->sql, 'select') || ! str_contains($query->sql, '"push_subscriptions"')) {
+            return;
+        }
+        $raced = true;
+        PushSubscription::factory()->create(['user_id' => $other->id, 'endpoint' => $this->payload['endpoint']]);
+    });
+
+    $this->postJson('/api/me/push-subscriptions', [...$this->payload, 'auth_token' => 'winner'])
+        ->assertOk()
+        ->assertJsonPath('data.endpoint', $this->payload['endpoint']);
+
+    expect($raced)->toBeTrue()
+        ->and(PushSubscription::count())->toBe(1)
+        ->and(PushSubscription::first())->user_id->toBe($this->user->id)->auth_token->toBe('winner');
 });
 
 it('defaults the content encoding', function () {

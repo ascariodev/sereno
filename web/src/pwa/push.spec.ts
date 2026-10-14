@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, api } from '../api/client'
-import { disablePush, enablePush, getPushState, releasePushOnLogout, urlBase64ToUint8Array } from './push'
+import { disablePush, dropPushOnSessionExpired, enablePush, getPushState, PushSubscribeError, releasePushOnLogout, urlBase64ToUint8Array } from './push'
 
 const KEY_B64URL = 'AQID-_8'
 const KEY_BYTES = urlBase64ToUint8Array(KEY_B64URL)
@@ -87,8 +87,6 @@ describe('getPushState', () => {
 
   it('is unsupported without PushManager', async () => {
     setup()
-    Reflect.deleteProperty(window, 'PushManager')
-    vi.stubGlobal('PushManager', undefined)
     delete (window as unknown as Record<string, unknown>).PushManager
     expect(await getPushState()).toBe('unsupported')
   })
@@ -184,6 +182,16 @@ describe('enablePush', () => {
     expect(subscribed.unsubscribe).toHaveBeenCalledOnce()
   })
 
+  it('wraps a browser subscribe failure apart from API errors', async () => {
+    setup({ permission: 'granted' })
+    const failure = new DOMException('Registration failed', 'AbortError')
+    registration!.pushManager.subscribe.mockRejectedValue(failure)
+    const error = await enablePush().catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(PushSubscribeError)
+    expect((error as PushSubscribeError).cause).toBe(failure)
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
   it('propagates a 503 for the VAPID key without subscribing', async () => {
     setup({ permission: 'granted' })
     vi.mocked(api.get).mockRejectedValue(new ApiError(503, 'not configured'))
@@ -214,6 +222,60 @@ describe('enablePush', () => {
     expect(await pending).toBe('inactive')
     expect(subscribed.unsubscribe).toHaveBeenCalled()
     expect(api.delete).toHaveBeenCalledWith('/api/me/push-subscriptions', { query: { endpoint: 'https://push.example/new' } })
+  })
+})
+
+describe('enablePush generation guards', () => {
+  it('drops the work when the session ends while the registration is being looked up', async () => {
+    setup()
+    let resolveRegistration!: (value: ServiceWorkerRegistration | undefined) => void
+    vi.mocked(navigator.serviceWorker.getRegistration).mockReturnValue(new Promise((resolve) => (resolveRegistration = resolve)))
+    const pending = enablePush()
+    await releasePushOnLogout(1)
+    resolveRegistration(registration as unknown as ServiceWorkerRegistration)
+    expect(await pending).toBe('inactive')
+    expect(requestPermission).not.toHaveBeenCalled()
+    expect(api.get).not.toHaveBeenCalled()
+    expect(registration!.pushManager.subscribe).not.toHaveBeenCalled()
+  })
+
+  it('drops the work when the session ends while the permission prompt is open', async () => {
+    setup()
+    let resolvePrompt!: (value: NotificationPermission) => void
+    requestPermission.mockReturnValue(new Promise((resolve) => (resolvePrompt = resolve)))
+    const pending = enablePush()
+    await vi.waitFor(() => expect(requestPermission).toHaveBeenCalled())
+    await releasePushOnLogout()
+    resolvePrompt('granted')
+    expect(await pending).toBe('inactive')
+    expect(api.get).not.toHaveBeenCalled()
+    expect(registration!.pushManager.subscribe).not.toHaveBeenCalled()
+  })
+
+  it('drops the subscription made when the session ends while subscribing', async () => {
+    setup({ permission: 'granted' })
+    let resolveSubscribe!: (value: FakeSub) => void
+    registration!.pushManager.subscribe.mockReturnValue(new Promise((resolve) => (resolveSubscribe = resolve)))
+    const pending = enablePush()
+    await vi.waitFor(() => expect(registration!.pushManager.subscribe).toHaveBeenCalled())
+    await releasePushOnLogout()
+    resolveSubscribe(subscribed)
+    expect(await pending).toBe('inactive')
+    expect(subscribed.unsubscribe).toHaveBeenCalled()
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('stops after replacing a stale subscription when the session ends meanwhile', async () => {
+    const stale = makeSub('https://push.example/stale', new Uint8Array([9, 9, 9]))
+    setup({ permission: 'granted', existing: stale })
+    let resolveUnsubscribe!: (value: boolean) => void
+    stale.unsubscribe.mockReturnValue(new Promise((resolve) => (resolveUnsubscribe = resolve)))
+    const pending = enablePush()
+    await vi.waitFor(() => expect(stale.unsubscribe).toHaveBeenCalled())
+    await releasePushOnLogout(1)
+    resolveUnsubscribe(true)
+    expect(await pending).toBe('inactive')
+    expect(registration!.pushManager.subscribe).not.toHaveBeenCalled()
   })
 })
 
@@ -287,9 +349,74 @@ describe('releasePushOnLogout', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
+  it('never hangs longer than the timeout when the browser calls never resolve', async () => {
+    vi.useFakeTimers()
+    setup({ permission: 'granted' })
+    const never = new Promise<never>(() => {})
+    vi.mocked(navigator.serviceWorker.getRegistration).mockReturnValue(never)
+    const done = vi.fn()
+    const lookup = releasePushOnLogout(1000).then(done)
+    await vi.advanceTimersByTimeAsync(1000)
+    await lookup
+    expect(done).toHaveBeenCalledOnce()
+
+    registration!.pushManager.getSubscription.mockReturnValue(never)
+    vi.mocked(navigator.serviceWorker.getRegistration).mockResolvedValue(registration as unknown as ServiceWorkerRegistration)
+    const subscriptionLookup = releasePushOnLogout(1000).then(done)
+    await vi.advanceTimersByTimeAsync(1000)
+    await subscriptionLookup
+    expect(done).toHaveBeenCalledTimes(2)
+
+    const current = makeSub()
+    current.unsubscribe.mockReturnValue(never)
+    registration!.pushManager.getSubscription.mockResolvedValue(current)
+    const unsubscribing = releasePushOnLogout(1000).then(done)
+    await vi.advanceTimersByTimeAsync(1000)
+    await unsubscribing
+    expect(done).toHaveBeenCalledTimes(3)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it('does not throw when the registration lookup fails', async () => {
     setup()
     vi.mocked(navigator.serviceWorker.getRegistration).mockRejectedValue(new Error('boom'))
     await expect(releasePushOnLogout()).resolves.toBeUndefined()
+  })
+})
+
+describe('dropPushOnSessionExpired', () => {
+  it('unsubscribes the browser without calling the API', async () => {
+    const current = makeSub()
+    setup({ permission: 'granted', existing: current })
+    await dropPushOnSessionExpired()
+    expect(current.unsubscribe).toHaveBeenCalledOnce()
+    expect(api.delete).not.toHaveBeenCalled()
+  })
+
+  it('does nothing without a subscription or service worker support', async () => {
+    setup({ permission: 'granted' })
+    await expect(dropPushOnSessionExpired()).resolves.toBeUndefined()
+    setup({ registered: false })
+    await expect(dropPushOnSessionExpired()).resolves.toBeUndefined()
+  })
+
+  it('does not throw when the browser fails', async () => {
+    const current = makeSub()
+    current.unsubscribe.mockRejectedValue(new Error('boom'))
+    setup({ permission: 'granted', existing: current })
+    await expect(dropPushOnSessionExpired()).resolves.toBeUndefined()
+    vi.mocked(navigator.serviceWorker.getRegistration).mockRejectedValue(new Error('boom'))
+    await expect(dropPushOnSessionExpired()).resolves.toBeUndefined()
+  })
+
+  it('drops an enablePush in flight', async () => {
+    setup({ permission: 'granted' })
+    let resolveKey!: (value: unknown) => void
+    vi.mocked(api.get).mockReturnValue(new Promise((resolve) => (resolveKey = resolve)))
+    const pending = enablePush()
+    await dropPushOnSessionExpired()
+    resolveKey({ data: { public_key: KEY_B64URL } })
+    expect(await pending).toBe('inactive')
+    expect(api.post).not.toHaveBeenCalled()
   })
 })

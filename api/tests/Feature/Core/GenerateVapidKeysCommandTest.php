@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Artisan;
 
 function vapidKeysFromOutput(string $output): array
@@ -47,29 +46,11 @@ it('prints a different key pair on each run', function () {
 });
 
 it('reads the VAPID settings from the environment', function () {
-    $env = [
+    $config = withEnvironment([
         'VAPID_PUBLIC_KEY' => 'public-key',
         'VAPID_PRIVATE_KEY' => 'private-key',
         'VAPID_SUBJECT' => 'mailto:push@sereno.test',
-    ];
-
-    $previous = [];
-
-    foreach ($env as $name => $value) {
-        $previous[$name] = [getenv($name), $_ENV[$name] ?? null, $_SERVER[$name] ?? null];
-        putenv("{$name}={$value}");
-        $_ENV[$name] = $_SERVER[$name] = $value;
-    }
-
-    try {
-        $config = require config_path('workspace.php');
-    } finally {
-        foreach ($previous as $name => [$putenv, $envValue, $serverValue]) {
-            putenv($putenv === false ? $name : "{$name}={$putenv}");
-            $envValue === null ? Arr::forget($_ENV, $name) : $_ENV[$name] = $envValue;
-            $serverValue === null ? Arr::forget($_SERVER, $name) : $_SERVER[$name] = $serverValue;
-        }
-    }
+    ], fn () => require config_path('workspace.php'));
 
     expect($config['push'])->toBe([
         'vapid_public_key' => 'public-key',

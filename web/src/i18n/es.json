@@ -288,6 +288,7 @@
       "title": "Este dispositivo",
       "enable": "Activar notificaciones push",
       "disable": "Desactivar notificaciones push",
+      "dismissed": "Cerraste la solicitud de permiso, así que las notificaciones push siguen desactivadas.",
       "status": {
         "unsupported": "Este navegador o sesión no puede recibir notificaciones push. Instala la aplicación o usa un navegador compatible.",
         "blocked": "Las notificaciones están bloqueadas para Sereno. Permítelas en los ajustes del navegador para activar el push.",
@@ -296,6 +297,7 @@
       },
       "errors": {
         "notConfigured": "Las notificaciones push aún no están configuradas en el servidor.",
+        "browserFailed": "Tu navegador no pudo configurar las notificaciones push. Revisa que el servicio de push del navegador esté disponible (en Brave, activa \"Usar servicios de Google para mensajes push\" en Ajustes) e inténtalo de nuevo.",
         "enableFailed": "No se pudieron activar las notificaciones push. Inténtalo de nuevo.",
         "disableFailed": "No se pudieron desactivar las notificaciones push. Inténtalo de nuevo."
       }

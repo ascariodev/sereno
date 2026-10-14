@@ -4,12 +4,12 @@ import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { getNotificationPreferences, NOTIFICATION_CHANNELS, NOTIFICATION_TYPES, updateNotificationPreferences } from '../api/notificationPreferences'
 import type { NotificationChannel, NotificationPreferences, NotificationType } from '../api/types'
-import { disablePush, enablePush, getPushState, type PushState } from '../pwa/push'
+import { disablePush, enablePush, getPushState, PushSubscribeError, type PushState } from '../pwa/push'
 import AppButton from './ui/AppButton.vue'
 import AppDialog from './ui/AppDialog.vue'
 import AppFormError from './ui/AppFormError.vue'
 
-type DeviceError = 'notConfigured' | 'enableFailed' | 'disableFailed'
+type DeviceError = 'notConfigured' | 'browserFailed' | 'enableFailed' | 'disableFailed'
 
 const { t } = useI18n()
 const open = defineModel<boolean>('open', { default: false })
@@ -23,13 +23,18 @@ const saveFailed = reactive<Record<string, boolean>>({})
 const deviceState = ref<PushState | null>(null)
 const deviceBusy = ref(false)
 const deviceError = ref<DeviceError | null>(null)
+const deviceDismissed = ref(false)
 let generation = 0
 
 const DEVICE_STATUS_ID = 'notification-preferences-device-status'
 const DEVICE_ERROR_ID = 'notification-preferences-device-error'
+const DEVICE_NOTICE_ID = 'notification-preferences-device-notice'
 
 const canToggleDevice = computed(() => deviceState.value === 'active' || deviceState.value === 'inactive')
-const deviceDescribedBy = computed(() => (deviceError.value ? `${DEVICE_STATUS_ID} ${DEVICE_ERROR_ID}` : DEVICE_STATUS_ID))
+const deviceDescribedBy = computed(() => {
+  if (deviceError.value) return `${DEVICE_STATUS_ID} ${DEVICE_ERROR_ID}`
+  return deviceDismissed.value ? `${DEVICE_STATUS_ID} ${DEVICE_NOTICE_ID}` : DEVICE_STATUS_ID
+})
 
 function key(channel: NotificationChannel, type: NotificationType): string {
   return `${channel}-${type}`
@@ -42,6 +47,7 @@ function reset(): void {
   deviceState.value = null
   deviceBusy.value = false
   deviceError.value = null
+  deviceDismissed.value = false
   for (const name of Object.keys(saving)) delete saving[name]
   for (const name of Object.keys(saveFailed)) delete saveFailed[name]
 }
@@ -121,13 +127,18 @@ async function toggleDevice(): Promise<void> {
   const enabling = deviceState.value === 'inactive'
   deviceBusy.value = true
   deviceError.value = null
+  deviceDismissed.value = false
   try {
     const state = enabling ? await enablePush() : await disablePush()
     if (run !== generation) return
     deviceState.value = state
+    deviceDismissed.value = enabling && state === 'inactive'
   } catch (error) {
     if (run !== generation) return
-    deviceError.value = !enabling ? 'disableFailed' : error instanceof ApiError && error.status === 503 ? 'notConfigured' : 'enableFailed'
+    if (!enabling) deviceError.value = 'disableFailed'
+    else if (error instanceof PushSubscribeError) deviceError.value = 'browserFailed'
+    else if (error instanceof ApiError && error.status === 503) deviceError.value = 'notConfigured'
+    else deviceError.value = 'enableFailed'
   } finally {
     if (run === generation) deviceBusy.value = false
   }
@@ -162,6 +173,9 @@ async function toggleDevice(): Promise<void> {
         >
           {{ t(deviceState === 'active' ? 'notificationPreferences.device.disable' : 'notificationPreferences.device.enable') }}
         </AppButton>
+        <p v-if="deviceDismissed" :id="DEVICE_NOTICE_ID" class="notification-preferences__status" data-test="device-notice">
+          {{ t('notificationPreferences.device.dismissed') }}
+        </p>
         <AppFormError v-if="deviceError" :id="DEVICE_ERROR_ID" data-test="device-error">
           {{ t(`notificationPreferences.device.errors.${deviceError}`) }}
         </AppFormError>
@@ -183,38 +197,42 @@ async function toggleDevice(): Promise<void> {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="type in NOTIFICATION_TYPES" :key="type">
-              <th scope="row" class="notification-preferences__event">{{ t(`notificationPreferences.types.${type}`) }}</th>
-              <td v-for="channel in NOTIFICATION_CHANNELS" :key="channel" class="notification-preferences__cell">
-                <input
-                  type="checkbox"
-                  role="switch"
-                  class="notification-preferences__switch"
-                  :name="key(channel, type)"
-                  :aria-label="t('notificationPreferences.switchLabel', { type: t(`notificationPreferences.types.${type}`), channel: t(`notificationPreferences.channels.${channel}`) })"
-                  :checked="preferences[channel][type]"
-                  :aria-disabled="saving[key(channel, type)] ? 'true' : undefined"
-                  :aria-busy="saving[key(channel, type)] ? 'true' : undefined"
-                  :aria-invalid="saveFailed[key(channel, type)] ? 'true' : undefined"
-                  :aria-describedby="saveFailed[key(channel, type)] ? `notification-preferences-error-${key(channel, type)}` : undefined"
-                  @change="onChange(channel, type, $event)"
-                />
-              </td>
-            </tr>
+            <template v-for="type in NOTIFICATION_TYPES" :key="type">
+              <tr>
+                <th scope="row" class="notification-preferences__event">{{ t(`notificationPreferences.types.${type}`) }}</th>
+                <td v-for="channel in NOTIFICATION_CHANNELS" :key="channel" class="notification-preferences__cell">
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    class="notification-preferences__switch"
+                    :name="key(channel, type)"
+                    :aria-label="t('notificationPreferences.switchLabel', { type: t(`notificationPreferences.types.${type}`), channel: t(`notificationPreferences.channels.${channel}`) })"
+                    :checked="preferences[channel][type]"
+                    :aria-disabled="saving[key(channel, type)] ? 'true' : undefined"
+                    :aria-busy="saving[key(channel, type)] ? 'true' : undefined"
+                    :aria-invalid="saveFailed[key(channel, type)] ? 'true' : undefined"
+                    :aria-describedby="saveFailed[key(channel, type)] ? `notification-preferences-error-${key(channel, type)}` : undefined"
+                    @change="onChange(channel, type, $event)"
+                  />
+                </td>
+              </tr>
+              <tr v-if="NOTIFICATION_CHANNELS.some((channel) => saveFailed[key(channel, type)])" data-test="save-error-row">
+                <td :colspan="NOTIFICATION_CHANNELS.length + 1">
+                  <template v-for="channel in NOTIFICATION_CHANNELS" :key="channel">
+                    <AppFormError v-if="saveFailed[key(channel, type)]" :id="`notification-preferences-error-${key(channel, type)}`">
+                      {{
+                        t('notificationPreferences.saveFailed', {
+                          type: t(`notificationPreferences.types.${type}`),
+                          channel: t(`notificationPreferences.channels.${channel}`),
+                        })
+                      }}
+                    </AppFormError>
+                  </template>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
-        <template v-for="channel in NOTIFICATION_CHANNELS" :key="channel">
-          <template v-for="type in NOTIFICATION_TYPES" :key="type">
-            <AppFormError v-if="saveFailed[key(channel, type)]" :id="`notification-preferences-error-${key(channel, type)}`">
-              {{
-                t('notificationPreferences.saveFailed', {
-                  type: t(`notificationPreferences.types.${type}`),
-                  channel: t(`notificationPreferences.channels.${channel}`),
-                })
-              }}
-            </AppFormError>
-          </template>
-        </template>
       </template>
     </div>
   </AppDialog>

@@ -50,12 +50,17 @@ class User extends Authenticatable implements HasLocalePreference
 
     public function wantsEmail(NotificationType $type): bool
     {
-        return ($this->notification_preferences['email'][$type->value] ?? true) !== false;
+        return $this->wantsChannel('email', $type);
     }
 
     public function wantsPush(NotificationType $type): bool
     {
-        return ($this->notification_preferences['push'][$type->value] ?? true) !== false;
+        return $this->wantsChannel('push', $type);
+    }
+
+    private function wantsChannel(string $channel, NotificationType $type): bool
+    {
+        return ($this->notification_preferences[$channel][$type->value] ?? true) !== false;
     }
 
     /** @return array{email: array<string, bool>, push: array<string, bool>} */

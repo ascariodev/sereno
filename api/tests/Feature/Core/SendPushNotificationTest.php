@@ -239,6 +239,18 @@ it('skips a notification whose payload cannot be built', function () {
     Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context) => $context['notification'] === $row->uuid)->once();
 });
 
+it('skips a notification of an unknown type without pushing', function () {
+    Log::spy();
+    $this->user->forceFill(['notification_preferences' => ['push' => ['mystery' => false]]])->save();
+    $row = pushNotificationRow(['type' => 'mystery']);
+
+    SendPushNotification::dispatchSync($row->uuid);
+
+    expect($this->sender->calls)->toBe([]);
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context) => str_contains($message, 'unknown type')
+        && $context['notification'] === $row->uuid)->once();
+});
+
 it('queues the push once the app channel stores the notification', function () {
     Queue::fake([SendPushNotification::class]);
     $notification = new PushTestNotification($this->organization->id, $this->project->id, $this->project);

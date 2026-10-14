@@ -39,3 +39,12 @@ it('tolerates a chat row without parent_id', function () {
 
     expect(NotificationUrl::for($row))->toBe('https://app.test/channels/4?message=11&organization=7');
 });
+
+it('does not double the slash when frontend_url has no trailing slash', function () {
+    config(['app.frontend_url' => 'https://app.test']);
+    $task = notificationRow(NotificationType::TaskAssigned, 3, ['task_id' => 9]);
+    $chat = notificationRow(NotificationType::ChatMention, null, ['channel_id' => 4, 'message_id' => 11]);
+
+    expect(NotificationUrl::for($task))->toBe('https://app.test/projects/3/plan?task=9&organization=7')
+        ->and(NotificationUrl::for($chat))->toBe('https://app.test/channels/4?message=11&organization=7');
+});

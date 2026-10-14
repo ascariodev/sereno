@@ -47,3 +47,33 @@ export async function registerServiceWorker({
     if (document.visibilityState === 'visible') checkForUpdate()
   })
 }
+
+export interface NavigationOptions {
+  navigate: (path: string) => void
+  container?: ServiceWorkerContainer
+  origin?: string
+}
+
+function sameOriginPath(url: string, origin: string): string | null {
+  try {
+    const parsed = new URL(url, origin)
+    return parsed.origin === origin ? parsed.pathname + parsed.search + parsed.hash : null
+  } catch {
+    return null
+  }
+}
+
+export function listenForNavigation({
+  navigate,
+  container = navigator.serviceWorker,
+  origin = window.location.origin,
+}: NavigationOptions): void {
+  container.addEventListener('message', (event) => {
+    const data: unknown = event.data
+    if (typeof data !== 'object' || data === null) return
+    const { type, url } = data as { type?: unknown; url?: unknown }
+    if (type !== 'NAVIGATE' || typeof url !== 'string') return
+    const path = sameOriginPath(url, origin)
+    if (path) navigate(path)
+  })
+}

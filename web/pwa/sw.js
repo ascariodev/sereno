@@ -92,12 +92,25 @@ function readPush(data) {
     payload.title !== '' &&
     typeof payload.body === 'string' &&
     typeof payload.url === 'string' &&
-    typeof payload.tag === 'string'
+    typeof payload.tag === 'string' &&
+    payload.tag !== ''
   // A malformed push still shows something: Chrome would otherwise show its own generic notice.
-  if (!valid) return { title: 'Sereno', options: { icon: ICON, tag: 'sereno', data: { url: FALLBACK_URL } } }
+  if (!valid) {
+    return {
+      title: 'Sereno',
+      options: { icon: ICON, tag: 'sereno', renotify: true, data: { url: sameOriginUrl(FALLBACK_URL) } },
+    }
+  }
+  // renotify throws without a tag, so an empty one is rejected above.
   return {
     title: payload.title,
-    options: { body: payload.body, icon: ICON, tag: payload.tag, data: { url: sameOriginUrl(payload.url) } },
+    options: {
+      body: payload.body,
+      icon: ICON,
+      tag: payload.tag,
+      renotify: true,
+      data: { url: sameOriginUrl(payload.url) },
+    },
   }
 }
 
@@ -113,15 +126,17 @@ async function showPush(data) {
   await self.registration.showNotification(title, options)
 }
 
+// The SPA navigates with its router on this message: WindowClient.navigate would reload it.
 async function openFromNotification(url) {
-  const [client] = await windowClients()
+  const [controlled, all] = await Promise.all([self.clients.matchAll({ type: 'window' }), windowClients()])
+  const client = controlled[0] ?? all[0]
   if (client) {
     try {
-      const focused = await client.focus()
-      await focused.navigate(url)
+      await client.focus()
+      client.postMessage({ type: 'NAVIGATE', url })
       return
     } catch {
-      // An uncontrolled window cannot be navigated from here: open a new one instead.
+      // A window that cannot be focused or messaged is replaced by a new one.
     }
   }
   await self.clients.openWindow(url)
