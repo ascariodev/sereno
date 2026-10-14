@@ -1,5 +1,6 @@
 import { deletePushSubscription, getVapidPublicKey, storePushSubscription } from '../api/pushSubscriptions'
 import type { PushContentEncoding } from '../api/types'
+import { isDesktop } from '../platform/desktop'
 
 export type PushState = 'unsupported' | 'blocked' | 'active' | 'inactive'
 
@@ -16,7 +17,7 @@ const READY_TIMEOUT = 10000
 let generation = 0
 
 function browserSupportsPush(): boolean {
-  return typeof navigator !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+  return !isDesktop() && typeof navigator !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 }
 
 function timeout<T>(ms: number, value: T): Promise<T> {

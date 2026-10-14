@@ -85,6 +85,13 @@ describe('getPushState', () => {
     expect(await getPushState()).toBe('unsupported')
   })
 
+  it('is unsupported in the desktop app even with a registered service worker', async () => {
+    setup()
+    vi.stubGlobal('isTauri', true)
+    expect(await getPushState()).toBe('unsupported')
+    expect(await enablePush()).toBe('unsupported')
+  })
+
   it('is unsupported without PushManager', async () => {
     setup()
     delete (window as unknown as Record<string, unknown>).PushManager

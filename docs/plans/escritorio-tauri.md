@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -46,7 +46,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - **Terminado cuando:** `npm run tauri:build -- --debug` genera el instalador y la app abre el login, inicia sesión contra
   producción y recibe un mensaje en vivo por Reverb (revisión manual). Typecheck y tests de la web siguen pasando.
 
-### [ ] Fase 3 — Detección de escritorio sin service worker
+### [x] Fase 3 — Detección de escritorio sin service worker
 - **Alcance:** `web/src/platform/desktop.ts` con `isDesktop()` (verificar `isTauri` de `@tauri-apps/api/core`). En
   escritorio `main.ts` no registra el service worker ni `listenForNavigation`, y `getPushState` devuelve `unsupported`.
 - **Archivos:** `web/package.json` (`@tauri-apps/api`), `web/src/platform/desktop.ts`, `web/src/main.ts`, `web/src/pwa/push.ts`.
@@ -159,6 +159,10 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
 
 ## Notas para la próxima sesión
+- Fase 3: `isDesktop()` (en `web/src/platform/desktop.ts`) envuelve `isTauri()` de `@tauri-apps/api/core`, que lee
+  `globalThis.isTauri`: en specs se simula con `vi.stubGlobal('isTauri', true)`. Va dentro de `browserSupportsPush()`, así
+  que todo `push.ts` queda inactivo en escritorio. Revisión manual pendiente: sin `sw.js` registrado en la app.
+  `@tauri-apps/api` se instala en el contenedor y también en el host (`npm install` desde `web/`) para `tauri:build`.
 - Fase 2: `npm run tauri:build -- --debug` deja `web/src-tauri/target/debug/bundle/nsis/Sereno_0.1.0_x64-setup.exe` (y el
   `.msi`). **Revisión manual pendiente**: instalar, login contra producción y mensaje en vivo por Reverb. Si falla, mirar
   primero la CSP y que `web/.env.production` tenga las `VITE_*` de producción. El build del host sobrescribe `web/dist`.
@@ -177,3 +181,5 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: alta · Archivos: 5 · Riesgo: integración externa → opus
 - [ ] M-6: `bundle.targets` solo NSIS (hoy "all": MSI y NSIS), para un único instalador que use el actualizador.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-7: `desktop.spec.ts` simula `isTauri` con `vi.stubGlobal`/`unstubAllGlobals` en vez de borrar el global con un cast.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
