@@ -6,7 +6,8 @@
     "localeSaveFailed": "Could not save your language. It was applied on this device only.",
     "signOut": "Sign out",
     "loading": "Loading...",
-    "changeOrganization": "Change organization"
+    "changeOrganization": "Change organization",
+    "retry": "Retry"
   },
   "login": {
     "subtitle": "Sign in to see your projects' channels.",
@@ -141,7 +142,8 @@
     "unreadBadge": "{{count}} unread"
   },
   "settings": {
-    "title": "Settings"
+    "title": "Settings",
+    "language": "Language"
   },
   "notice": {
     "openedLabel": "New log group",
@@ -254,5 +256,22 @@
     "failed": "Could not create the task. Try again.",
     "assigneeLabel": "Assignee",
     "unassigned": "Unassigned"
+  },
+  "notificationPreferences": {
+    "title": "Notifications",
+    "description": "Choose which events also reach you by email or as a push notification. You always see them in the app.",
+    "loadFailed": "Could not load your preferences.",
+    "saveFailed": "Could not save the change for \"{{type}}\" ({{channel}}). Try again.",
+    "switchLabel": "{{type}}: {{channel}}",
+    "channels": {
+      "email": "Email",
+      "push": "Push"
+    },
+    "types": {
+      "task_assigned": "A task is assigned to me",
+      "task_comment_mention": "I am mentioned in a task comment",
+      "task_commented": "Someone comments on my task",
+      "chat_mention": "I am mentioned in the chat"
+    }
   }
 }

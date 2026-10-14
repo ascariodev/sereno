@@ -6,7 +6,8 @@
     "localeSaveFailed": "No se pudo guardar tu idioma. Se aplicó solo en este dispositivo.",
     "signOut": "Cerrar sesión",
     "loading": "Cargando...",
-    "changeOrganization": "Cambiar de organización"
+    "changeOrganization": "Cambiar de organización",
+    "retry": "Reintentar"
   },
   "login": {
     "subtitle": "Inicia sesión para ver los canales de tus proyectos.",
@@ -141,7 +142,8 @@
     "unreadBadge": "{{count}} sin leer"
   },
   "settings": {
-    "title": "Ajustes"
+    "title": "Ajustes",
+    "language": "Idioma"
   },
   "notice": {
     "openedLabel": "Nuevo grupo de logs",
@@ -254,5 +256,22 @@
     "failed": "No se pudo crear la tarea. Inténtalo de nuevo.",
     "assigneeLabel": "Asignada a",
     "unassigned": "Sin asignar"
+  },
+  "notificationPreferences": {
+    "title": "Notificaciones",
+    "description": "Elige qué eventos te llegan también por correo o como notificación push. Siempre los ves en la aplicación.",
+    "loadFailed": "No se pudieron cargar tus preferencias.",
+    "saveFailed": "No se pudo guardar el cambio de \"{{type}}\" ({{channel}}). Inténtalo de nuevo.",
+    "switchLabel": "{{type}}: {{channel}}",
+    "channels": {
+      "email": "Correo",
+      "push": "Push"
+    },
+    "types": {
+      "task_assigned": "Me asignan una tarea",
+      "task_comment_mention": "Me mencionan en un comentario de tarea",
+      "task_commented": "Alguien comenta en mi tarea",
+      "chat_mention": "Me mencionan en el chat"
+    }
   }
 }

@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 29
+**Estado:** en curso · Fase actual: 30
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -174,7 +174,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** `notification.created` y menciones quitadas actualizan bandeja y contador.
 - **Terminado cuando:** test con eventos simulados.
 
-### [ ] Fase 29 — Preferencias de notificación e idioma de la cuenta
+### [x] Fase 29 — Preferencias de notificación e idioma de la cuenta
 - **Alcance:** pantalla de ajustes con preferencias email/push por tipo y `PATCH /api/me/locale`.
 - **Terminado cuando:** tests de guardado.
 
@@ -286,16 +286,15 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   escucha; `removedMentions` evita que una carga en vuelo reviva la fila. Mejora candidata para la web.
 
 ## Notas para la próxima sesión
+- Fase 29 hecha: `notifications/preferences.ts` (GET/PATCH `/api/me/notification-preferences`) y
+  `components/NotificationPreferences.tsx` (4 tipos por email/push, optimista con reversión por celda, candado por celda,
+  generación) dentro de Ajustes, que además tiene Idioma con `chooseAndSaveLocale` (aviso `common.localeSaveFailed` si
+  falla el PATCH). En el API, `SendPushNotification` ya corta el canal Expo con `wantsPush($type)`. La sección "Este
+  dispositivo" (permiso y activar push) va con la fase 31.
 - Fase 28 hecha: `notifications/store.ts` con `start(userId)`/`stop()` (los llama `useRealtimeSession`), `liveArrivals`,
   `unreadMissingFrom`, `startedAt` en `pruneDeleted`, refresh tras reconexión, `notification.created` y `.mention.removed`
   (nuevo en `echo.ts` con `onMentionRemoved`; ver Decisiones). Las notificaciones nativas del sistema van en las fases 30 a
   32.
-- Fase 27 hecha: `app/src/notifications/` (`types`, `api` con `parseNotification`, `target`, `text`, `store` port fiel de
-  `web/src/stores/notifications.ts` sin lo en vivo) y la pestaña Notificaciones (lista, marcar una y todas, cargar más,
-  reintentos; tocar marca leída y navega) con badge del contador (`meta.unread_count`) en `(tabs)/_layout.tsx`.
-  `notificationTarget`: `chat_mention` abre `/channel` o `/thread` (padre) sin enfocar el mensaje; tareas y tipos
-  desconocidos devuelven null con la nota "Aún no disponible" (la fase 33 los enlaza). Para la fase 28: portar
-  `liveArrivals`, `unreadMissingFrom` y `startedAt` de `pruneDeleted`.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -353,3 +352,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-36: Enfocar el mensaje mencionado al abrir una notificación `chat_mention` de primer nivel (la web usa `?message=`; la app necesita abrir el canal "around"). Complejidad media, sonnet.
 - [ ] M-37: `notifications/store.ts`: condicionar el `refresh()` del cambio de organización a que el store esté iniciado (como `live` en la web), podar `removedMentions` en sesiones largas y sumar tests de `loadMore` filtrado por `removedMentions` y de cambio de organización con el store iniciado. Complejidad baja, sonnet.
 - [ ] M-38: Web: escuchar `.mention.removed` en el store de notificaciones (hoy solo se entera al refrescar), como la app. Complejidad media, sonnet.
+- [ ] M-39: Ajustes: test de que el idioma se guarda en SecureStore (`LOCALE_STORAGE_KEY`), del interruptor deshabilitado mientras guarda, y contenedor `radiogroup` para los botones de idioma. Complejidad baja, sonnet.
