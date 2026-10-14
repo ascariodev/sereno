@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -27,7 +27,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 
 ## Fases
 
-### [ ] Fase 1 — Toolchain de Rust en el host [manual]
+### [x] Fase 1 — Toolchain de Rust en el host [manual]
 - **Alcance:** el usuario instala Rust (rustup, toolchain estable MSVC) y las Build Tools de Visual Studio con
   "Desarrollo de escritorio con C++". WebView2 ya viene en Windows 11. Claude solo verifica.
 - **Archivos:** ninguno.
@@ -152,7 +152,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   local del usuario de Windows; moverlo al llavero del sistema queda como mejora.
 
 ## Notas para la próxima sesión
-- Empezar por la fase 1: es manual y la hace el usuario.
+- Fase 1 verificada el 2026-10-13: rustc y cargo 1.99.0 (stable MSVC), VS Community 2022 con C++, WebView2 155; `tauri info` sin faltantes (CLI 2.12.2 por npx). En Git Bash, `~/.cargo/bin` no está en el PATH: anteponer `export PATH="/c/Users/Windows 11/.cargo/bin:$PATH"`.
 
 ## Mejoras propuestas
 - [ ] M-1: Versión para Linux (AppImage o .deb), compilada en el runner Linux de Gitea.
