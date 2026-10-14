@@ -110,7 +110,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         ? (payload.errors as FieldErrors)
         : {}
 
-    if (response.status === 401) onUnauthorized?.()
+    if (response.status === 401 && (getToken?.() || null) === (token || null)) onUnauthorized?.()
     if (response.status === 403 && payload.code === 'organization_forbidden' && sentOrganizationId !== null) {
       onForbidden?.(sentOrganizationId)
     }

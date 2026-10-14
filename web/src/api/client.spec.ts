@@ -124,6 +124,34 @@ describe('api client', () => {
     expect(error).toMatchObject({ status: 401, message: 'Unauthenticated.' })
   })
 
+  it('notifies the handler on a 401 when the token is unchanged', async () => {
+    const { client } = setup(json({ message: 'Unauthenticated.' }, 401))
+    client.setTokenProvider(() => 'abc')
+    const handler = vi.fn()
+    client.setUnauthorizedHandler(handler)
+
+    await client.get('/api/me').catch(() => undefined)
+
+    expect(handler).toHaveBeenCalledOnce()
+  })
+
+  it('ignores a late 401 when the token changed while the request was in flight', async () => {
+    let token = 'old'
+    const fetchMock = vi.fn(async () => {
+      token = 'new'
+      return json({ message: 'Unauthenticated.' }, 401)
+    })
+    const client = createApiClient({ baseUrl: 'http://api.test/', fetch: fetchMock as never })
+    client.setTokenProvider(() => token)
+    const handler = vi.fn()
+    client.setUnauthorizedHandler(handler)
+
+    const error = await client.get('/api/me').catch((e) => e)
+
+    expect(error).toMatchObject({ status: 401 })
+    expect(handler).not.toHaveBeenCalled()
+  })
+
   it('does not notify the handler on other errors', async () => {
     const { client } = setup(json({ message: 'Nope.' }, 403))
     const handler = vi.fn()
