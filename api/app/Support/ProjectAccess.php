@@ -29,8 +29,17 @@ class ProjectAccess
         return self::canViewId($user, $project->organization_id, $project->id);
     }
 
-    public static function canViewId(User $user, int $organizationId, int $projectId): bool
+    /**
+     * With $lock the role and project assignments are read straight from the tables with a shared lock, so a
+     * revocation still in its transaction is waited for (see RevalidatesAfterInsert). A role change in
+     * progress (delete + insert not yet committed, e.g. syncRoles) makes the locked read fail closed.
+     */
+    public static function canViewId(User $user, int $organizationId, int $projectId, bool $lock = false): bool
     {
+        if ($lock) {
+            return self::canViewIdLocked($user, $organizationId, $projectId);
+        }
+
         if (self::seesAll($user, $organizationId)) {
             return true;
         }
@@ -40,6 +49,30 @@ class ProjectAccess
                 ->where('organization_id', $organizationId)
                 ->where('user_id', $user->id)
                 ->where('project_id', $projectId)
+                ->exists();
+    }
+
+    private static function canViewIdLocked(User $user, int $organizationId, int $projectId): bool
+    {
+        $roles = DB::table('model_has_roles')
+            ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->where('model_has_roles.organization_id', $organizationId)
+            ->where('model_has_roles.model_type', $user->getMorphClass())
+            ->where('model_has_roles.model_id', $user->id)
+            ->sharedLock()
+            ->pluck('roles.name')
+            ->all();
+
+        if (array_intersect($roles, [Role::Owner->value, Role::Admin->value]) !== []) {
+            return true;
+        }
+
+        return in_array(Role::Member->value, $roles, true)
+            && DB::table('project_user')
+                ->where('organization_id', $organizationId)
+                ->where('user_id', $user->id)
+                ->where('project_id', $projectId)
+                ->sharedLock()
                 ->exists();
     }
 

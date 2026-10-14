@@ -107,6 +107,7 @@
 - L-76: Un listener síncrono de un evento `ShouldDispatchAfterCommit` envuelve su trabajo en try/catch con `report`, con test del fallo: corre en el callback de commit y, si lanza, da 500 con el cambio confirmado y corta los `afterCommit` siguientes (`TerminateUserConnections`). — aplicada en: test (NotificationAccessPruneTest)
 - L-77: En la cola, los canales de una notificación quedan fijos al encolar y en el worker solo corre `shouldSend`; `notifyNow` vuelve a llamar a `via()`, que relee el estado y enmascara la rama de `shouldSend`. El test de lo que decide el worker llama `shouldSend($user->fresh(), $canal)` directo (o ejecuta el job), y la mutación que lo valida es quitar esa rama. — aplicada en: notificaciones M-15
 - L-78: Si el cliente llama a un endpoint de una forma que los tests del API no cubren (parámetro por query en vez de body, porque `api.delete` no admite body), se agrega en el mismo cambio el test del API con esa forma exacta. — aplicada en: test (PushSubscriptionApiTest)
+- L-79: Al agregar una variante de un chequeo existente (p. ej. una lectura con `sharedLock` que esquiva spatie), testear que da el mismo resultado que el original en todos los casos, y aplicarla a todas las clases que comparten el contrato, no solo a las que nombra la mejora. — aplicada en: notificaciones M-30
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

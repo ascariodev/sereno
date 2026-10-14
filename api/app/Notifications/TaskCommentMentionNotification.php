@@ -7,6 +7,7 @@ use App\Models\TaskCommentMention;
 use App\Models\User;
 use App\Notifications\Contracts\RevalidatesAfterInsert;
 use App\Support\MailMarkdown;
+use App\Support\ProjectAccess;
 
 class TaskCommentMentionNotification extends TaskCommentNotification implements RevalidatesAfterInsert
 {
@@ -27,7 +28,8 @@ class TaskCommentMentionNotification extends TaskCommentNotification implements 
             ->where('task_comment_id', $this->commentId)
             ->where('user_id', $notifiable->id)
             ->sharedLock()
-            ->exists();
+            ->exists()
+            && ProjectAccess::canViewId($notifiable, $this->organizationId, $this->projectId, lock: true);
     }
 
     protected function mailSubject(): string

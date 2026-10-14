@@ -63,8 +63,9 @@ class ChatMentionNotification extends Notification implements RevalidatesAfterIn
 
     /**
      * Runs in the worker for each channel: the mention may have been removed (edit, delete) or the access lost
-     * while the job waited. MentionRemoved deletes the row if the mention goes after it was stored. A mention
-     * removed and added back before the first job ran queues a second one: the row of another job wins.
+     * while the job waited; `stillApplies` checks both again after the insert.
+     * MentionRemoved deletes the row if the mention goes after it was stored. A mention removed and added back
+     * before the first job ran queues a second one: the row of another job wins.
      */
     public function shouldSend(object $notifiable, string $channel): bool
     {
@@ -95,13 +96,7 @@ class ChatMentionNotification extends Notification implements RevalidatesAfterIn
             ->whereNull('deleted_at')
             ->exists();
 
-        if (! $this->stillApplies($notifiable) || ! $messageAlive) {
-            return false;
-        }
-
-        return $this->projectId === null
-            ? $notifiable->organizations()->whereKey($this->organizationId)->exists()
-            : ProjectAccess::canViewId($notifiable, $this->organizationId, $this->projectId);
+        return $messageAlive && $this->stillApplies($notifiable);
     }
 
     public function stillApplies(User $notifiable): bool
@@ -111,7 +106,10 @@ class ChatMentionNotification extends Notification implements RevalidatesAfterIn
             ->where('message_id', $this->messageId)
             ->where('user_id', $notifiable->id)
             ->sharedLock()
-            ->exists();
+            ->exists()
+            && ($this->projectId === null
+                ? $notifiable->organizations()->whereKey($this->organizationId)->exists()
+                : ProjectAccess::canViewId($notifiable, $this->organizationId, $this->projectId, lock: true));
     }
 
     /** @return list<class-string|string> */

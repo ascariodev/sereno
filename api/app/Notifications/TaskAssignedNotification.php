@@ -57,13 +57,13 @@ class TaskAssignedNotification extends Notification implements RevalidatesAfterI
             return false;
         }
 
-        return $this->stillApplies($notifiable)
-            && ProjectAccess::canViewId($notifiable, $this->organizationId, $this->projectId);
+        return $this->stillApplies($notifiable);
     }
 
     public function stillApplies(User $notifiable): bool
     {
-        return Task::query()->withoutGlobalScopes()->whereKey($this->taskId)->sharedLock()->value('assignee_id') === $notifiable->id;
+        return Task::query()->withoutGlobalScopes()->whereKey($this->taskId)->sharedLock()->value('assignee_id') === $notifiable->id
+            && ProjectAccess::canViewId($notifiable, $this->organizationId, $this->projectId, lock: true);
     }
 
     /** @return list<class-string|string> */

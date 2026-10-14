@@ -279,6 +279,12 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 - [x] M-29: Cerrar el hueco de M-10 también para `task_commented` y `task_assigned` (tarea o comentario borrados entre `shouldSend` y el insert,
       `forgetSubjects` dentro de la transacción). (implementador y revisor, M-10)
       Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
-- [ ] M-30: `stillApplies` de `task_commented` y `task_assigned` no revalida el acceso al proyecto: si el destinatario lo pierde entre `shouldSend`
+- [x] M-30: `stillApplies` de `task_commented` y `task_assigned` no revalida el acceso al proyecto: si el destinatario lo pierde entre `shouldSend`
       y el insert, la fila queda hasta que la borre `NotificationAccessPrune`. Sumar el chequeo de acceso con `sharedLock`. (implementador, M-29)
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
+- [x] M-31: `ChatMentionNotification::stillApplies` no revalida el acceso al proyecto (solo `shouldSend`, sin lock): sumar
+      `ProjectAccess::canViewId(..., lock: true)` como en M-30 y un test de `AppChannel::send` directo con acceso quitado. (revisor, M-30)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [x] M-32: `ChatMentionNotification`: actualizar el docblock de `shouldSend` (el acceso también se revalida tras el insert en `stillApplies`) y
+      sumar el test post-insert de la rama sin proyecto (salida de la organización), hoy cubierta por `AppChannel` y el prune. (revisor, M-31)
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

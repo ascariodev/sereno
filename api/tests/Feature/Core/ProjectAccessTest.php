@@ -112,3 +112,19 @@ it('resolves access for many users at once, keeping order', function () {
         ->toBe([$this->users['admin']->id, $this->users['owner']->id])
         ->and(ProjectAccess::viewableUserIds([], $this->organization->id, $this->assigned->id))->toBe([]);
 });
+
+it('gives canViewId the same answer with and without lock', function () {
+    $stranger = User::factory()->create();
+    $cases = [
+        ['owner', $this->users['owner'], $this->unassigned, true],
+        ['admin', $this->users['admin'], $this->unassigned, true],
+        ['assigned member', $this->users['member'], $this->assigned, true],
+        ['unassigned member', $this->users['member'], $this->unassigned, false],
+        ['no role', $stranger, $this->assigned, false],
+    ];
+
+    foreach ($cases as [$label, $user, $project, $expected]) {
+        expect(ProjectAccess::canViewId($user, $this->organization->id, $project->id))->toBe($expected, $label)
+            ->and(ProjectAccess::canViewId($user, $this->organization->id, $project->id, lock: true))->toBe($expected, $label);
+    }
+});

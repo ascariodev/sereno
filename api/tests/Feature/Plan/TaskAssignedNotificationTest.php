@@ -199,3 +199,15 @@ it('drops its row when the task is deleted after shouldSend passed but before th
     expect(AppNotification::query()->count())->toBe(0);
     Event::assertNotDispatched(NotificationCreated::class);
 });
+
+it('drops its row when the assignee loses access to the project after shouldSend passed but before the insert', function () {
+    [, $notification] = taskAssignedQueuedJob();
+    $notification->id = (string) Str::uuid();
+    Event::fake([NotificationCreated::class]);
+    $this->project->removeMember($this->assignee);
+
+    app(AppChannel::class)->send($this->assignee, $notification);
+
+    expect(AppNotification::query()->count())->toBe(0);
+    Event::assertNotDispatched(NotificationCreated::class);
+});
