@@ -13,6 +13,12 @@ export interface Project {
   open_max_level?: string | null
 }
 
+export interface ProjectInput {
+  name: string
+  key: string
+  description: string | null
+}
+
 interface Channel {
   id: number
   project_id: number
@@ -24,7 +30,10 @@ interface ProjectsState {
   loading: boolean
   failed: boolean
   loaded: boolean
-  load(): Promise<void>
+  load(keepCurrent?: boolean): Promise<void>
+  create(input: ProjectInput): Promise<Project>
+  update(projectId: number, input: Partial<ProjectInput>): Promise<Project>
+  archive(projectId: number): Promise<void>
   clear(): void
 }
 
@@ -60,16 +69,17 @@ async function fetchChannels(): Promise<Channel[]> {
   return all
 }
 
-export const useProjectsStore = create<ProjectsState>()((set) => ({
+export const useProjectsStore = create<ProjectsState>()((set, get) => ({
   projects: [],
   channelByProject: {},
   loading: false,
   failed: false,
   loaded: false,
 
-  async load() {
+  async load(keepCurrent = false) {
     const mine = ++generation
-    set({ projects: [], channelByProject: {}, loaded: false, failed: false, loading: true })
+    if (keepCurrent) set({ failed: false, loading: true })
+    else set({ projects: [], channelByProject: {}, loaded: false, failed: false, loading: true })
     try {
       const [projects, channels] = await Promise.all([fetchProjects(), fetchChannels()])
       if (mine !== generation) return
@@ -83,6 +93,26 @@ export const useProjectsStore = create<ProjectsState>()((set) => ({
       if (!(error instanceof ApiError)) throw error
       if (mine === generation) set({ failed: true, loading: false })
     }
+  },
+
+  async create(input) {
+    const response = await api.post<{ data: Project }>('/api/projects', input)
+    await get().load(true)
+    return response.data
+  },
+
+  async update(projectId, input) {
+    const response = await api.patch<{ data: Project }>(`/api/projects/${projectId}`, input)
+    set({
+      projects: get().projects.map((project) => (project.id === projectId ? { ...project, ...response.data } : project)),
+    })
+    return response.data
+  },
+
+  async archive(projectId) {
+    await api.post(`/api/projects/${projectId}/archive`)
+    const { [projectId]: _removed, ...channels } = get().channelByProject
+    set({ projects: get().projects.filter((project) => project.id !== projectId), channelByProject: channels })
   },
 
   clear() {

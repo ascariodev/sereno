@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -8,7 +9,7 @@ import { useAuthStore } from '@/session/auth';
 
 const LEVELS = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency'];
 
-function ProjectCard({ project }: { project: Project }) {
+function ProjectCard({ project, canManage }: { project: Project; canManage: boolean }) {
   const { t } = useTranslation();
   const count = project.open_groups_count;
   const level = project.open_max_level && LEVELS.includes(project.open_max_level) ? project.open_max_level : 'debug';
@@ -33,6 +34,16 @@ function ProjectCard({ project }: { project: Project }) {
         </Text>
       ) : null}
       {health ? <Text style={styles.health}>{health}</Text> : null}
+      {canManage ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${t('projects.edit')} ${project.name}`}
+          onPress={() => router.push({ pathname: '/project-form', params: { id: String(project.id) } })}
+          style={styles.button}
+        >
+          <Text style={styles.buttonText}>{t('projects.edit')}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -41,6 +52,7 @@ export default function Projects() {
   const { t } = useTranslation();
   const userName = useAuthStore((state) => state.user?.name ?? null);
   const activeId = useOrganizationStore((state) => state.activeId);
+  const canManage = useOrganizationStore((state) => state.canCreateProject());
   const { projects, loading, failed, loaded, load } = useProjectsStore();
 
   useEffect(() => {
@@ -54,6 +66,11 @@ export default function Projects() {
         {userName ? t('projects.greeting', { name: userName }) : t('projects.title')}
       </Text>
       <Text style={styles.heading}>{t('projects.title')}</Text>
+      {canManage ? (
+        <Pressable accessibilityRole="button" onPress={() => router.push('/project-form')} style={styles.button}>
+          <Text style={styles.buttonText}>{t('projects.new')}</Text>
+        </Pressable>
+      ) : null}
       {failed ? (
         <View style={styles.block}>
           <Text accessibilityRole="alert" style={styles.error}>
@@ -77,7 +94,7 @@ export default function Projects() {
         <FlatList
           data={projects}
           keyExtractor={(project) => String(project.id)}
-          renderItem={({ item }) => <ProjectCard project={item} />}
+          renderItem={({ item }) => <ProjectCard project={item} canManage={canManage} />}
           contentContainerStyle={styles.list}
           refreshing={loading}
           onRefresh={() => void load()}

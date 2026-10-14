@@ -32,6 +32,7 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={signedIn && hasOrganization}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="project-form" />
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="select-organization" />

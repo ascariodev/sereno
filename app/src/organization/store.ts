@@ -16,6 +16,7 @@ interface OrganizationState {
   loaded: boolean
   loadError: boolean
   active(): Organization | null
+  canCreateProject(): boolean
   load(): Promise<void>
   select(id: number): Promise<void>
   create(name: string): Promise<Organization>
@@ -49,6 +50,11 @@ export const useOrganizationStore = create<OrganizationState>()((set, get) => ({
   active() {
     const { organizations, activeId } = get()
     return organizations.find((organization) => organization.id === activeId) ?? null
+  },
+
+  canCreateProject() {
+    const roles = get().active()?.roles ?? []
+    return roles.includes('owner') || roles.includes('admin')
   },
 
   async load() {

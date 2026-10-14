@@ -75,7 +75,32 @@
       "critical": "critical",
       "alert": "alert",
       "emergency": "emergency"
-    }
+    },
+    "new": "New project",
+    "edit": "Edit",
+    "createTitle": "New project",
+    "editTitle": "Edit project",
+    "nameLabel": "Name",
+    "keyLabel": "Key",
+    "descriptionLabel": "Description",
+    "nameRequired": "Enter a name.",
+    "nameTooLong": "The name can have up to {{max}} characters.",
+    "keyInvalid": "The key must start with a letter and have 2 to 10 letters or digits.",
+    "descriptionTooLong": "The description can have up to {{max}} characters.",
+    "create": "Create project",
+    "creating": "Creating...",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "forbidden": "You do not have permission to manage projects.",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not save the project. Try again.",
+    "archive": "Archive project",
+    "archiveConfirm": "Archive this project? It will disappear from the list.",
+    "archiveYes": "Yes, archive",
+    "archiving": "Archiving...",
+    "archiveFailed": "Could not archive the project. Try again."
   },
   "notifications": {
     "title": "Notifications"

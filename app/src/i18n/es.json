@@ -75,7 +75,32 @@
       "critical": "crítico",
       "alert": "alerta",
       "emergency": "emergencia"
-    }
+    },
+    "new": "Nuevo proyecto",
+    "edit": "Editar",
+    "createTitle": "Nuevo proyecto",
+    "editTitle": "Editar proyecto",
+    "nameLabel": "Nombre",
+    "keyLabel": "Clave",
+    "descriptionLabel": "Descripción",
+    "nameRequired": "Escribe un nombre.",
+    "nameTooLong": "El nombre puede tener hasta {{max}} caracteres.",
+    "keyInvalid": "La clave debe empezar con una letra y tener de 2 a 10 letras o dígitos.",
+    "descriptionTooLong": "La descripción puede tener hasta {{max}} caracteres.",
+    "create": "Crear proyecto",
+    "creating": "Creando...",
+    "save": "Guardar cambios",
+    "saving": "Guardando...",
+    "cancel": "Cancelar",
+    "forbidden": "No tienes permiso para gestionar proyectos.",
+    "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo guardar el proyecto. Prueba de nuevo.",
+    "archive": "Archivar proyecto",
+    "archiveConfirm": "¿Archivar este proyecto? Desaparecerá de la lista.",
+    "archiveYes": "Sí, archivar",
+    "archiving": "Archivando...",
+    "archiveFailed": "No se pudo archivar el proyecto. Prueba de nuevo."
   },
   "notifications": {
     "title": "Notificaciones"
