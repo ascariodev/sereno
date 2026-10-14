@@ -12,6 +12,16 @@ class PushPayload
 {
     public const MAX_BYTES = 3000;
 
+    /**
+     * Expo caps each message at 4096 bytes, `to` included (the token is up to 255 characters), so the rest keeps a
+     * margin. Measured with the JSON flags the HTTP client sends (unicode escaped): an accent takes 6 bytes there.
+     */
+    public const MOBILE_MAX_BYTES = 4096 - 300;
+
+    private const WEB_JSON_FLAGS = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
+
+    private const MOBILE_JSON_FLAGS = JSON_THROW_ON_ERROR;
+
     private const TITLE_WIDTH_LIMIT = 200;
 
     private const ELLIPSIS = '…';
@@ -21,6 +31,34 @@ class PushPayload
      * The encrypted payload may carry about 4 KB: the JSON stays under MAX_BYTES UTF-8 bytes, trimming the body.
      */
     public static function for(AppNotification $notification, User $user): ?string
+    {
+        $content = self::content($notification, $user);
+
+        return $content === null ? null : json_encode(self::fit($content, self::MAX_BYTES, self::WEB_JSON_FLAGS), self::WEB_JSON_FLAGS);
+    }
+
+    /**
+     * Message for the Expo push service (without `to`), or null like `for`. Stays under MOBILE_MAX_BYTES, trimming the body.
+     *
+     * @return array{title: string, body: string, data: array{url: string, organizationId: int}}|null
+     */
+    public static function mobile(AppNotification $notification, User $user): ?array
+    {
+        $content = self::content($notification, $user);
+
+        if ($content === null) {
+            return null;
+        }
+
+        return self::fit([
+            'title' => $content['title'],
+            'body' => $content['body'],
+            'data' => ['url' => $content['url'], 'organizationId' => (int) $notification->organization_id],
+        ], self::MOBILE_MAX_BYTES, self::MOBILE_JSON_FLAGS);
+    }
+
+    /** @return array{uuid: string, type: string, title: string, body: string, url: string, tag: string}|null */
+    private static function content(AppNotification $notification, User $user): ?array
     {
         $type = NotificationType::tryFrom($notification->type);
 
@@ -57,7 +95,8 @@ class PushPayload
         return $type === NotificationType::ChatMention || is_numeric($notification->project_id);
     }
 
-    private static function build(AppNotification $notification, NotificationType $type): string
+    /** @return array{uuid: string, type: string, title: string, body: string, url: string, tag: string} */
+    private static function build(AppNotification $notification, NotificationType $type): array
     {
         $data = $notification->data;
         $actor = self::text($data, 'actor_name');
@@ -85,42 +124,44 @@ class PushPayload
             ],
         };
 
-        return self::encode([
+        return [
             'uuid' => $notification->uuid,
             'type' => $type->value,
             'title' => Str::limit($title, self::TITLE_WIDTH_LIMIT, self::ELLIPSIS, preserveWords: false),
             'body' => $body,
             'url' => NotificationUrl::for($notification),
             'tag' => $tag,
-        ]);
+        ];
     }
 
-    /** @param  array<string, mixed>  $payload */
-    private static function encode(array $payload): string
+    /**
+     * @template T of array{body: string}
+     *
+     * @param  T  $payload
+     * @return T the payload with the body trimmed until its JSON fits in $maxBytes
+     */
+    private static function fit(array $payload, int $maxBytes, int $flags): array
     {
-        $flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
-        $json = json_encode($payload, $flags);
-
-        if (strlen($json) <= self::MAX_BYTES) {
-            return $json;
+        if (strlen(json_encode($payload, $flags)) <= $maxBytes) {
+            return $payload;
         }
 
         $body = $payload['body'];
-        $fits = fn (int $chars): string => json_encode([...$payload, 'body' => rtrim(mb_substr($body, 0, $chars)).self::ELLIPSIS], $flags);
+        $trimmed = fn (int $chars): array => [...$payload, 'body' => rtrim(mb_substr($body, 0, $chars)).self::ELLIPSIS];
         $low = 0;
         $high = mb_strlen($body);
 
         while ($low < $high) {
             $middle = intdiv($low + $high + 1, 2);
 
-            if (strlen($fits($middle)) <= self::MAX_BYTES) {
+            if (strlen(json_encode($trimmed($middle), $flags)) <= $maxBytes) {
                 $low = $middle;
             } else {
                 $high = $middle - 1;
             }
         }
 
-        return $fits($low);
+        return $trimmed($low);
     }
 
     /** @param  array<string, mixed>  $data */

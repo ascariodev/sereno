@@ -114,3 +114,31 @@ it('returns null for an unknown type or incomplete data', function (string $type
     'no excerpt' => ['task_commented', ['task_id' => 1, 'task_key' => 'A-1', 'actor_name' => 'Ana']],
     'no channel' => ['chat_mention', ['message_id' => 1, 'message_excerpt' => 'x', 'actor_name' => 'Ana']],
 ]);
+
+it('builds the mobile message with the url and the organization in its data', function () {
+    $row = pushRow(NotificationType::TaskAssigned, ['task_id' => 9, 'task_key' => 'WEB-9', 'task_title' => 'Arreglar', 'actor_name' => 'Ana']);
+
+    expect(PushPayload::mobile($row, pushUser('es')))->toBe([
+        'title' => 'Ana te asignó WEB-9',
+        'body' => 'Arreglar',
+        'data' => ['url' => 'https://app.test/projects/3/plan?task=9&organization=7', 'organizationId' => 7],
+    ]);
+});
+
+it('trims the mobile message to its byte cap as the HTTP client encodes it', function (string $unit) {
+    $row = pushRow(NotificationType::TaskCommented, ['task_id' => 9, 'task_key' => 'WEB-9', 'comment_excerpt' => str_repeat($unit, 4000), 'actor_name' => 'Ana']);
+
+    $message = PushPayload::mobile($row, pushUser('en'));
+    $wireBytes = strlen(json_encode(['to' => 'ExponentPushToken['.str_repeat('x', 236).']', ...$message], JSON_THROW_ON_ERROR));
+
+    expect(strlen(json_encode($message, JSON_THROW_ON_ERROR)))->toBeLessThanOrEqual(PushPayload::MOBILE_MAX_BYTES)
+        ->and($wireBytes)->toBeLessThanOrEqual(4096)
+        ->and($message['body'])->toEndWith('…')
+        ->and(mb_check_encoding($message['body'], 'UTF-8'))->toBeTrue();
+})->with(['ascii' => 'a', 'accents' => 'é', 'emoji' => '🎉']);
+
+it('returns no mobile message for incomplete data', function () {
+    $row = pushRow(NotificationType::TaskAssigned, ['task_key' => 'A-1', 'task_title' => 't', 'actor_name' => 'Ana']);
+
+    expect(PushPayload::mobile($row, pushUser('en')))->toBeNull();
+});

@@ -111,6 +111,7 @@
 - L-80: Un archivo editado en Windows con texto acentuado se comprueba como UTF-8 (`iconv -f utf-8 -t utf-8`) antes del commit: un script de deploy quedó con comentarios en Latin-1 mezclados con UTF-8. — aplicada en: pendiente
 - L-81: Un comportamiento de la bandeja del sistema en Windows no se decide con el estado de foco leído al llegar el clic: el clic en el icono ya movió el foco a la barra de tareas (`is_focused()` da false). Se guarda el instante de la última pérdida de foco o se prueba a mano antes de dar la mejora por hecha. — aplicada en: pendiente
 - L-82: En un test de API con dos peticiones seguidas con Bearer de usuarios distintos, se llama `$this->app['auth']->forgetGuards()` entre ellas: el guard cachea el usuario de la primera. — aplicada en: test (ExpoPushTokenApiTest)
+- L-83: Un parámetro nuevo en el constructor de un job (o una propiedad promovida readonly) no tiene valor al deserializar los jobs ya encolados: se lee con `?? <default>` o `__unserialize`, con un test que deserializa un job sin esa propiedad y ejecuta `handle`. — aplicada en: test (SendPushNotificationTest)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

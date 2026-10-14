@@ -4,12 +4,15 @@ use App\Enums\NotificationType;
 use App\Events\NotificationCreated;
 use App\Jobs\SendPushNotification;
 use App\Models\AppNotification;
+use App\Models\ExpoPushToken;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\PushSubscription;
 use App\Models\User;
 use App\Notifications\Channels\AppChannel;
 use App\Notifications\Contracts\RevalidatesAfterInsert;
+use App\Support\MobilePushSender;
+use App\Support\NotificationUrl;
 use App\Support\PushSender;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notification;
@@ -39,6 +42,28 @@ class FakePushSender implements PushSender
             ->mapWithKeys(fn (PushSubscription $subscription) => [
                 $subscription->id => $this->outcomes[$subscription->endpoint] ?? PushSender::SENT,
             ])
+            ->all();
+    }
+}
+
+class FakeMobilePushSender implements MobilePushSender
+{
+    /** @var list<list<string>> tokens of each call */
+    public array $calls = [];
+
+    /** @var list<array<string, mixed>> */
+    public array $messages = [];
+
+    /** @var array<string, string> outcome by token, SENT when absent */
+    public array $outcomes = [];
+
+    public function send(iterable $tokens, array $message): array
+    {
+        $this->calls[] = collect($tokens)->pluck('token')->all();
+        $this->messages[] = $message;
+
+        return collect($tokens)
+            ->mapWithKeys(fn (ExpoPushToken $token) => [$token->id => $this->outcomes[$token->token] ?? PushSender::SENT])
             ->all();
     }
 }
@@ -84,6 +109,8 @@ beforeEach(function () {
     ]);
     $this->sender = new FakePushSender;
     app()->instance(PushSender::class, $this->sender);
+    $this->mobileSender = new FakeMobilePushSender;
+    app()->instance(MobilePushSender::class, $this->mobileSender);
 
     $this->organization = Organization::factory()->create();
     $this->project = Project::factory()->for($this->organization)->create();
@@ -199,10 +226,11 @@ it('delays the retry of the failed subscriptions', function () {
     $this->sender->outcomes['https://push.test/laptop'] = PushSender::FAILED;
     $row = pushNotificationRow();
 
-    (new SendPushNotification($row->uuid))->handle($this->sender);
+    (new SendPushNotification($row->uuid))->handle($this->sender, $this->mobileSender);
 
     Queue::assertPushed(SendPushNotification::class, fn (SendPushNotification $job) => $job->notificationUuid === $row->uuid
         && $job->subscriptionIds === [$this->laptop->id]
+        && $job->expoTokenIds === []
         && $job->attempt === 2
         && $job->delay === SendPushNotification::RETRY_DELAYS[0]);
 });
@@ -251,6 +279,168 @@ it('skips a notification of an unknown type without pushing', function () {
         && $context['notification'] === $row->uuid)->once();
 });
 
+function expoToken(string $token): ExpoPushToken
+{
+    return ExpoPushToken::factory()->for(test()->user)->create([
+        'personal_access_token_id' => test()->user->createToken('phone')->accessToken->id,
+        'token' => $token,
+    ]);
+}
+
+it('pushes only to the Expo tokens of a user without web subscriptions', function () {
+    PushSubscription::query()->delete();
+    $android = expoToken('ExponentPushToken[android]');
+    ExpoPushToken::factory()->create(['token' => 'ExponentPushToken[stranger]']);
+    $row = pushNotificationRow();
+
+    SendPushNotification::dispatchSync($row->uuid);
+
+    expect($this->sender->calls)->toBe([])
+        ->and($this->mobileSender->calls)->toBe([['ExponentPushToken[android]']])
+        ->and($this->mobileSender->messages[0])->toBe([
+            'title' => 'Ana assigned you WEB-9',
+            'body' => 'Fix it',
+            'data' => [
+                'url' => NotificationUrl::task($this->organization->id, $this->project->id, 9),
+                'organizationId' => $this->organization->id,
+            ],
+        ])
+        ->and($android->fresh()->last_used_at)->not->toBeNull();
+});
+
+it('pushes to the web subscriptions and the Expo tokens of the user', function () {
+    $android = expoToken('ExponentPushToken[android]');
+    $row = pushNotificationRow();
+
+    SendPushNotification::dispatchSync($row->uuid);
+
+    expect($this->sender->calls)->toBe([['https://push.test/phone', 'https://push.test/laptop']])
+        ->and($this->mobileSender->calls)->toBe([['ExponentPushToken[android]']])
+        ->and($this->phone->fresh()->last_used_at)->not->toBeNull()
+        ->and($android->fresh()->last_used_at)->not->toBeNull();
+});
+
+it('still pushes to the Expo tokens when Web Push is not configured', function () {
+    Log::spy();
+    config(['workspace.push.vapid_private_key' => null]);
+    expoToken('ExponentPushToken[android]');
+    $row = pushNotificationRow();
+
+    SendPushNotification::dispatchSync($row->uuid);
+
+    expect($this->sender->calls)->toBe([])
+        ->and($this->mobileSender->calls)->toBe([['ExponentPushToken[android]']]);
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => str_contains($message, 'VAPID_PRIVATE_KEY'))->once();
+});
+
+it('pushes to no device when the user turned push off for that type', function () {
+    expoToken('ExponentPushToken[android]');
+    $row = pushNotificationRow();
+    $this->user->forceFill(['notification_preferences' => ['push' => [NotificationType::TaskAssigned->value => false]]])->save();
+
+    SendPushNotification::dispatchSync($row->uuid);
+
+    expect($this->sender->calls)->toBe([])
+        ->and($this->mobileSender->calls)->toBe([]);
+});
+
+it('pushes to no device when the notification was read', function () {
+    expoToken('ExponentPushToken[android]');
+    $row = pushNotificationRow(['read_at' => now()]);
+
+    SendPushNotification::dispatchSync($row->uuid);
+
+    expect($this->mobileSender->calls)->toBe([]);
+});
+
+it('deletes the Expo tokens that Expo reports as not registered', function () {
+    $this->mobileSender->outcomes['ExponentPushToken[old]'] = PushSender::EXPIRED;
+    expoToken('ExponentPushToken[old]');
+    $android = expoToken('ExponentPushToken[android]');
+    $row = pushNotificationRow();
+
+    SendPushNotification::dispatchSync($row->uuid);
+
+    expect(ExpoPushToken::query()->pluck('token')->all())->toBe(['ExponentPushToken[android]'])
+        ->and($android->fresh()->last_used_at)->not->toBeNull()
+        ->and(PushSubscription::query()->count())->toBe(2);
+});
+
+it('logs the ids and not the tokens that Expo rejected, without retrying them', function () {
+    Log::spy();
+    $this->mobileSender->outcomes['ExponentPushToken[bad]'] = PushSender::REJECTED;
+    $bad = expoToken('ExponentPushToken[bad]');
+    $row = pushNotificationRow();
+
+    SendPushNotification::dispatchSync($row->uuid);
+
+    expect($this->mobileSender->calls)->toHaveCount(1)
+        ->and(ExpoPushToken::query()->count())->toBe(1);
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context) => str_contains($message, 'rejected')
+        && $context['expo_tokens'] === [$bad->id]
+        && ! str_contains(json_encode($context), 'ExponentPushToken'))->once();
+});
+
+it('retries only what failed on each channel, without pushing again to the rest', function () {
+    Log::spy();
+    $this->sender->outcomes['https://push.test/laptop'] = PushSender::FAILED;
+    $this->mobileSender->outcomes['ExponentPushToken[flaky]'] = PushSender::FAILED;
+    expoToken('ExponentPushToken[android]');
+    expoToken('ExponentPushToken[flaky]');
+    $row = pushNotificationRow();
+
+    SendPushNotification::dispatchSync($row->uuid);
+
+    expect($this->sender->calls)->toBe([
+        ['https://push.test/phone', 'https://push.test/laptop'],
+        ['https://push.test/laptop'],
+        ['https://push.test/laptop'],
+    ])->and($this->mobileSender->calls)->toBe([
+        ['ExponentPushToken[android]', 'ExponentPushToken[flaky]'],
+        ['ExponentPushToken[flaky]'],
+        ['ExponentPushToken[flaky]'],
+    ]);
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => str_contains($message, 'gave up'))->once();
+});
+
+it('runs a retry queued before Expo push existed, also sending to the Expo tokens, which never got it', function () {
+    $android = expoToken('ExponentPushToken[android]');
+    $row = pushNotificationRow();
+    $serialized = serialize(new SendPushNotification($row->uuid, [$this->laptop->id], 2));
+    $withoutExpo = preg_replace_callback(
+        '/^O:(\d+):"([^"]+)":(\d+):\{(.*)s:12:"expoTokenIds";N;(.*)$/s',
+        fn (array $match) => "O:{$match[1]}:\"{$match[2]}\":".($match[3] - 1).":{{$match[4]}{$match[5]}",
+        $serialized,
+    );
+    $job = unserialize($withoutExpo);
+
+    expect($withoutExpo)->not->toBe($serialized)
+        ->and((new ReflectionProperty($job, 'expoTokenIds'))->isInitialized($job))->toBeFalse();
+
+    $job->handle($this->sender, $this->mobileSender);
+
+    expect($this->sender->calls)->toBe([['https://push.test/laptop']])
+        ->and($this->mobileSender->calls)->toBe([['ExponentPushToken[android]']]);
+});
+
+it('does not push again to the web when only an Expo token failed', function () {
+    Queue::fake();
+    $this->mobileSender->outcomes['ExponentPushToken[flaky]'] = PushSender::FAILED;
+    $flaky = expoToken('ExponentPushToken[flaky]');
+    $row = pushNotificationRow();
+
+    (new SendPushNotification($row->uuid))->handle($this->sender, $this->mobileSender);
+
+    Queue::assertPushed(SendPushNotification::class, fn (SendPushNotification $job) => $job->subscriptionIds === []
+        && $job->expoTokenIds === [$flaky->id]
+        && $job->attempt === 2);
+
+    (new SendPushNotification($row->uuid, [], 2, [$flaky->id]))->handle($this->sender, $this->mobileSender);
+
+    expect($this->sender->calls)->toHaveCount(1)
+        ->and($this->mobileSender->calls)->toBe([['ExponentPushToken[flaky]'], ['ExponentPushToken[flaky]']]);
+});
+
 it('queues the push once the app channel stores the notification', function () {
     Queue::fake([SendPushNotification::class]);
     $notification = new PushTestNotification($this->organization->id, $this->project->id, $this->project);
@@ -261,7 +451,8 @@ it('queues the push once the app channel stores the notification', function () {
 
     Queue::assertPushed(SendPushNotification::class, 1);
     Queue::assertPushed(SendPushNotification::class, fn (SendPushNotification $job) => $job->notificationUuid === $notification->id
-        && $job->subscriptionIds === null);
+        && $job->subscriptionIds === null
+        && $job->expoTokenIds === null);
 });
 
 it('pushes through the app channel to the devices of the user', function () {

@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -50,7 +50,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   antes de escribirlo. Token de acceso de Expo opcional por config (`EXPO_ACCESS_TOKEN`).
 - **Terminado cuando:** test con `Http::fake`: éxito, token inválido marcado como expirado, 5xx como fallo reintentable.
 
-### [ ] Fase 4 — El job de push también envía a los dispositivos móviles [riesgo]
+### [x] Fase 4 — El job de push también envía a los dispositivos móviles [riesgo]
 - **Alcance:** `SendPushNotification` envía a los tokens de Expo además de las suscripciones web, con el mismo filtro
   `wantsPush` y payload `{title, body, data: {url, organizationId}}`; la falta de claves VAPID solo corta la parte web.
   Expirados se borran, `last_used_at` se actualiza.
@@ -258,12 +258,13 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Aceptar invitaciones sigue en la web (no hay deep links de `sereno.ascario.dev` en esta versión).
 
 ## Notas para la próxima sesión
-- Fase 3 hecha: interfaz propia `MobilePushSender::send(iterable<ExpoPushToken>, array{title, body, data?}): array<tokenId, outcome>`
-  con las constantes de `PushSender` (SENT, EXPIRED, FAILED, REJECTED); `ExpoPushSender` la implementa y está bindeado en
-  `AppServiceProvider` junto al bind de `PushSender` (que no cambió). Config `workspace.push.expo_access_token`
-  (`EXPO_ACCESS_TOKEN`, opcional). Verificado en docs.expo.dev: lotes de 100, tickets en orden, 4096 bytes por payload,
-  `DeviceNotRegistered` es EXPIRED. En la fase 4: acotar `{title, body, data}` a 4096 bytes (el `MAX_BYTES` de `PushPayload` es
-  3000, de Web Push) y reintentar solo los tokens FAILED, no el lote entero.
+- Fase 4 hecha: `SendPushNotification` envía a web y a Expo. Sigue con `$tries=1`: un reintento despacha un job nuevo con los
+  FAILED de cada canal (parámetro nuevo `?array $expoTokenIds`: null = todos, solo en el primer intento; [] = canal terminado).
+  Sin VAPID solo se saltea la web. `PushPayload::mobile()` reutiliza título, cuerpo y url de la web, agrega
+  `data.organizationId` y recorta a `MOBILE_MAX_BYTES` (4096 - 300 para `to`, medido con unicode escapado). Un job encolado
+  antes del deploy se lee con `?? null` (test de deserialización). Limitación conocida: si un emisor lanza, el otro canal no
+  sale en ese intento (M-4).
+- Bloque A (API) terminado. Sigue la fase 5, **manual**: cuenta de Expo, `npx eas-cli login` y teléfono o emulador.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -274,3 +275,8 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
       Complejidad: alta · Archivos: 5+ (migración, job programado, emisor) · Riesgo: BD → plan nuevo
 - [ ] M-3: `ExpoPushSender`: tratar un ticket ausente (200 truncado) como FAILED y no REJECTED; test de `MismatchSenderId`.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-4: `SendPushNotification`: envolver cada canal (web y Expo) en try/catch con `report`, para que una excepción de un
+      emisor (p. ej. claves VAPID inválidas en `makeWebPush`) no deje sin enviar el otro ni pierda sus FAILED. Con test.
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-5: Log "gave up" de `SendPushNotification`: omitir la lista del canal que no falló (hoy sale `subscriptions: []`).
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
