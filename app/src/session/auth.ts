@@ -13,6 +13,7 @@ interface AuthState {
   hydrated: boolean
   hydrate(): Promise<void>
   login(email: string, password: string, explicitLocale?: Locale | null): Promise<boolean>
+  register(name: string, email: string, password: string, passwordConfirmation: string): Promise<boolean>
   fetchMe(): Promise<void>
   chooseAndSaveLocale(locale: Locale): Promise<boolean>
   logout(): Promise<void>
@@ -35,6 +36,38 @@ export const useAuthStore = create<AuthState>()((set, get) => {
     }
   }
 
+  async function startSession(
+    path: string,
+    body: Record<string, unknown>,
+    explicitLocale: Locale | null,
+  ): Promise<boolean> {
+    const mine = ++generation
+    const response = await api.post<LoginResponse>(path, { ...body, device_name: deviceName() })
+    if (mine !== generation) return true
+    set({ token: response.token, user: response.user })
+    try {
+      await writeStored(TOKEN_STORAGE_KEY, response.token)
+    } catch (error) {
+      if (mine === generation) {
+        set({ token: null, user: null })
+        setLocale(null)
+      }
+      await removeStored(TOKEN_STORAGE_KEY)
+      throw error
+    }
+    if (mine !== generation) {
+      if (get().token === null) await removeStored(TOKEN_STORAGE_KEY)
+      return true
+    }
+    if (!explicitLocale) {
+      setLocale(response.user.locale)
+      return true
+    }
+    const saved = await saveLocale(explicitLocale)
+    if (mine === generation) await persistChoice(explicitLocale)
+    return saved
+  }
+
   return {
     token: null,
     user: null,
@@ -52,36 +85,16 @@ export const useAuthStore = create<AuthState>()((set, get) => {
       set({ token, hydrated: true })
     },
 
-    async login(email, password, explicitLocale = null) {
-      const mine = ++generation
-      const response = await api.post<LoginResponse>('/api/auth/login', {
-        email,
-        password,
-        device_name: deviceName(),
-      })
-      if (mine !== generation) return true
-      set({ token: response.token, user: response.user })
-      try {
-        await writeStored(TOKEN_STORAGE_KEY, response.token)
-      } catch (error) {
-        if (mine === generation) {
-          set({ token: null, user: null })
-          setLocale(null)
-        }
-        await removeStored(TOKEN_STORAGE_KEY)
-        throw error
-      }
-      if (mine !== generation) {
-        if (get().token === null) await removeStored(TOKEN_STORAGE_KEY)
-        return true
-      }
-      if (!explicitLocale) {
-        setLocale(response.user.locale)
-        return true
-      }
-      const saved = await saveLocale(explicitLocale)
-      if (mine === generation) await persistChoice(explicitLocale)
-      return saved
+    login(email, password, explicitLocale = null) {
+      return startSession('/api/auth/login', { email, password }, explicitLocale)
+    },
+
+    register(name, email, password, passwordConfirmation) {
+      return startSession(
+        '/api/auth/register',
+        { name, email, password, password_confirmation: passwordConfirmation },
+        null,
+      )
     },
 
     async fetchMe() {

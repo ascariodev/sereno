@@ -4,7 +4,8 @@
   },
   "common": {
     "localeSaveFailed": "No se pudo guardar tu idioma. Se aplicó solo en este dispositivo.",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "loading": "Cargando..."
   },
   "login": {
     "subtitle": "Inicia sesión para ver los canales de tus proyectos.",
@@ -16,6 +17,25 @@
     "submitting": "Iniciando sesión...",
     "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
     "network": "No se pudo conectar con el servidor.",
-    "failed": "No se pudo iniciar sesión. Inténtalo de nuevo."
+    "failed": "No se pudo iniciar sesión. Inténtalo de nuevo.",
+    "toRegister": "Crear una cuenta"
+  },
+  "register": {
+    "title": "Crear cuenta",
+    "name": "Nombre",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "passwordConfirmation": "Confirmar contraseña",
+    "submit": "Crear cuenta",
+    "submitting": "Creando cuenta...",
+    "haveAccount": "¿Ya tienes cuenta? Inicia sesión",
+    "closed": "El registro está cerrado, pide una invitación.",
+    "toLogin": "Ir a iniciar sesión",
+    "statusError": "No pudimos comprobar si el registro está abierto. Inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "closedError": "El registro está cerrado, pide una invitación.",
+    "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo crear la cuenta. Inténtalo de nuevo."
   }
 }

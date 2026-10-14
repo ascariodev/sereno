@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -90,7 +90,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** pantalla de login y redirección según haya sesión (Expo Router).
 - **Terminado cuando:** test de la pantalla (error de credenciales, éxito navega) y login real contra el API local.
 
-### [ ] Fase 11 — Registro
+### [x] Fase 11 — Registro
 - **Alcance:** pantalla de registro (`GET /api/auth/registration` y `POST /api/auth/register`) como `RegisterView.vue`.
 - **Terminado cuando:** test de la pantalla con errores de validación y éxito.
 
@@ -264,18 +264,17 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Aceptar invitaciones sigue en la web (no hay deep links de `sereno.ascario.dev` en esta versión).
 
 ## Notas para la próxima sesión
+- Fase 11 hecha: `app/src/app/register.tsx` (estados cargando, cerrado, fallo con reintento y abierto; 422 por campo
+  vacía las contraseñas; 403, 429, red, doble envío y desmontado). `session/auth.ts` suma `register` y comparte con
+  `login` el helper `startSession` (generación, rollback del token, idioma). `register` manda `explicitLocale` nulo, como
+  la web. Los tipos de rutas de Expo (`app/.expo/types/router.d.ts`, ignorado por git) se regeneran con `expo start`: tras
+  agregar una ruta, arrancar Expo una vez antes de `npm run typecheck`.
 - Fase 10 hecha: `app/src/app/login.tsx` (422 por campo, 429, error de red, doble envío con `submittingRef`) y `_layout.tsx`
   con `Stack.Protected` (inicio solo con token, login solo sin token; nada se renderiza hasta `hydrated`). `index.tsx`
   tiene botón de cerrar sesión. En el emulador se comprobó que la app abre en Expo Go (`host.exp.exponent`, lanzar con el
   paquete explícito: sin él el intent puede ir a `com.fletes.app`) y muestra el login sin sesión. El login real contra
   `http://10.0.2.2:8003` quedó **pendiente**: el emulador es tan lento que pierde las teclas de `adb input` y Expo Go da
   ANR. Comprobarlo con un teléfono físico o con el dev build (fase 30). Usuario de prueba del seeder: `test@example.com`.
-- Fase 9 hecha: `app/src/session/` con `useAuthStore` (zustand 5: `token`, `user`, `hydrated`; `hydrate`, `login(email,
-  password, explicitLocale?)`, `fetchMe`, `chooseAndSaveLocale`, `logout`, `clearSession`). Token en expo-secure-store
-  (`sereno.token`) y elección manual de idioma en `sereno.locale`; contador de generación tras cada await. `hydrate` siempre
-  termina en `hydrated: true` (también si lo desplaza un login). `_layout.tsx` instala i18n y auth en el cliente y llama a
-  `hydrate()`. `device_name`: `Device.deviceName ?? Device.modelName ?? 'Sereno app'`. La fase 10 debe esperar `hydrated`
-  antes de redirigir.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -306,3 +305,5 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-10: `login.tsx`: tras un login correcto el guard desmonta la pantalla, así que el aviso `common.localeSaveFailed` nunca se ve y el `finally` llama a `setSubmitting` ya desmontado. Mostrar el aviso fuera de la pantalla (toast global) o en la siguiente. Complejidad baja, sonnet.
 - [ ] M-11: Pasar los colores en línea (`#c0392b`, `#1f2937`) de login e inicio a un tema compartido cuando haya más pantallas. Complejidad baja, sonnet.
+- [ ] M-12: `npm run typecheck` depende de `app/.expo/types/router.d.ts` (ignorado por git, lo genera `expo start`): en un clon limpio o en CI falla con rutas nuevas. Generarlo antes del typecheck (p. ej. `expo customize`/`npx expo start` previo o un script) o documentarlo. Complejidad baja, sonnet.
+- [ ] M-13: `register.closedError` repite el texto de `register.closed` en `en.json` y `es.json`: dejar una sola clave. Complejidad baja, sonnet.

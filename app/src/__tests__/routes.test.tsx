@@ -5,6 +5,7 @@ import { api } from '@/api/client';
 import RootLayout from '@/app/_layout';
 import Index from '@/app/index';
 import Login from '@/app/login';
+import Register from '@/app/register';
 import { setChosenLocale, setLocale } from '@/i18n';
 import { installAuthOnApi, useAuthStore } from '@/session/auth';
 
@@ -56,7 +57,7 @@ async function fillAndSubmit() {
 }
 
 describe('route protection', () => {
-  const routes = { _layout: RootLayout, index: Index, login: Login };
+  const routes = { _layout: RootLayout, index: Index, login: Login, register: Register };
 
   it('redirects to the login without a session', async () => {
     await renderRouter(routes, { initialUrl: '/' });
@@ -71,6 +72,20 @@ describe('route protection', () => {
     await settle();
 
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeOnTheScreen();
+  });
+
+  it('goes from the login to the register screen and back', async () => {
+    mockFetch(() => json({ enabled: true }));
+    await renderRouter(routes, { initialUrl: '/login' });
+    await settle();
+
+    await fireEvent.press(screen.getByRole('link', { name: 'Create an account' }));
+    await settle();
+    expect(screen.getByLabelText('Confirm password')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('link', { name: 'Already have an account? Sign in' }));
+    await settle();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeOnTheScreen();
   });
 
   it('a successful login goes home and logout comes back to the login', async () => {

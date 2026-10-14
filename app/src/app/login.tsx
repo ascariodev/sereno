@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -132,6 +133,10 @@ export default function Login() {
             <Text style={styles.buttonText}>{submitting ? t('login.submitting') : t('login.submit')}</Text>
           </Pressable>
 
+          <Pressable accessibilityRole="link" onPress={() => router.push('/register')} style={styles.linkButton}>
+            <Text style={styles.link}>{t('login.toRegister')}</Text>
+          </Pressable>
+
           <Text style={styles.hint}>{t('login.invited')}</Text>
         </View>
       </ScrollView>
@@ -170,5 +175,7 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  linkButton: { minHeight: 44, justifyContent: 'center', alignItems: 'center' },
+  link: { fontSize: 14, color: '#555' },
   hint: { fontSize: 13, color: '#777', textAlign: 'center' },
 });

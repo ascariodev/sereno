@@ -4,7 +4,8 @@
   },
   "common": {
     "localeSaveFailed": "Could not save your language. It was applied on this device only.",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "loading": "Loading..."
   },
   "login": {
     "subtitle": "Sign in to see your projects' channels.",
@@ -16,6 +17,25 @@
     "submitting": "Signing in...",
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "network": "Could not reach the server.",
-    "failed": "Could not sign in. Try again."
+    "failed": "Could not sign in. Try again.",
+    "toRegister": "Create an account"
+  },
+  "register": {
+    "title": "Create account",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "passwordConfirmation": "Confirm password",
+    "submit": "Create account",
+    "submitting": "Creating account...",
+    "haveAccount": "Already have an account? Sign in",
+    "closed": "Registration is closed, ask for an invitation.",
+    "toLogin": "Go to sign in",
+    "statusError": "We couldn't check whether registration is open. Try again.",
+    "retry": "Retry",
+    "closedError": "Registration is closed, ask for an invitation.",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not create the account. Try again."
   }
 }
