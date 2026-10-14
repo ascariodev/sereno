@@ -79,6 +79,11 @@ class User extends Authenticatable implements HasLocalePreference
         return $this->hasMany(AppNotification::class);
     }
 
+    public function expoPushTokens(): HasMany
+    {
+        return $this->hasMany(ExpoPushToken::class);
+    }
+
     public function pushSubscriptions(): HasMany
     {
         return $this->hasMany(PushSubscription::class);

@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -29,7 +29,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 
 ### Bloque A: push móvil en el API
 
-### [ ] Fase 1 — Tabla y modelo de tokens de Expo
+### [x] Fase 1 — Tabla y modelo de tokens de Expo
 - **Alcance:** migración `expo_push_tokens`: `user_id` (FK `cascadeOnDelete`, índice), `personal_access_token_id` (FK
   `cascadeOnDelete`: cerrar sesión borra el token del dispositivo), `token` string único (`ExponentPushToken[...]`),
   `platform` (CHECK `expo_push_tokens_platform_check`: `android|ios`), `device_name` nullable, `last_used_at` nullable,
@@ -258,7 +258,9 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Aceptar invitaciones sigue en la web (no hay deep links de `sereno.ascario.dev` en esta versión).
 
 ## Notas para la próxima sesión
-- Plan recién creado. Empezar por la fase 1 (API).
+- Fase 1 hecha: tabla `expo_push_tokens`, modelo `ExpoPushToken` (Fillable: token, platform, device_name, last_used_at; `user_id` y
+  `personal_access_token_id` se asignan por propiedad, no por mass assignment), `User::expoPushTokens()`, factory que crea un
+  access token real. En la fase 2 hay que comprobar que el access token sea del usuario autenticado (`currentAccessToken()`).
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
