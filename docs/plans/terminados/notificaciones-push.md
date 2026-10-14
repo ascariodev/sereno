@@ -222,15 +222,15 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - [x] M-20 (baja, sonnet): `push.spec.ts` "unsupported without PushManager": simplificar a `delete window.PushManager`.
 - [x] M-21 (media, sonnet): una sesión que caduca por 401 (`clearSession`) deja la suscripción ligada al usuario anterior;
   desuscribir el navegador al limpiar la sesión (sin token no se puede borrar en el API: queda hasta 404/410 o la próxima alta).
-- [ ] M-22 (baja, sonnet): `NotificationPreferencesDialog`: revisar el nivel del `<h3>` "Este dispositivo" frente al
+- [x] M-22 (baja, sonnet): `NotificationPreferencesDialog`: revisar el nivel del `<h3>` "Este dispositivo" frente al
   título que renderiza `AppDialog`.
-- [ ] M-23 (baja, sonnet): `NotificationPreferencesDialog`: mostrar el error de guardado junto al switch afectado en vez de
+- [x] M-23 (baja, sonnet): `NotificationPreferencesDialog`: mostrar el error de guardado junto al switch afectado en vez de
   bajo la tabla.
-- [ ] M-24 (baja, sonnet): `NotificationPreferencesDialog`: aviso cuando el usuario cierra el prompt de permiso y
+- [x] M-24 (baja, sonnet): `NotificationPreferencesDialog`: aviso cuando el usuario cierra el prompt de permiso y
   `enablePush` vuelve `inactive` (hoy no hay feedback).
-- [ ] M-25 (baja, sonnet): `.gitea/workflows/deploy-api.yml` avisa con `::warning::` si falta `MAIL_MAILER`; agregar un aviso
+- [x] M-25 (baja, sonnet): `.gitea/workflows/deploy-api.yml` avisa con `::warning::` si falta `MAIL_MAILER`; agregar un aviso
   análogo si faltan `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` o `VAPID_SUBJECT` en el `.env` del servidor.
-- [ ] M-26 (media, sonnet): si `pushManager.subscribe()` falla en el navegador (p. ej. Brave sin el servicio de push de
+- [x] M-26 (media, sonnet): si `pushManager.subscribe()` falla en el navegador (p. ej. Brave sin el servicio de push de
   Google), el diálogo muestra el mensaje genérico; distinguir ese caso con un texto que oriente a revisar el navegador.
 - [ ] M-27 (media, sonnet): verificar el push en Safari/WebKit (exige mostrar una notificación por cada push y revoca la
   suscripción tras push silenciosos); si aplica, mostrar siempre en Safari aunque Sereno esté enfocado.

@@ -43,6 +43,14 @@ jobs:
           if [ -z "$mail_mailer" ] || [ "$mail_mailer" = log ]; then
             echo "::warning::MAIL_MAILER falta o vale 'log' en $HOST_DIR/.env: el correo no se envía (ver api/docker-compose.prod.yml)"
           fi
+          # Solo se leen las claves VAPID; sin ellas el API responde 503 al activar el push.
+          for vapid_key in VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT; do
+            vapid_value=$(grep -E "^[[:space:]]*(export[[:space:]]+)?${vapid_key}[[:space:]]*=" "$SERVER_DIR/.env" | tail -n 1 \
+              | tr -d '\r' | sed -E 's/^[^=]*=//; s/[[:space:]]#.*$//' | tr -d "\"' \t" || true)
+            if [ -z "$vapid_value" ]; then
+              echo "::warning::$vapid_key falta en $HOST_DIR/.env: las notificaciones push no funcionan (ver api/docker-compose.prod.yml)"
+            fi
+          done
 
       - name: Obtener el código
         uses: actions/checkout@v4

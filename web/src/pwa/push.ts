@@ -3,6 +3,13 @@ import type { PushContentEncoding } from '../api/types'
 
 export type PushState = 'unsupported' | 'blocked' | 'active' | 'inactive'
 
+export class PushSubscribeError extends Error {
+  constructor(cause: unknown) {
+    super('The browser could not create the push subscription', { cause })
+    this.name = 'PushSubscribeError'
+  }
+}
+
 export const LOGOUT_PUSH_TIMEOUT = 3000
 const READY_TIMEOUT = 10000
 
@@ -82,7 +89,9 @@ export async function enablePush(): Promise<PushState> {
     subscription = null
   }
   if (startedAt !== generation) return 'inactive'
-  subscription ??= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key })
+  subscription ??= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }).catch((error: unknown) => {
+    throw new PushSubscribeError(error)
+  })
   if (startedAt !== generation) {
     await subscription.unsubscribe().catch(() => {})
     return 'inactive'

@@ -3,10 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import { api, ApiError } from '../api/client'
 import { i18n, setLocale } from '../i18n'
-import { disablePush, enablePush, getPushState, type PushState } from '../pwa/push'
+import { disablePush, enablePush, getPushState, PushSubscribeError, type PushState } from '../pwa/push'
 import NotificationPreferencesDialog from './NotificationPreferencesDialog.vue'
 
-vi.mock('../pwa/push', () => ({ getPushState: vi.fn(), enablePush: vi.fn(), disablePush: vi.fn() }))
+vi.mock('../pwa/push', async (importOriginal) => ({
+  PushSubscribeError: (await importOriginal<typeof import('../pwa/push')>()).PushSubscribeError,
+  getPushState: vi.fn(),
+  enablePush: vi.fn(),
+  disablePush: vi.fn(),
+}))
 
 let wrapper: VueWrapper | undefined
 
@@ -199,6 +204,8 @@ describe('NotificationPreferencesDialog', () => {
     expect(input.getAttribute('aria-invalid')).toBe('true')
     const errorId = input.getAttribute('aria-describedby')!
     expect(document.getElementById(errorId)?.textContent).toContain('Could not save the change for "Someone comments on my task" (Push)')
+    expect(input.closest('tr')!.nextElementSibling).toBe(document.getElementById(errorId)!.closest('tr'))
+    expect(document.getElementById(errorId)!.closest('table')).not.toBeNull()
     expect(switchFor('task_commented').getAttribute('aria-describedby')).toBeNull()
     expect(switchFor('task_assigned', 'push').getAttribute('aria-describedby')).toBeNull()
     expect(input.getAttribute('aria-disabled')).toBeNull()
@@ -311,6 +318,56 @@ describe('NotificationPreferencesDialog', () => {
       await settle()
       expect(disablePush).toHaveBeenCalledTimes(1)
       expect(status()).toContain('are off for this device')
+      expect(document.querySelector('[data-test=device-notice]')).toBeNull()
+    })
+
+    it('shows a notice when the permission prompt is dismissed', async () => {
+      vi.mocked(enablePush).mockResolvedValue('inactive')
+      mountDialog()
+      await settle()
+      deviceButton()!.click()
+      await settle()
+      expect(document.querySelector('[data-test=device-notice]')!.textContent).toContain('closed the permission prompt')
+      expect(deviceButton()!.getAttribute('aria-describedby')).toContain('notification-preferences-device-notice')
+      expect(document.querySelector('[data-test=device-error]')).toBeNull()
+    })
+
+    it('does not show the dismissed notice on a normal flow', async () => {
+      vi.mocked(enablePush).mockResolvedValue('active')
+      mountDialog()
+      await settle()
+      deviceButton()!.click()
+      await settle()
+      expect(document.querySelector('[data-test=device-notice]')).toBeNull()
+      expect(deviceButton()!.getAttribute('aria-describedby')).toBe('notification-preferences-device-status')
+    })
+
+    it('clears the dismissed notice when turning push off', async () => {
+      vi.mocked(enablePush).mockResolvedValue('inactive')
+      mountDialog()
+      await settle()
+      deviceButton()!.click()
+      await settle()
+      vi.mocked(enablePush).mockResolvedValue('active')
+      deviceButton()!.click()
+      await settle()
+      expect(document.querySelector('[data-test=device-notice]')).toBeNull()
+    })
+
+    it('points to the browser when it cannot create the subscription', async () => {
+      vi.mocked(enablePush).mockRejectedValue(new PushSubscribeError(new Error('push service error')))
+      mountDialog()
+      await settle()
+      deviceButton()!.click()
+      await settle()
+      expect(document.querySelector('[data-test=device-error]')!.textContent).toContain('Your browser could not set up push')
+    })
+
+    it('renders the device section under the dialog title with a lower heading level', async () => {
+      mountDialog()
+      await settle()
+      expect(document.querySelector('h2')!.textContent).toContain('Notifications')
+      expect(document.querySelector('[data-test=device] h3')!.textContent).toContain('This device')
     })
 
     it('moves to blocked when the permission is denied', async () => {

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, api } from '../api/client'
-import { disablePush, dropPushOnSessionExpired, enablePush, getPushState, releasePushOnLogout, urlBase64ToUint8Array } from './push'
+import { disablePush, dropPushOnSessionExpired, enablePush, getPushState, PushSubscribeError, releasePushOnLogout, urlBase64ToUint8Array } from './push'
 
 const KEY_B64URL = 'AQID-_8'
 const KEY_BYTES = urlBase64ToUint8Array(KEY_B64URL)
@@ -180,6 +180,16 @@ describe('enablePush', () => {
     vi.mocked(api.post).mockRejectedValue(new ApiError(500, 'boom'))
     await expect(enablePush()).rejects.toBeInstanceOf(ApiError)
     expect(subscribed.unsubscribe).toHaveBeenCalledOnce()
+  })
+
+  it('wraps a browser subscribe failure apart from API errors', async () => {
+    setup({ permission: 'granted' })
+    const failure = new DOMException('Registration failed', 'AbortError')
+    registration!.pushManager.subscribe.mockRejectedValue(failure)
+    const error = await enablePush().catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(PushSubscribeError)
+    expect((error as PushSubscribeError).cause).toBe(failure)
+    expect(api.post).not.toHaveBeenCalled()
   })
 
   it('propagates a 503 for the VAPID key without subscribing', async () => {
