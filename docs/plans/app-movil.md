@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -44,7 +44,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   `DELETE /api/me/expo-push-tokens` (por `token`, solo los propios). Controlador, Form Request, rutas, `lang/*.json`.
 - **Terminado cuando:** test de API: alta, re-alta desde otra sesión mueve el token, borrar ajeno no borra, 401 sin auth.
 
-### [ ] Fase 3 — Emisor de Expo push [riesgo]
+### [x] Fase 3 — Emisor de Expo push [riesgo]
 - **Alcance:** `ExpoPushSender` (HTTP al servicio de push de Expo, lotes, `DeviceNotRegistered` → expirado, errores de
   red → reintento) con su propia interfaz o generalizando `PushSender`; verificar la API de Expo en su documentación
   antes de escribirlo. Token de acceso de Expo opcional por config (`EXPO_ACCESS_TOKEN`).
@@ -258,13 +258,19 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Aceptar invitaciones sigue en la web (no hay deep links de `sereno.ascario.dev` en esta versión).
 
 ## Notas para la próxima sesión
-- Fase 2 hecha: `POST` y `DELETE /api/me/expo-push-tokens` (`ExpoPushTokenController`). POST responde 201 al crear y 200 al
-  re-registrar, `{data:{id,token,platform,device_name}}`; formato `ExponentPushToken[...]`/`ExpoPushToken[...]`. DELETE lee `token`
-  por query (la app móvil hace igual que la web) o body; token ajeno o inexistente da el mismo 404. Modelo: `user_id` y
-  `personal_access_token_id` por propiedad. En tests de dos requests seguidos con tokens distintos hace falta
-  `$this->app['auth']->forgetGuards()`.
+- Fase 3 hecha: interfaz propia `MobilePushSender::send(iterable<ExpoPushToken>, array{title, body, data?}): array<tokenId, outcome>`
+  con las constantes de `PushSender` (SENT, EXPIRED, FAILED, REJECTED); `ExpoPushSender` la implementa y está bindeado en
+  `AppServiceProvider` junto al bind de `PushSender` (que no cambió). Config `workspace.push.expo_access_token`
+  (`EXPO_ACCESS_TOKEN`, opcional). Verificado en docs.expo.dev: lotes de 100, tickets en orden, 4096 bytes por payload,
+  `DeviceNotRegistered` es EXPIRED. En la fase 4: acotar `{title, body, data}` a 4096 bytes (el `MAX_BYTES` de `PushPayload` es
+  3000, de Web Push) y reintentar solo los tokens FAILED, no el lote entero.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
 - [ ] M-1: Tests de `ExpoPushTokenApiTest` para la rama 403 con token transitorio y para `device_name` nulo y `max:255`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-2: Consultar los recibos de Expo (`/push/getReceipts`, a los ~15 min) guardando los ids de ticket, para purgar tokens
+      con `DeviceNotRegistered` que el ticket no reporta. Sin esto los tokens muertos se purgan poco.
+      Complejidad: alta · Archivos: 5+ (migración, job programado, emisor) · Riesgo: BD → plan nuevo
+- [ ] M-3: `ExpoPushSender`: tratar un ticket ausente (200 truncado) como FAILED y no REJECTED; test de `MismatchSenderId`.
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

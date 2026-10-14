@@ -6,6 +6,8 @@ use App\Http\Middleware\AuthenticateLogSource;
 use App\Models\User;
 use App\Policies\MemberPolicy;
 use App\Support\CurrentOrganization;
+use App\Support\ExpoPushSender;
+use App\Support\MobilePushSender;
 use App\Support\PushSender;
 use App\Support\WebPushSender;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -45,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(CurrentOrganization::class);
         $this->app->bind(PushSender::class, WebPushSender::class);
+        $this->app->bind(MobilePushSender::class, ExpoPushSender::class);
     }
 
     /**
