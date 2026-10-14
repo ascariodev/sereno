@@ -154,6 +154,16 @@
       "open": "abierto",
       "resolved": "resuelto",
       "ignored": "ignorado"
+    },
+    "taskChip": "Tarea {{key}}",
+    "actions": {
+      "resolve": "Resolver",
+      "ignore": "Ignorar",
+      "forbidden": "No tienes permiso para cambiar este grupo de logs.",
+      "failed": "No se pudo actualizar el grupo de logs.",
+      "marked": "Marcado como {{status}}",
+      "taskExists": "Este grupo de logs ya tiene una tarea: {{key}}.",
+      "taskExistsFailed": "No se encontró la tarea existente de este grupo de logs."
     }
   },
   "thread": {
@@ -210,5 +220,26 @@
     "tooMany": "Puedes adjuntar hasta {{max}} archivos por mensaje.",
     "failed": "No se pudo subir el archivo.",
     "rateLimited": "Estás subiendo demasiado rápido. Inténtalo de nuevo en un momento."
+  },
+  "logGroup": {
+    "levelLabel": "Nivel",
+    "events": "Eventos",
+    "createTask": "Crear tarea"
+  },
+  "taskCreate": {
+    "title": "Nueva tarea",
+    "titleLabel": "Título",
+    "descriptionLabel": "Descripción",
+    "titleRequired": "Escribe un título.",
+    "titleTooLong": "El título no puede superar {{max}} caracteres.",
+    "descriptionTooLong": "La descripción no puede superar {{max}} caracteres.",
+    "submit": "Crear tarea",
+    "creating": "Creando...",
+    "cancel": "Cancelar",
+    "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "failed": "No se pudo crear la tarea. Inténtalo de nuevo.",
+    "assigneeLabel": "Asignada a",
+    "unassigned": "Sin asignar"
   }
 }

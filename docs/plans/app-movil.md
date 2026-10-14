@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 26
+**Estado:** en curso · Fase actual: 27
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -160,7 +160,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** elegir foto o archivo y subir multipart a `POST /channels/{c}/attachments` antes de enviar.
 - **Terminado cuando:** test del flujo y subida real desde el teléfono.
 
-### [ ] Fase 26 — Acciones de los avisos de log
+### [x] Fase 26 — Acciones de los avisos de log
 - **Alcance:** resolver, ignorar y crear tarea desde un aviso, como la web.
 - **Terminado cuando:** tests de cada acción.
 
@@ -279,19 +279,22 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   texto plano con chips de mención); solo en tareas y comentarios (`MarkdownContent.vue`). La app hace lo mismo: el chat
   usa `MessageBody` con menciones y la fase 17 deja además `MarkdownContent` RN (markdown-it) para las fases 34 y 36.
 - 2026-10-14 — Fase 23 dividida en 23a (contadores y resumen en el canal) y 23b (pantalla de hilo): pasaba de ~8 archivos.
+- 2026-10-14 — Fase 26: el estado del grupo (`messages/logGroups.ts`) no porta `forgetGroupTask` ni
+  `taskWrittenAt`/`dropGroupTaskNotWrittenSince` (sin store de tareas ni hourly counts); un aviso viejo puede ofrecer
+  "Crear tarea" y el 422 `log_group_id` lo resuelve. La fase 33 enlaza el chip a la tarea y suma `forgetGroupTask`.
 
 ## Notas para la próxima sesión
+- Fase 26 hecha: `messages/logGroups.ts` (port de `useLogGroupStatuses`, suscrito a `useMessagesStore`, se resetea al
+  cambiar de canal; llamadas al API), `components/TaskCreateModal.tsx` (título y descripción precargados, asignado con
+  `useMemberDirectoryStore`, 422/429/red) y botones Resolver, Ignorar y Crear tarea en `SystemNotice` (el proyecto sale de
+  `channelByProject`; sin filtro por rol, como la web; crear tarea oculto en proyecto archivado). El chip de la tarea es
+  texto: la fase 33 lo enlaza (ver Decisiones). En los tests de RNTL usar `await act(async ...)` y `await fireEvent`.
 - Fase 25 hecha salvo la prueba real: `messages/useAttachmentUploads.ts` (port de `useAttachmentUploads.ts`: 5 MB y 10 por
   mensaje, cancelar con `AbortController` y generación, 422/413/429/5xx/red, descarta todo al dejar el canal) y botón "+"
   del compositor (galería con expo-image-picker ~57.0.20, archivos con expo-document-picker ~57.0.3; plugin en `app.json`
   con cámara y micrófono desactivados). `send(body, attachmentIds)` en canal e hilo. El hook solo sube a canales: la fase
   37 debe aceptar otro destino (`target` en la web). **Pendiente**: subir de verdad desde el teléfono (picker, multipart en
   Android, archivos sin tamaño) y revisar el AndroidManifest generado sin permisos de almacenamiento; junto con la fase 30.
-- Fase 24 hecha (y M-31): `components/MessageAttachments.tsx` en `MessageRow` (canal e hilo) y `messages/attachments.ts`
-  (`getAttachmentUrl`, `formatFileSize`). Como `MessageAttachments.vue`: miniatura con la URL guardada, una sola renovación
-  por URL vencida y luego fila de archivo; al tocar se pide URL fresca y se abre con `Linking.openURL`, solo si es http(s)
-  (L-88). `Message.attachments` es opcional en el tipo. Mensajes borrados o en edición no muestran adjuntos. La fase 25
-  sube adjuntos; las 34 y 36 reutilizan `MessageAttachments`.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -345,3 +348,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-32: `threadStore.catchUp` relanza errores que no son `ApiError`/`AbortError` y se llama con `void`: tragarlos como la web para evitar rechazos sin capturar. Complejidad baja, sonnet.
 - [ ] M-33: Conservar el borrador de la respuesta del hilo entre aperturas de la misma raíz (`draft` de la web) y usar selectores en `thread.tsx`. Complejidad baja, sonnet.
 - [ ] M-34: Un 422 de `attachment_ids` al enviar muestra el mensaje genérico: mostrar `errors.attachment_ids[0]`; test directo de `attachment_ids` en `send` del store del canal. Complejidad baja, sonnet.
+- [ ] M-35: `TaskCreateModal`: lista de miembros en un `ScrollView` con altura máxima y comprobar en el teléfono que el teclado no tapa el modal. Complejidad baja, sonnet.

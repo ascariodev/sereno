@@ -154,6 +154,16 @@
       "open": "open",
       "resolved": "resolved",
       "ignored": "ignored"
+    },
+    "taskChip": "Task {{key}}",
+    "actions": {
+      "resolve": "Resolve",
+      "ignore": "Ignore",
+      "forbidden": "You are not allowed to change this log group.",
+      "failed": "Could not update the log group.",
+      "marked": "Marked as {{status}}",
+      "taskExists": "A task for this log group already exists: {{key}}.",
+      "taskExistsFailed": "Could not find the existing task for this log group."
     }
   },
   "thread": {
@@ -210,5 +220,26 @@
     "tooMany": "You can attach up to {{max}} files per message.",
     "failed": "Could not upload the file.",
     "rateLimited": "You are uploading too fast. Try again in a moment."
+  },
+  "logGroup": {
+    "levelLabel": "Level",
+    "events": "Events",
+    "createTask": "Create task"
+  },
+  "taskCreate": {
+    "title": "New task",
+    "titleLabel": "Title",
+    "descriptionLabel": "Description",
+    "titleRequired": "Enter a title.",
+    "titleTooLong": "The title cannot exceed {{max}} characters.",
+    "descriptionTooLong": "The description cannot exceed {{max}} characters.",
+    "submit": "Create task",
+    "creating": "Creating...",
+    "cancel": "Cancel",
+    "tooManyAttempts": "Too many attempts. Try again in a minute.",
+    "network": "Could not reach the server.",
+    "failed": "Could not create the task. Try again.",
+    "assigneeLabel": "Assignee",
+    "unassigned": "Unassigned"
   }
 }
