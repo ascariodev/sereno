@@ -9,6 +9,7 @@ import {
   parseNotification,
 } from '../api/notifications'
 import type { AppNotification } from '../api/types'
+import { notifyDesktop } from '../platform/desktopNotifications'
 import { type NotificationCreatedPayload, onReconnect, subscribeToUser } from '../realtime/echo'
 import { useOrganizationStore } from './organization'
 
@@ -248,6 +249,8 @@ export const useNotificationsStore = defineStore('notifications', () => {
     liveArrivals.set(incoming.id, ++liveSequence)
     notifications.value = mergeNotifications(notifications.value, [incoming])
     if (incoming.read_at === null) setUnread(unreadCount.value + 1)
+    const current = generation
+    void notifyDesktop(incoming, payload.organizationId, () => (current === generation ? organization.activeId : null))
   }
 
   /** Subscribes to `notification.created` in the user channel and refreshes on reconnect; call `stop()` on logout or unmount. */

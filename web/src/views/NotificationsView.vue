@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import type { AppNotification } from '../api/types'
 import { useSharedNow } from '../composables/useSharedNow'
+import { notificationBody as body, notificationTitle as title } from '../notificationText'
 import { useNotificationsStore } from '../stores/notifications'
 
 const { t, locale } = useI18n()
@@ -52,35 +53,6 @@ function target(notification: AppNotification): RouteLocationRaw | null {
 
 function actorName(notification: AppNotification): string | null {
   return notification.type === 'unknown' ? null : notification.data.actor_name
-}
-
-function title(notification: AppNotification): string {
-  switch (notification.type) {
-    case 'task_assigned':
-      return t('notifications.taskAssigned', { name: notification.data.actor_name, task: notification.data.task_key })
-    case 'task_comment_mention':
-      return t('notifications.taskCommentMention', { name: notification.data.actor_name, task: notification.data.task_key })
-    case 'task_commented':
-      return t('notifications.taskCommented', { name: notification.data.actor_name, task: notification.data.task_key })
-    case 'chat_mention':
-      return t('notifications.chatMention', { name: notification.data.actor_name, channel: notification.data.channel_name })
-    default:
-      return t('notifications.unknown')
-  }
-}
-
-function body(notification: AppNotification): string | null {
-  switch (notification.type) {
-    case 'task_assigned':
-      return notification.data.task_title
-    case 'task_comment_mention':
-    case 'task_commented':
-      return notification.data.comment_excerpt
-    case 'chat_mention':
-      return notification.data.message_excerpt
-    default:
-      return null
-  }
 }
 
 const initial = (notification: AppNotification) => (actorName(notification) ?? '?').trim().charAt(0).toUpperCase() || '?'

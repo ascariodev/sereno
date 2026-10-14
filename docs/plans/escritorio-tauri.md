@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -81,7 +81,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - **Terminado cuando:** revisión manual: cerrar, recibir un mensaje en vivo con la ventana oculta (visible al reabrir),
   Salir cierra del todo, segundo arranque enfoca la ventana.
 
-### [ ] Fase 8 — Avisos nativos de las notificaciones [riesgo]
+### [x] Fase 8 — Avisos nativos de las notificaciones [riesgo]
 - **Alcance:** plugin `notification`. En escritorio, cada notificación nueva que llega por Reverb muestra un aviso
   nativo si la ventana no está enfocada (oculta, minimizada o sin foco) y si la preferencia `push` de su tipo está
   activa. Título y cuerpo con los mismos textos de la bandeja in-app. Pide el permiso del sistema la primera vez.
@@ -168,11 +168,19 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   Sereno", "Quit"): seguir el idioma exige otra dependencia (`sys-locale`). Clic izquierdo muestra la ventana; el menú sale
   con clic derecho. `backgroundThrottling` no tiene efecto en Windows (wry 0.57 solo lo aplica en macOS) y `window.hide()`
   no marca el WebView2 como invisible.
+- 2026-10-13 — Fase 8: `tauri-plugin-notification` 2.6.0 con solo `allow-is-permission-granted`, `allow-request-permission`
+  y `allow-notify`; el estado de la ventana entra en `core:default`. `notifyDesktop(notification, organizationId,
+  activeOrganizationId: () => number | null)` se llama al final de `onNotificationCreated`; la función se reevalúa tras cada
+  `await` y el store la anula al cambiar de generación (logout, cambio de organización). Sin aviso para `unknown` ni ya
+  leídas. Preferencias por `GET /api/me/notification-preferences` en cada aviso con la ventana sin foco (sin caché). Permiso
+  pedido una vez por sesión. Títulos y cuerpos de la bandeja in-app movidos a `web/src/notificationText.ts`.
 - 2026-10-13 — Fase 2: `src-tauri/target` y `gen/` los ignora el `.gitignore` que genera Tauri en `web/src-tauri/`; no se
   tocó `web/.gitignore`. `beforeDevCommand` vacío (Vite corre en Docker). Sin iconos android/ios (el móvil va con Expo).
   Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
 
 ## Notas para la próxima sesión
+- Fase 8: revisión manual pendiente: asignarse una tarea con la ventana oculta muestra el aviso de Windows. Una ronda de
+  corrección: faltaba el spec del cableado en el store y el guard de generación tras los `await` (L-50, L-10, L-32).
 - Fase 7: revisión manual pendiente: icono en la bandeja, Quit cierra del todo, y con la ventana oculta más de 1-2 minutos
   un mensaje enviado desde otro cliente aparece al reabrir sin recargar. Si no llega (Chromium estrangula por oclusión),
   plan B: `additional_browser_args` con `--disable-features=CalculateNativeWinOcclusion` en la ventana (decisión nueva).
@@ -228,4 +236,9 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - [ ] M-15: Clic izquierdo en la bandeja alterna ocultar y mostrar si la ventana ya está visible y enfocada.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-16: `log::warn!` en vez de `let _` para los errores de `show`, `unminimize` y `set_focus` en `lib.rs`.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-17: Cachear unos segundos las preferencias de notificación en `desktopNotifications.ts` (invalidando al guardarlas),
+      para no hacer un GET por aviso en ráfagas.
+      Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
+- [ ] M-18: Spec propio del guard de sesión justo antes de `sendNotification` (tras `ensurePermission`).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku

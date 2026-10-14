@@ -8,6 +8,9 @@ import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import { useNotificationsStore } from './notifications'
 import { useOrganizationStore } from './organization'
 
+const notifyDesktop = vi.hoisted(() => vi.fn())
+vi.mock('../platform/desktopNotifications', () => ({ notifyDesktop }))
+
 const rawRow = (id: number, read = false) => ({
   id,
   type: 'task_assigned',
@@ -406,6 +409,42 @@ describe('notifications store', () => {
       emit({ organization_id: 1, notification: { id: 'x' } })
       expect(store.notifications.map((n) => n.id)).toEqual([1])
       expect(store.unreadCount).toBe(1)
+    })
+
+    it('hands a new live row to the desktop notifier, with a getter of the active organization', async () => {
+      notifyDesktop.mockClear()
+      vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValue(page([notification(1)], 1))
+      const { listeners, store } = startLive()
+      await vi.waitFor(() => expect(store.loaded).toBe(true))
+      emitter(listeners)(live(1, 2))
+      expect(notifyDesktop).toHaveBeenCalledTimes(1)
+      const [row, organizationId, activeOrganizationId] = notifyDesktop.mock.calls[0]
+      expect(row).toEqual(notification(2))
+      expect(organizationId).toBe(1)
+      expect(activeOrganizationId()).toBe(1)
+    })
+
+    it('does not hand a repeated live row nor one of another organization to the desktop notifier', async () => {
+      notifyDesktop.mockClear()
+      vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValue(page([notification(1)], 1))
+      const { listeners, store } = startLive()
+      await vi.waitFor(() => expect(store.loaded).toBe(true))
+      const emit = emitter(listeners)
+      emit(live(1, 1))
+      emit(live(2, 3))
+      expect(notifyDesktop).not.toHaveBeenCalled()
+    })
+
+    it('the getter handed to the desktop notifier returns null once the store is cleared', async () => {
+      notifyDesktop.mockClear()
+      vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValue(page([], 0))
+      const { listeners, organization, store } = startLive()
+      await vi.waitFor(() => expect(store.loaded).toBe(true))
+      emitter(listeners)(live(1, 2))
+      const activeOrganizationId = notifyDesktop.mock.calls[0][2] as () => number | null
+      organization.$patch({ activeId: 2 })
+      organization.$patch({ activeId: 1 })
+      expect(activeOrganizationId()).toBeNull()
     })
 
     it('keeps an unknown type as the generic variant', async () => {

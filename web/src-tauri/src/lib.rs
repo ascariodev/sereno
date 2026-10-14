@@ -54,6 +54,7 @@ pub fn run() {
       show_main_window(app);
     }))
     .plugin(tauri_plugin_opener::init())
+    .plugin(tauri_plugin_notification::init())
     .on_window_event(|window, event| {
       if let WindowEvent::CloseRequested { api, .. } = event
         && window.label() == MAIN_WINDOW
