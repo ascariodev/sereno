@@ -108,6 +108,7 @@
     "empty": "Aún no hay mensajes.",
     "deleted": "Este mensaje fue eliminado.",
     "unknownUser": "Desconocido",
+    "unknownMention": "usuario",
     "notice": "Aviso",
     "invalid": "Este canal no existe.",
     "loadFailed": "No se pudieron cargar los mensajes.",

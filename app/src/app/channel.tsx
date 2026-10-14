@@ -3,7 +3,9 @@ import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { MessageBody } from '@/components/MessageBody';
 import { type Message, useMessagesStore } from '@/messages/store';
+import { useAuthStore } from '@/session/auth';
 
 function noticeText(message: Message): string {
   const title = message.payload?.title;
@@ -14,6 +16,7 @@ function MessageRow({ message }: { message: Message }) {
   const { t } = useTranslation();
   const deleted = message.deleted_at !== null;
   const system = message.kind === 'system';
+  const ownUserId = useAuthStore((state) => state.user?.id);
 
   return (
     <View style={styles.message}>
@@ -26,7 +29,11 @@ function MessageRow({ message }: { message: Message }) {
       {deleted ? (
         <Text style={styles.deleted}>{t('channel.deleted')}</Text>
       ) : (
-        <Text style={styles.body}>{system ? noticeText(message) : message.body}</Text>
+        system ? (
+          <Text style={styles.body}>{noticeText(message)}</Text>
+        ) : (
+          <MessageBody body={message.body} mentions={message.mentions} ownUserId={ownUserId} style={styles.body} />
+        )
       )}
     </View>
   );

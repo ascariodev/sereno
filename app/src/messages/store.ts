@@ -12,6 +12,7 @@ export interface Message {
   payload: { type?: string; title?: string } | null
   parent_id: number | null
   user: { id: number; name: string } | null
+  mentions: { id: number; name: string }[]
   created_at: string
   edited_at: string | null
   deleted_at: string | null

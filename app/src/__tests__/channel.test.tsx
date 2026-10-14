@@ -34,6 +34,7 @@ function message(id: number, extra: Record<string, unknown> = {}) {
     payload: null,
     parent_id: null,
     user: { id: 1, name: 'Ana' },
+    mentions: [],
     created_at: '2026-01-01T00:00:00Z',
     edited_at: null,
     deleted_at: null,
@@ -83,7 +84,7 @@ describe('Channel screen', () => {
     globalThis.fetch = jest.fn(async () =>
       json({
         data: [
-          message(3, { body: '**raw**' }),
+          message(3, { body: '**raw** <@7>', mentions: [{ id: 7, name: 'Bea' }] }),
           message(2, { body: null, deleted_at: '2026-01-02T00:00:00Z' }),
           message(1, { kind: 'system', body: 'fallback', payload: { type: 'log.group_opened', title: 'DB down' } }),
         ],
@@ -92,7 +93,8 @@ describe('Channel screen', () => {
     ) as never;
     await render(<Channel />);
 
-    expect(await screen.findByText('**raw**')).toBeOnTheScreen();
+    expect(await screen.findByText('**raw** @Bea')).toBeOnTheScreen();
+    expect(screen.getByTestId('mention')).toBeOnTheScreen();
     expect(screen.getByText('Acme API')).toBeOnTheScreen();
     expect(screen.getByText('This message was deleted.')).toBeOnTheScreen();
     expect(screen.getByText('DB down')).toBeOnTheScreen();

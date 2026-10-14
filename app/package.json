@@ -22,6 +22,7 @@
     "expo-web-browser": "~57.0.3",
     "i18next": "^26.4.5",
     "laravel-echo": "^2.6.1",
+    "markdown-it": "^15.0.2",
     "pusher-js": "^8.6.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",

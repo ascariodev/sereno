@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 17
+**Estado:** en curso · Fase actual: 18
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -117,7 +117,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** pantalla del canal con paginación por cursor hacia atrás y mensajes de usuario en texto plano.
 - **Terminado cuando:** test de carga y paginación.
 
-### [ ] Fase 17 — Formato de mensajes [riesgo]
+### [x] Fase 17 — Formato de mensajes [riesgo]
 - **Alcance:** markdown y menciones (`web/src/mentionToken.ts`) en React Native con una librería verificada; enlaces abren
   el navegador.
 - **Terminado cuando:** tests de render (negrita, código, enlace, mención).
@@ -269,22 +269,23 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Fase 15: `pusher-js/react-native` exige `@react-native-community/netinfo` (12.0.1, vía `npx expo install`);
   se acepta como dependencia. `refreshCounts` se porta en las fases 21 y 39; `useMembershipWatch` de la web (revocación,
   cambio de rol) no está en ninguna fase y queda como mejora.
+- 2026-10-14 — Fase 17 (por la elección "Paridad con la web"): la web no renderiza markdown en el chat (`MessageBody.vue`:
+  texto plano con chips de mención); solo en tareas y comentarios (`MarkdownContent.vue`). La app hace lo mismo: el chat
+  usa `MessageBody` con menciones y la fase 17 deja además `MarkdownContent` RN (markdown-it) para las fases 34 y 36.
 
 ## Notas para la próxima sesión
+- Fase 17 hecha (ver Decisiones): `app/src/mentionToken.ts` (port de `splitMentions`/`mentionToken`; falta
+  `parseMentionDraft`, para el composer) y `app/src/components/MessageBody.tsx` (texto plano con chips de mención), usado
+  en los mensajes de usuario de `channel.tsx`. `app/src/markdown/parseMarkdown.ts` + `MarkdownContent.tsx` (markdown-it
+  ^15, mismas reglas que `web/src/markdown/renderMarkdown.ts`; árbol de tokens a componentes RN; enlaces solo
+  http/https/mailto con `Linking.openURL`; imágenes no se pintan; casillas con `interactive` y `onToggle(line)`): aún sin
+  uso, lo conectan las fases 34 y 36. Hay un aviso de `act(...)` de `loadOlder` en `channel.test`.
 - Fase 16 hecha: `app/src/messages/store.ts` (zustand: `open`, `loadOlder` por cursor con `per_page=50`, generación,
   `clear`; orden por id ascendente) y `app/src/app/channel.tsx` (FlatList invertida, params `id` y `name`; id inválido
   muestra error sin fetch). El API ya devuelve solo raíces; se muestran todos los mensajes: los `system` en texto plano
   (`payload.title` o `body`, etiqueta Aviso) hasta que la fase 18 haga el render completo (ampliar el tipo `payload` según
   `web/src/api/types.ts`). La tarjeta del proyecto tiene "Abrir canal" si existe `channelByProject[id]`. Sin live,
   catchUp, borrados ni `around`/`hasNewer` (fases de tiempo real del chat); el store aún no deduplica.
-- Fase 15 hecha: `app/src/realtime/echo.ts` porta `web/src/realtime/echo.ts` (canales con conteo de referencias,
-  `subscribeToUser`, `onReconnect`, `disconnectRealtime`, auth `POST /broadcasting/auth` con Bearer) y suma
-  `resumeRealtime()`. `useRealtimeSession` (en el layout raíz) se suscribe a `users.{id}`, recarga proyectos con
-  `load(true)` ante cambios de acceso o reconexión y llama a `resumeRealtime()` al volver a primer plano. `clearSession`
-  desconecta. El store de proyectos usa `recentUpdates` (también para `archive`). El layout llama a `fetchMe` si hay token
-  sin usuario. `app/jest.setup.js` mockea netinfo. Sin `EXPO_PUBLIC_REVERB_APP_KEY` en el entorno de la app no hay tiempo
-  real (Echo queda null). Pendiente: probar en el teléfono la suscripción a `users.{id}` (puede hacer falta cleartext en
-  Android para `ws://` en desarrollo).
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -322,3 +323,6 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-16: Tests de error de `archive` (403 y red) en `projectForm.test.tsx`. Complejidad baja, sonnet.
 - [ ] M-17: Portar `useMembershipWatch` de la web (revocación de acceso, cambio de rol, `onChannelDenied`): la app hoy solo recarga proyectos. Complejidad media, sonnet.
 - [ ] M-18: Documentar `EXPO_PUBLIC_REVERB_APP_KEY`, `_HOST`, `_PORT` y `_SCHEME` de la app (en `app/.env.example` o en CLAUDE.md, sección App móvil): sin la clave Echo queda null en silencio. Complejidad baja, sonnet.
+- [ ] M-19: Tablas de markdown: la app las pinta como texto suelto y la web las descarta (DOMPurify). Decidir y alinear (p. ej. `md.disable('table')` en ambos lados). Complejidad baja, sonnet.
+- [ ] M-20: Sumar `intent:` y `data:` al test de esquemas no permitidos de `markdownContent.test.tsx`; tipar `Message.mentions` como opcional o confirmar que la API siempre lo manda. Complejidad baja, sonnet.
+- [ ] M-21: Quitar el aviso de `act(...)` que deja `loadOlder` en `channel.test.tsx`. Complejidad baja, sonnet.
