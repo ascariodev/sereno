@@ -7,7 +7,7 @@ import { initTheme } from './theme/theme'
 import App from './App.vue'
 import { i18n, installI18nOnApi } from './i18n'
 import { toast } from './components/ui/toast'
-import { isDesktop } from './platform/desktop'
+import { installExternalLinks, isDesktop } from './platform/desktop'
 import { listenForNavigation, registerServiceWorker } from './pwa/serviceWorker'
 import { createAppRouter } from './router'
 import { redirectToLogin } from './router/redirectToLogin'
@@ -25,6 +25,8 @@ installOrganizationOnApi()
 installAuthOnApi(() => redirectToLogin(router))
 
 app.use(i18n).use(router).mount('#app')
+
+installExternalLinks()
 
 if (import.meta.env.PROD && !isDesktop() && 'serviceWorker' in navigator) {
   listenForNavigation({ navigate: (path) => void router.push(path) })

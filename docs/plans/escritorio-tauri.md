@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -58,7 +58,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - **Archivos:** `web/src/router/index.ts` (solo si hace falta) y su spec.
 - **Terminado cuando:** recargar en una ruta profunda de la app de escritorio vuelve a la misma pantalla.
 
-### [ ] Fase 5 — Enlaces externos al navegador del sistema
+### [x] Fase 5 — Enlaces externos al navegador del sistema
 - **Alcance:** plugin `opener` (crate, registro en `lib.rs`, permiso en capabilities, paquete npm). En escritorio, un
   listener de clic en el documento manda al navegador del sistema los `<a target="_blank">` con `http(s)` o `mailto`.
 - **Archivos:** `web/src-tauri/Cargo.toml`, `web/src-tauri/src/lib.rs`, `web/src-tauri/capabilities/default.json`,
@@ -157,11 +157,17 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - 2026-10-13 — Fase 4: se mantiene `createWebHistory` en escritorio. Tauri 2.12.3 (`src/manager/mod.rs` `get_asset`) cae a
   `index.html` para cualquier ruta inexistente; comprobado en el exe debug (`/projects/1/plan` recargada da la SPA). Requiere
   `base` absoluto (`/`, el de hoy) en Vite: con `./` los assets fallan en rutas profundas.
+- 2026-10-13 — Fase 5: permiso `opener:allow-open-url` con scope `https://*`, `http://*`, `mailto:*` (no `opener:default`,
+  que suma `tel:` y `reveal-item-in-dir`). `installExternalLinks()` en `desktop.ts` escucha `click` en `document` y solo
+  actúa con botón principal, evento no cancelado, `target="_blank"` y origen distinto (o `mailto:`).
 - 2026-10-13 — Fase 2: `src-tauri/target` y `gen/` los ignora el `.gitignore` que genera Tauri en `web/src-tauri/`; no se
   tocó `web/.gitignore`. `beforeDevCommand` vacío (Vite corre en Docker). Sin iconos android/ios (el móvil va con Expo).
   Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
 
 ## Notas para la próxima sesión
+- Fase 5: la miniatura de `MessageAttachments.vue` tiene `target="_blank"` y `@click="openFresh"`; si `openFresh` hace
+  `preventDefault`, el listener de enlaces la ignora (comprobarlo en la fase 6). `openUrl` ya cubre URLs firmadas http(s).
+  Revisión manual pendiente: un enlace de un mensaje abre el navegador. `prettier --check` no es chequeo del proyecto.
 - Fase 4: el perfil de WebView2 de esta máquina tiene un `sw.js` registrado en `http://tauri.localhost` por el exe de la
   fase 2 (anterior a la fase 3). Antes de una revisión manual, recompilar y borrar ese registro (o el perfil). Para
   inspeccionar la app: lanzar el exe con `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9333`.
@@ -193,3 +199,9 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - [ ] M-8: En escritorio, desregistrar al arrancar cualquier service worker que haya quedado en el perfil de WebView2
       (hoy solo pasa con builds de prueba anteriores a la fase 3).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-9: Manejar también `auxclick` (botón medio) en el listener de enlaces externos: hoy abre una ventana nueva del WebView.
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-10: Un `target="_blank"` del mismo origen (ruta interna en markdown) abre otra ventana WebView: navegar con el router.
+      Complejidad: media · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-11: Quitar la condición redundante `url.protocol !== 'mailto:'` en `desktop.ts` (el origen de `mailto:` es `"null"`).
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
