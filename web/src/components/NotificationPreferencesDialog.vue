@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { ApiError } from '../api/client'
 import { getNotificationPreferences, NOTIFICATION_CHANNELS, NOTIFICATION_TYPES, updateNotificationPreferences } from '../api/notificationPreferences'
 import type { NotificationChannel, NotificationPreferences, NotificationType } from '../api/types'
+import { desktopPermissionGranted, requestDesktopPermission } from '../platform/desktopNotifications'
+import { isDesktop } from '../platform/desktop'
 import { disablePush, enablePush, getPushState, PushSubscribeError, type PushState } from '../pwa/push'
 import AppButton from './ui/AppButton.vue'
 import AppDialog from './ui/AppDialog.vue'
@@ -21,6 +23,8 @@ const loadFailed = ref(false)
 const saving = reactive<Record<string, boolean>>({})
 const saveFailed = reactive<Record<string, boolean>>({})
 const deviceState = ref<PushState | null>(null)
+const desktop = isDesktop()
+const desktopGranted = ref<boolean | null>(null)
 const deviceBusy = ref(false)
 const deviceError = ref<DeviceError | null>(null)
 const deviceDismissed = ref(false)
@@ -45,6 +49,7 @@ function reset(): void {
   loading.value = false
   loadFailed.value = false
   deviceState.value = null
+  desktopGranted.value = null
   deviceBusy.value = false
   deviceError.value = null
   deviceDismissed.value = false
@@ -53,6 +58,11 @@ function reset(): void {
 }
 
 async function loadDevice(current: number): Promise<void> {
+  if (desktop) {
+    const granted = await desktopPermissionGranted()
+    if (current === generation) desktopGranted.value = granted
+    return
+  }
   const state = await getPushState().catch((): PushState => 'unsupported')
   if (current !== generation) return
   deviceState.value = state
@@ -121,6 +131,18 @@ async function onChange(channel: NotificationChannel, type: NotificationType, ev
   }
 }
 
+async function requestDesktopAlerts(): Promise<void> {
+  if (deviceBusy.value || desktopGranted.value !== false) return
+  const run = generation
+  deviceBusy.value = true
+  try {
+    const granted = await requestDesktopPermission()
+    if (run === generation) desktopGranted.value = granted
+  } finally {
+    if (run === generation) deviceBusy.value = false
+  }
+}
+
 async function toggleDevice(): Promise<void> {
   if (deviceBusy.value || !canToggleDevice.value) return
   const run = generation
@@ -154,7 +176,26 @@ async function toggleDevice(): Promise<void> {
     @close-auto-focus="emit('closeAutoFocus', $event)"
   >
     <div class="notification-preferences">
-      <section v-if="deviceState" class="notification-preferences__device" data-test="device">
+      <section v-if="desktop && desktopGranted !== null" class="notification-preferences__device" data-test="device">
+        <h3 class="notification-preferences__heading">{{ t('notificationPreferences.device.title') }}</h3>
+        <p :id="DEVICE_STATUS_ID" class="notification-preferences__status" data-test="device-status">
+          {{ t(desktopGranted ? 'notificationPreferences.device.desktop.granted' : 'notificationPreferences.device.desktop.denied') }}
+        </p>
+        <AppButton
+          v-if="!desktopGranted"
+          type="button"
+          variant="secondary"
+          size="sm"
+          name="request-desktop-permission"
+          :disabled="deviceBusy"
+          :aria-busy="deviceBusy ? 'true' : undefined"
+          :aria-describedby="DEVICE_STATUS_ID"
+          @click="requestDesktopAlerts()"
+        >
+          {{ t('notificationPreferences.device.desktop.request') }}
+        </AppButton>
+      </section>
+      <section v-else-if="!desktop && deviceState" class="notification-preferences__device" data-test="device">
         <h3 class="notification-preferences__heading">{{ t('notificationPreferences.device.title') }}</h3>
         <p :id="DEVICE_STATUS_ID" class="notification-preferences__status" data-test="device-status">
           {{ t(`notificationPreferences.device.status.${deviceState}`) }}

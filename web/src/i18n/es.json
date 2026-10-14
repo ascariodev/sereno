@@ -289,6 +289,11 @@
       "enable": "Activar notificaciones push",
       "disable": "Desactivar notificaciones push",
       "dismissed": "Cerraste la solicitud de permiso, así que las notificaciones push siguen desactivadas.",
+      "desktop": {
+        "granted": "Los avisos de Sereno están permitidos en este dispositivo.",
+        "denied": "Los avisos de Sereno no están permitidos en este dispositivo, así que no se te avisará con la aplicación en segundo plano.",
+        "request": "Permitir avisos"
+      },
       "status": {
         "unsupported": "Este navegador o sesión no puede recibir notificaciones push. Instala la aplicación o usa un navegador compatible.",
         "blocked": "Las notificaciones están bloqueadas para Sereno. Permítelas en los ajustes del navegador para activar el push.",

@@ -273,3 +273,26 @@ describe('installDesktopNotificationClicks', () => {
     expect(onAction).not.toHaveBeenCalled()
   })
 })
+
+describe('desktop permission helpers', () => {
+  beforeEach(() => {
+    isPermissionGranted.mockReset()
+    requestPermission.mockReset()
+  })
+
+  it('reads the permission without prompting and treats errors as not granted', async () => {
+    const { desktopPermissionGranted } = await load()
+    isPermissionGranted.mockResolvedValueOnce(true).mockRejectedValueOnce(new Error('x'))
+    expect(await desktopPermissionGranted()).toBe(true)
+    expect(await desktopPermissionGranted()).toBe(false)
+    expect(requestPermission).not.toHaveBeenCalled()
+  })
+
+  it('requests again on demand and returns the answer', async () => {
+    const { requestDesktopPermission } = await load()
+    requestPermission.mockResolvedValueOnce('denied').mockResolvedValueOnce('granted')
+    expect(await requestDesktopPermission()).toBe(false)
+    expect(await requestDesktopPermission()).toBe(true)
+    expect(requestPermission).toHaveBeenCalledTimes(2)
+  })
+})

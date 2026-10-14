@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -96,7 +96,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - **Archivos:** `web/src/platform/desktopNotifications.ts`, `web/src-tauri/src/lib.rs` (si hace falta un comando).
 - **Terminado cuando:** spec del manejo del clic; en la app, el clic abre la tarea (o queda documentado por qué no).
 
-### [ ] Fase 10 — Sección de escritorio en las preferencias
+### [x] Fase 10 — Sección de escritorio en las preferencias
 - **Alcance:** en escritorio, la sección "Este dispositivo" de `NotificationPreferencesDialog` deja de hablar de push
   web y muestra el estado del permiso de avisos del sistema (con botón para pedirlo).
 - **Archivos:** `web/src/components/NotificationPreferencesDialog.vue`, `web/src/i18n/locales/en.ts` y `es.ts` (o donde
@@ -180,6 +180,10 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   `extra: { organizationId, path }` (path con `router.resolve(notificationTarget(n)).fullPath`, el mismo destino que la
   bandeja in-app, ahora en `web/src/notificationTarget.ts`). Al clic, el comando Rust `focus_main_window` enfoca siempre y
   solo se navega si `safeRedirect` acepta y la organización sigue activa. `installDesktopNotificationClicks` va en `main.ts`.
+- 2026-10-13 — Fase 10: en escritorio la sección `data-test="device"` del diálogo es propia: estado del permiso
+  (`device-status`) y botón `request-desktop-permission` si no está concedido. `desktopPermissionGranted()` solo lee;
+  `requestDesktopPermission()` pide siempre y actualiza el caché de la fase 8. Claves
+  `notificationPreferences.device.desktop.{granted,denied,request}` en `web/src/i18n/{en,es}.json`.
 - 2026-10-13 — Fase 2: `src-tauri/target` y `gen/` los ignora el `.gitignore` que genera Tauri en `web/src-tauri/`; no se
   tocó `web/.gitignore`. `beforeDevCommand` vacío (Vite corre en Docker). Sin iconos android/ios (el móvil va con Expo).
   Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
@@ -254,3 +258,8 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-20: Flag de módulo en `installDesktopNotificationClicks` para no registrar dos `onAction` (HMR o segunda llamada).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → haiku
+- [ ] M-21: Si Windows ya bloqueó los avisos, `requestPermission` no muestra nada: indicar cómo activarlos en los ajustes del sistema.
+      Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
+- [ ] M-22: Specs pendientes de la fase 10: `aria-busy` del botón con la petición pendiente; tras `requestDesktopPermission()`
+      concedido, un aviso no vuelve a pedir permiso; `isDesktop` mockeado a `false` explícito en el `beforeEach` del diálogo.
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

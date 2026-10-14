@@ -289,6 +289,11 @@
       "enable": "Turn on push notifications",
       "disable": "Turn off push notifications",
       "dismissed": "You closed the permission prompt, so push notifications are still off.",
+      "desktop": {
+        "granted": "Alerts from Sereno are allowed on this device.",
+        "denied": "Alerts from Sereno are not allowed on this device, so you will not be notified while the app is in the background.",
+        "request": "Allow alerts"
+      },
       "status": {
         "unsupported": "This browser or session cannot receive push notifications. Install the app or use a browser that supports them.",
         "blocked": "Notifications are blocked for Sereno. Allow them in your browser settings to turn push on.",

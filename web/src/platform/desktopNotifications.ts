@@ -28,6 +28,25 @@ function ensurePermission(): Promise<boolean> {
   return permission
 }
 
+/** Whether the OS currently lets this app show notifications; never prompts. */
+export async function desktopPermissionGranted(): Promise<boolean> {
+  try {
+    return await isPermissionGranted()
+  } catch {
+    return false
+  }
+}
+
+/** Explicit request from the preferences: asks again even if it was asked this session, and the answer replaces the cached one. */
+export async function requestDesktopPermission(): Promise<boolean> {
+  const granted = await requestPermission().then(
+    (result) => result === 'granted',
+    () => false,
+  )
+  permission = Promise.resolve(granted)
+  return granted
+}
+
 function notificationPath(notification: AppNotification): string | null {
   const target = notificationTarget(notification)
   return router === null || target === null ? null : router.resolve(target).fullPath

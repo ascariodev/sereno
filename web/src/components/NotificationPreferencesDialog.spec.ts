@@ -4,6 +4,8 @@ import { nextTick } from 'vue'
 import { api, ApiError } from '../api/client'
 import { i18n, setLocale } from '../i18n'
 import { disablePush, enablePush, getPushState, PushSubscribeError, type PushState } from '../pwa/push'
+import { isDesktop } from '../platform/desktop'
+import { desktopPermissionGranted, requestDesktopPermission } from '../platform/desktopNotifications'
 import NotificationPreferencesDialog from './NotificationPreferencesDialog.vue'
 
 vi.mock('../pwa/push', async (importOriginal) => ({
@@ -11,6 +13,12 @@ vi.mock('../pwa/push', async (importOriginal) => ({
   getPushState: vi.fn(),
   enablePush: vi.fn(),
   disablePush: vi.fn(),
+}))
+
+vi.mock('../platform/desktop', () => ({ isDesktop: vi.fn() }))
+vi.mock('../platform/desktopNotifications', () => ({
+  desktopPermissionGranted: vi.fn(),
+  requestDesktopPermission: vi.fn(),
 }))
 
 let wrapper: VueWrapper | undefined
@@ -499,5 +507,57 @@ describe('NotificationPreferencesDialog', () => {
       expect(status()).toContain('bloqueadas')
       expect(switchFor('chat_mention', 'push').getAttribute('aria-label')).toBe('Me mencionan en el chat: Push')
     })
+  })
+})
+
+describe('NotificationPreferencesDialog on the desktop app', () => {
+  beforeEach(() => {
+    vi.mocked(isDesktop).mockReturnValue(true)
+    vi.spyOn(api, 'get').mockResolvedValue({ data: ALL_ON })
+  })
+
+  function desktopButton(): HTMLButtonElement | null {
+    return document.querySelector<HTMLButtonElement>('button[name=request-desktop-permission]')
+  }
+
+  it('shows the granted permission without push texts or buttons', async () => {
+    vi.mocked(desktopPermissionGranted).mockResolvedValue(true)
+    mountDialog()
+    await settle()
+    const device = document.querySelector('[data-test=device]')!
+    expect(device.textContent).toContain('Alerts from Sereno are allowed')
+    expect(device.textContent).not.toMatch(/push/i)
+    expect(desktopButton()).toBeNull()
+    expect(deviceButton()).toBeNull()
+    expect(getPushState).not.toHaveBeenCalled()
+  })
+
+  it('shows the missing permission and requests it with the button, then reflects the result', async () => {
+    vi.mocked(desktopPermissionGranted).mockResolvedValue(false)
+    vi.mocked(requestDesktopPermission).mockResolvedValue(true)
+    mountDialog()
+    await settle()
+    const device = document.querySelector('[data-test=device]')!
+    expect(device.textContent).toContain('not allowed')
+    expect(device.textContent).not.toMatch(/push/i)
+    const button = desktopButton()!
+    expect(button.getAttribute('aria-describedby')).toBe(document.querySelector('[data-test=device-status]')!.id)
+    button.click()
+    await settle()
+    expect(requestDesktopPermission).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('[data-test=device]')!.textContent).toContain('are allowed')
+    expect(desktopButton()).toBeNull()
+  })
+
+  it('keeps the button when the request is denied', async () => {
+    vi.mocked(desktopPermissionGranted).mockResolvedValue(false)
+    vi.mocked(requestDesktopPermission).mockResolvedValue(false)
+    mountDialog()
+    await settle()
+    desktopButton()!.click()
+    await settle()
+    expect(document.querySelector('[data-test=device]')!.textContent).toContain('not allowed')
+    expect(desktopButton()).not.toBeNull()
+    expect(desktopButton()!.disabled).toBe(false)
   })
 })
