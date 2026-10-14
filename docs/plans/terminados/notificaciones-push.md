@@ -234,5 +234,6 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   Google), el diálogo muestra el mensaje genérico; distinguir ese caso con un texto que oriente a revisar el navegador.
 - [ ] M-27 (media, sonnet): verificar el push en Safari/WebKit (exige mostrar una notificación por cada push y revoca la
   suscripción tras push silenciosos); si aplica, mostrar siempre en Safari aunque Sereno esté enfocado.
-- [ ] M-28 (baja, sonnet): `WebPushSender` registra el rechazo con el id de la suscripción; sumar el host del endpoint (sin el token) para diagnosticar.
+- [x] M-28 (baja, sonnet): `WebPushSender` registra el rechazo con el id de la suscripción; sumar el host del endpoint (sin el token) para diagnosticar.
 - [ ] M-29 (baja, sonnet): un 401 tardío de la sesión anterior con un login nuevo en curso limpia la sesión y ahora también desuscribe el navegador; comparar el token con el que salió la petición antes de actuar.
+- [ ] M-30 (baja, sonnet): `WebPushSender` registra `$e->getMessage()`; en errores HTTP reales (Guzzle) el mensaje puede traer la URL completa del endpoint con el token. Reemplazar el endpoint en el mensaje antes de registrarlo.
