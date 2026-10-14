@@ -67,6 +67,13 @@ async function openMenu(trigger: string) {
   await settle()
 }
 
+async function openSubmenu(value: string) {
+  const trigger = document.querySelector<HTMLElement>(`[role=menuitem][data-value="${value}"]`)!
+  trigger.focus()
+  key(trigger, 'ArrowRight')
+  await settle()
+}
+
 async function pick(value: string) {
   const item = document.querySelector<HTMLElement>(`[role^=menuitem][data-value="${value}"]`)!
   item.focus()
@@ -428,10 +435,12 @@ describe('AppLayout', () => {
     await mountApp()
     await openMenu('button[name=user-menu]')
     expect(document.querySelector('[role=menu]')).not.toBeNull()
+    await openSubmenu('theme')
     await pick('theme:dark')
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
     await openMenu('button[name=user-menu]')
+    await openSubmenu('theme')
     await pick('theme:system')
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false)
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('system')

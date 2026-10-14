@@ -1,17 +1,15 @@
 <script setup lang="ts">
-import { Activity, House, Languages, MessageSquare, Monitor, Moon, SquareKanban, Sun } from '@lucide/vue'
-import { computed, onBeforeUnmount, onMounted, type Component } from 'vue'
+import { Activity, House, Languages, MessageSquare, SquareKanban } from '@lucide/vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { LOCALE_LABELS, SUPPORTED_LOCALES, type Locale } from '../i18n'
 import { useAuthStore } from '../stores/auth'
 import { useProjectsStore } from '../stores/projects'
-import { saveThemePreference, type ThemePreference } from '../theme/theme'
+import { saveThemePreference, THEME_PREFERENCES, type ThemePreference } from '../theme/theme'
+import { THEME_ICONS } from '../theme/themeIcons'
 import { toast } from './ui/toast'
 import AppCommand, { type AppCommandGroup, type AppCommandItem } from './ui/AppCommand.vue'
-
-const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark']
-const THEME_ICONS: Record<ThemePreference, Component> = { system: Monitor, light: Sun, dark: Moon }
 
 const open = defineModel<boolean>('open', { default: false })
 
@@ -45,9 +43,9 @@ const groups = computed<AppCommandGroup[]>(() => {
     { label: t('command.goTo'), items: navigation },
     {
       label: themeLabel,
-      items: THEMES.map((theme) => ({
+      items: THEME_PREFERENCES.map((theme) => ({
         value: `theme:${theme}`,
-        label: t(`userMenu.theme.${theme}`),
+        label: t(`command.themeOption.${theme}`),
         icon: THEME_ICONS[theme],
         keywords: [themeLabel, 'theme', 'tema'],
       })),
@@ -70,7 +68,7 @@ async function onSelect(value: string): Promise<void> {
   else if (kind === 'channel') void router.push({ name: 'channel', params: { id } })
   else if (kind === 'plan') void router.push({ name: 'project-plan', params: { projectId: id } })
   else if (kind === 'log') void router.push({ name: 'project-log', params: { projectId: id } })
-  else if (kind === 'theme' && THEMES.includes(id as ThemePreference)) saveThemePreference(id as ThemePreference)
+  else if (kind === 'theme' && THEME_PREFERENCES.includes(id as ThemePreference)) saveThemePreference(id as ThemePreference)
   else if (kind === 'locale' && SUPPORTED_LOCALES.includes(id as Locale)) {
     if (!(await auth.chooseAndSaveLocale(id as Locale))) toast.error(t('common.localeSaveFailed'))
   }
