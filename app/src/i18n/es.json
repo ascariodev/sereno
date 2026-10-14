@@ -160,7 +160,14 @@
     "replyAction": "Responder en hilo",
     "replies_one": "{{count}} respuesta",
     "replies_other": "{{count}} respuestas",
-    "lastReply": "Última respuesta {{when}}"
+    "lastReply": "Última respuesta {{when}}",
+    "title": "Hilo",
+    "noReplies": "Aún no hay respuestas.",
+    "replyPlaceholder": "Responder en el hilo",
+    "loadFailed": "No se pudo cargar el hilo.",
+    "loadOlderFailed": "No se pudieron cargar más respuestas. Reintentar",
+    "notFound": "Este hilo no existe o fue eliminado.",
+    "rootUnavailable": "El mensaje original no está disponible."
   },
   "message": {
     "actions": "Acciones del mensaje",

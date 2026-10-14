@@ -15,6 +15,7 @@ import {
 } from '@/mentions/mentionInput';
 import { parseMentionDraft } from '@/mentionToken';
 import { type Message, useMessagesStore } from '@/messages/store';
+import { useThreadStore } from '@/messages/threadStore';
 import { useMemberDirectoryStore } from '@/projects/members';
 import { useProjectsStore } from '@/projects/store';
 import { useAuthStore } from '@/session/auth';
@@ -60,6 +61,7 @@ export function MessageEditor({ message, onDone }: { message: Message; onDone: (
     try {
       const response = await api.patch<{ data: Message }>(`/api/channels/${message.channel_id}/messages/${message.id}`, { body });
       useMessagesStore.getState().replace(response.data);
+      useThreadStore.getState().replace(response.data);
       onDone();
     } catch (caught) {
       const status = caught instanceof ApiError ? caught.status : 0;
@@ -69,6 +71,7 @@ export function MessageEditor({ message, onDone }: { message: Message; onDone: (
       else if (status === 404) {
         setErrorText(t('message.editGone'));
         void useMessagesStore.getState().catchUp();
+        void useThreadStore.getState().catchUp();
       }
       else setErrorText(t('message.editFailed'));
       setSaving(false);

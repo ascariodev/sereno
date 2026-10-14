@@ -44,7 +44,7 @@ export interface MessageDeletedEvent {
 
 const MAX_PARTICIPANTS = 3
 
-function laterDate(a: string | null, b: string | null): string | null {
+export function laterDate(a: string | null, b: string | null): string | null {
   if (a === null) return b
   if (b === null) return a
   return Date.parse(b) > Date.parse(a) ? b : a
@@ -68,7 +68,7 @@ function bumpRoot(root: Message, reply: Message): Message {
   }
 }
 
-function withCounters(root: Message, counters: RootCounters): Message {
+export function withCounters(root: Message, counters: RootCounters): Message {
   return {
     ...root,
     replies_count: counters.replies_count,
@@ -125,11 +125,11 @@ const empty = {
   failed: false,
 }
 
-function isOlderEdit(incoming: Message, current: Message): boolean {
+export function isOlderEdit(incoming: Message, current: Message): boolean {
   return incoming.edited_at !== null && current.edited_at !== null && Date.parse(incoming.edited_at) < Date.parse(current.edited_at)
 }
 
-function keepNewerContent(incoming: Message, current: Message | undefined): Message {
+export function keepNewerContent(incoming: Message, current: Message | undefined): Message {
   if (current === undefined || current.deleted_at !== null || incoming.deleted_at !== null || current.edited_at === null) return incoming
   if (incoming.edited_at !== null && Date.parse(incoming.edited_at) >= Date.parse(current.edited_at)) return incoming
   return {

@@ -20,14 +20,21 @@ import { useAuthStore } from '@/session/auth';
 
 export const MAX_MESSAGE_LENGTH = 4000;
 
-export function MessageComposer() {
+interface MessageComposerProps {
+  channelId?: number | null;
+  send?: (body: string) => Promise<void>;
+  placeholder?: string;
+}
+
+export function MessageComposer({ channelId: channelIdProp, send, placeholder }: MessageComposerProps = {}) {
   const { t } = useTranslation();
   const [mention, setMention] = useState<MentionState>(EMPTY_MENTION_STATE);
   const [forcedSelection, setForcedSelection] = useState<{ start: number; end: number } | undefined>();
   const [sending, setSending] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
 
-  const channelId = useMessagesStore((state) => state.channelId);
+  const storeChannelId = useMessagesStore((state) => state.channelId);
+  const channelId = channelIdProp ?? storeChannelId;
   const projectId = useProjectsStore((state) => {
     const entry = Object.entries(state.channelByProject).find(([, id]) => id === channelId);
     return entry ? Number(entry[0]) : null;
@@ -57,7 +64,7 @@ export function MessageComposer() {
     setErrorText(null);
     const sentText = mention.text;
     try {
-      await useMessagesStore.getState().send(body);
+      await (send ?? useMessagesStore.getState().send)(body);
       setMention((current) => (current.text === sentText ? EMPTY_MENTION_STATE : current));
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 422) {
@@ -110,8 +117,8 @@ export function MessageComposer() {
             setMention((current) => moveCaret(current, start, end));
           }}
           onBlur={() => setMention((current) => ({ ...current, caret: null }))}
-          placeholder={t('channel.composer.placeholder')}
-          accessibilityLabel={t('channel.composer.placeholder')}
+          placeholder={placeholder ?? t('channel.composer.placeholder')}
+          accessibilityLabel={placeholder ?? t('channel.composer.placeholder')}
           style={styles.input}
         />
         <Pressable

@@ -160,7 +160,14 @@
     "replyAction": "Reply in thread",
     "replies_one": "{{count}} reply",
     "replies_other": "{{count}} replies",
-    "lastReply": "Last reply {{when}}"
+    "lastReply": "Last reply {{when}}",
+    "title": "Thread",
+    "noReplies": "No replies yet.",
+    "replyPlaceholder": "Reply in thread",
+    "loadFailed": "Could not load the thread.",
+    "loadOlderFailed": "Could not load more replies. Retry",
+    "notFound": "This thread does not exist or was removed.",
+    "rootUnavailable": "The original message is not available."
   },
   "message": {
     "actions": "Message actions",
