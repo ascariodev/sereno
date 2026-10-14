@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { api, ApiError } from '../api/client'
 import type { LoginResponse, User } from '../api/types'
 import { chooseLocale, setLocale, type Locale } from '../i18n'
-import { releasePushOnLogout } from '../pwa/push'
+import { dropPushOnSessionExpired, releasePushOnLogout } from '../pwa/push'
 import { disconnectRealtime, setRealtimeTokenProvider } from '../realtime/echo'
 import { useOrganizationStore } from './organization'
 
@@ -100,6 +100,7 @@ export function installAuthOnApi(onSessionExpired?: () => void): void {
   setRealtimeTokenProvider(() => auth.token)
   api.setUnauthorizedHandler(() => {
     auth.clearSession()
+    void dropPushOnSessionExpired()
     onSessionExpired?.()
   })
 }

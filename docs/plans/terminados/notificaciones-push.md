@@ -216,11 +216,11 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   la promesa de `waitUntil` no resuelve antes que la de `showNotification`.
 - [x] M-17 (media, sonnet): `notificationclick` usa `WindowClient.navigate`, que recarga la SPA; usar `postMessage` al
   router de la ventana enfocada y navegar en cliente.
-- [ ] M-18 (baja, sonnet): `push.spec.ts`: cubrir las guardas de generación intermedias de `enablePush` (tras
+- [x] M-18 (baja, sonnet): `push.spec.ts`: cubrir las guardas de generación intermedias de `enablePush` (tras
   `getRegistration`, `requestPermission` y `subscribe`); hoy se prueban dos puntos.
-- [ ] M-19 (baja, sonnet): `releasePushOnLogout`: `getSubscription` y `unsubscribe` quedan fuera del tope; meterlos en el race.
-- [ ] M-20 (baja, sonnet): `push.spec.ts` "unsupported without PushManager": simplificar a `delete window.PushManager`.
-- [ ] M-21 (media, sonnet): una sesión que caduca por 401 (`clearSession`) deja la suscripción ligada al usuario anterior;
+- [x] M-19 (baja, sonnet): `releasePushOnLogout`: `getSubscription` y `unsubscribe` quedan fuera del tope; meterlos en el race.
+- [x] M-20 (baja, sonnet): `push.spec.ts` "unsupported without PushManager": simplificar a `delete window.PushManager`.
+- [x] M-21 (media, sonnet): una sesión que caduca por 401 (`clearSession`) deja la suscripción ligada al usuario anterior;
   desuscribir el navegador al limpiar la sesión (sin token no se puede borrar en el API: queda hasta 404/410 o la próxima alta).
 - [ ] M-22 (baja, sonnet): `NotificationPreferencesDialog`: revisar el nivel del `<h3>` "Este dispositivo" frente al
   título que renderiza `AppDialog`.
@@ -235,3 +235,4 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
 - [ ] M-27 (media, sonnet): verificar el push en Safari/WebKit (exige mostrar una notificación por cada push y revoca la
   suscripción tras push silenciosos); si aplica, mostrar siempre en Safari aunque Sereno esté enfocado.
 - [ ] M-28 (baja, sonnet): `WebPushSender` registra el rechazo con el id de la suscripción; sumar el host del endpoint (sin el token) para diagnosticar.
+- [ ] M-29 (baja, sonnet): un 401 tardío de la sesión anterior con un login nuevo en curso limpia la sesión y ahora también desuscribe el navegador; comparar el token con el que salió la petición antes de actuar.
