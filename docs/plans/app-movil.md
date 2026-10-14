@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 16
+**Estado:** en curso · Fase actual: 17
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -113,7 +113,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 
 ### Bloque C: chat
 
-### [ ] Fase 16 — Lista de mensajes del canal
+### [x] Fase 16 — Lista de mensajes del canal
 - **Alcance:** pantalla del canal con paginación por cursor hacia atrás y mensajes de usuario en texto plano.
 - **Terminado cuando:** test de carga y paginación.
 
@@ -271,6 +271,12 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   cambio de rol) no está en ninguna fase y queda como mejora.
 
 ## Notas para la próxima sesión
+- Fase 16 hecha: `app/src/messages/store.ts` (zustand: `open`, `loadOlder` por cursor con `per_page=50`, generación,
+  `clear`; orden por id ascendente) y `app/src/app/channel.tsx` (FlatList invertida, params `id` y `name`; id inválido
+  muestra error sin fetch). El API ya devuelve solo raíces; se muestran todos los mensajes: los `system` en texto plano
+  (`payload.title` o `body`, etiqueta Aviso) hasta que la fase 18 haga el render completo (ampliar el tipo `payload` según
+  `web/src/api/types.ts`). La tarjeta del proyecto tiene "Abrir canal" si existe `channelByProject[id]`. Sin live,
+  catchUp, borrados ni `around`/`hasNewer` (fases de tiempo real del chat); el store aún no deduplica.
 - Fase 15 hecha: `app/src/realtime/echo.ts` porta `web/src/realtime/echo.ts` (canales con conteo de referencias,
   `subscribeToUser`, `onReconnect`, `disconnectRealtime`, auth `POST /broadcasting/auth` con Bearer) y suma
   `resumeRealtime()`. `useRealtimeSession` (en el layout raíz) se suscribe a `users.{id}`, recarga proyectos con
@@ -279,11 +285,6 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   sin usuario. `app/jest.setup.js` mockea netinfo. Sin `EXPO_PUBLIC_REVERB_APP_KEY` en el entorno de la app no hay tiempo
   real (Echo queda null). Pendiente: probar en el teléfono la suscripción a `users.{id}` (puede hacer falta cleartext en
   Android para `ws://` en desarrollo).
-- Fase 14 hecha: `app/src/app/project-form.tsx` (crear sin `?id`; editar y archivar con `?id`, archivar con confirmación)
-  en la Stack protegida. `projects/store.ts` suma `load(keepCurrent)`, `create`, `update` y `archive`;
-  `organization/store.ts` suma `canCreateProject()` (owner/admin, como la web). Botones "Nuevo proyecto" y "Editar" solo
-  para owner/admin. Sin desarchivar ni lista de archivados. Ver Decisiones (fase 14): la fase 15 debe proteger el store de
-  una `load` en vuelo al sumar `refreshCounts` por sockets (patrón `recentUpdates` de `web/src/stores/projects.ts`).
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->

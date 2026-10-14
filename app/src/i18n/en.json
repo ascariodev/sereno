@@ -66,6 +66,7 @@
     "healthOpen_one": "{{count}} open",
     "healthOpen_other": "{{count}} open",
     "healthCalm": "All calm",
+    "openChannel": "Open channel",
     "level": {
       "debug": "debug",
       "info": "info",
@@ -101,6 +102,17 @@
     "archiveYes": "Yes, archive",
     "archiving": "Archiving...",
     "archiveFailed": "Could not archive the project. Try again."
+  },
+  "channel": {
+    "title": "Channel",
+    "empty": "No messages yet.",
+    "deleted": "This message was deleted.",
+    "unknownUser": "Unknown",
+    "notice": "Notice",
+    "invalid": "This channel does not exist.",
+    "loadFailed": "Could not load the messages.",
+    "loadOlderFailed": "Could not load older messages. Retry",
+    "loadingMore": "Loading older messages"
   },
   "notifications": {
     "title": "Notifications"

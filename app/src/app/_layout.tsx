@@ -46,6 +46,7 @@ export default function RootLayout() {
       <Stack.Protected guard={signedIn && hasOrganization}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="project-form" />
+        <Stack.Screen name="channel" />
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="select-organization" />

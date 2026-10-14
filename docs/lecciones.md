@@ -114,6 +114,7 @@
 - L-83: Un parámetro nuevo en el constructor de un job (o una propiedad promovida readonly) no tiene valor al deserializar los jobs ya encolados: se lee con `?? <default>` o `__unserialize`, con un test que deserializa un job sin esa propiedad y ejecuta `handle`. — aplicada en: test (SendPushNotificationTest)
 - L-84: En la app, toda escritura en almacenamiento async (SecureStore) dentro de un flujo con generación se protege: si falla, se deshace el estado en memoria; si la generación cambió durante la escritura, se borra lo escrito; y `hydrate` marca `hydrated` aunque lo desplace otra acción. — aplicada en: test (auth.test)
 - L-85: En la app móvil, "paridad con la web" incluye el comportamiento de los stores, no solo las pantallas: antes de decidir un flujo (autoselección, redirecciones, 403) se lee el store equivalente de `web/src/stores/` y se replica. — aplicada en: test (organization.test)
+- L-86: No se filtra en el cliente una lista paginada por cursor: una página puede quedar vacía con `next_cursor` no nulo y la lista no vuelve a pedir (`onEndReached` no se dispara). Se filtra en el API o se muestra todo con un render provisional. — aplicada en: test (channel.test)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

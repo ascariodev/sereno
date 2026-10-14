@@ -66,6 +66,7 @@
     "healthOpen_one": "{{count}} abierto",
     "healthOpen_other": "{{count}} abiertos",
     "healthCalm": "Todo en calma",
+    "openChannel": "Abrir canal",
     "level": {
       "debug": "depuración",
       "info": "información",
@@ -101,6 +102,17 @@
     "archiveYes": "Sí, archivar",
     "archiving": "Archivando...",
     "archiveFailed": "No se pudo archivar el proyecto. Prueba de nuevo."
+  },
+  "channel": {
+    "title": "Canal",
+    "empty": "Aún no hay mensajes.",
+    "deleted": "Este mensaje fue eliminado.",
+    "unknownUser": "Desconocido",
+    "notice": "Aviso",
+    "invalid": "Este canal no existe.",
+    "loadFailed": "No se pudieron cargar los mensajes.",
+    "loadOlderFailed": "No se pudieron cargar mensajes anteriores. Reintentar",
+    "loadingMore": "Cargando mensajes anteriores"
   },
   "notifications": {
     "title": "Notificaciones"

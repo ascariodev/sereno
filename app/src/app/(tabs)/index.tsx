@@ -11,6 +11,7 @@ const LEVELS = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'aler
 
 function ProjectCard({ project, canManage }: { project: Project; canManage: boolean }) {
   const { t } = useTranslation();
+  const channelId = useProjectsStore((state) => state.channelByProject[project.id]);
   const count = project.open_groups_count;
   const level = project.open_max_level && LEVELS.includes(project.open_max_level) ? project.open_max_level : 'debug';
   const health =
@@ -34,6 +35,16 @@ function ProjectCard({ project, canManage }: { project: Project; canManage: bool
         </Text>
       ) : null}
       {health ? <Text style={styles.health}>{health}</Text> : null}
+      {channelId !== undefined ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${t('projects.openChannel')} ${project.name}`}
+          onPress={() => router.push({ pathname: '/channel', params: { id: String(channelId), name: project.name } })}
+          style={styles.button}
+        >
+          <Text style={styles.buttonText}>{t('projects.openChannel')}</Text>
+        </Pressable>
+      ) : null}
       {canManage ? (
         <Pressable
           accessibilityRole="button"
