@@ -407,7 +407,8 @@
     "previewUnavailable": "The preview is no longer available.",
     "openFailed": "Could not open the file. It may no longer be available.",
     "openFailedRetry": "Could not open the file. Check your connection and try again.",
-    "popupBlocked": "Your browser blocked the new tab. Allow pop-ups for this site and try again."
+    "popupBlocked": "Your browser blocked the new tab. Allow pop-ups for this site and try again.",
+    "systemBrowserFailed": "Could not open the file in your system browser."
   },
   "notifications": {
     "title": "Notifications",

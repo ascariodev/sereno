@@ -6,6 +6,7 @@ import { i18n } from '../i18n'
 import type { MessageAttachment } from '../api/types'
 import MessageAttachments from './MessageAttachments.vue'
 import { toast, toasts } from './ui/toast'
+import { installExternalLinks } from '../platform/desktop'
 
 const openUrl = vi.hoisted(() => vi.fn())
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl }))
@@ -370,12 +371,65 @@ describe('MessageAttachments', () => {
       expect(toasts.value).toHaveLength(1)
     })
 
-    it('shows an error when the system browser fails to open', async () => {
+    it('shows the system browser toast, not the retry one, when it fails to open', async () => {
       openUrl.mockRejectedValue(new Error('boom'))
       const w = render([pdf])
       await w.get('a').trigger('click')
       await flushPromises()
-      expect(toasts.value).toHaveLength(1)
+      expect(toasts.value.map((item) => item.message)).toEqual(['Could not open the file in your system browser.'])
+    })
+
+    it('shows the system browser toast when a preview fails to open', async () => {
+      openUrl.mockRejectedValue(new Error('boom'))
+      const w = render([image])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(toasts.value.map((item) => item.message)).toEqual(['Could not open the file in your system browser.'])
+    })
+
+    it('still shows the signed url toast when the url cannot be renewed', async () => {
+      renew.mockRejectedValue(new TypeError('Failed to fetch'))
+      const w = render([image])
+      await w.get('a').trigger('click')
+      await flushPromises()
+      expect(toasts.value.map((item) => item.message)).toEqual([
+        'Could not open the file. Check your connection and try again.',
+      ])
+    })
+
+    describe('with the external link listener installed', () => {
+      let listeners: Array<[string, EventListenerOrEventListenerObject]>
+
+      beforeEach(() => {
+        listeners = []
+        const add = document.addEventListener.bind(document)
+        vi.spyOn(document, 'addEventListener').mockImplementation((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+          listeners.push([type, listener])
+          add(type, listener, options)
+        })
+        installExternalLinks()
+      })
+
+      afterEach(() => {
+        for (const [type, listener] of listeners) document.removeEventListener(type, listener)
+      })
+
+      it('opens the new url exactly once on a plain click on the thumbnail', async () => {
+        const w = mount(MessageAttachments, { props: { attachments: [image] }, global: { plugins: [i18n] }, attachTo: document.body })
+        w.get('a').element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }))
+        await flushPromises()
+        expect(openUrl).toHaveBeenCalledExactlyOnceWith(fresh.url)
+        w.unmount()
+      })
+
+      it('opens the stored href, possibly expired, on a ctrl+click without renewing', async () => {
+        const w = mount(MessageAttachments, { props: { attachments: [image] }, global: { plugins: [i18n] }, attachTo: document.body })
+        w.get('a').element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ctrlKey: true }))
+        await flushPromises()
+        expect(renew).not.toHaveBeenCalled()
+        expect(openUrl).toHaveBeenCalledExactlyOnceWith(image.url)
+        w.unmount()
+      })
     })
   })
 })

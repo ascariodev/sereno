@@ -282,11 +282,11 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: media · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-11: Quitar la condición redundante `url.protocol !== 'mailto:'` en `desktop.ts` (el origen de `mailto:` es `"null"`).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-12: Spec de `MessageAttachments` que instala `installExternalLinks()` en escritorio y afirma que `openUrl` se llama
+- [x] M-12: Spec de `MessageAttachments` que instala `installExternalLinks()` en escritorio y afirma que `openUrl` se llama
       una sola vez con la URL nueva; y otro de clic con `ctrlKey` (sin `preventDefault` ni `renew`), que fija que hoy se
       abre el `href` guardado, que puede estar vencido.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-13: Separar el toast de fallo de `openUrl` del de la URL firmada: un fallo del navegador del sistema no debería decir "reintenta".
+- [x] M-13: Separar el toast de fallo de `openUrl` del de la URL firmada: un fallo del navegador del sistema no debería decir "reintenta".
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-14: Menú de la bandeja en el idioma del sistema (crate `sys-locale`), con los textos de `en` y `es`.
       Complejidad: media · Archivos: 2 · Riesgo: ninguno → sonnet
@@ -319,4 +319,6 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-27: En `CLAUDE.md`, decir que `web/.env.production` lleva las `VITE_*` de producción (`VITE_API_URL`, `VITE_REVERB_*`)
       y mencionar `SERENO_DESKTOP_BASE_URL` (opcional) del script de publicación.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-28: En los specs de `MessageAttachments` con `attachTo: document.body`, desmontar en `afterEach` (hoy `unmount()` no corre si falla un `expect`) y extraer un helper `renderAttached`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku

@@ -60,13 +60,23 @@ function openErrorMessage(error: unknown): string {
   return error instanceof ApiError && error.status === 404 ? t('attachments.openFailed') : t('attachments.openFailedRetry')
 }
 
-async function openFreshExternally(a: MessageAttachment) {
+async function openInSystemBrowser(url: string) {
   try {
-    const { url } = await freshUrl(a.id)
     await openExternal(url)
+  } catch {
+    toast.error(t('attachments.systemBrowserFailed'))
+  }
+}
+
+async function openFreshExternally(a: MessageAttachment) {
+  let url: string
+  try {
+    url = (await freshUrl(a.id)).url
   } catch (error) {
     toast.error(openErrorMessage(error))
+    return
   }
+  await openInSystemBrowser(url)
 }
 
 async function openFresh(event: MouseEvent, a: MessageAttachment) {
@@ -99,7 +109,7 @@ async function downloadFresh(event: MouseEvent, a: MessageAttachment) {
   event.preventDefault()
   try {
     const { url } = await freshUrl(a.id)
-    if (isDesktop()) await openExternal(url)
+    if (isDesktop()) await openInSystemBrowser(url)
     else window.location.assign(url)
   } catch (error) {
     toast.error(openErrorMessage(error))
