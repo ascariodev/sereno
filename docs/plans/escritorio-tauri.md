@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -52,7 +52,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - **Archivos:** `web/package.json` (`@tauri-apps/api`), `web/src/platform/desktop.ts`, `web/src/main.ts`, `web/src/pwa/push.ts`.
 - **Terminado cuando:** specs de `desktop.ts` y de `push.ts` con escritorio simulado; en la app, sin `sw.js` registrado.
 
-### [ ] Fase 4 — Rutas profundas al recargar [riesgo]
+### [x] Fase 4 — Rutas profundas al recargar [riesgo]
 - **Alcance:** comprobar si el protocolo de Tauri devuelve `index.html` para una ruta como `/projects/1/plan` al recargar
   (F5). Si no, usar `createWebHashHistory` solo en escritorio.
 - **Archivos:** `web/src/router/index.ts` (solo si hace falta) y su spec.
@@ -154,11 +154,18 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   `wss://sereno-ws.ascario.dev`, tomados de `terminados/web-docker.md`); si cambian los hostnames hay que tocarla. `devCsp`
   aparte para `tauri:dev` (API 8003, Reverb 8086, HMR 5174). `style-src 'unsafe-inline'` con
   `dangerousDisableAssetCspModification: ["style-src"]` (si no, el nonce de Tauri anula los `style=` de Vue).
+- 2026-10-13 — Fase 4: se mantiene `createWebHistory` en escritorio. Tauri 2.12.3 (`src/manager/mod.rs` `get_asset`) cae a
+  `index.html` para cualquier ruta inexistente; comprobado en el exe debug (`/projects/1/plan` recargada da la SPA). Requiere
+  `base` absoluto (`/`, el de hoy) en Vite: con `./` los assets fallan en rutas profundas.
 - 2026-10-13 — Fase 2: `src-tauri/target` y `gen/` los ignora el `.gitignore` que genera Tauri en `web/src-tauri/`; no se
   tocó `web/.gitignore`. `beforeDevCommand` vacío (Vite corre en Docker). Sin iconos android/ios (el móvil va con Expo).
   Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
 
 ## Notas para la próxima sesión
+- Fase 4: el perfil de WebView2 de esta máquina tiene un `sw.js` registrado en `http://tauri.localhost` por el exe de la
+  fase 2 (anterior a la fase 3). Antes de una revisión manual, recompilar y borrar ese registro (o el perfil). Para
+  inspeccionar la app: lanzar el exe con `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9333`.
+  Revisión manual pendiente: con sesión iniciada, F5 en `/projects/<id>/plan` vuelve a esa pantalla.
 - Fase 3: `isDesktop()` (en `web/src/platform/desktop.ts`) envuelve `isTauri()` de `@tauri-apps/api/core`, que lee
   `globalThis.isTauri`: en specs se simula con `vi.stubGlobal('isTauri', true)`. Va dentro de `browserSupportsPush()`, así
   que todo `push.ts` queda inactivo en escritorio. Revisión manual pendiente: sin `sw.js` registrado en la app.
@@ -183,3 +190,6 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-7: `desktop.spec.ts` simula `isTauri` con `vi.stubGlobal`/`unstubAllGlobals` en vez de borrar el global con un cast.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-8: En escritorio, desregistrar al arrancar cualquier service worker que haya quedado en el perfil de WebView2
+      (hoy solo pasa con builds de prueba anteriores a la fase 3).
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
