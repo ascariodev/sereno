@@ -25,6 +25,10 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
+function opened(title: string, extra: Record<string, unknown> = {}) {
+  return { type: 'log.group_opened', log_group_id: 9, level: 'error', title, events_count: 3, ...extra };
+}
+
 function message(id: number, extra: Record<string, unknown> = {}) {
   return {
     id,
@@ -80,13 +84,48 @@ describe('Channel messages store', () => {
 });
 
 describe('Channel screen', () => {
+  it('renders each system payload type and a generic fallback', async () => {
+    globalThis.fetch = jest.fn(async () =>
+      json({
+        data: [
+          message(6, { kind: 'system', user: null, payload: { type: 'other.thing' } }),
+          message(5, { kind: 'system', user: null, payload: opened('Bad', { type: 'log.group_opened', events_count: 'x' }) }),
+          message(4, {
+            kind: 'system',
+            payload: { type: 'task.group_reopened', log_group_id: 9, task_id: 2, task_key: 'ACME-2' },
+          }),
+          message(3, {
+            kind: 'system',
+            payload: { type: 'task.created_from_group', log_group_id: 9, task_id: 2, task_key: 'ACME-2', task_status: 'todo' },
+          }),
+          message(2, {
+            kind: 'system',
+            payload: { type: 'log.group_status_changed', log_group_id: 9, title: 'DB down', status: 'resolved', previous_status: 'open' },
+          }),
+          message(1, { kind: 'system', payload: opened('Cache miss', { type: 'log.group_reopened' }) }),
+        ],
+        meta: { next_cursor: null },
+      }),
+    ) as never;
+    await render(<Channel />);
+
+    expect(await screen.findByText('Cache miss')).toBeOnTheScreen();
+    expect(screen.getByText('error')).toBeOnTheScreen();
+    expect(screen.getByText('Log group reopened')).toBeOnTheScreen();
+    expect(screen.getByText('3 events')).toBeOnTheScreen();
+    expect(screen.getByText('Ana marked DB down as resolved')).toBeOnTheScreen();
+    expect(screen.getByText('Ana created task ACME-2 from this log group')).toBeOnTheScreen();
+    expect(screen.getByText('The log group of task ACME-2 was reopened')).toBeOnTheScreen();
+    expect(screen.getAllByText('System notice')).toHaveLength(2);
+  });
+
   it('renders user messages as plain text and marks deleted ones', async () => {
     globalThis.fetch = jest.fn(async () =>
       json({
         data: [
           message(3, { body: '**raw** <@7>', mentions: [{ id: 7, name: 'Bea' }] }),
           message(2, { body: null, deleted_at: '2026-01-02T00:00:00Z' }),
-          message(1, { kind: 'system', body: 'fallback', payload: { type: 'log.group_opened', title: 'DB down' } }),
+          message(1, { kind: 'system', body: 'fallback', payload: opened('DB down') }),
         ],
         meta: { next_cursor: null },
       }),
@@ -104,7 +143,7 @@ describe('Channel screen', () => {
     const fetchMock = jest.fn(async (url: string) =>
       url.includes('cursor=c1')
         ? json({ data: [message(1, { body: 'Older' })], meta: { next_cursor: null } })
-        : json({ data: [message(2, { kind: 'system', body: 'Opened' })], meta: { next_cursor: 'c1' } }),
+        : json({ data: [message(2, { kind: 'system', body: null, payload: opened('Opened') })], meta: { next_cursor: 'c1' } }),
     );
     globalThis.fetch = fetchMock as never;
     await render(<Channel />);

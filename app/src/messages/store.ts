@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 import { api, ApiError } from '@/api/client'
+import type { MessagePayload } from './payload'
 
 export const MESSAGES_PER_PAGE = 50
 
@@ -9,7 +10,7 @@ export interface Message {
   channel_id: number
   kind: 'user' | 'system'
   body: string | null
-  payload: { type?: string; title?: string } | null
+  payload: MessagePayload | null
   parent_id: number | null
   user: { id: number; name: string } | null
   mentions: { id: number; name: string }[]

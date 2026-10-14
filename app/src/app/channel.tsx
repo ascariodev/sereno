@@ -4,36 +4,26 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MessageBody } from '@/components/MessageBody';
+import { SystemNotice } from '@/components/SystemNotice';
 import { type Message, useMessagesStore } from '@/messages/store';
 import { useAuthStore } from '@/session/auth';
 
-function noticeText(message: Message): string {
-  const title = message.payload?.title;
-  return typeof title === 'string' && title.trim() !== '' ? title : (message.body ?? '');
-}
-
 function MessageRow({ message }: { message: Message }) {
   const { t } = useTranslation();
-  const deleted = message.deleted_at !== null;
-  const system = message.kind === 'system';
   const ownUserId = useAuthStore((state) => state.user?.id);
+
+  if (message.kind === 'system') return <SystemNotice message={message} />;
 
   return (
     <View style={styles.message}>
       <View style={styles.head}>
-        <Text style={styles.author}>
-          {system ? t('channel.notice') : (message.user?.name ?? t('channel.unknownUser'))}
-        </Text>
+        <Text style={styles.author}>{message.user?.name ?? t('channel.unknownUser')}</Text>
         <Text style={styles.time}>{new Date(message.created_at).toLocaleString()}</Text>
       </View>
-      {deleted ? (
+      {message.deleted_at !== null ? (
         <Text style={styles.deleted}>{t('channel.deleted')}</Text>
       ) : (
-        system ? (
-          <Text style={styles.body}>{noticeText(message)}</Text>
-        ) : (
-          <MessageBody body={message.body} mentions={message.mentions} ownUserId={ownUserId} style={styles.body} />
-        )
+        <MessageBody body={message.body} mentions={message.mentions} ownUserId={ownUserId} style={styles.body} />
       )}
     </View>
   );

@@ -113,12 +113,39 @@
     "invalid": "Este canal no existe.",
     "loadFailed": "No se pudieron cargar los mensajes.",
     "loadOlderFailed": "No se pudieron cargar mensajes anteriores. Reintentar",
-    "loadingMore": "Cargando mensajes anteriores"
+    "loadingMore": "Cargando mensajes anteriores",
+    "systemNotice": "Aviso del sistema"
   },
   "notifications": {
     "title": "Notificaciones"
   },
   "settings": {
     "title": "Ajustes"
+  },
+  "notice": {
+    "openedLabel": "Nuevo grupo de logs",
+    "reopenedLabel": "Grupo de logs reabierto",
+    "eventsWord_one": "evento",
+    "eventsWord_other": "eventos",
+    "statusChanged": "{{actor}} marcó el grupo de logs como {{status}}",
+    "statusChangedTitled": "{{actor}} marcó {{title}} como {{status}}",
+    "taskCreated": "{{actor}} creó la tarea {{task}} desde este grupo de logs",
+    "taskGroupReopened": "Se reabrió el grupo de logs de la tarea {{task}}",
+    "unknownActor": "Alguien",
+    "level": {
+      "debug": "depuración",
+      "info": "información",
+      "notice": "aviso",
+      "warning": "advertencia",
+      "error": "error",
+      "critical": "crítico",
+      "alert": "alerta",
+      "emergency": "emergencia"
+    },
+    "status": {
+      "open": "abierto",
+      "resolved": "resuelto",
+      "ignored": "ignorado"
+    }
   }
 }

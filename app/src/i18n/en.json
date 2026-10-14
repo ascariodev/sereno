@@ -113,12 +113,39 @@
     "invalid": "This channel does not exist.",
     "loadFailed": "Could not load the messages.",
     "loadOlderFailed": "Could not load older messages. Retry",
-    "loadingMore": "Loading older messages"
+    "loadingMore": "Loading older messages",
+    "systemNotice": "System notice"
   },
   "notifications": {
     "title": "Notifications"
   },
   "settings": {
     "title": "Settings"
+  },
+  "notice": {
+    "openedLabel": "New log group",
+    "reopenedLabel": "Log group reopened",
+    "eventsWord_one": "event",
+    "eventsWord_other": "events",
+    "statusChanged": "{{actor}} marked the log group as {{status}}",
+    "statusChangedTitled": "{{actor}} marked {{title}} as {{status}}",
+    "taskCreated": "{{actor}} created task {{task}} from this log group",
+    "taskGroupReopened": "The log group of task {{task}} was reopened",
+    "unknownActor": "Someone",
+    "level": {
+      "debug": "debug",
+      "info": "info",
+      "notice": "notice",
+      "warning": "warning",
+      "error": "error",
+      "critical": "critical",
+      "alert": "alert",
+      "emergency": "emergency"
+    },
+    "status": {
+      "open": "open",
+      "resolved": "resolved",
+      "ignored": "ignored"
+    }
   }
 }

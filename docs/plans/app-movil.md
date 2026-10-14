@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 18
+**Estado:** en curso · Fase actual: 19
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -122,7 +122,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   el navegador.
 - **Terminado cuando:** tests de render (negrita, código, enlace, mención).
 
-### [ ] Fase 18 — Avisos de sistema en el canal
+### [x] Fase 18 — Avisos de sistema en el canal
 - **Alcance:** render de los mensajes `system` (avisos de log y cambios de estado) como `SystemNotice.vue`.
 - **Terminado cuando:** test por tipo de payload.
 
@@ -274,18 +274,19 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   usa `MessageBody` con menciones y la fase 17 deja además `MarkdownContent` RN (markdown-it) para las fases 34 y 36.
 
 ## Notas para la próxima sesión
+- Fase 18 hecha: `app/src/messages/payload.ts` (tipos y guardas de payload de `web/src/api/types.ts`, `levelTone`) y
+  `app/src/components/SystemNotice.tsx` (tarjeta de grupo abierto/reabierto con nivel, título, eventos y hora; líneas de
+  cambio de estado, tarea creada desde el grupo y grupo reabierto de una tarea; genérico si el payload no es válido),
+  usado en `channel.tsx`. Las líneas se pintan como una frase sin negritas (la web usa `i18n-t`). Para la fase 26 (acciones
+  resolver/ignorar/crear tarea): la pantalla del canal solo recibe `id` y `name`; hará falta `projectId` y un estado
+  compartido del grupo como `useLogGroupStatuses`. Abrir el grupo al tocar el título va con la fase 39; `ThreadSummary`
+  con la 23.
 - Fase 17 hecha (ver Decisiones): `app/src/mentionToken.ts` (port de `splitMentions`/`mentionToken`; falta
   `parseMentionDraft`, para el composer) y `app/src/components/MessageBody.tsx` (texto plano con chips de mención), usado
   en los mensajes de usuario de `channel.tsx`. `app/src/markdown/parseMarkdown.ts` + `MarkdownContent.tsx` (markdown-it
   ^15, mismas reglas que `web/src/markdown/renderMarkdown.ts`; árbol de tokens a componentes RN; enlaces solo
   http/https/mailto con `Linking.openURL`; imágenes no se pintan; casillas con `interactive` y `onToggle(line)`): aún sin
   uso, lo conectan las fases 34 y 36. Hay un aviso de `act(...)` de `loadOlder` en `channel.test`.
-- Fase 16 hecha: `app/src/messages/store.ts` (zustand: `open`, `loadOlder` por cursor con `per_page=50`, generación,
-  `clear`; orden por id ascendente) y `app/src/app/channel.tsx` (FlatList invertida, params `id` y `name`; id inválido
-  muestra error sin fetch). El API ya devuelve solo raíces; se muestran todos los mensajes: los `system` en texto plano
-  (`payload.title` o `body`, etiqueta Aviso) hasta que la fase 18 haga el render completo (ampliar el tipo `payload` según
-  `web/src/api/types.ts`). La tarjeta del proyecto tiene "Abrir canal" si existe `channelByProject[id]`. Sin live,
-  catchUp, borrados ni `around`/`hasNewer` (fases de tiempo real del chat); el store aún no deduplica.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -326,3 +327,6 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-19: Tablas de markdown: la app las pinta como texto suelto y la web las descarta (DOMPurify). Decidir y alinear (p. ej. `md.disable('table')` en ambos lados). Complejidad baja, sonnet.
 - [ ] M-20: Sumar `intent:` y `data:` al test de esquemas no permitidos de `markdownContent.test.tsx`; tipar `Message.mentions` como opcional o confirmar que la API siempre lo manda. Complejidad baja, sonnet.
 - [ ] M-21: Quitar el aviso de `act(...)` que deja `loadOlder` en `channel.test.tsx`. Complejidad baja, sonnet.
+- [ ] M-22: Sparkline de eventos por hora en la tarjeta del aviso (`/log-groups/hourly`), como `SystemNotice.vue`; no está en ninguna fase. Complejidad media, sonnet.
+- [ ] M-23: Avisos de sistema: quitar la clave sin uso `channel.notice`, tests de `status_changed` sin título y de nivel o estado desconocido, y confirmar contra la web qué se muestra con un aviso con `deleted_at`. Complejidad baja, sonnet.
+- [ ] M-24: Negritas en actor y estado de las líneas de aviso con `Trans` de react-i18next, como `i18n-t` en la web. Complejidad baja, sonnet.
