@@ -141,7 +141,7 @@ se envíen a la ingesta de workspace-api y aparezcan en el canal del proyecto, y
   después ejecutar la fase 7.
 
 ## Mejoras propuestas
-- [ ] M-1 — posveapi: las guardas `config('logging.channels.slack.url')` (ApiResponser, Handler, comandos de
+- [x] M-1 (FUERA DE ALCANCE: trabajo del repo de posveapi, no de Sereno) — posveapi: las guardas `config('logging.channels.slack.url')` (ApiResponser, Handler, comandos de
       facturación, ContactController) nunca se cumplen y esos avisos no se envían. Decidir si se activan (algunos
       llevan datos personales de leads) o se borran. Alta (más de 5 archivos) · plan nuevo tras decidirlo.
 - [x] M-2 — workspace-api: rotación de key de una fuente (hoy: crear nueva y revocar). Alta (seguridad) · opus.
@@ -155,7 +155,7 @@ se envíen a la ingesta de workspace-api y aparezcan en el canal del proyecto, y
       quede `[truncated]` y se pierden clase y ubicación. Pasarlo por `limitedString`. Baja · haiku.
 - [x] M-7 — posveapi: en `WorkspaceEventFormatter::normalize()` sobra la rama `elseif (is_object(...))` duplicada, y
       faltan tests de `JsonSerializable` que devuelve array y de fingerprint > 255 que acaba en sha1. Baja · haiku.
-- [ ] M-8 — posveapi: confirmar el SAPI de la VPS (FPM) para que el envío ocurra tras responder; con otro SAPI el
+- [x] M-8 (FUERA DE ALCANCE: trabajo del repo de posveapi, no de Sereno) — posveapi: confirmar el SAPI de la VPS (FPM) para que el envío ocurra tras responder; con otro SAPI el
       cliente espera hasta 2 s. Baja · haiku (verificación).
 - [x] M-9 — posveapi: en `WorkspaceLogHandler::registerFlushPoints` acortar el docblock y renombrar `$handler` a
       `$handlerRef`. Baja · haiku.

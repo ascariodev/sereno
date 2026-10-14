@@ -204,7 +204,7 @@ mención en comentario, comentario en una tarea propia (asignada o creada) y men
 ## Mejoras propuestas
 - [x] M-1: Retrasar el email unos minutos y no mandarlo si la notificación ya se leyó.
       Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-2: Notificaciones push (PWA y móvil), del paso 9 del MVP.
+- [x] M-2 (OBSOLETA: el push web lo hizo el plan `notificaciones-push`; el móvil va con la app móvil): Notificaciones push (PWA y móvil), del paso 9 del MVP.
       Complejidad: alta · Archivos: 8+ · Riesgo: integración externa → plan nuevo
 - [x] M-3: Sobrescribir en `User` `notifications()` (hasMany `AppNotification`) y hacer que `unreadNotifications()`/`readNotifications()`
       lancen, para que el trait `Notifiable` no deje consultas a columnas `notifiable_*` inexistentes. (revisor, fase 1)

@@ -271,7 +271,7 @@ detalle del grupo, vista Log, Inicio, Login y layout móvil, sobre Reka UI envue
       Complejidad: media · Archivos: ~5 · Riesgo: contrato público → opus
 - [x] M-3: conteo de grupos abiertos por proyecto (y nivel máximo) para la barra lateral, las tarjetas de Inicio y «Necesita tu atención». (→ plan `log-resumen`)
       Complejidad: media · Archivos: ~5 · Riesgo: contrato público → opus
-- [ ] M-4: lista de mensajes virtualizada (TanStack Virtual, ya viene con Reka) si la fase 25 no pasa.
+- [x] M-4 (OBSOLETA: la fase 25 pasó sin tareas largas, no hace falta virtualizar): lista de mensajes virtualizada (TanStack Virtual, ya viene con Reka) si la fase 25 no pasa.
       Complejidad: alta · Archivos: ~3 · Riesgo: ninguno → plan nuevo
 - [x] M-5: nombre de la fuente en `LogEventResource` para mostrar «Fuente api-prod» en el panel.
       Complejidad: baja · Archivos: ~3 · Riesgo: contrato público → sonnet
