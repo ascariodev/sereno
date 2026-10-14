@@ -184,6 +184,8 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   red `workspace_default`, `.env` principal montado solo lectura). El vendor compartido ya tiene `minishlink/web-push`:
   no correr `composer install` en el checkout principal antes del merge.
 
+- 2026-10-13 (mejoras) — Service worker: el click enfoca y manda `postMessage {type:'NAVIGATE', url}` a la ventana, que navega con el router (`listenForNavigation` en `web/src/pwa/serviceWorker.ts`), sin recargar; sin ventana o si falla, `openWindow`. `renotify: true` con `tag` obligatorio (un tag vacío cae al aviso genérico). Una pestaña con SPA anterior al listener se enfoca pero no navega.
+
 ## Mejoras propuestas
 
 - [x] M-1 (baja, sonnet): `GenerateVapidKeysCommandTest` guarda y restaura las variables de entorno a mano; un helper
@@ -206,13 +208,13 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   `Throwable` por suscripción, con test.
 - [x] M-13 (baja, sonnet): `SendPushNotification` con tipo desconocido salta `wantsPush` y depende de que `PushPayload`
   devuelva null; cortar ahí mismo.
-- [ ] M-14 (baja, sonnet): `sw.js` `notificationclick` toma el primer cliente de `matchAll` con `includeUncontrolled`; si no
+- [x] M-14 (baja, sonnet): `sw.js` `notificationclick` toma el primer cliente de `matchAll` con `includeUncontrolled`; si no
   está controlado y otro sí, `navigate` falla y abre una ventana más. Priorizar un cliente controlado, con spec.
-- [ ] M-15 (baja, sonnet): `sw.js` aviso genérico con `data.url` relativo (`/`) mientras el resto es absoluto; y evaluar
+- [x] M-15 (baja, sonnet): `sw.js` aviso genérico con `data.url` relativo (`/`) mientras el resto es absoluto; y evaluar
   `renotify: true` para que un push con el mismo `tag` vuelva a sonar.
-- [ ] M-16 (baja, sonnet): `sw.spec.ts` no detecta un `showNotification` sin `await` dentro de `waitUntil`; afirmar que
+- [x] M-16 (baja, sonnet): `sw.spec.ts` no detecta un `showNotification` sin `await` dentro de `waitUntil`; afirmar que
   la promesa de `waitUntil` no resuelve antes que la de `showNotification`.
-- [ ] M-17 (media, sonnet): `notificationclick` usa `WindowClient.navigate`, que recarga la SPA; usar `postMessage` al
+- [x] M-17 (media, sonnet): `notificationclick` usa `WindowClient.navigate`, que recarga la SPA; usar `postMessage` al
   router de la ventana enfocada y navegar en cliente.
 - [ ] M-18 (baja, sonnet): `push.spec.ts`: cubrir las guardas de generación intermedias de `enablePush` (tras
   `getRegistration`, `requestPermission` y `subscribe`); hoy se prueban dos puntos.
