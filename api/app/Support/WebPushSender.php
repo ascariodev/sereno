@@ -2,10 +2,11 @@
 
 namespace App\Support;
 
-use ErrorException;
+use Illuminate\Support\Facades\Log;
 use Minishlink\WebPush\MessageSentReport;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
+use Throwable;
 
 class WebPushSender implements PushSender
 {
@@ -27,8 +28,11 @@ class WebPushSender implements PushSender
                     'authToken' => $subscription->auth_token,
                     'contentEncoding' => $subscription->content_encoding,
                 ]), $payload);
-            } catch (ErrorException $e) {
-                report($e);
+            } catch (Throwable $e) {
+                Log::warning('Push could not be sent to a subscription.', [
+                    'subscription' => $subscription->id,
+                    'exception' => $e::class.': '.$e->getMessage(),
+                ]);
                 $results[$subscription->id] = self::REJECTED;
 
                 continue;

@@ -195,16 +195,16 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   `authorize()` con 404 y no con `exists` (evitar que un 422 distinga ajeno de inexistente).
 - [x] M-5 (baja, sonnet): documentar la clave `push` de `users.notification_preferences` en `.claude/rules/database.md`.
 - [x] M-6 (baja, sonnet): tests de preferencias para `{"email": [], "push": {...}}` (se acepta) y cuerpo `{}` autenticado (422).
-- [ ] M-7 (baja, sonnet): unificar la lógica repetida de `User::wantsEmail` y `wantsPush` en un helper privado.
+- [x] M-7 (baja, sonnet): unificar la lógica repetida de `User::wantsEmail` y `wantsPush` en un helper privado.
 - [x] M-8 (baja, sonnet): test de `NotificationUrl` con `app.frontend_url` sin barra final (hoy solo con barra).
-- [ ] M-9 (baja, sonnet): `PushPayload` fija y restaura el locale a mano; usar el trait `Localizable::withLocale`.
-- [ ] M-10 (baja, sonnet): `PushPayload` captura `ErrorException`/`TypeError` para las claves ausentes de `data`, lo que
+- [x] M-9 (baja, sonnet): `PushPayload` fija y restaura el locale a mano; usar el trait `Localizable::withLocale`.
+- [x] M-10 (baja, sonnet): `PushPayload` captura `ErrorException`/`TypeError` para las claves ausentes de `data`, lo que
   también oculta bugs de programación; validar las claves explícitamente y dejar de capturar esas excepciones.
-- [ ] M-11 (baja, sonnet): renombrar `PushPayload::TITLE_LIMIT` (`Str::limit` mide ancho, no caracteres).
-- [ ] M-12 (baja, sonnet): `WebPushSender` captura solo `ErrorException` por suscripción; la librería también lanza
+- [x] M-11 (baja, sonnet): renombrar `PushPayload::TITLE_LIMIT` (`Str::limit` mide ancho, no caracteres).
+- [x] M-12 (baja, sonnet): `WebPushSender` captura solo `ErrorException` por suscripción; la librería también lanza
   `RuntimeException` y `ValueError`, que cortan el bucle sin registrar las ya enviadas ni seguir con las demás. Capturar
   `Throwable` por suscripción, con test.
-- [ ] M-13 (baja, sonnet): `SendPushNotification` con tipo desconocido salta `wantsPush` y depende de que `PushPayload`
+- [x] M-13 (baja, sonnet): `SendPushNotification` con tipo desconocido salta `wantsPush` y depende de que `PushPayload`
   devuelva null; cortar ahí mismo.
 - [ ] M-14 (baja, sonnet): `sw.js` `notificationclick` toma el primer cliente de `matchAll` con `includeUncontrolled`; si no
   está controlado y otro sí, `navigate` falla y abre una ventana más. Priorizar un cliente controlado, con spec.
@@ -232,3 +232,4 @@ como Web Push a la PWA instalada o al navegador, con preferencias por tipo, sin 
   Google), el diálogo muestra el mensaje genérico; distinguir ese caso con un texto que oriente a revisar el navegador.
 - [ ] M-27 (media, sonnet): verificar el push en Safari/WebKit (exige mostrar una notificación por cada push y revoca la
   suscripción tras push silenciosos); si aplica, mostrar siempre en Safari aunque Sereno esté enfocado.
+- [ ] M-28 (baja, sonnet): `WebPushSender` registra el rechazo con el id de la suscripción; sumar el host del endpoint (sin el token) para diagnosticar.

@@ -63,7 +63,19 @@ class SendPushNotification implements ShouldQueue
         $type = NotificationType::tryFrom((string) $notification?->type);
         $user = $notification ? User::query()->find($notification->user_id) : null;
 
-        if (! $notification || $notification->read_at !== null || ! $user || ($type && ! $user->wantsPush($type))) {
+        if (! $notification || $notification->read_at !== null || ! $user) {
+            return;
+        }
+
+        if ($type === null) {
+            Log::warning('Push skipped: notification with unknown type.', [
+                'notification' => $this->notificationUuid,
+            ]);
+
+            return;
+        }
+
+        if (! $user->wantsPush($type)) {
             return;
         }
 
