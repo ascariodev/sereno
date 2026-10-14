@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { Bell, Languages, LogOut, Mail, Monitor, Moon, Sun, Users, type LucideIcon } from '@lucide/vue'
+import { Bell, Languages, LogOut, Mail, Users } from '@lucide/vue'
 import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { LOCALE_LABELS, SUPPORTED_LOCALES, type Locale } from '../i18n'
-import { saveThemePreference, themePreference as theme, type ThemePreference } from '../theme/theme'
+import { saveThemePreference, THEME_PREFERENCES, themePreference as theme, type ThemePreference } from '../theme/theme'
+import { THEME_ICONS } from '../theme/themeIcons'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
 import { toast } from './ui/toast'
@@ -23,9 +24,6 @@ const triggerButton = ref<HTMLButtonElement | null>(null)
 const THEME_PREFIX = 'theme:'
 const LOCALE_PREFIX = 'locale:'
 
-const THEMES: ThemePreference[] = ['system', 'light', 'dark']
-const THEME_ICONS = { system: Monitor, light: Sun, dark: Moon } satisfies Record<ThemePreference, LucideIcon>
-
 const items = computed<AppMenuItem[]>(() => [
   { value: 'members', label: t('userMenu.members'), icon: Users },
   ...(organization.canManageInvitations ? [{ value: 'invitations', label: t('userMenu.invitations'), icon: Mail }] : []),
@@ -35,7 +33,7 @@ const items = computed<AppMenuItem[]>(() => [
     label: t('userMenu.themeLabel'),
     icon: THEME_ICONS[theme.value],
     hint: t(`userMenu.themeOption.${theme.value}`),
-    children: THEMES.map((option) => ({
+    children: THEME_PREFERENCES.map((option) => ({
       value: `${THEME_PREFIX}${option}`,
       label: t(`userMenu.themeOption.${option}`),
       icon: THEME_ICONS[option],

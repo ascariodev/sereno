@@ -4,10 +4,10 @@ export type ThemePreference = 'system' | 'light' | 'dark'
 
 export const THEME_STORAGE_KEY = 'workspace.theme'
 
-const PREFERENCES: readonly ThemePreference[] = ['system', 'light', 'dark']
+export const THEME_PREFERENCES: readonly ThemePreference[] = ['system', 'light', 'dark']
 
 function isThemePreference(value: unknown): value is ThemePreference {
-  return PREFERENCES.includes(value as ThemePreference)
+  return THEME_PREFERENCES.includes(value as ThemePreference)
 }
 
 export function readThemePreference(): ThemePreference {

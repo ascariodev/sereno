@@ -128,6 +128,11 @@
     "empty": "Sin resultados.",
     "goTo": "Ir a",
     "theme": "Tema",
+    "themeOption": {
+      "system": "Tema del sistema",
+      "light": "Tema claro",
+      "dark": "Tema oscuro"
+    },
     "language": "Idioma"
   },
   "integrations": {
@@ -259,11 +264,6 @@
       "system": "Sistema",
       "light": "Claro",
       "dark": "Oscuro"
-    },
-    "theme": {
-      "system": "Tema del sistema",
-      "light": "Tema claro",
-      "dark": "Tema oscuro"
     }
   },
   "notificationPreferences": {
