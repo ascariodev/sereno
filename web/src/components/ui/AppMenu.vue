@@ -8,19 +8,14 @@ export interface AppMenuItem {
   disabled?: boolean
   danger?: boolean
   checked?: boolean
+  hint?: string
+  children?: AppMenuItem[]
 }
 </script>
 
 <script setup lang="ts">
-import { Check } from '@lucide/vue'
-import {
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuPortal,
-  DropdownMenuRoot,
-  DropdownMenuTrigger,
-} from 'reka-ui'
+import { DropdownMenuContent, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
+import AppMenuEntries from './AppMenuEntries.vue'
 
 withDefaults(defineProps<{ items: AppMenuItem[]; align?: 'start' | 'center' | 'end'; side?: 'top' | 'right' | 'bottom' | 'left' }>(), {
   align: 'start',
@@ -37,22 +32,7 @@ const emit = defineEmits<{ select: [value: string] }>()
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
       <DropdownMenuContent class="app-menu" :side="side" :align="align" :side-offset="6" :collision-padding="8">
-        <component
-          :is="item.checked === undefined ? DropdownMenuItem : DropdownMenuCheckboxItem"
-          v-for="item in items"
-          :key="item.value"
-          class="app-menu__item"
-          :class="{ 'app-menu__item--danger': item.danger }"
-          :disabled="item.disabled"
-          :text-value="item.label"
-          :data-value="item.value"
-          v-bind="item.checked === undefined ? {} : { modelValue: item.checked }"
-          @select="emit('select', item.value)"
-        >
-          <component :is="item.icon" v-if="item.icon" class="app-menu__icon" :size="16" aria-hidden="true" />
-          <span class="app-menu__label">{{ item.label }}</span>
-          <Check v-if="item.checked" class="app-menu__check" :size="15" aria-hidden="true" />
-        </component>
+        <AppMenuEntries :items="items" @select="emit('select', $event)" />
       </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
@@ -90,7 +70,8 @@ const emit = defineEmits<{ select: [value: string] }>()
   outline: none;
   user-select: none;
 }
-.app-menu__item[data-highlighted] {
+.app-menu__item[data-highlighted],
+.app-menu__item[data-state='open'] {
   background: var(--accent-soft);
   color: var(--accent-ink);
 }
@@ -106,6 +87,11 @@ const emit = defineEmits<{ select: [value: string] }>()
 .app-menu__label {
   flex: 1;
 }
+.app-menu__hint {
+  flex: none;
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
 .app-menu__check {
   flex: none;
   color: var(--accent-ink);
@@ -115,6 +101,7 @@ const emit = defineEmits<{ select: [value: string] }>()
   color: var(--ink-3);
 }
 .app-menu__item[data-highlighted] .app-menu__icon,
+.app-menu__item[data-state='open'] .app-menu__icon,
 .app-menu__item--danger .app-menu__icon {
   color: inherit;
 }

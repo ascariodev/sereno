@@ -55,12 +55,21 @@ async function open() {
   expect(document.querySelector('[role=menu]')).not.toBeNull()
 }
 
-const LANGUAGE_LABELS = ['Español', 'English']
+async function openSubmenu(value: 'theme' | 'language') {
+  document.querySelector<HTMLElement>(`[role=menuitem][data-value=${value}]`)!.click()
+  await settle()
+  expect(document.querySelectorAll('[role=menu]')).toHaveLength(2)
+}
+
+async function openTheme() {
+  await open()
+  await openSubmenu('theme')
+}
 
 function checkedLabels(): string[] {
-  return Array.from(document.querySelectorAll('[role=menuitemcheckbox][aria-checked=true]'))
-    .map((el) => el.textContent!.trim())
-    .filter((label) => !LANGUAGE_LABELS.includes(label))
+  return Array.from(document.querySelectorAll('[role=menuitemcheckbox][aria-checked=true]')).map((el) =>
+    el.textContent!.trim(),
+  )
 }
 
 function item(label: string): HTMLElement {
@@ -74,43 +83,41 @@ describe('UserMenu', () => {
     localStorage.setItem(THEME_STORAGE_KEY, 'dark')
     initTheme()
     mountMenu()
-    await open()
-    expect(checkedLabels()).toEqual([i18n.global.t('userMenu.theme.dark')])
+    await openTheme()
+    expect(checkedLabels()).toEqual([i18n.global.t('userMenu.themeOption.dark')])
   })
 
   it('does not overwrite the session theme on mount', async () => {
     saveThemePreference('dark')
     localStorage.clear()
     mountMenu()
-    await open()
-    expect(checkedLabels()).toEqual([i18n.global.t('userMenu.theme.dark')])
+    await openTheme()
+    expect(checkedLabels()).toEqual([i18n.global.t('userMenu.themeOption.dark')])
   })
 
   it('checks the chosen theme and persists it', async () => {
     mountMenu()
-    await open()
-    expect(checkedLabels()).toEqual([i18n.global.t('userMenu.theme.system')])
-    const light = Array.from(document.querySelectorAll('[role=menuitemcheckbox]')).find(
-      (el) => el.textContent!.trim() === i18n.global.t('userMenu.theme.light'),
-    ) as HTMLElement
-    light.click()
+    await openTheme()
+    expect(checkedLabels()).toEqual([i18n.global.t('userMenu.themeOption.system')])
+    item(i18n.global.t('userMenu.themeOption.light')).click()
     await settle()
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
-    await open()
-    expect(checkedLabels()).toEqual([i18n.global.t('userMenu.theme.light')])
+    await openTheme()
+    expect(checkedLabels()).toEqual([i18n.global.t('userMenu.themeOption.light')])
   })
 
   it('reflects a theme changed elsewhere (command palette)', async () => {
     mountMenu()
     saveThemePreference('dark')
-    await open()
-    expect(checkedLabels()).toEqual([i18n.global.t('userMenu.theme.dark')])
+    await openTheme()
+    expect(checkedLabels()).toEqual([i18n.global.t('userMenu.themeOption.dark')])
   })
 
   it('applies the chosen language and saves it in the API', async () => {
     const patch = vi.spyOn(api, 'patch').mockResolvedValue({ data: { id: 1, name: 'Ada', email: 'a@e.com', locale: 'es' } })
     mountMenu()
     await open()
+    await openSubmenu('language')
     item('Español').click()
     await settle()
     expect(patch).toHaveBeenCalledWith('/api/me/locale', { locale: 'es' })
@@ -124,6 +131,7 @@ describe('UserMenu', () => {
     vi.spyOn(api, 'patch').mockRejectedValue(new ApiError(500, 'boom', {}))
     mountMenu()
     await open()
+    await openSubmenu('language')
     item('Español').click()
     await settle()
     expect(i18n.global.locale.value).toBe('es')

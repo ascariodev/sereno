@@ -253,6 +253,13 @@
     "invitations": "Invitaciones",
     "members": "Miembros",
     "label": "Menú de usuario",
+    "language": "Idioma",
+    "themeLabel": "Tema",
+    "themeOption": {
+      "system": "Sistema",
+      "light": "Claro",
+      "dark": "Oscuro"
+    },
     "theme": {
       "system": "Tema del sistema",
       "light": "Tema claro",
