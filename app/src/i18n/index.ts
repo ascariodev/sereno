@@ -32,15 +32,22 @@ export function resolveLocale(
   return DEFAULT_LOCALE
 }
 
-function systemLanguages(): string[] {
-  return getLocales().map((locale) => locale.languageTag)
+let chosenLocale: Locale | null = null
+
+export function setChosenLocale(locale: string | null): void {
+  chosenLocale = toSupported(locale)
+}
+
+function preferredLanguages(): string[] {
+  const system = getLocales().map((locale) => locale.languageTag)
+  return chosenLocale ? [chosenLocale, ...system] : system
 }
 
 export const i18n = createInstance()
 
 void i18n.use(initReactI18next).init({
   resources: { en: { translation: en }, es: { translation: es } },
-  lng: resolveLocale(null, systemLanguages()),
+  lng: resolveLocale(null, preferredLanguages()),
   fallbackLng: DEFAULT_LOCALE,
   interpolation: { escapeValue: false },
   react: { useSuspense: false },
@@ -51,9 +58,14 @@ export function getLocale(): Locale {
 }
 
 export function setLocale(userLocale?: string | null): Locale {
-  const locale = resolveLocale(userLocale, systemLanguages())
+  const locale = resolveLocale(userLocale, preferredLanguages())
   void i18n.changeLanguage(locale)
   return locale
+}
+
+export function chooseLocale(locale: Locale): Locale {
+  setChosenLocale(locale)
+  return setLocale(locale)
 }
 
 export function installI18nOnApi(): void {

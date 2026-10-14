@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -80,7 +80,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   para lo que use la app.
 - **Terminado cuando:** test: idioma inicial según el sistema y cambio en vivo.
 
-### [ ] Fase 9 — Sesión
+### [x] Fase 9 — Sesión
 - **Alcance:** token en `expo-secure-store`, store de sesión (login, logout, `GET /api/me`), `device_name` del dispositivo.
   Además: llamar a `installI18nOnApi()` al arrancar, aplicar `users.locale` con `setLocale` tras `GET /api/me` y persistir la
   elección manual de idioma (como `workspace.locale` de la web).
@@ -264,14 +264,16 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Aceptar invitaciones sigue en la web (no hay deep links de `sereno.ascario.dev` en esta versión).
 
 ## Notas para la próxima sesión
+- Fase 9 hecha: `app/src/session/` con `useAuthStore` (zustand 5: `token`, `user`, `hydrated`; `hydrate`, `login(email,
+  password, explicitLocale?)`, `fetchMe`, `chooseAndSaveLocale`, `logout`, `clearSession`). Token en expo-secure-store
+  (`sereno.token`) y elección manual de idioma en `sereno.locale`; contador de generación tras cada await. `hydrate` siempre
+  termina en `hydrated: true` (también si lo desplaza un login). `_layout.tsx` instala i18n y auth en el cliente y llama a
+  `hydrate()`. `device_name`: `Device.deviceName ?? Device.modelName ?? 'Sereno app'`. La fase 10 debe esperar `hydrated`
+  antes de redirigir.
 - Fase 8 hecha: `app/src/i18n/` (i18next ^26 + react-i18next ^17 + expo-localization ~57) con la API de `web/src/i18n`
   (`resolveLocale`, `setLocale`, `getLocale`, `installI18nOnApi`, `LOCALE_LABELS`), instancia propia con `useSuspense:false`,
   `en` por defecto. Solo la clave `app.name`; los textos de la web se copian cuando una pantalla los use. Aún nadie llama a
   `installI18nOnApi()` ni usa `useTranslation` (queda para la fase 9).
-- Fase 7 hecha: `app/src/config.ts` (`readConfig(env)` testeable; `config` lee cada `process.env.EXPO_PUBLIC_*` de forma estática,
-  porque Expo solo inlinea así; defaults `http://10.0.2.2:8003` y Reverb `10.0.2.2:8086`, key vacía) y `app/src/api/client.ts`,
-  igual que el de la web: `api` singleton y `createApiClient`, `set*Provider` de token, locale y organización, handlers de 401 y
-  403 `organization_forbidden`, `ApiError` con `code`. URL armada sin `new URL` (Hermes). `FieldErrors` vive en `client.ts`.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -296,3 +298,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-8: Cliente HTTP de la app: tests de timeout y cancelación con un `AbortSignal` real y de `buildUrl` con `?` en el path;
       mover `FieldErrors` a `src/api/types.ts` cuando existan más tipos.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → haiku
+- [ ] M-9: `login` de la app: si falla la escritura del token, borrarlo de disco solo si `mine === generation` o no hay token en
+      memoria (hoy un login más nuevo podría perder su token guardado; muy improbable); documentar que `fetchMe` aplica el idioma
+      de la cuenta sobre la elección manual si `saveLocale` falló sin conexión, como la web.
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
