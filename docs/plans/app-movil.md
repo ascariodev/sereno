@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -59,7 +59,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 
 ### Bloque B: base de la app
 
-### [ ] Fase 5 — Cuentas y herramientas [manual]
+### [x] Fase 5 — Cuentas y herramientas [manual]
 - **Alcance:** el usuario crea la cuenta de Expo (gratis) y hace `npx eas-cli login`; prepara un Android con depuración
   USB o un emulador de Android Studio. Firebase (FCM) se configura recién en la fase 30.
 - **Terminado cuando:** `npx eas-cli whoami` responde y `adb devices` lista el teléfono o el emulador.
@@ -266,7 +266,9 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   `data.organizationId` y recorta a `MOBILE_MAX_BYTES` (4096 - 300 para `to`, medido con unicode escapado). Un job encolado
   antes del deploy se lee con `?? null` (test de deserialización). Limitación conocida: si un emisor lanza, el otro canal no
   sale en ese intento (M-4).
-- Bloque A (API) terminado. Sigue la fase 5, **manual**: cuenta de Expo, `npx eas-cli login` y teléfono o emulador.
+- Fase 5 verificada el 2026-10-14: `eas-cli whoami` con sesión iniciada; emulador `emulator-5554` (Android 16, x86_64) en
+  `adb devices`. Desde el emulador el host es `10.0.2.2` (API `http://10.0.2.2:8003`, Reverb `10.0.2.2:8086`); desde un
+  teléfono físico, la IP de la PC en la LAN.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
