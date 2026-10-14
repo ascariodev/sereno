@@ -292,7 +292,12 @@
       "desktop": {
         "granted": "Alerts from Sereno are allowed on this device.",
         "denied": "Alerts from Sereno are not allowed on this device, so you will not be notified while the app is in the background.",
-        "request": "Allow alerts"
+        "request": "Allow alerts",
+        "autostart": {
+          "label": "Start with Windows",
+          "hint": "Sereno starts with Windows and stays in the system tray.",
+          "failed": "Could not change the start with Windows setting. Try again."
+        }
       },
       "status": {
         "unsupported": "This browser or session cannot receive push notifications. Install the app or use a browser that supports them.",

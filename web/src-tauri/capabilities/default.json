@@ -11,6 +11,9 @@
     "notification:allow-request-permission",
     "notification:allow-notify",
     "notification:allow-register-listener",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled",
     {
       "identifier": "opener:allow-open-url",
       "allow": [

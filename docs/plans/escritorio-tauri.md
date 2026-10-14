@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -103,7 +103,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   vivan los textos), `web/src/platform/desktopNotifications.ts`.
 - **Terminado cuando:** spec del diálogo en escritorio y en navegador (el navegador no cambia).
 
-### [ ] Fase 11 — Iniciar con Windows
+### [x] Fase 11 — Iniciar con Windows
 - **Alcance:** plugin `autostart`, arrancando oculto en la bandeja; interruptor "Iniciar con Windows" en la sección de
   escritorio del diálogo (apagado por defecto).
 - **Archivos:** `web/src-tauri/Cargo.toml`, `web/src-tauri/src/lib.rs`, `web/src-tauri/capabilities/default.json`,
@@ -184,11 +184,20 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   (`device-status`) y botón `request-desktop-permission` si no está concedido. `desktopPermissionGranted()` solo lee;
   `requestDesktopPermission()` pide siempre y actualiza el caché de la fase 8. Claves
   `notificationPreferences.device.desktop.{granted,denied,request}` en `web/src/i18n/{en,es}.json`.
+- 2026-10-13 — Fase 11: `tauri-plugin-autostart` 2.7.0 con `init(MacosLauncher::LaunchAgent, Some(vec!["--hidden"]))` y
+  permisos `allow-enable`, `allow-disable`, `allow-is-enabled`. La ventana `main` nace con `"visible": false` y el `setup`
+  la muestra salvo `--hidden` (`HIDDEN_ARG` en `lib.rs`); single-instance tampoco la muestra si el argv trae `--hidden`.
+  Interruptor en la sección de escritorio del diálogo (`web/src/platform/desktopAutostart.ts`). **Riesgo:** auto-launch 0.6.0
+  escribe el valor de `HKCU\...\CurrentVersion\Run` sin comillas (`<exe> --hidden`) y la ruta de instalación tiene espacios
+  (`C:\Users\Windows 11\...`); Windows suele resolverlo, pero hay que comprobarlo. El plugin no permite comillas.
 - 2026-10-13 — Fase 2: `src-tauri/target` y `gen/` los ignora el `.gitignore` que genera Tauri en `web/src-tauri/`; no se
   tocó `web/.gitignore`. `beforeDevCommand` vacío (Vite corre en Docker). Sin iconos android/ios (el móvil va con Expo).
   Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
 
 ## Notas para la próxima sesión
+- Fase 11: revisión manual pendiente con la app **instalada** (el autostart registra la ruta del exe actual): activar el
+  interruptor, mirar el valor en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` y reiniciar la sesión: Sereno
+  debe quedar en la bandeja sin ventana.
 - Fase 9: revisión manual pendiente con la app **instalada** (en `target/debug` no hay AppUserModelID): con la ventana
   oculta, clic en el aviso de una tarea asignada abre `/projects/<id>/plan?task=<n>`. Windows puede no dar el foco.
 - Fase 8: revisión manual pendiente: asignarse una tarea con la ventana oculta muestra el aviso de Windows. Una ronda de
@@ -263,3 +272,5 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
 - [ ] M-22: Specs pendientes de la fase 10: `aria-busy` del botón con la petición pendiente; tras `requestDesktopPermission()`
       concedido, un aviso no vuelve a pedir permiso; `isDesktop` mockeado a `false` explícito en el `beforeEach` del diálogo.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-23: Quitar los JSDoc de `web/src/platform/desktopAutostart.ts` que repiten el nombre de la función.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku

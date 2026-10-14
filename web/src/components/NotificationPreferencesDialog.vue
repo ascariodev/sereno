@@ -6,6 +6,7 @@ import { getNotificationPreferences, NOTIFICATION_CHANNELS, NOTIFICATION_TYPES, 
 import type { NotificationChannel, NotificationPreferences, NotificationType } from '../api/types'
 import { desktopPermissionGranted, requestDesktopPermission } from '../platform/desktopNotifications'
 import { isDesktop } from '../platform/desktop'
+import { autostartEnabled, setAutostart } from '../platform/desktopAutostart'
 import { disablePush, enablePush, getPushState, PushSubscribeError, type PushState } from '../pwa/push'
 import AppButton from './ui/AppButton.vue'
 import AppDialog from './ui/AppDialog.vue'
@@ -25,6 +26,9 @@ const saveFailed = reactive<Record<string, boolean>>({})
 const deviceState = ref<PushState | null>(null)
 const desktop = isDesktop()
 const desktopGranted = ref<boolean | null>(null)
+const autostart = ref<boolean | null>(null)
+const autostartBusy = ref(false)
+const autostartFailed = ref(false)
 const deviceBusy = ref(false)
 const deviceError = ref<DeviceError | null>(null)
 const deviceDismissed = ref(false)
@@ -33,6 +37,8 @@ let generation = 0
 const DEVICE_STATUS_ID = 'notification-preferences-device-status'
 const DEVICE_ERROR_ID = 'notification-preferences-device-error'
 const DEVICE_NOTICE_ID = 'notification-preferences-device-notice'
+const AUTOSTART_HINT_ID = 'notification-preferences-autostart-hint'
+const AUTOSTART_ERROR_ID = 'notification-preferences-autostart-error'
 
 const canToggleDevice = computed(() => deviceState.value === 'active' || deviceState.value === 'inactive')
 const deviceDescribedBy = computed(() => {
@@ -50,6 +56,9 @@ function reset(): void {
   loadFailed.value = false
   deviceState.value = null
   desktopGranted.value = null
+  autostart.value = null
+  autostartBusy.value = false
+  autostartFailed.value = false
   deviceBusy.value = false
   deviceError.value = null
   deviceDismissed.value = false
@@ -59,8 +68,10 @@ function reset(): void {
 
 async function loadDevice(current: number): Promise<void> {
   if (desktop) {
-    const granted = await desktopPermissionGranted()
-    if (current === generation) desktopGranted.value = granted
+    const [granted, startsWithSystem] = await Promise.all([desktopPermissionGranted(), autostartEnabled()])
+    if (current !== generation) return
+    desktopGranted.value = granted
+    autostart.value = startsWithSystem
     return
   }
   const state = await getPushState().catch((): PushState => 'unsupported')
@@ -143,6 +154,30 @@ async function requestDesktopAlerts(): Promise<void> {
   }
 }
 
+async function toggleAutostart(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const previous = autostart.value
+  if (autostartBusy.value || previous === null) {
+    input.checked = !input.checked
+    return
+  }
+  const run = generation
+  autostartBusy.value = true
+  autostartFailed.value = false
+  try {
+    const state = await setAutostart(input.checked)
+    if (run !== generation) return
+    autostart.value = state
+    input.checked = state
+  } catch {
+    if (run !== generation) return
+    input.checked = previous
+    autostartFailed.value = true
+  } finally {
+    if (run === generation) autostartBusy.value = false
+  }
+}
+
 async function toggleDevice(): Promise<void> {
   if (deviceBusy.value || !canToggleDevice.value) return
   const run = generation
@@ -194,6 +229,29 @@ async function toggleDevice(): Promise<void> {
         >
           {{ t('notificationPreferences.device.desktop.request') }}
         </AppButton>
+        <div v-if="autostart !== null" class="notification-preferences__autostart" data-test="autostart">
+          <label class="notification-preferences__autostart-label">
+            <input
+              type="checkbox"
+              role="switch"
+              class="notification-preferences__switch notification-preferences__switch--inline"
+              name="autostart"
+              :checked="autostart"
+              :aria-disabled="autostartBusy ? 'true' : undefined"
+              :aria-busy="autostartBusy ? 'true' : undefined"
+              :aria-invalid="autostartFailed ? 'true' : undefined"
+              :aria-describedby="autostartFailed ? `${AUTOSTART_HINT_ID} ${AUTOSTART_ERROR_ID}` : AUTOSTART_HINT_ID"
+              @change="toggleAutostart($event)"
+            />
+            {{ t('notificationPreferences.device.desktop.autostart.label') }}
+          </label>
+          <p :id="AUTOSTART_HINT_ID" class="notification-preferences__status" data-test="autostart-hint">
+            {{ t('notificationPreferences.device.desktop.autostart.hint') }}
+          </p>
+          <AppFormError v-if="autostartFailed" :id="AUTOSTART_ERROR_ID" data-test="autostart-error">
+            {{ t('notificationPreferences.device.desktop.autostart.failed') }}
+          </AppFormError>
+        </div>
       </section>
       <section v-else-if="!desktop && deviceState" class="notification-preferences__device" data-test="device">
         <h3 class="notification-preferences__heading">{{ t('notificationPreferences.device.title') }}</h3>
@@ -305,6 +363,24 @@ async function toggleDevice(): Promise<void> {
   margin: 0;
   color: var(--ink-3);
   font-size: 13px;
+}
+
+.notification-preferences__autostart {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.notification-preferences__autostart-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 14px;
+}
+
+.notification-preferences__switch--inline {
+  margin: 0;
 }
 
 .notification-preferences__table {

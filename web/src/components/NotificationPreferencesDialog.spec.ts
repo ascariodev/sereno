@@ -5,6 +5,7 @@ import { api, ApiError } from '../api/client'
 import { i18n, setLocale } from '../i18n'
 import { disablePush, enablePush, getPushState, PushSubscribeError, type PushState } from '../pwa/push'
 import { isDesktop } from '../platform/desktop'
+import { autostartEnabled, setAutostart } from '../platform/desktopAutostart'
 import { desktopPermissionGranted, requestDesktopPermission } from '../platform/desktopNotifications'
 import NotificationPreferencesDialog from './NotificationPreferencesDialog.vue'
 
@@ -16,6 +17,7 @@ vi.mock('../pwa/push', async (importOriginal) => ({
 }))
 
 vi.mock('../platform/desktop', () => ({ isDesktop: vi.fn() }))
+vi.mock('../platform/desktopAutostart', () => ({ autostartEnabled: vi.fn(), setAutostart: vi.fn() }))
 vi.mock('../platform/desktopNotifications', () => ({
   desktopPermissionGranted: vi.fn(),
   requestDesktopPermission: vi.fn(),
@@ -513,8 +515,21 @@ describe('NotificationPreferencesDialog', () => {
 describe('NotificationPreferencesDialog on the desktop app', () => {
   beforeEach(() => {
     vi.mocked(isDesktop).mockReturnValue(true)
+    vi.mocked(desktopPermissionGranted).mockResolvedValue(true)
+    vi.mocked(autostartEnabled).mockResolvedValue(false)
     vi.spyOn(api, 'get').mockResolvedValue({ data: ALL_ON })
   })
+
+  function autostartSwitch(): HTMLInputElement | null {
+    return document.querySelector<HTMLInputElement>('input[name=autostart]')
+  }
+
+  async function flip(next: boolean) {
+    const input = autostartSwitch()!
+    input.checked = next
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+    await settle()
+  }
 
   function desktopButton(): HTMLButtonElement | null {
     return document.querySelector<HTMLButtonElement>('button[name=request-desktop-permission]')
@@ -559,5 +574,75 @@ describe('NotificationPreferencesDialog on the desktop app', () => {
     expect(document.querySelector('[data-test=device]')!.textContent).toContain('not allowed')
     expect(desktopButton()).not.toBeNull()
     expect(desktopButton()!.disabled).toBe(false)
+  })
+
+  it('shows the start with Windows switch off by default, labelled and described by its hint', async () => {
+    mountDialog()
+    await settle()
+    const input = autostartSwitch()!
+    expect(input.checked).toBe(false)
+    expect(input.closest('label')!.textContent).toContain('Start with Windows')
+    expect(input.getAttribute('aria-describedby')).toBe(document.querySelector('[data-test=autostart-hint]')!.id)
+    expect(document.querySelector('[data-test=autostart-error]')).toBeNull()
+  })
+
+  it('starts on when the system reports it enabled', async () => {
+    vi.mocked(autostartEnabled).mockResolvedValue(true)
+    mountDialog()
+    await settle()
+    expect(autostartSwitch()!.checked).toBe(true)
+  })
+
+  it('enables and disables autostart', async () => {
+    vi.mocked(setAutostart).mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+    mountDialog()
+    await settle()
+    await flip(true)
+    expect(setAutostart).toHaveBeenLastCalledWith(true)
+    expect(autostartSwitch()!.checked).toBe(true)
+    await flip(false)
+    expect(setAutostart).toHaveBeenLastCalledWith(false)
+    expect(autostartSwitch()!.checked).toBe(false)
+  })
+
+  it('marks the switch busy while changing and ignores a second change', async () => {
+    const pending = deferred<boolean>()
+    vi.mocked(setAutostart).mockReturnValue(pending.promise)
+    mountDialog()
+    await settle()
+    await flip(true)
+    expect(autostartSwitch()!.getAttribute('aria-busy')).toBe('true')
+    expect(autostartSwitch()!.getAttribute('aria-disabled')).toBe('true')
+    await flip(false)
+    expect(setAutostart).toHaveBeenCalledTimes(1)
+    expect(autostartSwitch()!.checked).toBe(true)
+    pending.resolve(true)
+    await settle()
+    expect(autostartSwitch()!.getAttribute('aria-busy')).toBeNull()
+  })
+
+  it('reverts and shows an error when the change fails, and clears it on the next try', async () => {
+    vi.mocked(setAutostart).mockRejectedValueOnce(new Error('registry')).mockResolvedValueOnce(true)
+    mountDialog()
+    await settle()
+    await flip(true)
+    const input = autostartSwitch()!
+    expect(input.checked).toBe(false)
+    expect(input.getAttribute('aria-invalid')).toBe('true')
+    const error = document.querySelector('[data-test=autostart-error]')!
+    expect(error.textContent).toContain('Could not change')
+    expect(input.getAttribute('aria-describedby')).toContain(error.id)
+    await flip(true)
+    expect(document.querySelector('[data-test=autostart-error]')).toBeNull()
+    expect(autostartSwitch()!.checked).toBe(true)
+  })
+
+  it('is not offered in the browser', async () => {
+    vi.mocked(isDesktop).mockReturnValue(false)
+    mockDevice('inactive')
+    mountDialog()
+    await settle()
+    expect(autostartSwitch()).toBeNull()
+    expect(autostartEnabled).not.toHaveBeenCalled()
   })
 })

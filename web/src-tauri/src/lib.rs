@@ -7,6 +7,7 @@ use tauri::{
 const MAIN_WINDOW: &str = "main";
 const MENU_OPEN: &str = "open";
 const MENU_QUIT: &str = "quit";
+const HIDDEN_ARG: &str = "--hidden";
 
 fn show_main_window(app: &AppHandle) {
   if let Some(window) = app.get_webview_window(MAIN_WINDOW) {
@@ -55,9 +56,15 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
-    .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-      show_main_window(app);
+    .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+      if !argv.iter().any(|arg| arg == HIDDEN_ARG) {
+        show_main_window(app);
+      }
     }))
+    .plugin(tauri_plugin_autostart::init(
+      tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+      Some(vec![HIDDEN_ARG]),
+    ))
     .plugin(tauri_plugin_opener::init())
     .plugin(tauri_plugin_notification::init())
     .invoke_handler(tauri::generate_handler![focus_main_window])
@@ -78,6 +85,9 @@ pub fn run() {
         )?;
       }
       build_tray(app.handle())?;
+      if !std::env::args().any(|arg| arg == HIDDEN_ARG) {
+        show_main_window(app.handle());
+      }
       Ok(())
     })
     .run(tauri::generate_context!())

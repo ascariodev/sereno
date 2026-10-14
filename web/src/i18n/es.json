@@ -292,7 +292,12 @@
       "desktop": {
         "granted": "Los avisos de Sereno están permitidos en este dispositivo.",
         "denied": "Los avisos de Sereno no están permitidos en este dispositivo, así que no se te avisará con la aplicación en segundo plano.",
-        "request": "Permitir avisos"
+        "request": "Permitir avisos",
+        "autostart": {
+          "label": "Iniciar con Windows",
+          "hint": "Sereno se inicia con Windows y queda en la bandeja del sistema.",
+          "failed": "No se pudo cambiar el inicio con Windows. Inténtalo de nuevo."
+        }
       },
       "status": {
         "unsupported": "Este navegador o sesión no puede recibir notificaciones push. Instala la aplicación o usa un navegador compatible.",
