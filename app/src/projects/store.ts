@@ -34,12 +34,23 @@ interface ProjectsState {
   create(input: ProjectInput): Promise<Project>
   update(projectId: number, input: Partial<ProjectInput>): Promise<Project>
   archive(projectId: number): Promise<void>
+  refreshCounts(): void
   clear(): void
 }
 
 const PER_PAGE = 100
 
+const COUNTS_REFRESH_DELAY_MS = 300
+
 let generation = 0
+let countsGeneration = 0
+let countsTimer: ReturnType<typeof setTimeout> | null = null
+
+function cancelCountsRefresh(): void {
+  countsGeneration++
+  if (countsTimer !== null) clearTimeout(countsTimer)
+  countsTimer = null
+}
 let changeSeq = 0
 let loadsInFlight = 0
 // Saved while a load is in flight, so its older response does not undo them.
@@ -96,6 +107,28 @@ async function fetchChannels(): Promise<Channel[]> {
   return all
 }
 
+async function fetchCounts(): Promise<void> {
+  const current = ++countsGeneration
+  const listGeneration = generation
+  try {
+    const loaded = await fetchProjects()
+    if (current !== countsGeneration || listGeneration !== generation) return
+    const fresh = new Map(loaded.map((project) => [project.id, project]))
+    useProjectsStore.setState((state) => ({
+      projects: state.projects.map((project) => {
+        const latest = fresh.get(project.id)
+        if (!latest) return project
+        if (latest.open_groups_count === project.open_groups_count && latest.open_max_level === project.open_max_level) {
+          return project
+        }
+        return { ...project, open_groups_count: latest.open_groups_count, open_max_level: latest.open_max_level }
+      }),
+    }))
+  } catch {
+    // The counts keep their previous values until the next refresh or reload.
+  }
+}
+
 export const useProjectsStore = create<ProjectsState>()((set, get) => ({
   projects: [],
   channelByProject: {},
@@ -105,6 +138,7 @@ export const useProjectsStore = create<ProjectsState>()((set, get) => ({
 
   async load(keepCurrent = false) {
     const mine = ++generation
+    cancelCountsRefresh()
     if (keepCurrent) set({ failed: false, loading: true })
     else set({ projects: [], channelByProject: {}, loaded: false, failed: false, loading: true })
     const startedAt = changeSeq
@@ -151,8 +185,21 @@ export const useProjectsStore = create<ProjectsState>()((set, get) => ({
     set({ projects: get().projects.filter((project) => project.id !== projectId), channelByProject: channels })
   },
 
+  refreshCounts() {
+    if (countsTimer !== null) clearTimeout(countsTimer)
+    countsTimer = setTimeout(() => {
+      countsTimer = null
+      if (get().loading) {
+        get().refreshCounts()
+        return
+      }
+      void fetchCounts()
+    }, COUNTS_REFRESH_DELAY_MS)
+  },
+
   clear() {
     generation++
+    cancelCountsRefresh()
     set({ projects: [], channelByProject: {}, loading: false, failed: false, loaded: false })
   },
 }))

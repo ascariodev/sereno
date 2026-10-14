@@ -2,12 +2,16 @@ import Echo from 'laravel-echo'
 import Pusher, { type ChannelAuthorizationCallback } from 'pusher-js/react-native'
 
 import { config } from '@/config'
+import type { Message, MessageDeletedEvent } from '@/messages/store'
 
 export const MEMBERSHIP_REVOKED_EVENT = '.membership.revoked'
 export const MEMBERSHIP_ROLE_CHANGED_EVENT = '.membership.role_changed'
 export const PROJECT_ACCESS_CHANGED_EVENT = '.project.access_changed'
 export const TASK_ASSIGNED_EVENT = '.task.assigned'
 export const NOTIFICATION_CREATED_EVENT = '.notification.created'
+export const MESSAGE_CREATED_EVENT = '.message.created'
+export const MESSAGE_UPDATED_EVENT = '.message.updated'
+export const MESSAGE_DELETED_EVENT = '.message.deleted'
 
 export interface RealtimePayload {
   organization_id?: number
@@ -16,6 +20,11 @@ export interface RealtimePayload {
   task_id?: number
   granted?: boolean
   notification?: unknown
+  message?: Message
+  channel_id?: number
+  parent_id?: number | null
+  id?: number
+  deleted_at?: string
 }
 
 export interface NotificationCreatedPayload {
@@ -64,6 +73,10 @@ export function setRealtimeClientFactory(newFactory: (() => RealtimeClient | nul
 
 export function userChannelName(userId: number): string {
   return `users.${userId}`
+}
+
+export function channelName(organizationId: number, channelId: number): string {
+  return `organizations.${organizationId}.channels.${channelId}`
 }
 
 function subscribe(name: string, events: string[], handler: Subscriber): () => void {
@@ -150,6 +163,37 @@ export function subscribeToUser(userId: number, handlers: UserSubscriptionHandle
       if (typeof data.notification !== 'object' || data.notification === null) return
       onNotificationCreated({ organizationId: data.organization_id, notification: data.notification })
     }
+  })
+}
+
+export interface ChannelSubscriptionHandlers {
+  onCreated?: (message: Message) => void
+  onUpdated?: (message: Message) => void
+  onDeleted?: (event: MessageDeletedEvent) => void
+}
+
+export function subscribeToChannel(
+  organizationId: number,
+  channelId: number,
+  handlers: ChannelSubscriptionHandlers,
+): () => void {
+  const { onCreated = () => {}, onUpdated = () => {}, onDeleted = () => {} } = handlers
+  const events = [MESSAGE_CREATED_EVENT, MESSAGE_UPDATED_EVENT, MESSAGE_DELETED_EVENT]
+  return subscribe(channelName(organizationId, channelId), events, (event, data) => {
+    if (event === MESSAGE_DELETED_EVENT) {
+      const { id, channel_id: deletedChannelId, parent_id: parentId, deleted_at: deletedAt } = data
+      if (typeof id !== 'number' || typeof deletedChannelId !== 'number' || typeof deletedAt !== 'string') return
+      onDeleted({
+        id,
+        channel_id: deletedChannelId,
+        parent_id: typeof parentId === 'number' ? parentId : null,
+        deleted_at: deletedAt,
+      })
+      return
+    }
+    if (typeof data.message?.id !== 'number' || typeof data.message.channel_id !== 'number') return
+    if (event === MESSAGE_UPDATED_EVENT) onUpdated(data.message)
+    else onCreated(data.message)
   })
 }
 

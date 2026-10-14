@@ -7,6 +7,10 @@ import { MessageComposer } from '@/components/MessageComposer';
 import { MessageBody } from '@/components/MessageBody';
 import { SystemNotice } from '@/components/SystemNotice';
 import { type Message, useMessagesStore } from '@/messages/store';
+import { useOrganizationStore } from '@/organization/store';
+import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '@/messages/payload';
+import { useProjectsStore } from '@/projects/store';
+import { onReconnect, subscribeToChannel } from '@/realtime/echo';
 import { useAuthStore } from '@/session/auth';
 
 function MessageRow({ message }: { message: Message }) {
@@ -40,6 +44,31 @@ export default function Channel() {
     if (channelId !== null) void open(channelId);
     return () => useMessagesStore.getState().clear();
   }, [channelId, open]);
+
+  const organizationId = useOrganizationStore((state) => state.activeId);
+
+  useEffect(() => {
+    if (channelId === null || organizationId === null) return;
+    const unsubscribe = subscribeToChannel(organizationId, channelId, {
+      onCreated: (message) => {
+        const store = useMessagesStore.getState();
+        store.insert(message);
+        if (isLogGroupOpenedPayload(message.payload) || isLogGroupStatusChangedPayload(message.payload)) {
+          useProjectsStore.getState().refreshCounts();
+        }
+      },
+      onUpdated: (message) => useMessagesStore.getState().replace(message),
+      onDeleted: (event) => useMessagesStore.getState().remove(event),
+    });
+    const unsubscribeReconnect = onReconnect(() => {
+      void useMessagesStore.getState().catchUp();
+      useProjectsStore.getState().refreshCounts();
+    });
+    return () => {
+      unsubscribe();
+      unsubscribeReconnect();
+    };
+  }, [channelId, organizationId]);
 
   const visible = useMemo(() => [...messages].reverse(), [messages]);
 

@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 21
+**Estado:** en curso · Fase actual: 22
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -134,7 +134,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** al escribir `@`, sugerir miembros e insertar el token de mención.
 - **Terminado cuando:** test del autocompletado.
 
-### [ ] Fase 21 — Mensajes en vivo
+### [x] Fase 21 — Mensajes en vivo
 - **Alcance:** `message.created/updated/deleted` en el canal abierto.
 - **Terminado cuando:** test con eventos simulados.
 
@@ -274,17 +274,19 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   usa `MessageBody` con menciones y la fase 17 deja además `MarkdownContent` RN (markdown-it) para las fases 34 y 36.
 
 ## Notas para la próxima sesión
+- Fase 21 hecha: `realtime/echo.ts` suma `subscribeToChannel` (`organizations.{org}.channels.{id}`, `.message.*`, conteo
+  de referencias). `messages/store.ts` suma `replace` (ignora ediciones más viejas por `edited_at`), `remove` (marcador),
+  `catchUp` tras reconexión y borrados anticipados (`liveDeletions`); `open` conserva lo recibido en vivo durante la carga.
+  `projects/store.ts` porta `refreshCounts` (debounce 300 ms), disparado por avisos de log abiertos o con cambio de estado y
+  al reconectar. Para la fase 23: `replace` sustituye el mensaje entero y las respuestas (`parent_id`) se ignoran; portar
+  `applyReply`, conservar `replies_count`/`last_reply_at`/`recent_participants` y usar el `root` de `.message.deleted`.
+  `project.members_changed` no se escucha (fase 41, junto con `invalidate` de miembros).
 - Fase 20 hecha: `app/src/mentions/mentionInput.ts` (port puro de `useMentionInput.ts`: `findQuery`, `reconcile`,
   `suggestionsFor`, `selectMember`, `serializeMentions`) y `app/src/projects/members.ts` (directorio de
   `/api/projects/{id}/members`, TTL 5 min, dedupe en vuelo, se vacía al cambiar de organización; sin `invalidate`: la fase
   41 debe sumarlo al cambiar miembros). El compositor busca el proyecto con `channelByProject`; sin store de proyectos
   cargado no hay sugerencias (como la web). El caret se estima en `onChangeText` y lo corrige `onSelectionChange`. Falta
   `parseMentionDraft` (para editar, fase 22).
-- Fase 19 hecha: `app/src/components/MessageComposer.tsx` (como `MessageComposer.vue`: 4000 caracteres contados con
-  `[...s]`, 422 por `body` o `message`, 429, genérico; conserva el texto al fallar y solo vacía si no cambió; envío solo por
-  botón, el campo es multilínea). `messages/store.ts` suma `send` (POST con generación) e `insert` (deduplica por id, ignora
-  otro canal y `parent_id`, ordena por id), listo para la fase 21. La pantalla del canal no conoce `archived_at`: un envío a
-  un canal archivado muestra el 422 del API. Falta comprobar en el teléfono que el teclado no tape el compositor.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -331,3 +333,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-25: Ocultar el compositor en canales archivados (`archived_at` de `ChannelResource`, pasarlo a la pantalla del canal), como la web. Complejidad baja, sonnet.
 - [ ] M-26: Envolver el canal en `KeyboardAvoidingView` (o el equivalente de Expo) si en el teléfono el teclado tapa el compositor. Complejidad baja, sonnet.
 - [ ] M-27: Tests de `app/src/projects/members.ts` (TTL, dedupe en vuelo, vaciado al cambiar de organización). Complejidad baja, sonnet.
+- [ ] M-28: `catchUp` sale si `loading`; la web solo si `hasNewer`. Si la carga de `open` falla y hay reconexión, no se recupera nada. Complejidad baja, sonnet.
