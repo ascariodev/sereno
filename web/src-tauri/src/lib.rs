@@ -11,9 +11,15 @@ const HIDDEN_ARG: &str = "--hidden";
 
 fn show_main_window(app: &AppHandle) {
   if let Some(window) = app.get_webview_window(MAIN_WINDOW) {
-    let _ = window.show();
-    let _ = window.unminimize();
-    let _ = window.set_focus();
+    if let Err(error) = window.show() {
+      log::warn!("could not show main window: {error}");
+    }
+    if let Err(error) = window.unminimize() {
+      log::warn!("could not unminimize main window: {error}");
+    }
+    if let Err(error) = window.set_focus() {
+      log::warn!("could not focus main window: {error}");
+    }
   }
 }
 

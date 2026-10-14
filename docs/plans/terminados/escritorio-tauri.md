@@ -290,9 +290,11 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-14: Menú de la bandeja en el idioma del sistema (crate `sys-locale`), con los textos de `en` y `es`.
       Complejidad: media · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-15: Clic izquierdo en la bandeja alterna ocultar y mostrar si la ventana ya está visible y enfocada.
-      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-16: `log::warn!` en vez de `let _` para los errores de `show`, `unminimize` y `set_focus` en `lib.rs`.
+- [ ] M-15: Clic izquierdo en la bandeja alterna ocultar y mostrar si la ventana ya está visible y enfocada. Intentada y
+      revertida: en Windows el clic en la bandeja quita el foco antes del evento y `is_focused()` siempre da false. Rehacerla
+      guardando el `Instant` del último `WindowEvent::Focused(false)` (ocultar si el clic llega a <~200 ms) y probarla a mano.
+      Complejidad: media · Archivos: 1 · Riesgo: ninguno → sonnet
+- [x] M-16: `log::warn!` en vez de `let _` para los errores de `show`, `unminimize` y `set_focus` en `lib.rs`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-17: Cachear unos segundos las preferencias de notificación en `desktopNotifications.ts` (invalidando al guardarlas),
       para no hacer un GET por aviso en ráfagas.
@@ -322,3 +324,6 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-28: En los specs de `MessageAttachments` con `attachTo: document.body`, desmontar en `afterEach` (hoy `unmount()` no corre si falla un `expect`) y extraer un helper `renderAttached`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-29: Registrar `tauri-plugin-log` también en release (a archivo), o documentar que los `log::warn!` de `lib.rs` solo
+      se ven en desarrollo.
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
