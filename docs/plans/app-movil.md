@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 19
+**Estado:** en curso · Fase actual: 20
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -126,7 +126,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** render de los mensajes `system` (avisos de log y cambios de estado) como `SystemNotice.vue`.
 - **Terminado cuando:** test por tipo de payload.
 
-### [ ] Fase 19 — Enviar mensajes
+### [x] Fase 19 — Enviar mensajes
 - **Alcance:** compositor con envío y estado de error.
 - **Terminado cuando:** test de envío y de error.
 
@@ -274,6 +274,11 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   usa `MessageBody` con menciones y la fase 17 deja además `MarkdownContent` RN (markdown-it) para las fases 34 y 36.
 
 ## Notas para la próxima sesión
+- Fase 19 hecha: `app/src/components/MessageComposer.tsx` (como `MessageComposer.vue`: 4000 caracteres contados con
+  `[...s]`, 422 por `body` o `message`, 429, genérico; conserva el texto al fallar y solo vacía si no cambió; envío solo por
+  botón, el campo es multilínea). `messages/store.ts` suma `send` (POST con generación) e `insert` (deduplica por id, ignora
+  otro canal y `parent_id`, ordena por id), listo para la fase 21. La pantalla del canal no conoce `archived_at`: un envío a
+  un canal archivado muestra el 422 del API. Falta comprobar en el teléfono que el teclado no tape el compositor.
 - Fase 18 hecha: `app/src/messages/payload.ts` (tipos y guardas de payload de `web/src/api/types.ts`, `levelTone`) y
   `app/src/components/SystemNotice.tsx` (tarjeta de grupo abierto/reabierto con nivel, título, eventos y hora; líneas de
   cambio de estado, tarea creada desde el grupo y grupo reabierto de una tarea; genérico si el payload no es válido),
@@ -281,12 +286,6 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   resolver/ignorar/crear tarea): la pantalla del canal solo recibe `id` y `name`; hará falta `projectId` y un estado
   compartido del grupo como `useLogGroupStatuses`. Abrir el grupo al tocar el título va con la fase 39; `ThreadSummary`
   con la 23.
-- Fase 17 hecha (ver Decisiones): `app/src/mentionToken.ts` (port de `splitMentions`/`mentionToken`; falta
-  `parseMentionDraft`, para el composer) y `app/src/components/MessageBody.tsx` (texto plano con chips de mención), usado
-  en los mensajes de usuario de `channel.tsx`. `app/src/markdown/parseMarkdown.ts` + `MarkdownContent.tsx` (markdown-it
-  ^15, mismas reglas que `web/src/markdown/renderMarkdown.ts`; árbol de tokens a componentes RN; enlaces solo
-  http/https/mailto con `Linking.openURL`; imágenes no se pintan; casillas con `interactive` y `onToggle(line)`): aún sin
-  uso, lo conectan las fases 34 y 36. Hay un aviso de `act(...)` de `loadOlder` en `channel.test`.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -330,3 +329,5 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-22: Sparkline de eventos por hora en la tarjeta del aviso (`/log-groups/hourly`), como `SystemNotice.vue`; no está en ninguna fase. Complejidad media, sonnet.
 - [ ] M-23: Avisos de sistema: quitar la clave sin uso `channel.notice`, tests de `status_changed` sin título y de nivel o estado desconocido, y confirmar contra la web qué se muestra con un aviso con `deleted_at`. Complejidad baja, sonnet.
 - [ ] M-24: Negritas en actor y estado de las líneas de aviso con `Trans` de react-i18next, como `i18n-t` en la web. Complejidad baja, sonnet.
+- [ ] M-25: Ocultar el compositor en canales archivados (`archived_at` de `ChannelResource`, pasarlo a la pantalla del canal), como la web. Complejidad baja, sonnet.
+- [ ] M-26: Envolver el canal en `KeyboardAvoidingView` (o el equivalente de Expo) si en el teléfono el teclado tapa el compositor. Complejidad baja, sonnet.

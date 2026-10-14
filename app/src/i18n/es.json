@@ -114,7 +114,14 @@
     "loadFailed": "No se pudieron cargar los mensajes.",
     "loadOlderFailed": "No se pudieron cargar mensajes anteriores. Reintentar",
     "loadingMore": "Cargando mensajes anteriores",
-    "systemNotice": "Aviso del sistema"
+    "systemNotice": "Aviso del sistema",
+    "composer": {
+      "placeholder": "Escribe un mensaje",
+      "send": "Enviar",
+      "tooLong": "El mensaje no puede superar {{max}} caracteres.",
+      "rateLimited": "Estás enviando mensajes demasiado rápido. Inténtalo de nuevo en un momento.",
+      "sendFailed": "No se pudo enviar el mensaje."
+    }
   },
   "notifications": {
     "title": "Notificaciones"

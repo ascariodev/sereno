@@ -3,6 +3,7 @@ import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { MessageComposer } from '@/components/MessageComposer';
 import { MessageBody } from '@/components/MessageBody';
 import { SystemNotice } from '@/components/SystemNotice';
 import { type Message, useMessagesStore } from '@/messages/store';
@@ -88,6 +89,7 @@ export default function Channel() {
           }
         />
       )}
+      {channelId !== null && !loading && !(failed && messages.length === 0) ? <MessageComposer /> : null}
     </View>
   );
 }

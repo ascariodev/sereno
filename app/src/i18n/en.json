@@ -114,7 +114,14 @@
     "loadFailed": "Could not load the messages.",
     "loadOlderFailed": "Could not load older messages. Retry",
     "loadingMore": "Loading older messages",
-    "systemNotice": "System notice"
+    "systemNotice": "System notice",
+    "composer": {
+      "placeholder": "Write a message",
+      "send": "Send",
+      "tooLong": "The message cannot exceed {{max}} characters.",
+      "rateLimited": "You are sending messages too fast. Try again in a moment.",
+      "sendFailed": "Could not send the message."
+    }
   },
   "notifications": {
     "title": "Notifications"

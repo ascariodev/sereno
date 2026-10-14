@@ -215,3 +215,110 @@ describe('Project card link', () => {
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/channel', params: { id: '50', name: 'Project 1' } });
   });
 });
+
+describe('Message composer', () => {
+  function mockChannel(post: (body: unknown) => Response) {
+    const fetchMock = jest.fn(async (url: string, init?: RequestInit) =>
+      init?.method === 'POST'
+        ? post(JSON.parse(String(init.body)))
+        : json({ data: [message(1)], meta: { next_cursor: null } }),
+    );
+    globalThis.fetch = fetchMock as never;
+    return fetchMock;
+  }
+
+  it('sends the body, inserts the returned message once and clears the field', async () => {
+    const fetchMock = mockChannel((body) => json({ data: message(2, { body: (body as { body: string }).body }) }, 201));
+    await render(<Channel />);
+    await screen.findByText('Body 1');
+
+    await fireEvent.changeText(screen.getByLabelText('Write a message'), 'Hello there');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+
+    expect(await screen.findByText('Hello there')).toBeOnTheScreen();
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!;
+    expect(String(post[0])).toContain('/api/channels/50/messages');
+    expect(JSON.parse(String(post[1]?.body))).toEqual({ body: 'Hello there' });
+    expect(screen.getByLabelText('Write a message').props.value).toBe('');
+
+    await act(async () => {
+      expect(useMessagesStore.getState().insert(message(2) as never)).toBe(false);
+    });
+    expect(useMessagesStore.getState().messages.map((m) => m.id)).toEqual([1, 2]);
+  });
+
+  it('keeps the text and shows the error when sending fails', async () => {
+    mockChannel(() => json({ message: 'x' }, 500));
+    await render(<Channel />);
+    await screen.findByText('Body 1');
+
+    await fireEvent.changeText(screen.getByLabelText('Write a message'), 'Keep me');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+
+    expect(await screen.findByText('Could not send the message.')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Write a message').props.value).toBe('Keep me');
+  });
+
+  it('shows the rate limit and validation errors', async () => {
+    let status = 429;
+    mockChannel(() =>
+      status === 429 ? json({ message: 'slow' }, 429) : json({ message: 'bad', errors: { body: ['Body is invalid.'] } }, 422),
+    );
+    await render(<Channel />);
+    await screen.findByText('Body 1');
+
+    await fireEvent.changeText(screen.getByLabelText('Write a message'), 'Hi');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('You are sending messages too fast. Try again in a moment.')).toBeOnTheScreen();
+
+    status = 422;
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('Body is invalid.')).toBeOnTheScreen();
+  });
+
+  it('disables sending when empty or over 4000 characters counted as characters', async () => {
+    mockChannel(() => json({ data: message(2) }, 201));
+    await render(<Channel />);
+    await screen.findByText('Body 1');
+    const input = screen.getByLabelText('Write a message');
+
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
+    await fireEvent.changeText(input, '   ');
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
+
+    await fireEvent.changeText(input, '😀'.repeat(4000));
+    expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled();
+    await fireEvent.changeText(input, '😀'.repeat(4001));
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
+    expect(screen.getByText('The message cannot exceed 4000 characters.')).toBeOnTheScreen();
+  });
+
+  it('ignores a send answered after the channel was cleared and foreign-channel messages', async () => {
+    let release: (() => void) | undefined;
+    globalThis.fetch = jest.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return json({ data: message(2) }, 201);
+      }
+      return json({ data: [message(1)], meta: { next_cursor: null } });
+    }) as never;
+    await act(() => useMessagesStore.getState().open(50));
+
+    let pending!: Promise<void>;
+    await act(async () => {
+      pending = useMessagesStore.getState().send('late');
+    });
+    await act(async () => useMessagesStore.getState().clear());
+    release?.();
+    await act(() => pending);
+
+    expect(useMessagesStore.getState().messages).toEqual([]);
+    await act(() => useMessagesStore.getState().open(50));
+    await act(async () => {
+      expect(useMessagesStore.getState().insert(message(9, { channel_id: 99 }) as never)).toBe(false);
+    });
+    expect(useMessagesStore.getState().messages.map((m) => m.id)).toEqual([1]);
+  });
+});

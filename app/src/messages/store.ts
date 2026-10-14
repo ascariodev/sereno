@@ -33,6 +33,8 @@ interface MessagesState {
   failed: boolean
   open(channelId: number): Promise<void>
   loadOlder(): Promise<void>
+  insert(message: Message): boolean
+  send(body: string): Promise<void>
   clear(): void
 }
 
@@ -86,6 +88,23 @@ export const useMessagesStore = create<MessagesState>()((set, get) => ({
       if (!(error instanceof ApiError)) throw error
       if (mine === generation) set({ failed: true, loadingMore: false })
     }
+  },
+
+  insert(message) {
+    const { channelId, messages } = get()
+    if (channelId === null || message.channel_id !== channelId || message.parent_id !== null) return false
+    if (messages.some((known) => known.id === message.id)) return false
+    set({ messages: sortedById([...messages, message]) })
+    return true
+  },
+
+  async send(body) {
+    const { channelId } = get()
+    if (channelId === null) return
+    const mine = generation
+    const response = await api.post<{ data: Message }>(`/api/channels/${channelId}/messages`, { body })
+    if (mine !== generation) return
+    get().insert(response.data)
   },
 
   clear() {
