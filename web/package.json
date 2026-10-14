@@ -23,6 +23,8 @@
     "@tauri-apps/plugin-autostart": "^2.7.0",
     "@tauri-apps/plugin-notification": "^2.6.0",
     "@tauri-apps/plugin-opener": "^2.7.1",
+    "@tauri-apps/plugin-process": "^2.4.0",
+    "@tauri-apps/plugin-updater": "^2.13.3",
     "dompurify": "^3.4.16",
     "laravel-echo": "^2.6.1",
     "markdown-it": "^15.0.2",

@@ -9,6 +9,7 @@ import { i18n, installI18nOnApi } from './i18n'
 import { toast } from './components/ui/toast'
 import { installExternalLinks, isDesktop } from './platform/desktop'
 import { installDesktopNotificationClicks } from './platform/desktopNotifications'
+import { installDesktopUpdater } from './platform/desktopUpdater'
 import { listenForNavigation, registerServiceWorker } from './pwa/serviceWorker'
 import { createAppRouter } from './router'
 import { redirectToLogin } from './router/redirectToLogin'
@@ -30,6 +31,7 @@ app.use(i18n).use(router).mount('#app')
 installExternalLinks()
 const organization = useOrganizationStore()
 void installDesktopNotificationClicks(router, () => organization.activeId)
+installDesktopUpdater()
 
 if (import.meta.env.PROD && !isDesktop() && 'serviceWorker' in navigator) {
   listenForNavigation({ navigate: (path) => void router.push(path) })

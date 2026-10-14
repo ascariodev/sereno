@@ -3,7 +3,7 @@
 **Objetivo:** app de escritorio de Sereno para Windows con Tauri v2, con la misma SPA de `web/` empaquetada: queda en la
 bandeja del sistema, muestra avisos nativos de las notificaciones en vivo, abre los enlaces en el navegador y se actualiza
 sola desde un `latest.json` firmado. Linux y Mac quedan para después.
-**Estado:** en curso · Fase actual: 12 (la 13 se hizo antes: la 12 espera la clave de firma)
+**Estado:** en curso · Fase actual: 14
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -110,7 +110,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   `web/src/components/NotificationPreferencesDialog.vue`, textos i18n.
 - **Terminado cuando:** spec del interruptor; en la app, tras reiniciar Windows con el interruptor activo, Sereno queda en la bandeja.
 
-### [ ] Fase 12 — Actualizador firmado [riesgo]
+### [x] Fase 12 — Actualizador firmado [riesgo]
 - **Alcance:** plugin `updater` con la clave pública en `tauri.conf.json` (el usuario genera el par con `tauri signer
   generate`; la privada queda fuera del repo) y endpoint `https://sereno.ascario.dev/desktop/latest.json`. Al arrancar y
   cada pocas horas busca versión nueva; si hay, la descarga y un toast ofrece reiniciar.
@@ -190,6 +190,15 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   Interruptor en la sección de escritorio del diálogo (`web/src/platform/desktopAutostart.ts`). **Riesgo:** auto-launch 0.6.0
   escribe el valor de `HKCU\...\CurrentVersion\Run` sin comillas (`<exe> --hidden`) y la ruta de instalación tiene espacios
   (`C:\Users\Windows 11\...`); Windows suele resolverlo, pero hay que comprobarlo. El plugin no permite comillas.
+- 2026-10-14 — Fase 12: par de firma en `C:\Users\Windows 11\.tauri\` (`sereno.key`, sin contraseña, y `sereno.key.pub`;
+  fuera del repo). `tauri-plugin-updater` 2.13.3 y `tauri-plugin-process` 2.4.0; pubkey y endpoint
+  `https://sereno.ascario.dev/desktop/latest.json` en `plugins.updater`, `windows.installMode: "passive"`. Permisos
+  `updater:allow-check`, `allow-download`, `allow-install`, `process:allow-restart`. `desktopUpdater.ts` comprueba al arrancar
+  y cada 6 h; con versión nueva solo `download()`, y el toast Reiniciar llama a `install()` (en Windows lanza el instalador
+  y sale; NSIS passive reabre la app) y `relaunch()`. `bundle.createUpdaterArtifacts` queda apagado: la fase 14 lo activa
+  con `tauri build --config '{"bundle":{"createUpdaterArtifacts":true}}'` y `TAURI_SIGNING_PRIVATE_KEY_PATH` (o
+  `TAURI_SIGNING_PRIVATE_KEY`) en el entorno. **Para la fase 14:** activar `plugins.updater.requireSignedVersion` (protege
+  contra volver a una versión vieja firmada) en `tauri.conf.json` antes de la primera publicación.
 - 2026-10-14 — Usuario: hacer la fase 13 antes que la 12 mientras genera el par de firma del actualizador.
 - 2026-10-14 — Fase 13: carpeta `$SERVER_DIR/desktop` (prod: `/var/www/html/workspace/prod/web/desktop`), hermana de
   `dist/` (el rsync no la toca), montada en nginx como `/usr/share/nginx/desktop:ro`. `location = /desktop/latest.json`
@@ -201,9 +210,10 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   Crate `sereno`, lib `sereno_lib`, ventana 1280x800 (mínimo 360x480).
 
 ## Notas para la próxima sesión
+- Fase 12: en PowerShell `~` no se expande: `tauri signer generate -w ~/.tauri/...` dejó el par en `web/~/.tauri/` (se movió
+  sin llegar a git). Rutas absolutas en la fase 14. El build del host sobrescribe `web/dist`.
 - Fase 13: verificación pendiente tras el próximo deploy de la web: `https://sereno.ascario.dev/desktop/latest.json` da 404
-  y el resto de la web sigue igual. Siguiente: fase 12, cuando exista `~/.tauri/sereno.key.pub` (el usuario la genera con
-  `npx tauri signer generate -w ~/.tauri/sereno.key` desde `web/`).
+  y el resto de la web sigue igual.
 - Fase 11: revisión manual pendiente con la app **instalada** (el autostart registra la ruta del exe actual): activar el
   interruptor, mirar el valor en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` y reiniciar la sesión: Sereno
   debe quedar en la bandeja sin ventana.
@@ -242,7 +252,8 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: alta · Archivos: 4 · Riesgo: seguridad → opus
 - [ ] M-5: Enlaces profundos `sereno://` para que los enlaces de los correos abran la app de escritorio.
       Complejidad: alta · Archivos: 5 · Riesgo: integración externa → opus
-- [ ] M-6: `bundle.targets` solo NSIS (hoy "all": MSI y NSIS), para un único instalador que use el actualizador.
+- [ ] M-6: `bundle.targets` solo NSIS (hoy "all": MSI y NSIS), para un único instalador que use el actualizador (evita que
+      una instalación MSI se actualice con el NSIS de `latest.json`; conviene antes de la fase 14).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-7: `desktop.spec.ts` simula `isTauri` con `vi.stubGlobal`/`unstubAllGlobals` en vez de borrar el global con un cast.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
@@ -282,4 +293,8 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       concedido, un aviso no vuelve a pedir permiso; `isDesktop` mockeado a `false` explícito en el `beforeEach` del diálogo.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-23: Quitar los JSDoc de `web/src/platform/desktopAutostart.ts` que repiten el nombre de la función.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
+- [ ] M-24: Si se cierra el toast de actualización sin reiniciar, volver a ofrecerlo en el siguiente ciclo de 6 h.
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-25: Revertir el reformateo sin relación de `dangerousDisableAssetCspModification` en `tauri.conf.json`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku

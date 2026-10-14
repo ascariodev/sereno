@@ -12,6 +12,11 @@
     "updateReady": "A new version of Sereno is available.",
     "reload": "Reload"
   },
+  "desktopUpdate": {
+    "ready": "A new version of Sereno is ready. Restart to install it.",
+    "restart": "Restart",
+    "installFailed": "Could not install the new version of Sereno."
+  },
   "app": {
     "name": "Sereno"
   },
