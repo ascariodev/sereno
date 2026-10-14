@@ -76,7 +76,7 @@ class AttachmentController extends Controller
             ->whereNotNull('message_id')
             ->first();
 
-        abort_if($attachment === null, 404, __('Not Found'));
+        throw_if($attachment === null, ModelNotFoundException::class);
 
         return AttachmentStorage::download(
             $request,

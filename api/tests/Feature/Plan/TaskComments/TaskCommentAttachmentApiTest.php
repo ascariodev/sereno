@@ -276,7 +276,7 @@ it('answers 404 for a signed url of an orphan or missing file', function (string
         'missing file' => storedTaskAttachment($this->task, $this->comment, null),
     };
 
-    fetchTaskAttachment($attachment->downloadUrl())->assertNotFound();
+    fetchTaskAttachment($attachment->downloadUrl())->assertNotFound()->assertJson(['message' => __('Resource not found.')]);
 })->with(['orphan', 'missing file']);
 
 it('returns a fresh signed url to whoever can see the task', function () {
@@ -298,7 +298,7 @@ it('hands out a fresh url for a missing file, whose download answers 404', funct
         ->getJson("/api/task-attachments/{$attachment->id}/url")
         ->assertOk();
 
-    fetchTaskAttachment($response->json('data.url'))->assertNotFound();
+    fetchTaskAttachment($response->json('data.url'))->assertNotFound()->assertJson(['message' => __('Resource not found.')]);
 });
 
 it('answers 404 for a fresh url without access, of another organization or of an orphan', function (string $case) {

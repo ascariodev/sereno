@@ -241,7 +241,7 @@ it('answers 404 for a signed url of an orphan, deleted or missing file', functio
         DB::table('message_attachments')->where('id', $attachment->id)->delete();
     }
 
-    fetchAttachment($url)->assertNotFound()->assertJsonStructure(['message']);
+    fetchAttachment($url)->assertNotFound()->assertJson(['message' => __('Resource not found.')]);
 })->with(['orphan', 'missing file', 'deleted row']);
 
 it('validates the relative signature behind the proxy, whatever host and scheme arrive', function () {

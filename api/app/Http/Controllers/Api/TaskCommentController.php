@@ -20,6 +20,7 @@ use App\Models\TaskCommentAttachment;
 use App\Models\TaskCommentMention;
 use App\Models\User;
 use App\Support\MentionTargets;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -69,7 +70,7 @@ class TaskCommentController extends Controller
         DB::transaction(function () use ($request, $task, &$comment, $body, $removeIds, &$edited, &$addedMentionIds) {
             // Reread after the lock: a delete or another edit committed while waiting must not be overwritten.
             $locked = TaskComment::query()->whereKey($comment->id)->lockForUpdate()->first();
-            abort_if($locked === null, 404);
+            throw_if($locked === null, ModelNotFoundException::class);
             $comment = $locked;
 
             $removed = $this->removeAttachments($comment, $removeIds);
@@ -98,7 +99,7 @@ class TaskCommentController extends Controller
         DB::transaction(function () use ($comment) {
             // The route binding already resolved $comment; re-reading under the lock detects a delete that committed meanwhile (404).
             $locked = TaskComment::query()->whereKey($comment->id)->lockForUpdate()->first();
-            abort_if($locked === null, 404);
+            throw_if($locked === null, ModelNotFoundException::class);
 
             $files = TaskCommentAttachment::query()
                 ->where('task_comment_id', $locked->id)

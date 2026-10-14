@@ -213,6 +213,6 @@ resolverlo o ignorarlo con la API existente. (Paso 3 del MVP; hilos, menciones y
   `UpdateTaskRequest`, `DeleteTaskCommentRequest`, `ListTaskCommentsRequest`, `StoreTaskCommentAttachmentRequest` y
   `StoreTaskCommentRequest`. Pasar a `ModelNotFoundException` con la pertenencia en `authorize()` antes del Gate y la
   validación (L-72), y extender `NotFoundBodyTest`. Alta (seguridad, 6 archivos más el test) · opus o plan corto.
-- [ ] M-30 — Quedan con el 404 genérico "Not Found" (no exponen pertenencia): los `abort_if($locked === null, 404)` de
+- [x] M-30 — Quedan con el 404 genérico "Not Found" (no exponen pertenencia): los `abort_if($locked === null, 404)` de
   `TaskCommentController` y `MessageController` (borrado concurrente) y las descargas firmadas de `AttachmentController` y
-  `TaskCommentAttachmentController`. Unificar en "Resource not found." solo por consistencia. Baja · sonnet.
+  `TaskCommentAttachmentController`. Unificar en "Resource not found." solo por consistencia. Baja · sonnet. Aplicada con `ModelNotFoundException`; incluyó también el 404 de archivo ausente de `AttachmentStorage::download`.
