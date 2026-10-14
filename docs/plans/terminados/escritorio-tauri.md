@@ -228,7 +228,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
   todas las actualizaciones. Si el build falla la versión queda subida: reintentar sin versión.
 - Fase 12: en PowerShell `~` no se expande: `tauri signer generate -w ~/.tauri/...` dejó el par en `web/~/.tauri/` (se movió
   sin llegar a git). Rutas absolutas en la fase 14. El build del host sobrescribe `web/dist`.
-- Fase 13: verificación pendiente tras el próximo deploy de la web: `https://sereno.ascario.dev/desktop/latest.json` da 404
+- Fase 13: verificada el 2026-10-14 tras el deploy de la web: `https://sereno.ascario.dev/desktop/latest.json` da 404
   y el resto de la web sigue igual.
 - Fase 11: verificada el 2026-10-14 con la app instalada. Revisión original (el autostart registra la ruta del exe actual): activar el
   interruptor, mirar el valor en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` y reiniciar la sesión: Sereno
