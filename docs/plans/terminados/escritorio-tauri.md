@@ -307,7 +307,7 @@ sola desde un `latest.json` firmado. Linux y Mac quedan para después.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → haiku
 - [ ] M-21: Si Windows ya bloqueó los avisos, `requestPermission` no muestra nada: indicar cómo activarlos en los ajustes del sistema.
       Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
-- [ ] M-22: Specs pendientes de la fase 10: `aria-busy` del botón con la petición pendiente; tras `requestDesktopPermission()`
+- [x] M-22: Specs pendientes de la fase 10: `aria-busy` del botón con la petición pendiente; tras `requestDesktopPermission()`
       concedido, un aviso no vuelve a pedir permiso; `isDesktop` mockeado a `false` explícito en el `beforeEach` del diálogo.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-23: Quitar los JSDoc de `web/src/platform/desktopAutostart.ts` que repiten el nombre de la función.

@@ -81,6 +81,7 @@ function mockDevice(state: PushState) {
 beforeEach(() => {
   vi.resetAllMocks()
   setLocale('en')
+  vi.mocked(isDesktop).mockReturnValue(false)
   mockDevice('inactive')
 })
 
@@ -562,6 +563,23 @@ describe('NotificationPreferencesDialog on the desktop app', () => {
     expect(requestDesktopPermission).toHaveBeenCalledTimes(1)
     expect(document.querySelector('[data-test=device]')!.textContent).toContain('are allowed')
     expect(desktopButton()).toBeNull()
+  })
+
+  it('marks the permission button busy and disabled while the request is pending', async () => {
+    const pending = deferred<boolean>()
+    vi.mocked(desktopPermissionGranted).mockResolvedValue(false)
+    vi.mocked(requestDesktopPermission).mockReturnValue(pending.promise)
+    mountDialog()
+    await settle()
+    expect(desktopButton()!.getAttribute('aria-busy')).toBeNull()
+    desktopButton()!.click()
+    await settle()
+    expect(desktopButton()!.getAttribute('aria-busy')).toBe('true')
+    expect(desktopButton()!.disabled).toBe(true)
+    pending.resolve(false)
+    await settle()
+    expect(desktopButton()!.getAttribute('aria-busy')).toBeNull()
+    expect(desktopButton()!.disabled).toBe(false)
   })
 
   it('keeps the button when the request is denied', async () => {

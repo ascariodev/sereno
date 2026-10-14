@@ -314,4 +314,26 @@ describe('desktop permission helpers', () => {
     expect(await requestDesktopPermission()).toBe(true)
     expect(requestPermission).toHaveBeenCalledTimes(2)
   })
+
+  it('does not ask again for a notification after an explicit request was granted', async () => {
+    vi.stubGlobal('isTauri', true)
+    getCurrentWindow.mockReset().mockReturnValue({
+      isVisible: () => Promise.resolve(false),
+      isMinimized: () => Promise.resolve(false),
+      isFocused: () => Promise.resolve(false),
+    })
+    sendNotification.mockReset()
+    getNotificationPreferences.mockReset().mockResolvedValue(preferences(true))
+    isPermissionGranted.mockResolvedValue(false)
+    requestPermission.mockResolvedValue('granted')
+    try {
+      const { notifyDesktop, requestDesktopPermission } = await load()
+      expect(await requestDesktopPermission()).toBe(true)
+      await notifyDesktop(notification, ORGANIZATION, () => ORGANIZATION)
+      expect(requestPermission).toHaveBeenCalledTimes(1)
+      expect(sendNotification).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
 })
