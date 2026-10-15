@@ -145,6 +145,20 @@
     "notAvailable": "Aún no disponible en la app.",
     "unreadBadge": "{{count}} sin leer"
   },
+  "push": {
+    "title": "Este dispositivo",
+    "channelName": "Notificaciones",
+    "enable": "Activar notificaciones push",
+    "openSettings": "Abrir ajustes del sistema",
+    "dismissed": "No permitiste las notificaciones, así que las notificaciones push siguen desactivadas.",
+    "enableFailed": "No se pudieron activar las notificaciones push. Inténtalo de nuevo.",
+    "status": {
+      "unsupported": "Esta versión de la app no puede recibir notificaciones push.",
+      "blocked": "Las notificaciones están bloqueadas para Sereno. Permítelas en los ajustes del sistema para activar el push.",
+      "active": "Las notificaciones push están activas en este dispositivo.",
+      "inactive": "Las notificaciones push están desactivadas en este dispositivo."
+    }
+  },
   "settings": {
     "title": "Ajustes",
     "members": "Miembros",

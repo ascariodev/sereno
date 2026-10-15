@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { ApiError } from '@/api/client';
 import { installI18nOnApi } from '@/i18n';
 import { installOrganizationOnApi, useOrganizationStore } from '@/organization/store';
+import { usePushRegistration } from '@/push/device';
 import { useRealtimeSession } from '@/realtime/useRealtimeSession';
 import { installAuthOnApi, useAuthStore } from '@/session/auth';
 
@@ -38,6 +39,7 @@ export default function RootLayout() {
   }, [signedIn, userMissing, fetchMe]);
 
   useRealtimeSession();
+  usePushRegistration(signedIn);
 
   if (!hydrated || (signedIn && !organizationsSettled)) return null;
 

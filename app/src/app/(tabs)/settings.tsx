@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { DevicePush } from '@/components/DevicePush';
 import { NotificationPreferences } from '@/components/NotificationPreferences';
 import { getLocale, LOCALE_LABELS, SUPPORTED_LOCALES, type Locale } from '@/i18n';
 import { invitableRolesFor } from '@/organization/invitations';
@@ -48,6 +49,7 @@ export default function Settings() {
         {localeSaveFailed ? <Text accessibilityRole="alert">{t('common.localeSaveFailed')}</Text> : null}
       </View>
       <NotificationPreferences />
+      <DevicePush />
       <Pressable accessibilityRole="button" onPress={() => router.push('/members')} style={styles.button}>
         <Text style={styles.buttonText}>{t('settings.members')}</Text>
       </Pressable>

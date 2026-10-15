@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 31
+**Estado:** en curso · Fase actual: 32
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -183,7 +183,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   (Expo Go no recibe push remoto en Android). `eas.json` con perfil `development`.
 - **Terminado cuando:** el development build instalado abre la app y la herramienta de push de Expo entrega un aviso de prueba.
 
-### [ ] Fase 31 — Registrar el dispositivo para push
+### [x] Fase 31 — Registrar el dispositivo para push
 - **Alcance:** pedir permiso, obtener el token con `expo-notifications`, registrarlo en el API tras el login y al cambiar;
   borrarlo antes de cerrar sesión.
 - **Terminado cuando:** tests del registro y una tarea asignada desde la web llega como push al teléfono con la app cerrada.
@@ -288,20 +288,16 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   ok se sigue con la 33 en adelante y se vuelve a la 30 cuando avise.
 - Fase 44: ícono y splash quedan configurados; verlos en el dispositivo se hace con el dev build de la fase 30. La fase 45 va después de la 30 porque ambas escriben `eas.json` y su criterio necesita builds del usuario.
 - 2026-10-15 — Fase 30: el aviso de prueba con la herramienta de push de Expo pasa a la 31 (necesita `expo-notifications` y un dev build nuevo). `eas.json` y `.easignore` quedan en el repo; la 45 suma los perfiles `preview` y `production`.
+- 2026-10-15 — Fase 31: Android 13+ reporta `denied` antes del primer pedido, así que el pedido automático usa `!granted && canAskAgain` y una marca por instalación `sereno.pushPrompted` en secure-store (no se borra al cerrar sesión). La marca se escribe antes del diálogo: si el sistema mata la app con el diálogo abierto no se vuelve a pedir solo y queda el botón de Ajustes. Cerrar la app con `am kill` (no `force-stop`, que bloquea FCM) para probar push con la app cerrada.
 
 ## Notas para la próxima sesión
+- Fase 31 hecha: registro del token Expo tras el login, al rotar y borrado antes del logout; pedido automático una vez por instalación. Probado en el dev build: una tarea asignada por API como member llegó como push con la app cerrada. `app/google-services.json` queda sin versionar a la espera del usuario. Siguiente: 32 (abrir el destino al tocar el aviso; JS, sirve el mismo dev build).
 - Fase 30 hecha: Firebase (`app/google-services.json`, `android.googleServicesFile`) y credencial FCM V1 subidas por el
   usuario a EAS; `app/eas.json` con perfil `development` (dev client, interno, APK), `expo-dev-client` instalado y
   `.easignore` en la raíz (EAS empaqueta la raíz del repo y en Windows no aplica los `.gitignore` de subcarpetas: pasaba
   de 2 GB). Dev build instalado en el emulador, abre la app con Metro en 8087 y muestra el ícono. La prueba con la
   herramienta de push pasa a la 31: `expo-notifications` no está instalado y suma un módulo nativo, así que la 31 necesita
   un dev build nuevo (`eas build --profile development --platform android`).
-- Fase 44 hecha en config: ícono 1024 (glifo de `web/public/favicon.svg` en blanco sobre `#4B4FD8`, la `--accent` de la
-  web), adaptativo con fondo de color, foreground y monochrome, splash claro (`#4B4FD8`) y oscuro (`#0F1114`, glifo
-  `#A9ABF5`) con `imageWidth` 200; PNG dibujados con System.Drawing (no hay ImageMagick ni sharp). `npx expo config`
-  resuelve. Falta verlos en el dev build de la fase 30 (afinar `imageWidth` con el recorte de Android 12). No hay tema
-  centralizado en `app/src`. Siguen 30 a 32 (Firebase), 45 (perfiles de build, comparte `eas.json` con la 30) y 46 manual:
-  todas esperan al usuario. Próxima: 30.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -372,3 +368,6 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-49: Integraciones: botón "Copiar" para la key y los comandos (requiere `npx expo install expo-clipboard`, con aprobación del usuario), curl de ejemplo como la web, test del botón "Integrations" de la tarjeta y ocultar la key al pasar a segundo plano (FLAG_SECURE o similar). Complejidad media, sonnet.
 - [ ] M-50: Cablear `onMembersChanged` a `useMemberDirectoryStore.invalidate` en las pantallas de canal, tareas y log, como `ChannelView.vue:340`, `PlanView.vue:151` y `LogView.vue:238` (hoy menciones y asignados tardan hasta 5 min); tests de `clear()` e `invalidate()` sin id. Complejidad baja, sonnet.
 - [ ] M-51: App: centralizar los colores en un tema (`app/src/theme.ts`) alineado con `web/src/style.css` y quitar `ios.icon` de plantilla (`./assets/expo.icon`) de `app.json`. Complejidad media, sonnet.
+- [ ] M-52: `pushDevice.test.tsx`: resetear `secureStore.getItemAsync` en el `beforeEach` (`mockReset().mockResolvedValue(null)`); hoy el `'1'` de un test se filtra a los siguientes. Baja, sonnet.
+- [ ] M-53: test de que un fallo al escribir la marca `sereno.pushPrompted` no pide el permiso y se reintenta al volver. Baja, sonnet.
+- [ ] M-54: los íconos de la barra de pestañas se ven como cuadros vacíos (tofu) en el dev build de Android; revisar la fuente o el paquete de símbolos que usan. Media, sonnet.

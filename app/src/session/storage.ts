@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store'
 export const TOKEN_STORAGE_KEY = 'sereno.token'
 export const LOCALE_STORAGE_KEY = 'sereno.locale'
 export const ORGANIZATION_STORAGE_KEY = 'sereno.organization'
+export const PUSH_PROMPTED_STORAGE_KEY = 'sereno.pushPrompted'
 
 export async function readStored(key: string): Promise<string | null> {
   try {

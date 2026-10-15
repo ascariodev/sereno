@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { api, ApiError } from '@/api/client'
 import { chooseLocale, setChosenLocale, setLocale, type Locale } from '@/i18n'
 import { useOrganizationStore } from '@/organization/store'
+import { forgetPushRegistration, releasePushOnLogout } from '@/push/device'
 import { disconnectRealtime, setRealtimeTokenProvider } from '@/realtime/echo'
 
 import { deviceName } from './deviceName'
@@ -113,6 +114,7 @@ export const useAuthStore = create<AuthState>()((set, get) => {
     },
 
     async logout() {
+      await releasePushOnLogout()
       try {
         await api.post('/api/auth/logout')
       } catch (error) {
@@ -125,6 +127,7 @@ export const useAuthStore = create<AuthState>()((set, get) => {
     async clearSession() {
       generation++
       set({ token: null, user: null })
+      forgetPushRegistration()
       disconnectRealtime()
       useOrganizationStore.getState().clear()
       setLocale(null)

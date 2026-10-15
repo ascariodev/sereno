@@ -145,6 +145,20 @@
     "notAvailable": "Not available in the app yet.",
     "unreadBadge": "{{count}} unread"
   },
+  "push": {
+    "title": "This device",
+    "channelName": "Notifications",
+    "enable": "Enable push notifications",
+    "openSettings": "Open system settings",
+    "dismissed": "You did not allow notifications, so push notifications are still off.",
+    "enableFailed": "Could not enable push notifications. Try again.",
+    "status": {
+      "unsupported": "This app build cannot receive push notifications.",
+      "blocked": "Notifications are blocked for Sereno. Allow them in the system settings to enable push.",
+      "active": "Push notifications are on for this device.",
+      "inactive": "Push notifications are off for this device."
+    }
+  },
   "settings": {
     "title": "Settings",
     "members": "Members",
