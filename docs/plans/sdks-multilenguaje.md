@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -28,7 +28,7 @@ fragmentos por lenguaje en el diálogo de la key.
 
 ## Fases
 
-### [ ] Fase 1 — Contrato del cliente y vectores de conformidad
+### [x] Fase 1 — Contrato del cliente y vectores de conformidad
 - **Alcance:** documento único del comportamiento que todo SDK debe cumplir, sacado de sereno-laravel: forma del evento,
   normalización del `context` (excepciones `{class, message, location, trace}`, límites 2048/50/8, recorte a 32768−64 con
   `_truncated`), `message` (UTF-8 válido, sin `\0`, ≤8192, `-` si vacío), `occurred_at` UTC con milisegundos, fingerprint
@@ -36,7 +36,7 @@ fragmentos por lenguaje en el diálogo de la key.
   o 5xx con los mismos ids, presupuesto de 10 s, timeout por defecto 2 s, nunca lanzar, guardia contra bucles, puntos de
   vaciado. Vectores JSON (entrada → evento esperado) para el formateo. Test del API que envía cada evento esperado y
   exige 202.
-- **Archivos:** `docs/sdk/contrato.md`, `docs/sdk/vectores.json`, `api/tests/Feature/Log/SdkVectorsTest.php`
+- **Archivos:** `docs/sdk/contrato.md`, `api/tests/Fixtures/sdk/vectores.json`, `api/tests/Feature/Log/SdkVectorsTest.php`
 - **Terminado cuando:** el test pasa con todos los vectores y el contrato cubre cada punto del README de sereno-laravel.
 
 ### [ ] Fase 2 — sereno-php: formateador
@@ -116,7 +116,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Terminado cuando:** una app Next mínima en un contenedor, con un route handler que lanza, deja el evento en el API local.
 
 ### [ ] Fase 14 — sereno-node: comando de prueba
-- **Alcance:** `npx @<scope>/sereno-node test` con la interpretación de `ConnectionTester`.
+- **Alcance:** `npx @ascariodev/sereno-node test` con la interpretación de `ConnectionTester`.
 - **Archivos:** `packages/node/src/cli.ts`, `packages/node/package.json`, `packages/node/test/cli.test.ts`
 - **Terminado cuando:** contra el API local da "conectado" y código 1 con una key revocada.
 
@@ -235,10 +235,24 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — El contrato del cliente vive en `docs/sdk/` del monorepo y los vectores se copian a cada SDK.
 - 2026-10-15 — sereno-php no reemplaza el código de sereno-laravel en este plan (ver M-1).
 - 2026-10-15 — Navegador con key pública `wsp_` restringida por origen; las `wsk_` nunca se usan en el cliente.
-- Pendiente antes de la fase 8 y la 16: nombres en npm (scope) y PyPI, verificados en los registros por el usuario.
+- 2026-10-15 — Nombres (libres en los registros ese día): npm `@ascariodev/sereno-core`, `@ascariodev/sereno-node`,
+  `@ascariodev/sereno-browser` (usuario; necesita la org o usuario `ascariodev` en npm antes de publicar); PyPI `sereno-sdk`
+  con módulo `sereno` (elegido por el coordinador, el usuario delegó); Packagist `ascariodev/sereno-php`.
+- 2026-10-15 — Fase 1: los vectores viven en `api/tests/Fixtures/sdk/vectores.json` (el contenedor del API solo monta
+  `api/`); cada SDK los copia a sus tests. Se generaron con el `EventFormatter` de sereno-laravel corriendo en el
+  contenedor del API; un vector nuevo se genera igual, no a mano. Marcadores `$repeat`, `$float`, `$date`, `$object`,
+  `$exception` (ver el contrato).
+- 2026-10-15 — El contrato agrega, marcado "(fuera de Laravel)": tope de 1000 eventos, vaciado por tiempo de 1 s en
+  procesos largos, avisos de fallo por `error_log`/`console.error`/`stderr`, y la guardia de bucles que no descarta
+  eventos concurrentes.
+- 2026-10-15 — Ejecución: el monorepo trabaja en el worktree `.claude/worktrees/sdks-fase-1` (rama `feat/sdks-multilenguaje`),
+  un commit por fase; el merge a `main` solo a pedido del usuario. Cada repo nuevo se crea con `git init -b main` y un
+  commit vacío inicial, y se trabaja en su worktree `.claude/worktrees/sdks` (rama `feat/sdks`) con un commit por fase.
+- 2026-10-15 — El usuario pidió ejecutar todas las fases seguidas sin parar.
 
 ## Notas para la próxima sesión
-- Plan sin empezar.
+- Fase 1 hecha: contrato en `docs/sdk/contrato.md`, vectores y `SdkVectorsTest` (28 tests). Sigue la fase 2 (crear
+  `../sereno-php`). Para los tests del API desde el worktree, Postgres tiene que estar arriba (`docker compose up -d postgres`).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -249,3 +263,6 @@ fragmentos por lenguaje en el diálogo de la key.
       Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
 - [ ] M-4: source maps para desminificar los stacks del navegador.
       Complejidad: alta · Riesgo: BD → plan nuevo
+- [ ] M-5: vectores extra: `trace` cortado a 2000, excepción anidada en profundidad 8, valor no string reemplazado por
+      `"[truncated]"` por tamaño (hoy el ajuste de tamaño solo se prueba con strings).
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
