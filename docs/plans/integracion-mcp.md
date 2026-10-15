@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 13
+**Estado:** en curso · Fase actual: 14
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -133,7 +133,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Archivos:** `api/app/Actions/MoveTask.php`, `TaskController.php`.
 - **Terminado cuando:** `TaskMoveApiTest` y los tests de resolución de grupos en verde sin tocarlos; suite de `Plan/` completa.
 
-### [ ] Fase 13 — Mover tareas
+### [x] Fase 13 — Mover tareas
 - **Alcance:** tool `move-task` (status requerido; `before_id`/`after_id` opcionales, por defecto al principio de la
   columna como hace la web), con las `rules()` de `MoveTaskRequest` y `TaskPolicy`.
 - **Archivos:** `api/app/Mcp/Tools/MoveTaskTool.php`, `SerenoServer.php`.
@@ -225,7 +225,9 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   `MIN_POSITION_GAP` viven en la acción; los locks siguen `public static` en `TaskController`. Sin `before_id` ni
   `after_id` la acción deja la tarea al final (como el REST).
 - 2026-10-15 — `move-task` sin `before_id`/`after_id` la deja al principio de la columna, como pide el alcance: la tool
-  pasa como `before_id` la primera tarea de la columna destino (si no es la misma tarea); `MoveTask` y el REST no cambian.
+  pasa como `before_id` la primera tarea de la columna destino excluyendo la propia (`whereKeyNot`: si ya es la primera,
+  se queda arriba); `MoveTask` y el REST no cambian. La tool replica `authorize()` y `after()` de `MoveTaskRequest` y usa
+  sus `rules()` con un resolver de ruta mínimo (clase anónima local). `TaskPolicy::update` solo delega en `view`.
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
   del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
   worktree; `vendor/` es el volumen compartido con el checkout principal).
@@ -235,9 +237,10 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   aserciones `assertSee`, `assertDontSee`, `assertStructuredContent`, `assertHasErrors`. `tool()` solo ejecuta tools
   registradas en el servidor. Usar Edit (no sed) para los `use`: sed comió barras invertidas. `replies_count` no es
   fillable: en tests, `forceFill(...)->save()`. Pint reescribe los CRLF que deja Python en Windows: escribir con Edit.
-- Fase 13: la tool replica el `authorize()` de `MoveTaskRequest` (tarea del proyecto o 404, luego `update`) y su
-  `after()` de proyecto archivado (la acción lo vuelve a comprobar bajo lock). Reiniciar el contenedor de 8013 para
-  probar las tools nuevas a mano.
+- API terminada (fases 1 a 13). Fase 14: web, leer `AccessTokenResource` y `AccessTokenController` para los tipos (L-09);
+  el `POST` devuelve `data` y `token` al mismo nivel. Comandos web: `docker compose exec web ...` del CLAUDE.md montan
+  el checkout principal; desde la raíz del worktree usar `docker compose -p workspace run --rm --no-deps web ...`.
+  Reiniciar el contenedor de 8013 para probar las tools nuevas a mano.
 
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
