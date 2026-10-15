@@ -339,6 +339,7 @@
     "sendFailed": "No se pudo enviar el comentario. Inténtalo de nuevo.",
     "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
     "network": "No se pudo conectar con el servidor.",
+    "tooManyAttachments": "Puedes adjuntar hasta {{max}} archivos por comentario.",
     "tooLong": "El comentario no puede superar {{max}} caracteres.",
     "deletedUser": "usuario eliminado",
     "edit": "Editar",

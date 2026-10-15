@@ -41,7 +41,7 @@ interface TaskCommentsState {
   failed: boolean
   open(projectId: number, taskId: number): Promise<void>
   loadOlder(): Promise<void>
-  send(body: string): Promise<number | null>
+  send(body: string, attachmentIds?: number[]): Promise<number | null>
   update(projectId: number, taskId: number, commentId: number, body: string): Promise<TaskComment>
   destroy(projectId: number, taskId: number, commentId: number): Promise<void>
   insert(comment: TaskComment): boolean
@@ -108,11 +108,14 @@ export const useTaskCommentsStore = create<TaskCommentsState>()((set, get) => ({
     }
   },
 
-  async send(body) {
+  async send(body, attachmentIds = []) {
     const { projectId, taskId } = get()
     if (projectId === null || taskId === null) return null
     const current = generation
-    const response = await api.post<{ data: TaskComment }>(base(projectId, taskId), { body })
+    const response = await api.post<{ data: TaskComment }>(base(projectId, taskId), {
+      body,
+      ...(attachmentIds.length > 0 ? { attachment_ids: attachmentIds } : {}),
+    })
     if (current !== generation) return null
     get().insert(response.data)
     return response.data.id

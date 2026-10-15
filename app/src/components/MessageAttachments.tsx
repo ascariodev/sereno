@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { ApiError } from '@/api/client'
-import { formatFileSize, getAttachmentUrl } from '@/messages/attachments'
+import { formatFileSize, getAttachmentUrl, type AttachmentUrl } from '@/messages/attachments'
 import type { MessageAttachment } from '@/messages/store'
 
 const PREVIEWABLE = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
@@ -18,7 +18,12 @@ function isWebUrl(value: string): boolean {
   }
 }
 
-export function MessageAttachments({ attachments }: { attachments: MessageAttachment[] }) {
+interface MessageAttachmentsProps {
+  attachments: MessageAttachment[]
+  renewUrl?: (attachmentId: number) => Promise<AttachmentUrl>
+}
+
+export function MessageAttachments({ attachments, renewUrl = getAttachmentUrl }: MessageAttachmentsProps) {
   const { t, i18n } = useTranslation()
   // Keyed by id and remembering the stored url they refer to: a new url for the same id resets them.
   const [retried, setRetried] = useState<Record<number, string>>({})
@@ -40,7 +45,7 @@ export function MessageAttachments({ attachments }: { attachments: MessageAttach
     }
     setRetried((state) => ({ ...state, [a.id]: a.url }))
     try {
-      const { url } = await getAttachmentUrl(a.id)
+      const { url } = await renewUrl(a.id)
       setRenewed((state) => ({ ...state, [a.id]: { from: a.url, url } }))
     } catch {
       setFailed((state) => ({ ...state, [a.id]: a.url }))
@@ -50,7 +55,7 @@ export function MessageAttachments({ attachments }: { attachments: MessageAttach
   async function openFresh(a: MessageAttachment) {
     let url: string
     try {
-      url = (await getAttachmentUrl(a.id)).url
+      url = (await renewUrl(a.id)).url
     } catch (caught) {
       Alert.alert(caught instanceof ApiError && caught.status === 404 ? t('attachments.openFailed') : t('attachments.openFailedRetry'))
       return

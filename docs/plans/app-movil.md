@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 37
+**Estado:** en curso · Fase actual: 38
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -211,7 +211,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** listar, enviar, editar y borrar comentarios con menciones.
 - **Terminado cuando:** tests del hilo de comentarios.
 
-### [ ] Fase 37 — Adjuntos en comentarios
+### [x] Fase 37 — Adjuntos en comentarios
 - **Alcance:** reutilizar ver y subir adjuntos con las rutas `task-attachments`.
 - **Terminado cuando:** test del flujo.
 
@@ -288,17 +288,16 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   ok se sigue con la 33 en adelante y se vuelve a la 30 cuando avise.
 
 ## Notas para la próxima sesión
+- Fase 37 hecha: adjuntos en comentarios de tarea. `messages/attachments.ts` suma `getTaskAttachmentUrl`,
+  `channelAttachmentsPath` y `taskAttachmentsPath` (`uploadAttachment` recibe la ruta); `useAttachmentUploads(key,
+  { path, tooManyKey })` con el canal por defecto; `MessageAttachments` acepta `renewUrl`. `TaskComments` muestra y sube
+  (bloquea enviar mientras sube, `attachment_ids` solo si hay). Quitar adjuntos al editar queda como mejora.
 - Fase 36 hecha: `tasks/comments.ts` (store: cursor de 30, viejo a nuevo, `generation`/`listVersion`, `mergeComments`,
   fallo de `loadOlder` conserva lista y cursor, `insert`/`replace`/`remove` listos para la fase 38) y
   `components/TaskComments.tsx` (lista, composer con menciones, editor, borrar; editar propios, borrar propios o
   `canModerate`; cuerpo con `MarkdownContent`, tope 10000), montado en el detalle con `key={task.id}`. Para la 37: los
   tipos de adjuntos ya están en `TaskComment`. Para la 38: `comments_count` en `tasks/store.ts` (la web solo lo cambia por
   eventos) y `refresh` tras reconexión.
-- Fase 35 hecha: `components/TaskMoveMenu.tsx` (en cada tarjeta del tablero: subir, bajar y a otra columna, con vecinos de
-  la columna completa aunque haya filtro; oculto en archivados) y borrar en el detalle (`Alert` de confirmación; visible si
-  no está archivado y la tarea es propia o `canModerate`). En `tasks/store.ts`: `move` (sin optimismo, aplica la respuesta
-  con `upsert(force)` como la web), `destroy` (404 también quita), `tombstones` (tope 200; los respetan `upsert`, `ensure`
-  y la carga) y `created_by`. Para la 38: `fetchAll` no conserva las tareas llegadas en vivo durante la carga.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -361,3 +360,5 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-41: Detalle de tarea: checklist del markdown interactiva (`toggleTaskItem` de la web); hoy la descripción se muestra solo lectura. Complejidad media, sonnet.
 - [ ] M-42: Tareas: pasar prettier a `app/tasks.tsx` (import sin `;`, `TaskCard` sin indentar), mostrar `error.message` en el 422 de mover como `moveErrorMessage` de la web, proteger `setDeleting` tras cerrar en `task.tsx` y quitar los avisos "overlapping act() calls" de `taskMove.test.tsx`. Complejidad baja, sonnet.
 - [ ] M-43: Tests de la app: quitar el aviso que imprime `src/projects/members.ts:46` en jest (probable mock de miembros incompleto). Complejidad baja, sonnet.
+- [ ] M-44: Quitar adjuntos al editar un comentario de tarea y un mensaje del chat (`remove_attachment_ids`, como `TaskCommentEditor` de la web); hoy el editor de la app no los toca. Complejidad media, sonnet.
+- [ ] M-45: Extraer el bloque de selector y lista de subidas duplicado entre `MessageComposer` y `TaskComments`, y renombrar el parámetro `channelId` de `useAttachmentUploads` a `scopeId`. Complejidad baja, sonnet.

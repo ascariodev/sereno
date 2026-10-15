@@ -27,6 +27,15 @@ export function formatFileSize(bytes: number, locale?: string): string {
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: unit === 0 ? 0 : 1 }).format(value)} ${UNITS[unit]}`
 }
 
+export async function getTaskAttachmentUrl(attachmentId: number): Promise<AttachmentUrl> {
+  const response = await api.get<{ data: AttachmentUrl }>(`/api/task-attachments/${attachmentId}/url`)
+  return response.data
+}
+
+export const channelAttachmentsPath = (channelId: number) => `/api/channels/${channelId}/attachments`
+export const taskAttachmentsPath = (projectId: number, taskId: number) =>
+  `/api/projects/${projectId}/tasks/${taskId}/attachments`
+
 export const ATTACHMENT_MAX_SIZE_BYTES = 5120 * 1024
 export const ATTACHMENT_MAX_PER_MESSAGE = 10
 
@@ -58,14 +67,14 @@ export function toPickedFile(asset: PickerAsset): PickedFile {
 }
 
 export async function uploadAttachment(
-  channelId: number,
+  path: string,
   file: PickedFile,
   options: { signal?: AbortSignal } = {},
 ): Promise<MessageAttachment> {
   const form = new FormData()
   // React Native's FormData sends a local file from this { uri, name, type } shape.
   form.append('file', { uri: file.uri, name: file.name, type: file.mimeType ?? 'application/octet-stream' } as unknown as Blob)
-  const response = await api.post<{ data: MessageAttachment }>(`/api/channels/${channelId}/attachments`, form, {
+  const response = await api.post<{ data: MessageAttachment }>(path, form, {
     signal: options.signal,
   })
   return response.data

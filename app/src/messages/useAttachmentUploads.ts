@@ -5,6 +5,7 @@ import { i18n } from '@/i18n'
 import {
   ATTACHMENT_MAX_PER_MESSAGE,
   ATTACHMENT_MAX_SIZE_BYTES,
+  channelAttachmentsPath,
   formatFileSize,
   uploadAttachment,
   type PickedFile,
@@ -38,10 +39,16 @@ function tooLargeText(name: string): string {
   return i18n.t('attachments.tooLarge', { name, max: formatFileSize(ATTACHMENT_MAX_SIZE_BYTES, i18n.language) })
 }
 
+export interface UploadOptions {
+  /** Upload endpoint; defaults to the channel one. Pair it with a `key` that changes together with it. */
+  path?: string
+  tooManyKey?: string
+}
+
 function messageFor(error: unknown, file: PickedFile): { message: string; retryable: boolean } {
   if (error instanceof ApiError) {
     if (error.status === 422) {
-      const detail = error.errors.file?.[0] ?? error.errors.channel?.[0]
+      const detail = error.errors.file?.[0] ?? error.errors.channel?.[0] ?? error.errors.task?.[0]
       return { message: detail ?? i18n.t('attachments.failed'), retryable: false }
     }
     if (error.status === 413) return { message: tooLargeText(file.name), retryable: false }
@@ -51,8 +58,10 @@ function messageFor(error: unknown, file: PickedFile): { message: string; retrya
   return { message: i18n.t('attachments.failed'), retryable: true }
 }
 
-/** Uploads picked files to the channel before sending; a channel change or unmount drops them all. */
-export function useAttachmentUploads(channelId: number | null) {
+/** Uploads picked files before sending; a change of `channelId` (the key) or unmount drops them all. */
+export function useAttachmentUploads(channelId: number | null, options: UploadOptions = {}) {
+  const path = channelId === null ? null : (options.path ?? channelAttachmentsPath(channelId))
+  const tooManyKey = options.tooManyKey ?? 'attachments.tooMany'
   const [items, setItems] = useState<UploadItem[]>([])
   const live = useRef<LiveState>({ channelId, items: [], files: new Map(), controllers: new Map(), nextKey: 1, generation: 0 })
 
@@ -69,7 +78,7 @@ export function useAttachmentUploads(channelId: number | null) {
     return live.current.items.filter((item) => item.status !== 'error').length
   }
 
-  async function start(key: number, destination: number) {
+  async function start(key: number, destination: string) {
     const state = live.current
     const file = state.files.get(key)
     if (!file) return
@@ -95,7 +104,7 @@ export function useAttachmentUploads(channelId: number | null) {
   /** Files picked for a channel the composer already left are dropped. */
   function add(selected: PickedFile[]) {
     const state = live.current
-    if (channelId === null || state.channelId !== channelId) return
+    if (channelId === null || path === null || state.channelId !== channelId) return
     for (const file of selected) {
       const key = state.nextKey++
       const base = { key, name: file.name, size: file.size, attachment: null, retryable: false }
@@ -104,26 +113,26 @@ export function useAttachmentUploads(channelId: number | null) {
         continue
       }
       if (activeCount() >= ATTACHMENT_MAX_PER_MESSAGE) {
-        const error = i18n.t('attachments.tooMany', { max: ATTACHMENT_MAX_PER_MESSAGE })
+        const error = i18n.t(tooManyKey, { max: ATTACHMENT_MAX_PER_MESSAGE })
         commit([...state.items, { ...base, status: 'error', error }])
         continue
       }
       state.files.set(key, file)
       commit([...state.items, { ...base, status: 'uploading', error: null }])
-      void start(key, channelId)
+      void start(key, path)
     }
   }
 
   function retry(key: number) {
     const state = live.current
     const item = state.items.find((entry) => entry.key === key)
-    if (channelId === null || !item || item.status !== 'error' || !item.retryable || !state.files.has(key)) return
+    if (path === null || !item || item.status !== 'error' || !item.retryable || !state.files.has(key)) return
     if (activeCount() >= ATTACHMENT_MAX_PER_MESSAGE) {
-      patch(key, { error: i18n.t('attachments.tooMany', { max: ATTACHMENT_MAX_PER_MESSAGE }), retryable: false })
+      patch(key, { error: i18n.t(tooManyKey, { max: ATTACHMENT_MAX_PER_MESSAGE }), retryable: false })
       return
     }
     patch(key, { status: 'uploading', error: null, retryable: false })
-    void start(key, channelId)
+    void start(key, path)
   }
 
   /** Cancels an upload in progress or drops a finished or failed one. */
@@ -154,7 +163,7 @@ export function useAttachmentUploads(channelId: number | null) {
       state.items = []
       setItems([])
     }
-  }, [channelId])
+  }, [channelId, path])
 
   const attachmentIds = items.flatMap((item) => (item.status === 'ready' && item.attachment ? [item.attachment.id] : []))
   const busy = items.some((item) => item.status === 'uploading')

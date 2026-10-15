@@ -1,10 +1,22 @@
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
+import { MessageAttachments } from '@/components/MessageAttachments';
 import { relativeTime } from '@/components/ThreadSummary';
 import { MarkdownContent } from '@/markdown/MarkdownContent';
+import {
+  ATTACHMENT_MAX_PER_MESSAGE,
+  formatFileSize,
+  getTaskAttachmentUrl,
+  taskAttachmentsPath,
+  toPickedFile,
+  type PickedFile,
+} from '@/messages/attachments';
+import { useAttachmentUploads } from '@/messages/useAttachmentUploads';
 import {
   EMPTY_MENTION_STATE,
   findQuery,
@@ -224,7 +236,10 @@ function CommentRow({ projectId, comment }: { projectId: number; comment: TaskCo
       {editing ? (
         <CommentEditor projectId={projectId} comment={comment} onDone={() => setEditing(false)} />
       ) : (
-        <MarkdownContent source={comment.body} mentions={comment.mentions} ownUserId={userId ?? undefined} />
+        <>
+          <MarkdownContent source={comment.body} mentions={comment.mentions} ownUserId={userId ?? undefined} />
+          <MessageAttachments attachments={comment.attachments} renewUrl={getTaskAttachmentUrl} />
+        </>
       )}
       {!editing && (own || moderator) ? (
         <View style={styles.bar}>
@@ -254,7 +269,7 @@ function CommentRow({ projectId, comment }: { projectId: number; comment: TaskCo
 }
 
 export function TaskComments({ projectId, taskId }: { projectId: number; taskId: number }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const comments = useTaskCommentsStore((s) => s.comments);
   const nextCursor = useTaskCommentsStore((s) => s.nextCursor);
   const loading = useTaskCommentsStore((s) => s.loading);
@@ -263,8 +278,15 @@ export function TaskComments({ projectId, taskId }: { projectId: number; taskId:
   const [draft, setDraft] = useState<MentionState>(EMPTY_MENTION_STATE);
   const [sending, setSending] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const busy = useRef(false);
   const mounted = useRef(true);
+  // Keyed by task: changing task drops the uploads still in flight.
+  const uploads = useAttachmentUploads(taskId, {
+    path: taskAttachmentsPath(projectId, taskId),
+    tooManyKey: 'taskComments.tooManyAttachments',
+  });
 
   useEffect(() => {
     mounted.current = true;
@@ -277,7 +299,8 @@ export function TaskComments({ projectId, taskId }: { projectId: number; taskId:
 
   const body = serializeMentions(draft).trim();
   const tooLong = [...body].length > COMMENT_MAX_LENGTH;
-  const canSend = !sending && !tooLong && body !== '';
+  const canSend = !sending && !uploads.busy && !tooLong && body !== '';
+  const canAttach = !picking && !sending && !uploads.full;
 
   async function submit() {
     if (!canSend || busy.current) return;
@@ -285,9 +308,13 @@ export function TaskComments({ projectId, taskId }: { projectId: number; taskId:
     setSending(true);
     setErrorText(null);
     const sentText = draft.text;
+    const sentIds = [...uploads.attachmentIds];
     try {
-      await useTaskCommentsStore.getState().send(body);
-      if (mounted.current) setDraft((current) => (current.text === sentText ? EMPTY_MENTION_STATE : current));
+      await useTaskCommentsStore.getState().send(body, sentIds);
+      if (mounted.current) {
+        setDraft((current) => (current.text === sentText ? EMPTY_MENTION_STATE : current));
+        uploads.discardSent(sentIds);
+      }
     } catch (caught) {
       if (!(caught instanceof ApiError)) throw caught;
       if (!mounted.current) return;
@@ -298,6 +325,32 @@ export function TaskComments({ projectId, taskId }: { projectId: number; taskId:
     } finally {
       busy.current = false;
       if (mounted.current) setSending(false);
+    }
+  }
+
+  async function pick(source: 'media' | 'file') {
+    setMenuOpen(false);
+    setPicking(true);
+    setErrorText(null);
+    try {
+      let picked: PickedFile[] = [];
+      if (source === 'media') {
+        const remaining = ATTACHMENT_MAX_PER_MESSAGE - uploads.items.filter((item) => item.status !== 'error').length;
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images', 'videos'],
+          allowsMultipleSelection: true,
+          selectionLimit: Math.max(1, remaining),
+        });
+        if (!result.canceled) picked = result.assets.map(toPickedFile);
+      } else {
+        const result = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: true, copyToCacheDirectory: true });
+        if (!result.canceled) picked = result.assets.map(toPickedFile);
+      }
+      uploads.add(picked);
+    } catch {
+      if (mounted.current) setErrorText(t('attachments.pickFailed'));
+    } finally {
+      if (mounted.current) setPicking(false);
     }
   }
 
@@ -361,7 +414,71 @@ export function TaskComments({ projectId, taskId }: { projectId: number; taskId:
           {errorText}
         </Text>
       ) : null}
+      {uploads.items.length > 0 ? (
+        <View accessibilityLabel={t('attachments.list')} style={styles.field}>
+          {uploads.items.map((item) => (
+            <View key={item.key} style={styles.file}>
+              <View style={styles.fileInfo}>
+                <Text numberOfLines={1} style={styles.author}>
+                  {item.name}
+                </Text>
+                <Text style={item.status === 'error' ? styles.error : styles.time}>
+                  {item.status === 'uploading'
+                    ? t('attachments.uploading')
+                    : item.status === 'error'
+                      ? item.error
+                      : item.size !== null
+                        ? formatFileSize(item.size, i18n.language)
+                        : t('attachments.ready')}
+                </Text>
+              </View>
+              {item.status === 'error' && item.retryable ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('attachments.retryFile', { name: item.name })}
+                  onPress={() => uploads.retry(item.key)}
+                  style={styles.link}
+                >
+                  <Text style={styles.linkText}>{t('attachments.retry')}</Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t(item.status === 'uploading' ? 'attachments.cancelFile' : 'attachments.removeFile', {
+                  name: item.name,
+                })}
+                onPress={() => uploads.remove(item.key)}
+                style={styles.link}
+              >
+                <Text style={styles.linkText}>
+                  {t(item.status === 'uploading' ? 'attachments.cancel' : 'attachments.remove')}
+                </Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      ) : null}
+      {menuOpen ? (
+        <View style={styles.suggestions}>
+          <Pressable accessibilityRole="button" onPress={() => void pick('media')} style={styles.suggestion}>
+            <Text>{t('attachments.pickMedia')}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => void pick('file')} style={styles.suggestion}>
+            <Text>{t('attachments.pickFile')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <View style={styles.bar}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('attachments.attach')}
+          accessibilityState={{ disabled: !canAttach, expanded: menuOpen }}
+          disabled={!canAttach}
+          onPress={() => setMenuOpen((open) => !open)}
+          style={[styles.secondary, !canAttach && styles.disabled]}
+        >
+          <Text>+</Text>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ disabled: !canSend }}
@@ -407,6 +524,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
+  file: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  fileInfo: { flex: 1 },
   bar: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
   link: { minHeight: 44, paddingHorizontal: 10, justifyContent: 'center' },
   linkText: { color: '#2563eb', fontSize: 14 },

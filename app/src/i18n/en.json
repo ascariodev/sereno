@@ -339,6 +339,7 @@
     "sendFailed": "Could not send the comment. Try again.",
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "network": "Could not reach the server.",
+    "tooManyAttachments": "You can attach up to {{max}} files per comment.",
     "tooLong": "The comment cannot exceed {{max}} characters.",
     "deletedUser": "deleted user",
     "edit": "Edit",
