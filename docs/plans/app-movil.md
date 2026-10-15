@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 36
+**Estado:** en curso · Fase actual: 37
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -207,7 +207,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** cambiar de estado y posición con un menú (como `TaskMoveMenu.vue`, sin arrastrar) y borrar.
 - **Terminado cuando:** tests de mover y borrar.
 
-### [ ] Fase 36 — Comentarios de tareas
+### [x] Fase 36 — Comentarios de tareas
 - **Alcance:** listar, enviar, editar y borrar comentarios con menciones.
 - **Terminado cuando:** tests del hilo de comentarios.
 
@@ -288,17 +288,17 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   ok se sigue con la 33 en adelante y se vuelve a la 30 cuando avise.
 
 ## Notas para la próxima sesión
+- Fase 36 hecha: `tasks/comments.ts` (store: cursor de 30, viejo a nuevo, `generation`/`listVersion`, `mergeComments`,
+  fallo de `loadOlder` conserva lista y cursor, `insert`/`replace`/`remove` listos para la fase 38) y
+  `components/TaskComments.tsx` (lista, composer con menciones, editor, borrar; editar propios, borrar propios o
+  `canModerate`; cuerpo con `MarkdownContent`, tope 10000), montado en el detalle con `key={task.id}`. Para la 37: los
+  tipos de adjuntos ya están en `TaskComment`. Para la 38: `comments_count` en `tasks/store.ts` (la web solo lo cambia por
+  eventos) y `refresh` tras reconexión.
 - Fase 35 hecha: `components/TaskMoveMenu.tsx` (en cada tarjeta del tablero: subir, bajar y a otra columna, con vecinos de
   la columna completa aunque haya filtro; oculto en archivados) y borrar en el detalle (`Alert` de confirmación; visible si
   no está archivado y la tarea es propia o `canModerate`). En `tasks/store.ts`: `move` (sin optimismo, aplica la respuesta
   con `upsert(force)` como la web), `destroy` (404 también quita), `tombstones` (tope 200; los respetan `upsert`, `ensure`
   y la carga) y `created_by`. Para la 38: `fetchAll` no conserva las tareas llegadas en vivo durante la carga.
-- Fase 34 hecha: ruta `/task` (`app/task.tsx`, params `projectId` e `id` opcional: sin `id` crea, con `id` detalle y edición)
-  y en `tasks/store.ts` `create`, `update`, `ensure` (GET de una tarea que el tablero no tiene), `updatedStamp`/`isStale`
-  (descarta versiones viejas). Validaciones como la web (título 200, descripción 10000), descripción con `MarkdownContent`
-  no interactiva. "Nueva tarea" oculta y crear bloqueado en proyectos archivados (si el proyecto está cargado); editar no se
-  bloquea, como la web. Las notificaciones de tareas y el chip del aviso abren `/task`. Para la 35 y la 38: `ensure` no
-  tiene el `tombstones` de la web (una tarea borrada podría reaparecer).
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -360,3 +360,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-40: Tablero de tareas: acceso desde la pantalla del canal (hoy solo desde la tarjeta del proyecto y el chip del aviso). Complejidad baja, sonnet.
 - [ ] M-41: Detalle de tarea: checklist del markdown interactiva (`toggleTaskItem` de la web); hoy la descripción se muestra solo lectura. Complejidad media, sonnet.
 - [ ] M-42: Tareas: pasar prettier a `app/tasks.tsx` (import sin `;`, `TaskCard` sin indentar), mostrar `error.message` en el 422 de mover como `moveErrorMessage` de la web, proteger `setDeleting` tras cerrar en `task.tsx` y quitar los avisos "overlapping act() calls" de `taskMove.test.tsx`. Complejidad baja, sonnet.
+- [ ] M-43: Tests de la app: quitar el aviso que imprime `src/projects/members.ts:46` en jest (probable mock de miembros incompleto). Complejidad baja, sonnet.

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
+import { TaskComments } from '@/components/TaskComments';
 import { TASK_DESCRIPTION_MAX_LENGTH, TASK_TITLE_MAX_LENGTH } from '@/components/TaskCreateModal';
 import { MarkdownContent } from '@/markdown/MarkdownContent';
 import { useMemberDirectoryStore } from '@/projects/members';
@@ -345,6 +346,7 @@ export default function TaskScreen() {
               <Text style={styles.error}>{deleting ? t('taskAside.deleting') : t('taskAside.delete')}</Text>
             </Pressable>
           ) : null}
+          <TaskComments key={task.id} projectId={projectId} taskId={task.id} />
         </>
       )}
     </ScrollView>

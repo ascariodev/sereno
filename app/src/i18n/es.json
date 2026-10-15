@@ -327,5 +327,33 @@
       "task_commented": "Alguien comenta en mi tarea",
       "chat_mention": "Me mencionan en el chat"
     }
+  },
+  "taskComments": {
+    "heading": "Comentarios",
+    "empty": "Aún no hay comentarios.",
+    "loadOlder": "Cargar comentarios anteriores",
+    "loadFailed": "No se pudieron cargar los comentarios.",
+    "newLabel": "Agregar un comentario",
+    "send": "Comentar",
+    "sending": "Enviando...",
+    "sendFailed": "No se pudo enviar el comentario. Inténtalo de nuevo.",
+    "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
+    "network": "No se pudo conectar con el servidor.",
+    "tooLong": "El comentario no puede superar {{max}} caracteres.",
+    "deletedUser": "usuario eliminado",
+    "edit": "Editar",
+    "editNamed": "Editar comentario de {{name}}",
+    "editLabel": "Editar comentario",
+    "saving": "Guardando...",
+    "editForbidden": "No puedes editar este comentario.",
+    "editGone": "El comentario ya no existe.",
+    "editFailed": "No se pudieron guardar los cambios.",
+    "delete": "Eliminar",
+    "deleteNamed": "Eliminar comentario de {{name}}",
+    "deleteTitle": "Eliminar comentario",
+    "deleteConfirm": "Este comentario se eliminará para todos. No se puede deshacer.",
+    "deleteCancel": "Cancelar",
+    "deleteForbidden": "No puedes eliminar este comentario.",
+    "deleteFailed": "No se pudo eliminar el comentario."
   }
 }
