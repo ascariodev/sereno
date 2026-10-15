@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 26
+**Estado:** en curso · Fase actual: 27
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -184,7 +184,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `api/app/Http/Middleware/RejectOversizedIngestBody.php`, `api/bootstrap/app.php`
 - **Terminado cuando:** tests con `Origin` permitido: 401, 413 y 429 traen `Access-Control-Allow-Origin`.
 
-### [ ] Fase 26 — Web: crear fuente de navegador
+### [x] Fase 26 — Web: crear fuente de navegador
 - **Alcance:** `CreateLogSourceDialog` con tipo (servidor o navegador) y lista de orígenes; la lista de Integraciones muestra
   el tipo.
 - **Archivos:** `web/src/components/CreateLogSourceDialog.vue`, `web/src/views/IntegrationsView.vue`, tipos del API en
@@ -269,9 +269,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 23: log_sources.kind string default server con CHECK; allowed_origins jsonb null en server y array no vacío (1 a 20) en browser. Payload de creación {name, kind?, allowed_origins?}. Orígenes https://host[:puerto] o http://localhost|127.0.0.1[:puerto], normalizados a minúsculas, sin puerto por defecto y sin duplicados; comparables por igualdad exacta con la cabecera Origin. LogSourceKind::keyPrefix() da wsk_ o wsp_; newPlainKey(kind), issueFor(project, name, kind, origins) y rotateKey respetan el tipo.
 - 2026-10-15 — Fase 24: LogSource::KEY_PREFIX e isWellFormedPlainKey eliminados; kindOfPlainKey(string): ?LogSourceKind y acceptsOrigin(?string) (igualdad exacta, sin normalizar el Origin entrante). El prefijo debe coincidir con kind. Limiter log-ingest: 600/min por fuente (log-source:{id}) y, para browser, 30/min por IP y fuente (log-source-ip:{id}|{ip}, AppServiceProvider::LOG_INGEST_BROWSER_REQUESTS_PER_IP_PER_MINUTE); los rechazos cuentan en log-ingest-auth-failures por IP.
 - 2026-10-15 — Fase 25: bootstrap/app.php prepend([HandleCors::class, RejectOversizedIngestBody::class]); array_unique de getGlobalMiddleware deja HandleCors una sola vez y primero. Sin cabeceras CORS a mano.
+- 2026-10-15 — Fase 26: web LogSource {kind: 'server'|'browser', allowed_origins: string[]|null}; createLogSource(projectId, string | {name, kind?, allowed_origins?}); server envía solo {name}. Validación y normalización de orígenes en el cliente replican StoreLogSourceRequest.
 
 ## Notas para la próxima sesión
-- Fase 25 cerrada: HandleCors va primero en la pila global junto a RejectOversizedIngestBody; 401, 413 y 429 de la ingesta traen Access-Control-Allow-Origin. Bloque API terminado. Sigue la fase 26 (web: crear fuente de navegador) en web/ del worktree.
+- Fase 26 cerrada: CreateLogSourceDialog con tipo (servidor/navegador) y orígenes validados y normalizados como el API; Integraciones muestra tipo y orígenes. Sigue la fase 27 (sereno-browser captura global [riesgo]) en sereno-js packages/browser. Ojo: el API del checkout principal (8003) no tiene las fases 23 a 25; la prueba real de wsp_ necesita un API levantado desde el worktree.
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -312,3 +313,5 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-25: Tope por fuente más bajo para fuentes browser (hoy comparten 600/min por fuente, agotable desde una IP con Origin falsificado) [media, sonnet]
 - [ ] M-26: Producción: client_max_body_size de nginx igual o mayor que MAX_BODY_BYTES de la ingesta, para que el 413 lo dé Laravel con CORS y el SDK de navegador no vea un error de red opaco [simple, haiku]
 - [ ] M-27: GenerateVapidKeysCommandTest falla en main desde app-movil fase 3 (6948bb0): config push suma expo_access_token y el test espera solo las tres claves VAPID [simple, haiku]
+- [ ] M-28: CreateLogSourceDialog: Enter con el borrador de origen vacío debería enviar el formulario en vez de no hacer nada [simple, haiku]
+- [ ] M-29: IntegrationsView originsSummary: una sola clave i18n con parámetros en vez de concatenar, para idiomas con otro orden [simple, haiku]

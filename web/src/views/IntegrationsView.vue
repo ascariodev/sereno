@@ -59,6 +59,14 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleString(locale.value, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+const ORIGINS_SHOWN = 2
+
+function originsSummary(origins: string[]): string {
+  const shown = origins.slice(0, ORIGINS_SHOWN).join(', ')
+  const rest = origins.length - ORIGINS_SHOWN
+  return rest > 0 ? `${shown} ${t('integrations.originsMore', { count: rest })}` : shown
+}
+
 function touch(id: number): void {
   touchedAt.set(id, ++tick)
 }
@@ -260,6 +268,18 @@ onUnmounted(() => {
             </div>
             <dl class="integrations__details">
               <div>
+                <dt>{{ t('integrations.kind') }}</dt>
+                <dd data-test="kind">
+                  {{ source.kind === 'browser' ? t('integrations.kindBrowser') : t('integrations.kindServer') }}
+                </dd>
+              </div>
+              <div v-if="source.kind === 'browser' && source.allowed_origins?.length">
+                <dt>{{ t('integrations.origins') }}</dt>
+                <dd class="integrations__origins" data-test="origins" :title="source.allowed_origins.join('\n')">
+                  {{ originsSummary(source.allowed_origins) }}
+                </dd>
+              </div>
+              <div>
                 <dt>{{ t('integrations.lastUsed') }}</dt>
                 <dd data-test="last-used">
                   {{ source.last_used_at ? formatDate(source.last_used_at) : t('integrations.neverUsed') }}
@@ -448,6 +468,10 @@ onUnmounted(() => {
 .integrations__details dd {
   margin: 0;
   color: var(--ink-2);
+}
+
+.integrations__origins {
+  overflow-wrap: anywhere;
 }
 
 .integrations__actions,

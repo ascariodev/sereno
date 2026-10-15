@@ -460,10 +460,14 @@ export interface RepliesPage extends CursorPage<Message> {
 
 export type FieldErrors = Record<string, string[]>
 
+export type LogSourceKind = 'server' | 'browser'
+
 export interface LogSource {
   id: number
   project_id: number
   name: string
+  kind: LogSourceKind
+  allowed_origins: string[] | null
   key_prefix: string
   last_used_at: string | null
   revoked_at: string | null
