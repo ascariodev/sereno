@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 15
+**Estado:** en curso · Fase actual: 16
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -120,7 +120,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `packages/node/src/cli.ts`, `packages/node/package.json`, `packages/node/test/cli.test.ts`
 - **Terminado cuando:** contra el API local da "conectado" y código 1 con una key revocada.
 
-### [ ] Fase 15 — sereno-node: README
+### [x] Fase 15 — sereno-node: README
 - **Alcance:** instalación, `init`, Express, NestJS, Next.js, variables y comportamiento de envío. Tag local `node-v0.1.0`.
 - **Archivos:** `packages/node/README.md`, `packages/core/README.md`, `LICENSE`
 - **Terminado cuando:** una app Express nueva, siguiendo solo el README, envía una excepción al API local.
@@ -262,7 +262,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 13: el subpath next de sereno-node no importa nada de Node a nivel de módulo (solo import type) y carga el SDK con import() tras comprobar process.env.NEXT_RUNTIME === 'nodejs' escrito literal, para que el bundle edge de instrumentation.ts no arrastre node:util. Errores de control de Next se ignoran por digest (NEXT_REDIRECT, NEXT_NOT_FOUND, NEXT_HTTP_ERROR_FALLBACK, BAILOUT_TO_CLIENT_SIDE_RENDERING, DYNAMIC_SERVER_USAGE).
 
 ## Notas para la próxima sesión
-- Fase 14 cerrada (sereno-js 1fd935f): npx @ascariodev/sereno-node test [--url] [--key] (bin sereno-node en dist/esm/cli.js), lógica en src/connection.ts (testConnection, runCli, TEST_TIMEOUT_SECONDS), mensajes iguales a bin/sereno-test de PHP; core suma TransportOptions.retry (por defecto true). Para el README (fase 15): el subcomando test es obligatorio y acepta --key valor además de --key=valor. Sigue la fase 15 (README de sereno-node, tag local node-v0.1.0).
+- Fase 15 cerrada (sereno-js 47b06eb, tag local node-v0.1.0): README de node y core, LICENSE MIT copiada en la raíz y en cada paquete, .gitattributes con eol=lf (shebang del bin). Bloque sereno-js core y node terminado. Sigue la fase 16 (sereno-python formateador) en ../sereno-python, worktree .claude/worktrees/sdks, paquete PyPI sereno-sdk con módulo sereno.
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
