@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -56,7 +56,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Terminado cuando:** tests de alta, listado (no incluye sesiones ni tokens de otra organización), expiración, baja propia,
   baja ajena 404 y validación.
 
-### [ ] Fase 3 — La API REST rechaza tokens de acceso [riesgo]
+### [x] Fase 3 — La API REST rechaza tokens de acceso [riesgo]
 - **Alcance:** middleware que responde 403 si el token actual es de acceso (`isAccessToken()`), aplicado a los grupos
   `auth:sanctum` de `api/routes/api.php` y a la autorización de broadcasting. Los tokens de sesión y
   `Sanctum::actingAs` (mock sin `organization_id`) siguen pasando. Así un token filtrado solo sirve para el MCP.
@@ -175,13 +175,17 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - 2026-10-15 — `/api/access-tokens`: el `POST` devuelve `data` y `token` (en claro) al mismo nivel; `DELETE` filtra por
   usuario y organización activa sin route-model binding (ajeno, de otra organización o de sesión = 404). Los vencidos se
   listan para poder revocarlos. Sin textos nuevos en `lang/`.
+- 2026-10-15 — `RejectAccessTokens` va en el grupo `api` (append), no en cada grupo `auth:sanctum`: cubre solo las rutas
+  nuevas. Prioridad justo después de `AuthenticatesRequests` y antes de `ResolveOrganization`; en `/broadcasting/auth`
+  tras `auth:sanctum`. Responde 403 `{message, code: 'access_token_forbidden'}`. Como `SetLocale` ya resuelve el usuario
+  con cualquier Bearer, un token de acceso también recibe 403 en rutas públicas del grupo `api`.
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren con
   `docker compose run --rm --no-deps -v "<worktree>/api:/var/www/api" api ...` desde la raíz del checkout principal.
 
 ## Notas para la próxima sesión
-- Fase 3: `currentAccessToken()` devuelve `App\Models\PersonalAccessToken`, salvo con `Sanctum::actingAs`, donde es un
-  `TransientToken`: tratarlo como "no es token de acceso". Los endpoints de `/api/access-tokens` también deben quedar
-  bloqueados para tokens de acceso.
+- Fase 4: comprobar si `routes/ai.php` de laravel/mcp carga `/mcp` dentro del grupo `api`; si es así, excluirla con
+  `withoutMiddleware(RejectAccessTokens::class)` o `RejectAccessTokens` la bloqueará. Con `Sanctum::actingAs` el token
+  actual es un `TransientToken` (no es de acceso).
 
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
@@ -194,3 +198,6 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-5: `ExpoPushTokenController` y `ExpoPushToken` importan el `PersonalAccessToken` de Sanctum; apuntarlos al modelo
       propio por coherencia. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-6: corregir el comentario de `RejectAccessTokens` ("public routes trigger no token lookup" no es exacto por
+      `SetLocale`) y agregar un test de token de acceso en una ruta pública (p. ej. `/api/auth/registration`).
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

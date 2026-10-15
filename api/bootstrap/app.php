@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateLogSource;
+use App\Http\Middleware\RejectAccessTokens;
 use App\Http\Middleware\RejectOversizedIngestBody;
 use App\Http\Middleware\ResolveOrganization;
 use App\Http\Middleware\SetLocale;
@@ -23,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withBroadcasting(__DIR__.'/../routes/channels.php', ['middleware' => [SetLocale::class, 'auth:sanctum']])
+    ->withBroadcasting(__DIR__.'/../routes/channels.php', ['middleware' => [SetLocale::class, 'auth:sanctum', RejectAccessTokens::class]])
     ->withMiddleware(function (Middleware $middleware): void {
         // In production TLS ends at the host proxy, the only peer of nginx (bound to 127.0.0.1). Trusting just
         // the immediate peer gives https URLs and the real client IP for the per-IP limiters, while an
@@ -34,8 +35,11 @@ return Application::configure(basePath: dirname(__DIR__))
             headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO,
         );
         $middleware->prepend(RejectOversizedIngestBody::class);
+        // Access tokens (bound to an organization) are only for the MCP server: every api route refuses them, so a
+        // leaked one cannot drive the REST API and new routes are covered without opting in.
         $middleware->api(append: [
             SetLocale::class,
+            RejectAccessTokens::class,
         ]);
         $middleware->alias([
             'organization' => ResolveOrganization::class,
@@ -46,6 +50,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Locale first so auth, organization and throttle errors are translated.
         $middleware->prependToPriorityList(AuthenticatesRequests::class, SetLocale::class);
         $middleware->appendToPriorityList(AuthenticatesRequests::class, ResolveOrganization::class);
+        // Inserted right after authentication, so it runs before the organization header is checked.
+        $middleware->appendToPriorityList(AuthenticatesRequests::class, RejectAccessTokens::class);
         // The log-ingest limiter keys on the source, so it must be resolved first.
         $middleware->prependToPriorityList(ThrottleRequests::class, AuthenticateLogSource::class);
     })
