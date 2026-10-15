@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Http\Middleware\AuthenticateLogSource;
+use App\Models\PersonalAccessToken;
 use App\Models\User;
 use App\Policies\MemberPolicy;
 use App\Support\CurrentOrganization;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -55,6 +57,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
         Gate::policy(User::class, MemberPolicy::class);
         $this->configureRateLimiting();
     }

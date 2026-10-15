@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -35,7 +35,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 
 ## Fases
 
-### [ ] Fase 1 — Token de acceso ligado a organización
+### [x] Fase 1 — Token de acceso ligado a organización
 - **Alcance:** migración que suma `organization_id` nullable a `personal_access_tokens` (FK `cascadeOnDelete`, índice).
   Modelo propio `App\Models\PersonalAccessToken` (extiende el de Sanctum, relación `organization()`, `isAccessToken()`
   = `organization_id !== null`) registrado con `Sanctum::usePersonalAccessTokenModel`. `User::createAccessToken(Organization,
@@ -170,9 +170,14 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - 2026-10-14 — Tokens de acceso = `personal_access_tokens` con `organization_id` y ability `mcp`; las sesiones siguen con
   `organization_id` nulo. Solo valen en `/mcp` (fase 3) y la membresía se revalida en cada petición.
 - 2026-10-14 — Descripciones y schemas de las tools en inglés (los lee el modelo, no las personas); errores por `__()`.
+- 2026-10-15 — `User::createAccessToken` escribe el token en una sola operación con `organization_id` y abilities `['mcp']`;
+  `organization_id` va en `$fillable` del modelo propio.
+- 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren con
+  `docker compose run --rm --no-deps -v "<worktree>/api:/var/www/api" api ...` desde la raíz del checkout principal.
 
 ## Notas para la próxima sesión
-- Plan recién creado; empezar por la fase 1.
+- Fase 3: `currentAccessToken()` devuelve `App\Models\PersonalAccessToken`, salvo con `Sanctum::actingAs`, donde es un
+  `TransientToken`: tratarlo como "no es token de acceso".
 
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
@@ -183,3 +188,5 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       Complejidad: media · Archivos: 5 · Riesgo: BD → opus
 - [ ] M-4: revocar los tokens de acceso de un usuario al sacarlo de la organización (hoy solo dejan de funcionar).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-5: `ExpoPushTokenController` y `ExpoPushToken` importan el `PersonalAccessToken` de Sanctum; apuntarlos al modelo
+      propio por coherencia. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
