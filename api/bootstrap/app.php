@@ -56,7 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(ThrottleRequests::class, AuthenticateLogSource::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $wantsJson = fn (Request $request): bool => $request->is('api/*', 'broadcasting/*') || $request->expectsJson();
+        $wantsJson = fn (Request $request): bool => $request->is('api/*', 'broadcasting/*', 'mcp') || $request->expectsJson();
 
         $exceptions->shouldRenderJsonWhen($wantsJson);
         $exceptions->render(fn (AuthenticationException $e, Request $request) => $wantsJson($request)

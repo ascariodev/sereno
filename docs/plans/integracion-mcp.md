@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -65,7 +65,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Terminado cuando:** test de token de acceso rechazado en REST y en broadcasting, token de sesión aceptado; suite
   completa del API en verde (L-49, en subagente).
 
-### [ ] Fase 4 — Servidor MCP autenticado [riesgo]
+### [x] Fase 4 — Servidor MCP autenticado [riesgo]
 - **Alcance:** `composer require laravel/mcp`, publicar `routes/ai.php` y comprobar cómo se carga. Servidor
   `App\Mcp\Servers\SerenoServer` sin tools, con nombre, versión e instrucciones. Ruta `Mcp::web('/mcp', ...)` con
   `auth:sanctum`, un middleware `ResolveTokenOrganization` (exige token de acceso con ability `mcp`, valida membresía
@@ -179,13 +179,20 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   nuevas. Prioridad justo después de `AuthenticatesRequests` y antes de `ResolveOrganization`; en `/broadcasting/auth`
   tras `auth:sanctum`. Responde 403 `{message, code: 'access_token_forbidden'}`. Como `SetLocale` ya resuelve el usuario
   con cualquier Bearer, un token de acceso también recibe 403 en rutas públicas del grupo `api`.
-- 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren con
-  `docker compose run --rm --no-deps -v "<worktree>/api:/var/www/api" api ...` desde la raíz del checkout principal.
+- 2026-10-15 — laravel/mcp v1.0.2. `McpServiceProvider` carga `routes/ai.php` sin grupo de middleware (ni `api` ni
+  `web`), así que `RejectAccessTokens` no corre en `/mcp`. Middleware de `/mcp`: `SetLocale`, `auth:sanctum`,
+  `ResolveTokenOrganization`, `throttle:mcp` (120/min por token). `ResolveTokenOrganization` exige el modelo propio con
+  `isAccessToken()` y ability `mcp` (las sesiones tienen `*`), toma la organización solo del token (ignora
+  `X-Organization-Id`) y revalida la membresía en cada petición. `mcp` se sumó a `$wantsJson` de `bootstrap/app.php`.
+- 2026-10-15 — `Sanctum::actingAs` recibe 403 en `/mcp`: las tools se prueban con `SerenoServer::actingAs` (sin HTTP),
+  así que deben fijar ellas la organización del token o del test.
+- 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
+  del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
+  worktree; `vendor/` es el volumen compartido con el checkout principal).
 
 ## Notas para la próxima sesión
-- Fase 4: comprobar si `routes/ai.php` de laravel/mcp carga `/mcp` dentro del grupo `api`; si es así, excluirla con
-  `withoutMiddleware(RejectAccessTokens::class)` o `RejectAccessTokens` la bloqueará. Con `Sanctum::actingAs` el token
-  actual es un `TransientToken` (no es de acceso).
+- Fase 5: en los tests de tools con `SerenoServer::actingAs` no corre `ResolveTokenOrganization`; la base de tools debe
+  obtener la organización activa (`CurrentOrganization`) y fallar cerrado si no hay.
 
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
@@ -201,3 +208,6 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - [ ] M-6: corregir el comentario de `RejectAccessTokens` ("public routes trigger no token lookup" no es exacto por
       `SetLocale`) y agregar un test de token de acceso en una ruta pública (p. ej. `/api/auth/registration`).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-7: tests de `ResolveTokenOrganization`: usuario de dos organizaciones que manda `X-Organization-Id` de la otra
+      (queda la del token), y en el de ex miembro fijar antes otra organización para que pruebe de verdad L-02.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet

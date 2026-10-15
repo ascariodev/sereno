@@ -42,6 +42,8 @@ class AppServiceProvider extends ServiceProvider
 
     public const ATTACHMENT_URLS_PER_MINUTE = 120;
 
+    public const MCP_REQUESTS_PER_MINUTE = 120;
+
     /**
      * Register any application services.
      */
@@ -108,6 +110,11 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('notifications', fn (Request $request) => Limit::perMinute(self::NOTIFICATIONS_PER_MINUTE)
             ->by('user:'.$request->user()->getKey())
+            ->response($this->tooManyAttemptsResponse(...)));
+
+        // Keyed on the access token, so each Claude Code connection has its own budget.
+        RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute(self::MCP_REQUESTS_PER_MINUTE)
+            ->by('mcp-token:'.$request->user()->currentAccessToken()->getKey())
             ->response($this->tooManyAttemptsResponse(...)));
 
         RateLimiter::for('invitation-preview', fn (Request $request) => Limit::perMinute(self::INVITATION_PREVIEWS_PER_MINUTE)

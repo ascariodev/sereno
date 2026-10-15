@@ -199,6 +199,7 @@
     "The existing encrypted environment file is not in readable format. Use --force to overwrite it.": "The existing encrypted environment file is not in readable format. Use --force to overwrite it.",
     "The existing encryption key is required to update the encrypted environment file.": "The existing encryption key is required to update the encrypted environment file.",
     "The given data was invalid.": "The given data was invalid.",
+    "The MCP server only accepts access tokens.": "The MCP server only accepts access tokens.",
     "The response is not a streamed response.": "The response is not a streamed response.",
     "The response is not a view.": "The response is not a view.",
     "This action is unauthorized.": "This action is unauthorized.",
