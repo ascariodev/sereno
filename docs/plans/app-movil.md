@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 44
+**Estado:** en curso · Fase actual: 30
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -243,7 +243,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 
 ### Bloque G: distribución
 
-### [ ] Fase 44 — Identidad visual
+### [x] Fase 44 — Identidad visual
 - **Alcance:** ícono, ícono adaptativo, splash y colores del tema de la web.
 - **Terminado cuando:** el build muestra ícono y splash de Sereno.
 
@@ -286,19 +286,20 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   escucha; `removedMentions` evita que una carga en vuelo reviva la fila. Mejora candidata para la web.
 - 2026-10-14 — Las fases 30 a 32 (push) esperan a que el usuario cree Firebase y suba la credencial FCM V1 a EAS; con su
   ok se sigue con la 33 en adelante y se vuelve a la 30 cuando avise.
+- Fase 44: ícono y splash quedan configurados; verlos en el dispositivo se hace con el dev build de la fase 30. La fase 45 va después de la 30 porque ambas escriben `eas.json` y su criterio necesita builds del usuario.
 
 ## Notas para la próxima sesión
+- Fase 44 hecha en config: ícono 1024 (glifo de `web/public/favicon.svg` en blanco sobre `#4B4FD8`, la `--accent` de la
+  web), adaptativo con fondo de color, foreground y monochrome, splash claro (`#4B4FD8`) y oscuro (`#0F1114`, glifo
+  `#A9ABF5`) con `imageWidth` 200; PNG dibujados con System.Drawing (no hay ImageMagick ni sharp). `npx expo config`
+  resuelve. Falta verlos en el dev build de la fase 30 (afinar `imageWidth` con el recorte de Android 12). No hay tema
+  centralizado en `app/src`. Siguen 30 a 32 (Firebase), 45 (perfiles de build, comparte `eas.json` con la 30) y 46 manual:
+  todas esperan al usuario. Próxima: 30.
 - Fase 43 hecha: `organization/invitations.ts` y pantalla `/invitations` (botón en Ajustes y ruta solo owner/admin).
   Roles invitables como `InvitationPolicy` (admin no invita ni revoca owner), `project_ids` solo para member, lista por
   cursor completa, revocar con `Alert` (404 quita la fila), aviso de enviado, acciones bloqueadas mientras carga. Sin
   tiempo real, reenvío ni estado "vencida", igual que la web. Siguen el bloque G: 44 identidad visual, 45, y la 46 manual;
   las 30 a 32 esperan Firebase.
-- Fase 42 hecha: `organization/members.ts` (`assignableRolesFor`, `canRemoveMember`, `mergeFetched`, errores) y pantalla
-  `/members` desde Ajustes para todos los roles. Rol con un botón por destino; quitar, salir ("Leave" para uno mismo) y
-  transferir con `Alert`. Cambiar el rol propio y transferir recargan la organización; salir recarga y vuelve a `/` solo
-  si sigue en `/members`, y si la recarga falla avisa (`leftReloadFailed`) sin navegar. `echo.ts` suma
-  `subscribeToOrganizationMembers` (`.organization.members_changed`), usado solo por owner/admin. La revocación y el cambio
-  de rol globales (`onMembershipRevoked`/`onRoleChanged`) siguen en M-17.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -368,3 +369,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-48: Log: `loadMore` no debe cancelar un `refresh` en curso tras cambiar el estado desde el detalle (si no, la página siguiente se salta filas hasta el próximo refresh); y que el test "does not skip rows" espere el refresh con `waitFor`. Complejidad baja, sonnet.
 - [ ] M-49: Integraciones: botón "Copiar" para la key y los comandos (requiere `npx expo install expo-clipboard`, con aprobación del usuario), curl de ejemplo como la web, test del botón "Integrations" de la tarjeta y ocultar la key al pasar a segundo plano (FLAG_SECURE o similar). Complejidad media, sonnet.
 - [ ] M-50: Cablear `onMembersChanged` a `useMemberDirectoryStore.invalidate` en las pantallas de canal, tareas y log, como `ChannelView.vue:340`, `PlanView.vue:151` y `LogView.vue:238` (hoy menciones y asignados tardan hasta 5 min); tests de `clear()` e `invalidate()` sin id. Complejidad baja, sonnet.
+- [ ] M-51: App: centralizar los colores en un tema (`app/src/theme.ts`) alineado con `web/src/style.css` y quitar `ios.icon` de plantilla (`./assets/expo.icon`) de `app.json`. Complejidad media, sonnet.

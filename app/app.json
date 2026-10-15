@@ -13,9 +13,8 @@
     "android": {
       "package": "dev.ascario.sereno",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#4B4FD8",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
@@ -29,9 +28,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#4B4FD8",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 200,
+          "dark": {
+            "backgroundColor": "#0F1114",
+            "image": "./assets/images/splash-icon-dark.png"
+          }
         }
       ],
       "expo-localization",
