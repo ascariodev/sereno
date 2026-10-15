@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -71,7 +71,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `bin/sereno-test`, `src/ConnectionTester.php`, `composer.json`, `tests/ConnectionTesterTest.php`
 - **Terminado cuando:** contra el API local responde "conectado" con una key válida y código 1 con una revocada.
 
-### [ ] Fase 7 — sereno-php: README con Symfony
+### [x] Fase 7 — sereno-php: README con Symfony
 - **Alcance:** instalación, PHP puro con `Sereno::init`, Monolog a mano y Symfony (`monolog.yaml` + servicio), variables,
   comportamiento de envío. Tag local `v0.1.0`.
 - **Archivos:** `README.md`, `LICENSE`
@@ -256,7 +256,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — sereno-php fase 6 (fb0e778): ConnectionTester usa curl directo (Transport reintenta y no sirve para 5 s sin reintento); `.gitattributes` fuerza LF en `bin/sereno-test`.
 
 ## Notas para la próxima sesión
-- Fase 6 hecha: `vendor/bin/sereno-test [--key= --url=]` o `SERENO_KEY`/`SERENO_URL`; `Sereno\ConnectionTester::test(url, key)`; 78 tests y prueba real. Sigue la fase 7 (README con Symfony y tag v0.1.0).
+- Fase 7 cerrada (sereno-php d09513e, tag local v0.1.0): README con Monolog, Symfony y prueba de conexión, LICENSE MIT; Sereno::init lee SERENO_LEVEL y SERENO_TIMEOUT. Sigue la fase 8 (sereno-js formateador del núcleo).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
