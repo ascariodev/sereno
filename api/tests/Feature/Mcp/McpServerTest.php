@@ -98,13 +98,14 @@ it('completes initialize with a valid access token', function () {
     expect(app(CurrentOrganization::class)->id())->toBe($this->organization->id);
 });
 
-it('lists no tools yet', function () {
+it('lists the registered tools', function () {
     $token = $this->user->createAccessToken($this->organization, 'Claude Code')->plainTextToken;
 
     $this->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list'], ($this->bearer)($token))
         ->assertOk()
         ->assertJsonPath('id', 2)
-        ->assertJsonPath('result.tools', []);
+        ->assertJsonCount(1, 'result.tools')
+        ->assertJsonPath('result.tools.0.name', 'list-projects');
 });
 
 it('throttles each access token on its own', function () {

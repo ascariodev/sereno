@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Servers;
 
+use App\Mcp\Tools\ListProjectsTool;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
@@ -15,7 +16,9 @@ use Laravel\Mcp\Server\Attributes\Version;
     MARKDOWN)]
 class SerenoServer extends Server
 {
-    protected array $tools = [];
+    protected array $tools = [
+        ListProjectsTool::class,
+    ];
 
     protected array $resources = [];
 

@@ -127,3 +127,4 @@
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
 -->
+- L-95: Un punto de entrada nuevo que traduce excepciones a errores propios (tools MCP) mapea igual `ModelNotFoundException`, `NotFoundHttpException` y `AuthorizationException` con status 404 (`denyAsNotFound`): si no, el mensaje distingue un recurso oculto de uno inexistente. — aplicada en: test (ToolErrorMappingTest)

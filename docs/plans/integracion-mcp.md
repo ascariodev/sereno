@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -76,7 +76,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Terminado cuando:** tests HTTP del endpoint: sin token 401, token de sesión 403, token de acceso de un ex miembro 403,
   token válido completa `initialize` y `tools/list` vacío.
 
-### [ ] Fase 5 — Base de tools y listado de proyectos
+### [x] Fase 5 — Base de tools y listado de proyectos
 - **Alcance:** clase base o trait para las tools (usuario y organización actual, `Gate` con error MCP en vez de excepción,
   serializar con los Resources existentes a `Response::structured`). Tool `list-projects` (visibles por `ProjectAccess`,
   `include_archived`). Descripciones y schemas en inglés (son para el modelo); errores por `__()`.
@@ -186,13 +186,22 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   `X-Organization-Id`) y revalida la membresía en cada petición. `mcp` se sumó a `$wantsJson` de `bootstrap/app.php`.
 - 2026-10-15 — `Sanctum::actingAs` recibe 403 en `/mcp`: las tools se prueban con `SerenoServer::actingAs` (sin HTTP),
   así que deben fijar ellas la organización del token o del test.
+- 2026-10-15 — Base `App\Mcp\Tools\Tool`: `handle()` final toma el usuario de `$request->user()` y la organización de
+  `CurrentOrganization` (sin ellos, error: falla cerrado) y llama a `run(Request, User, Organization)`. `authorize()` usa
+  `Gate::forUser`. `ModelNotFoundException`, `NotFoundHttpException` y `AuthorizationException` con status 404
+  (`denyAsNotFound`) dan "Not found."; otra `AuthorizationException`, "You are not allowed to do this.". `structured()`
+  envuelve siempre en `['data' => ...]` (`Response::structured` rechaza arrays vacíos). Cada tool lleva
+  `#[Name('...')]` (si no, el nombre sale de la clase). `list-projects` no pagina.
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
   del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
   worktree; `vendor/` es el volumen compartido con el checkout principal).
 
 ## Notas para la próxima sesión
-- Fase 5: en los tests de tools con `SerenoServer::actingAs` no corre `ResolveTokenOrganization`; la base de tools debe
-  obtener la organización activa (`CurrentOrganization`) y fallar cerrado si no hay.
+- Fase 6 es manual: crear un token, registrar el servidor en Claude Code (`claude mcp add` por HTTP con `Authorization`,
+  verificar la sintaxis vigente) y pedirle que liste proyectos.
+- Tests de tools: `app(CurrentOrganization::class)->set(...)` antes de `SerenoServer::actingAs(...)->tool(...)`;
+  aserciones `assertSee`, `assertDontSee`, `assertStructuredContent`, `assertHasErrors`. `tool()` solo ejecuta tools
+  registradas en el servidor. Usar Edit (no sed) para los `use`: sed comió barras invertidas.
 
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
