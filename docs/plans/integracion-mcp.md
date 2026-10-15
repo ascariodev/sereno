@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -104,7 +104,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Archivos:** `api/app/Mcp/Tools/ListChannelMessagesTool.php`, `SerenoServer.php`.
 - **Terminado cuando:** tests de paginación, hilo, canal no visible = error.
 
-### [ ] Fase 9 — Avisos de log
+### [x] Fase 9 — Avisos de log
 - **Alcance:** tools `list-log-groups` (por proyecto, filtros `status` y `level` reutilizando `ListLogGroupsRequest`
   como pide L-15) y `get-log-group` (detalle con eventos recientes, `LogGroupPolicy`).
 - **Archivos:** `api/app/Mcp/Tools/ListLogGroupsTool.php`, `GetLogGroupTool.php`, `SerenoServer.php`.
@@ -205,6 +205,9 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - 2026-10-15 — `list-channel-messages` recibe `project_id` (no `channel_id`), resuelve `project->channel` y autoriza
   `view` del proyecto y del canal. Duplica las consultas de `MessageController::index`/`replies` con `RELATIONS` y
   `loadParticipants` (L-66). Devuelve `data` + `next_cursor` (+ `meta.root` con `thread_id`); sin `around`.
+- 2026-10-15 — `list-log-groups` (reglas de `ListLogGroupsRequest`, argumento `page`, `data` + `meta{current_page, total,
+  has_more}`) y `get-log-group` (`DETAIL_EVENTS_LIMIT`, retención, `LogGroupResource` con `events` y `task`) duplican
+  `LogGroupController::index`/`show`. El contenedor de 8013 corre con `--no-reload`: reiniciarlo para ver tools nuevas.
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
   del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
   worktree; `vendor/` es el volumen compartido con el checkout principal).
@@ -237,3 +240,6 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - [ ] M-9: extraer la validación del cursor de `CursorPaginatedRequest::validCursor` (privada, copiada en
       `ListChannelMessagesTool`) a un método compartido; tests de hilo con raíz borrada y de `per_page` fuera de rango.
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
+- [ ] M-10: extraer a una acción compartida la lógica de `LogGroupController::index`/`show` (y `levelsAtLeast`) que
+      duplican las tools de log; tests de `get-log-group` con eventos fuera de retención o sobre el límite y de `page`
+      inválido. Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet

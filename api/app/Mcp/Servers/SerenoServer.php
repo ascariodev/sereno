@@ -2,8 +2,10 @@
 
 namespace App\Mcp\Servers;
 
+use App\Mcp\Tools\GetLogGroupTool;
 use App\Mcp\Tools\GetTaskTool;
 use App\Mcp\Tools\ListChannelMessagesTool;
+use App\Mcp\Tools\ListLogGroupsTool;
 use App\Mcp\Tools\ListProjectsTool;
 use App\Mcp\Tools\ListTasksTool;
 use Laravel\Mcp\Server;
@@ -24,6 +26,8 @@ class SerenoServer extends Server
         ListTasksTool::class,
         GetTaskTool::class,
         ListChannelMessagesTool::class,
+        ListLogGroupsTool::class,
+        GetLogGroupTool::class,
     ];
 
     protected array $resources = [];
