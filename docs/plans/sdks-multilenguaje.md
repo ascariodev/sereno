@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -77,7 +77,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `README.md`, `LICENSE`
 - **Terminado cuando:** una app Symfony nueva en un contenedor, siguiendo solo el README, envía una excepción al API local.
 
-### [ ] Fase 8 — sereno-js: formateador del núcleo [riesgo]
+### [x] Fase 8 — sereno-js: formateador del núcleo [riesgo]
 - **Alcance:** `../sereno-js` con npm workspaces (`packages/core`, `packages/node`, `packages/browser`), TypeScript,
   Vitest y build ESM+CJS; Node ≥20. En `core`: `formatEvent` que pasa los vectores (errores JS: `{class: name, message,
   location: archivo:línea del primer frame, trace}`).
@@ -254,9 +254,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — sereno-php fase 4 (6b818e4): avisos en texto plano por `error_log` (notifier inyectable); el tope de 1000 es defensivo en PHP síncrono (el buffer no pasa de 99).
 - 2026-10-15 — sereno-php fase 5 (02b0938): errores desde E_WARNING; los warnings y fatales llevan file/line/errno en el contexto y el fingerprint lo calcula el servidor; con handler previo de excepciones no se hace exit.
 - 2026-10-15 — sereno-php fase 6 (fb0e778): ConnectionTester usa curl directo (Transport reintenta y no sirve para 5 s sin reintento); `.gitattributes` fuerza LF en `bin/sereno-test`.
+- 2026-10-15 — Fase 8: sereno-js usa TypeScript ~5.9 (la salida CJS necesita moduleResolution node10, obsoleto en TS 6), Vitest 4 (el 5 pide Node 22.12) y build con tsc dos veces sin bundler; core compila con lib ES2020 y types [] (sin APIs de Node), SHA-1 propio síncrono y UUID con getRandomValues. package-lock.json se versiona. Valores propios de JS: surrogate suelto ?, undefined y Date inválida o fuera de 0000-9999 null, bigint su string, funciones [function], símbolos [symbol], Map y clases [object Nombre], ciclos [truncated] y lo que lanza al leerlo [unserializable], siempre con _truncated.
 
 ## Notas para la próxima sesión
-- Fase 7 cerrada (sereno-php d09513e, tag local v0.1.0): README con Monolog, Symfony y prueba de conexión, LICENSE MIT; Sereno::init lee SERENO_LEVEL y SERENO_TIMEOUT. Sigue la fase 8 (sereno-js formateador del núcleo).
+- Fase 8 cerrada (sereno-js 026deb7): workspaces packages/{core,node,browser}, core exporta formatEvent(record: LogRecord): SerenoEvent, serializeException, isError, isLogLevel, uuid, sha1, trim, phpJsonSize y constantes; LogRecord {level, message, context?, time?}. Build con scripts/build-package.mjs (tsc ESM y CJS). Docker: volumen sereno-js-node-modules en /app/node_modules. Sigue la fase 9 (Client del núcleo).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -280,3 +281,4 @@ fragmentos por lenguaje en el diálogo de la key.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-10: sereno-php: `export-ignore` de `tests/` y archivos de desarrollo en `.gitattributes` para aligerar el dist.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-11: Contrato: una excepción JS sin frames en el stack da fingerprint "Error|" y agrupa todos esos errores juntos; decidir si sin location no se envía fingerprint (afecta a los cuatro SDKs). Complejidad baja.

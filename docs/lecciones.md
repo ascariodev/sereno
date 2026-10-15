@@ -123,6 +123,7 @@
 - L-92: En una lista paginada por número de página, si una acción local saca una fila que sale del filtro, se recargan las páginas ya cargadas (como `onPanelStatus` de la web): el servidor también la excluye y la página siguiente se saltaría filas. — aplicada en: test (logView.test)
 - L-93: Si una pantalla permite crear mientras su listado carga, la respuesta del listado pisa lo creado: se deshabilita la acción mientras `loading` (como la web) y la carga fusiona lo tocado después de lanzarla. — aplicada en: test (integrations.test)
 - L-94: Tras una acción que cambia la organización activa (salir, transferir), si la recarga de organizaciones falla se avisa y no se navega; y toda navegación después de un `await` se condiciona a que la pantalla siga activa (como `currentRoute.name` en la web). — aplicada en: test (members.test)
+- L-95: Un formateador de SDK que recorre valores arbitrarios de la aplicación lleva el conjunto de ancestros (un ciclo con varias claves explota combinatoriamente aunque haya tope de profundidad) y un try/catch por valor (getters, toJSON y Proxy lanzan). — aplicada en: revisión (sdks-multilenguaje fase 8)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
