@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -45,7 +45,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `composer.json`, `phpunit.xml`, `src/EventFormatter.php`, `tests/EventFormatterTest.php`, `tests/fixtures/vectores.json`
 - **Terminado cuando:** la suite pasa en `composer:2` con todos los vectores.
 
-### [ ] Fase 3 — sereno-php: transporte
+### [x] Fase 3 — sereno-php: transporte
 - **Alcance:** `Transport` con ext-curl: lote, un reintento ante red/5xx, presupuesto de 10 s, timeout configurable (máx. 10),
   devuelve un resultado (enviado, rechazado con código, error) sin lanzar.
 - **Archivos:** `src/Transport.php`, `src/DeliveryResult.php`, `tests/TransportTest.php`
@@ -250,9 +250,10 @@ fragmentos por lenguaje en el diálogo de la key.
   commit vacío inicial, y se trabaja en su worktree `.claude/worktrees/sdks` (rama `feat/sdks`) con un commit por fase.
 - 2026-10-15 — El usuario pidió ejecutar todas las fases seguidas sin parar.
 - 2026-10-15 — sereno-php: `composer.lock` no se versiona (librería); PHPUnit `^10.5 || ^11`; commit de fase 2 fbbb912 en `feat/sdks` de sereno-php.
+- 2026-10-15 — sereno-php fase 3 (a21c152): cualquier 2xx es enviado; 3xx no se sigue y cuenta como rechazo; sin `curl_close` (deprecado en 8.5).
 
 ## Notas para la próxima sesión
-- Fase 2 hecha: sereno-php con EventFormatter (29 tests, composer:2). Sigue la fase 3 (Transport con ext-curl). Tests: `MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W):/app" -w /app composer:2 sh -c 'composer install -q; vendor/bin/phpunit'` desde el worktree.
+- Fase 3 hecha: Transport (curl, reintento, presupuesto) y DeliveryResult; 48 tests. Sigue la fase 4 (SerenoHandler de Monolog sobre Transport). API para la fase 4: `new Transport(url, key, timeout = null, clock = null)`, `send(array): DeliveryResult` (status/code/body/error/transient/attempts, isSent/isRejected/isError); Transport no valida URL/key vacías.
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -267,4 +268,6 @@ fragmentos por lenguaje en el diálogo de la key.
       `"[truncated]"` por tamaño (hoy el ajuste de tamaño solo se prueba con strings).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-6: sereno-php: tests propios de UTF-8 inválido a `?` (mensaje y clave), `JsonSerializable`, `Stringable` y excepción anidada, y probar la suite en PHP 8.1.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-7: sereno-php: robustez de TransportTest (carrera de `freePort()`, hijos de `php -S` con workers, márgenes de tiempo reales).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
