@@ -64,6 +64,16 @@ function ProjectCard({ project, canManage }: { project: Project; canManage: bool
       {canManage ? (
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={`${t('projects.openIntegrations')} ${project.name}`}
+          onPress={() => router.push({ pathname: '/integrations', params: { projectId: String(project.id), name: project.name } })}
+          style={styles.button}
+        >
+          <Text style={styles.buttonText}>{t('projects.openIntegrations')}</Text>
+        </Pressable>
+      ) : null}
+      {canManage ? (
+        <Pressable
+          accessibilityRole="button"
           accessibilityLabel={`${t('projects.edit')} ${project.name}`}
           onPress={() => router.push({ pathname: '/project-form', params: { id: String(project.id) } })}
           style={styles.button}

@@ -37,6 +37,7 @@ export interface RealtimePayload {
   id?: number
   message_id?: number
   deleted_at?: string
+  last_used_at?: string
   root?: { id?: number; replies_count?: number; last_reply_at?: string | null; recent_participants?: { id: number; name: string }[] }
   task?: Partial<Task>
   comment?: Partial<TaskComment>
@@ -257,6 +258,13 @@ export interface ProjectSubscriptionHandlers {
   onTaskCommentCreated?: (comment: TaskComment, commentsCount?: number) => void
   onTaskCommentUpdated?: (comment: TaskComment) => void
   onTaskCommentDeleted?: (event: TaskCommentDeletedEvent) => void
+  onLogSourceConnected?: (event: LogSourceConnectedEvent) => void
+}
+
+export interface LogSourceConnectedEvent {
+  id: number
+  project_id: number
+  last_used_at: string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -302,6 +310,7 @@ export function subscribeToProject(
     onTaskCommentCreated = () => {},
     onTaskCommentUpdated = () => {},
     onTaskCommentDeleted = () => {},
+    onLogSourceConnected = () => {},
   } = handlers
   // Every event of the project channel, so a later subscriber (members, integrations) does not need new ones.
   const events = [
@@ -315,6 +324,13 @@ export function subscribeToProject(
     LOG_SOURCE_CONNECTED_EVENT,
   ]
   return subscribe(projectChannelName(organizationId, projectId), events, (event, data) => {
+    if (event === LOG_SOURCE_CONNECTED_EVENT) {
+      const { id, project_id: eventProjectId, last_used_at: lastUsedAt } = data
+      if (typeof id === 'number' && typeof eventProjectId === 'number' && typeof lastUsedAt === 'string') {
+        onLogSourceConnected({ id, project_id: eventProjectId, last_used_at: lastUsedAt })
+      }
+      return
+    }
     if (event === TASK_COMMENT_CREATED_EVENT) {
       if (validComment(data.comment)) {
         onTaskCommentCreated(data.comment, typeof data.comments_count === 'number' ? data.comments_count : undefined)
