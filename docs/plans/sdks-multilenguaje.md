@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 21
+**Estado:** en curso · Fase actual: 22
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -154,7 +154,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `src/sereno/asgi.py`, `tests/test_asgi.py`
 - **Terminado cuando:** test con una app FastAPI y `TestClient`: la excepción llega una sola vez y la respuesta 500 no cambia.
 
-### [ ] Fase 21 — sereno-python: comando de prueba
+### [x] Fase 21 — sereno-python: comando de prueba
 - **Alcance:** `python -m sereno test` con la interpretación de `ConnectionTester`.
 - **Archivos:** `src/sereno/__main__.py`, `tests/test_cli.py`
 - **Terminado cuando:** contra el API local da "conectado" y código 1 con una key revocada.
@@ -265,9 +265,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 18: sereno-python solo captura Exception (KeyboardInterrupt y SystemExit pasan), encadena sys.excepthook y threading.excepthook llamando siempre al anterior, no toca el nivel del root logger, ignora los loggers sereno* y lo que llega con client.reentrant, y vacía en un atexit registrado al importar el paquete con tope de 10 s.
 - 2026-10-15 — Fase 19: DjangoHandler se cuelga de django.request y django.security (no de django, para no reemplazar console ni mail_admins), descarta status_code < 500 y la deduplicación entre handlers se hace anotando id(client) en el registro (_sereno_handled_by), así un registro llega una vez por cliente.
 - 2026-10-15 — Fase 20: la deduplicación de sereno-python se extiende a la excepción (atributo _sereno_handled_by con ids de cliente) y la comparten el middleware ASGI, capture_exception, los excepthooks y SerenoHandler; solo se marca si el cliente acepta el nivel. SerenoMiddleware lee la ruta de scope[route].path con el prefijo de Mount y no importa Starlette ni FastAPI.
+- 2026-10-15 — Fase 21: sereno-python redacta la key (y Bearer <key>, también escapada) y las credenciales userinfo de la URL en todo error del transporte, que alimenta tanto los avisos por stderr como el comando de prueba.
 
 ## Notas para la próxima sesión
-- Fase 20 cerrada (sereno-python a5d525f): sereno.asgi con SerenoMiddleware(app, client=None) (ASGI puro, captura y relanza; uso app.add_middleware(SerenoMiddleware) tras sereno.init()) y scope_context(scope, root_path=None); sereno.handler gana claim_exception(error, client) y capture_with(client, error, context=None); extras fastapi y test con fastapi, httpx y uvicorn. Para el README (fase 22): con la config de logging por defecto uvicorn no propaga uvicorn.error al root; una excepción se envía una vez por cliente aunque se loguee o capture de nuevo. Sigue la fase 21 (python -m sereno test, con Transport(..., retry=False) y timeout 5).
+- Fase 21 cerrada (sereno-python e02f2b7): python -m sereno test y script sereno test (sereno.connection: test_connection(url, key, *, sender=None) -> ConnectionResult, run_cli(args, out, err, env=None, *, sender=None)), mensajes iguales a Node y PHP; transport.redact(text, *secrets) quita la key, Bearer <key> y userinfo de URLs de todo DeliveryResult.error. Sigue la fase 22 (README de sereno-python, tag local v0.1.0).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -302,3 +303,4 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-19: sereno-python Client: si _drain_sync sale porque un hilo arrancó a mitad del vaciado, flush puede devolver False sin timeout; repetir wait_for si hay hilo vivo y documentar que el vaciado síncrono ignora el timeout restante. Complejidad baja.
 - [ ] M-20: sereno-python: vaciar el buffer en SIGTERM como sereno-node (sin cambiar la salida del proceso). Complejidad media.
 - [ ] M-21: sereno-python dedupe: la marca _sereno_handled_by vive en la instancia de la excepción, así que una instancia reutilizada (constante o cacheada) se envía una sola vez por cliente; documentarlo o desmarcar al terminar la petición, y agregar tests de __slots__, ExceptionGroup de anyio y excepción reutilizada. Complejidad baja.
+- [ ] M-22: sereno-php y sereno-js: redactar la key y el userinfo de la URL en los mensajes de error del transporte y del comando de prueba, como transport.redact de sereno-python (una key con salto de línea interno aparece en el error del cliente HTTP). Complejidad baja.
