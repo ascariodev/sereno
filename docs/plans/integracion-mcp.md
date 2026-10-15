@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -83,7 +83,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Archivos:** `api/app/Mcp/Tools/Tool.php` (o trait), `api/app/Mcp/Tools/ListProjectsTool.php`, `SerenoServer.php`.
 - **Terminado cuando:** tests: owner ve todos, member solo los suyos, archivados solo con el flag, nada de otra organización.
 
-### [ ] Fase 6 — Prueba con Claude Code local [manual]
+### [x] Fase 6 — Prueba con Claude Code local [manual]
 - **Alcance:** con el stack de desarrollo, crear un token (tinker o el endpoint de la fase 2), registrar el servidor en
   Claude Code por HTTP con la cabecera `Authorization` (verificar la sintaxis de `claude mcp add` en la documentación
   vigente) y pedirle que liste proyectos. Probar también `php artisan mcp:inspector mcp`. Anotar en Decisiones la URL y el
@@ -192,13 +192,17 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   (`denyAsNotFound`) dan "Not found."; otra `AuthorizationException`, "You are not allowed to do this.". `structured()`
   envuelve siempre en `['data' => ...]` (`Response::structured` rechaza arrays vacíos). Cada tool lleva
   `#[Name('...')]` (si no, el nombre sale de la clase). `list-projects` no pagina.
+- 2026-10-15 — Prueba local (fase 6): servidor del worktree en `http://localhost:8013/mcp` (`docker compose -p workspace
+  run --rm --no-deps --name workspace_api_mcp -p 8013:8080 api php artisan serve --host=0.0.0.0 --port=8080
+  --no-reload`). Registro: `claude mcp add --transport http --scope user sereno-dev http://localhost:8013/mcp --header
+  "Authorization: Bearer <token>"`; queda Connected y una sesión nueva de Claude Code lista los proyectos. En este equipo
+  el CLI `claude` no está en el PATH: el de la app vive en la AppData virtualizada de la app y solo se ve desde sus
+  sesiones. `mcp:inspector` no se probó.
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
   del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
   worktree; `vendor/` es el volumen compartido con el checkout principal).
 
 ## Notas para la próxima sesión
-- Fase 6 es manual: crear un token, registrar el servidor en Claude Code (`claude mcp add` por HTTP con `Authorization`,
-  verificar la sintaxis vigente) y pedirle que liste proyectos.
 - Tests de tools: `app(CurrentOrganization::class)->set(...)` antes de `SerenoServer::actingAs(...)->tool(...)`;
   aserciones `assertSee`, `assertDontSee`, `assertStructuredContent`, `assertHasErrors`. `tool()` solo ejecuta tools
   registradas en el servidor. Usar Edit (no sed) para los `use`: sed comió barras invertidas.
