@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -98,7 +98,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Archivos:** `api/app/Mcp/Tools/ListTasksTool.php`, `GetTaskTool.php`, `SerenoServer.php`.
 - **Terminado cuando:** tests de filtros, tarea de otro proyecto o no visible = error, comentarios en orden.
 
-### [ ] Fase 8 — Mensajes del canal
+### [x] Fase 8 — Mensajes del canal
 - **Alcance:** tool `list-channel-messages` (canal del proyecto, raíces por cursor con sus respuestas contadas; opcional
   `thread_id` para leer un hilo). Carga como `MessageController::index` (L-66).
 - **Archivos:** `api/app/Mcp/Tools/ListChannelMessagesTool.php`, `SerenoServer.php`.
@@ -202,6 +202,9 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   `RELATIONS`, `counts()`, `MAX_DONE_LIMIT`, `TaskResource` y `TaskCommentResource`; autorizan el proyecto antes de
   validar. `list-tasks` devuelve `data` y `meta{done_total, has_more_done}`; `get-task` devuelve `data` y
   `comments{data, next_cursor}` (más nuevos primero, `per_page` 30, reglas de `ListTaskCommentsRequest`).
+- 2026-10-15 — `list-channel-messages` recibe `project_id` (no `channel_id`), resuelve `project->channel` y autoriza
+  `view` del proyecto y del canal. Duplica las consultas de `MessageController::index`/`replies` con `RELATIONS` y
+  `loadParticipants` (L-66). Devuelve `data` + `next_cursor` (+ `meta.root` con `thread_id`); sin `around`.
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
   del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
   worktree; `vendor/` es el volumen compartido con el checkout principal).
@@ -209,7 +212,8 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 ## Notas para la próxima sesión
 - Tests de tools: `app(CurrentOrganization::class)->set(...)` antes de `SerenoServer::actingAs(...)->tool(...)`;
   aserciones `assertSee`, `assertDontSee`, `assertStructuredContent`, `assertHasErrors`. `tool()` solo ejecuta tools
-  registradas en el servidor. Usar Edit (no sed) para los `use`: sed comió barras invertidas.
+  registradas en el servidor. Usar Edit (no sed) para los `use`: sed comió barras invertidas. `replies_count` no es
+  fillable: en tests, `forceFill(...)->save()`.
 
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
@@ -230,3 +234,6 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-8: extraer la consulta del tablero (orden por CASE y límite de hechas) que comparten `TaskController::index` y
       `ListTasksTool`, para no mantenerla en dos sitios. Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
+- [ ] M-9: extraer la validación del cursor de `CursorPaginatedRequest::validCursor` (privada, copiada en
+      `ListChannelMessagesTool`) a un método compartido; tests de hilo con raíz borrada y de `per_page` fuera de rango.
+      Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
