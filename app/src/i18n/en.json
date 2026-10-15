@@ -68,6 +68,7 @@
     "healthOpen_other": "{{count}} open",
     "healthCalm": "All calm",
     "openChannel": "Open channel",
+    "openBoard": "Open task board",
     "level": {
       "debug": "debug",
       "info": "info",
@@ -144,6 +145,21 @@
   "settings": {
     "title": "Settings",
     "language": "Language"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "invalid": "This project does not exist.",
+    "loadFailed": "Could not load the tasks.",
+    "empty": "No tasks",
+    "showMoreDone": "Show more done tasks",
+    "unassigned": "Unassigned",
+    "assignedTo": "Assigned to {{name}}",
+    "fromNotice": "From a log notice",
+    "commentsCount_one": "{{count}} comment",
+    "commentsCount_other": "{{count}} comments",
+    "filtersLabel": "Task filters",
+    "filters": { "all": "All", "mine": "Mine", "from_notices": "From notices" },
+    "status": { "todo": "To do", "in_progress": "In progress", "in_review": "In review", "done": "Done" }
   },
   "notice": {
     "openedLabel": "New log group",

@@ -68,6 +68,7 @@
     "healthOpen_other": "{{count}} abiertos",
     "healthCalm": "Todo en calma",
     "openChannel": "Abrir canal",
+    "openBoard": "Abrir tablero de tareas",
     "level": {
       "debug": "depuración",
       "info": "información",
@@ -144,6 +145,21 @@
   "settings": {
     "title": "Ajustes",
     "language": "Idioma"
+  },
+  "tasks": {
+    "title": "Tareas",
+    "invalid": "Este proyecto no existe.",
+    "loadFailed": "No se pudieron cargar las tareas.",
+    "empty": "Sin tareas",
+    "showMoreDone": "Mostrar más tareas terminadas",
+    "unassigned": "Sin asignar",
+    "assignedTo": "Asignada a {{name}}",
+    "fromNotice": "Viene de un aviso de log",
+    "commentsCount_one": "{{count}} comentario",
+    "commentsCount_other": "{{count}} comentarios",
+    "filtersLabel": "Filtros de tareas",
+    "filters": { "all": "Todas", "mine": "Mías", "from_notices": "De avisos" },
+    "status": { "todo": "Por hacer", "in_progress": "En curso", "in_review": "En revisión", "done": "Hecha" }
   },
   "notice": {
     "openedLabel": "Nuevo grupo de logs",

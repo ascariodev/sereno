@@ -48,6 +48,12 @@ export function setGroupTask(groupId: number, task: LogGroupTask): void {
   useLogGroupsStore.setState((state) => ({ tasks: { ...state.tasks, [groupId]: task } }))
 }
 
+export function forgetGroupTask(taskId: number): void {
+  useLogGroupsStore.setState((state) => ({
+    tasks: Object.fromEntries(Object.entries(state.tasks).filter(([, task]) => task.id !== taskId)),
+  }))
+}
+
 export function observeStatusMessage(message: Message): void {
   highestSeenId = Math.max(highestSeenId, message.id)
   const payload = message.payload

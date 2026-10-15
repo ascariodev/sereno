@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
+import { router } from 'expo-router';
+
 import { api } from '@/api/client';
 import Channel from '@/app/channel';
 import { useMemberDirectoryStore } from '@/projects/members';
@@ -158,6 +160,22 @@ describe('live and edge cases', () => {
 
     expect(await screen.findByTestId('notice-task-chip')).toHaveTextContent('Task ACME-8');
     expect(screen.queryByText('Create task')).toBeNull();
+  });
+
+  it('opens the task board from the task chip', async () => {
+    setProject();
+    mockApi(() => undefined);
+    await render(<Channel />);
+    await screen.findByText('Create task');
+    await act(async () => {
+      useMessagesStore.getState().insert(
+        system(4, { type: 'task.created_from_group', log_group_id: 9, task_id: 8, task_key: 'ACME-8', task_status: 'todo' }) as never,
+      );
+    });
+
+    await fireEvent.press(await screen.findByTestId('notice-task-chip'));
+
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/tasks', params: { projectId: '7' } });
   });
 
   it('keeps a live status change that arrives while the PATCH is in flight', async () => {

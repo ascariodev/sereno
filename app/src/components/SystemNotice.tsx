@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -101,9 +102,16 @@ export function SystemNotice({ message }: { message: Message }) {
             {payload.type === 'log.group_reopened' ? t('notice.reopenedLabel') : t('notice.openedLabel')}
           </Text>
           {groupTask ? (
-            <Text testID="notice-task-chip" style={styles.chip}>
-              {t('notice.taskChip', { key: groupTask.key })}
-            </Text>
+            <Pressable
+              testID="notice-task-chip"
+              accessibilityRole="link"
+              disabled={project === null}
+              onPress={() =>
+                project !== null && router.push({ pathname: '/tasks', params: { projectId: String(project.id) } })
+              }
+            >
+              <Text style={styles.chip}>{t('notice.taskChip', { key: groupTask.key })}</Text>
+            </Pressable>
           ) : null}
           <Text style={styles.time}>{time}</Text>
         </View>
