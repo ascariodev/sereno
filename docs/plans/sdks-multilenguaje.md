@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 12
+**Estado:** en curso · Fase actual: 13
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -103,7 +103,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `packages/node/src/express.ts`, `packages/node/test/express.test.ts`, `packages/node/package.json`
 - **Terminado cuando:** test con una app Express que lanza en una ruta: evento enviado y la respuesta 500 de Express intacta.
 
-### [ ] Fase 12 — sereno-node: filtro de NestJS [riesgo]
+### [x] Fase 12 — sereno-node: filtro de NestJS [riesgo]
 - **Alcance:** `SerenoExceptionFilter` (extiende `BaseExceptionFilter`, ignora `HttpException` < 500) y `SerenoModule`.
   Peer dependencies opcionales.
 - **Archivos:** `packages/node/src/nest.ts`, `packages/node/test/nest.test.ts`, `packages/node/package.json`
@@ -258,9 +258,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 9: el Client de sereno-js envía secuencialmente por una cadena de promesas; drain saca lotes de 100 con splice para que lo pendiente cuente contra el tope de 1000; headers y fetchOptions son el punto de extensión (keepalive del navegador) y los campos propios del SDK siempre ganan; 3xx con redirect manual es rechazo sin reintento; avisos con el mismo texto que sereno-php.
 - 2026-10-15 — Fase 10: sereno-node solo reemplaza la salida de Node en uncaughtException si no hay otro listener (imprime inspect, vacía con tope de 10 s y exit 1); en modos throw y strict no registra unhandledRejection (llega por uncaughtException); en señales sin listener de la app vacía con tope y reenvía la señal con process.kill. El tsconfig raíz mapea @ascariodev/sereno-core a su src con paths para el typecheck.
 - 2026-10-15 — Fase 11: las integraciones de framework de sereno-node van por subpath (./express, y lo mismo para nest y next) para que el import raíz no arrastre el framework; el framework es peer dependency opcional y los tipos son propios. Criterio común: se ignoran errores con status < 500.
+- 2026-10-15 — Fase 12: los decoradores de Nest se aplican como funciones (Catch()(X), Module({})(Y)) para no activar experimentalDecorators; RpcException y WsException se detectan por nombre de clase para no exigir @nestjs/microservices ni websockets; rxjs y reflect-metadata son peers opcionales.
 
 ## Notas para la próxima sesión
-- Fase 11 cerrada (sereno-js 54aed8b): expressErrorHandler(options?: {minStatus?}) solo por el subpath @ascariodev/sereno-node/express, express >=4 peer opcional, tipos propios mínimos, context {method, route}. Para el README (fase 15): route es relativo al router si el handler se registra en la app, y Express 4 no propaga rechazos async. Sigue la fase 12 (filtro de NestJS, ignorar HttpException < 500 como Express).
+- Fase 12 cerrada (sereno-js 298dc47): subpath @ascariodev/sereno-node/nest con SerenoExceptionFilter (catch(exception, host): Observable<never> | void; http delega en BaseExceptionFilter, rpc y ws replican BaseRpcExceptionFilter y WsExceptionsHandler de Nest 11) y SerenoModule.forRoot(options?) que registra APP_FILTER e inicializa solo si recibe opciones y no hay cliente. Para el README (fase 15): init() en main.ts antes de NestFactory, registro con forRoot o useGlobalFilters con HttpAdapterHost, Fastify sin probar. Sigue la fase 13 (Next.js en servidor).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -287,3 +288,5 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-11: Contrato: una excepción JS sin frames en el stack da fingerprint "Error|" y agrupa todos esos errores juntos; decidir si sin location no se envía fingerprint (afecta a los cuatro SDKs). Complejidad baja.
 - [ ] M-12: sereno-node: en modo strict con listeners propios de uncaughtException y unhandledRejection el mismo rechazo se captura dos veces; deduplicar con un WeakSet de errores ya capturados. Complejidad baja.
 - [ ] M-13: sereno-node Express: un error con status fuera de 400-599 (por ejemplo 200) no se captura aunque Express responde 500; capturarlo o documentarlo, y agregar tests de headersSent y minStatus. Complejidad baja.
+- [ ] M-14: sereno-node Nest: en rpc y ws toda RpcException o WsException se captura, aunque suelen ser errores esperados del cliente; ignorarlas como los HttpException < 500 o dejarlo como opción. Complejidad baja.
+- [ ] M-15: sereno-node Nest: probar rpc y ws con un microservicio y un gateway reales, y Fastify, en vez de hosts falsos. Complejidad media.
