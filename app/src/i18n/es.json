@@ -147,6 +147,7 @@
   },
   "settings": {
     "title": "Ajustes",
+    "members": "Miembros",
     "language": "Idioma"
   },
   "tasks": {
@@ -452,6 +453,47 @@
     "removed": "{{name}} ya no tiene acceso al proyecto.",
     "addFailed": "No se pudo agregar al miembro. Prueba de nuevo.",
     "removeFailed": "No se pudo quitar al miembro. Prueba de nuevo.",
+    "network": "No se pudo conectar con el servidor."
+  },
+  "members": {
+    "title": "Miembros",
+    "empty": "No hay miembros.",
+    "loadFailed": "No se pudieron cargar los miembros.",
+    "you": "Tú",
+    "role": "Rol",
+    "noRole": "Sin rol",
+    "joined": "Se unió",
+    "roles": {
+      "owner": "Propietario",
+      "admin": "Administrador",
+      "member": "Miembro"
+    },
+    "makeRole": "Hacer {{role}}",
+    "changeRoleFor": "Hacer a {{name}} {{role}}",
+    "remove": "Quitar",
+    "removeFor": "Quitar a {{name}}",
+    "leave": "Salir",
+    "removeTitle": "Quitar miembro",
+    "leaveTitle": "Salir de la organización",
+    "removeConfirm": "¿Quitar a {{name}} de la organización? Perderá el acceso a sus proyectos y canales.",
+    "leaveConfirm": "¿Salir de {{organization}}? Perderás el acceso a sus proyectos y canales hasta que alguien te invite de nuevo.",
+    "transfer": "Hacer propietario",
+    "transferFor": "Transferir la propiedad a {{name}}",
+    "transferTitle": "Transferir la propiedad",
+    "transferConfirm": "¿Hacer a {{name}} propietario de la organización? Pasarás a ser administrador y solo el nuevo propietario podrá devolverte la propiedad.",
+    "transferAction": "Transferir la propiedad",
+    "removeAction": "Quitar miembro",
+    "leaveAction": "Salir",
+    "cancel": "Cancelar",
+    "removed": "{{name}} fue quitado de la organización.",
+    "transferred": "{{name}} es ahora el propietario de la organización.",
+    "gone": "{{name}} ya no es miembro.",
+    "roleFailed": "No se pudo cambiar el rol. Prueba de nuevo.",
+    "removeFailed": "No se pudo quitar al miembro. Prueba de nuevo.",
+    "leaveFailed": "No se pudo salir de la organización. Prueba de nuevo.",
+    "transferFailed": "No se pudo transferir la propiedad. Prueba de nuevo.",
+    "reloadFailed": "El cambio se guardó, pero no se pudieron recargar tus organizaciones. Reinicia la app.",
+    "leftReloadFailed": "Saliste de la organización, pero no se pudieron recargar tus organizaciones. Reinicia la app.",
     "network": "No se pudo conectar con el servidor."
   }
 }

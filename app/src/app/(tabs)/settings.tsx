@@ -46,6 +46,9 @@ export default function Settings() {
         {localeSaveFailed ? <Text accessibilityRole="alert">{t('common.localeSaveFailed')}</Text> : null}
       </View>
       <NotificationPreferences />
+      <Pressable accessibilityRole="button" onPress={() => router.push('/members')} style={styles.button}>
+        <Text style={styles.buttonText}>{t('settings.members')}</Text>
+      </Pressable>
       <Pressable accessibilityRole="button" onPress={() => router.push('/select-organization')} style={styles.button}>
         <Text style={styles.buttonText}>{t('common.changeOrganization')}</Text>
       </Pressable>

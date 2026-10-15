@@ -54,6 +54,7 @@ export default function RootLayout() {
         <Stack.Screen name="log-group" />
         <Stack.Screen name="integrations" />
         <Stack.Screen name="project-members" />
+        <Stack.Screen name="members" />
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="select-organization" />

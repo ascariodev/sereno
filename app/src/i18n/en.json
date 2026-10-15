@@ -147,6 +147,7 @@
   },
   "settings": {
     "title": "Settings",
+    "members": "Members",
     "language": "Language"
   },
   "tasks": {
@@ -452,6 +453,47 @@
     "removed": "{{name}} no longer has access to the project.",
     "addFailed": "Could not add the member. Try again.",
     "removeFailed": "Could not remove the member. Try again.",
+    "network": "Could not reach the server."
+  },
+  "members": {
+    "title": "Members",
+    "empty": "There are no members.",
+    "loadFailed": "Could not load the members.",
+    "you": "You",
+    "role": "Role",
+    "noRole": "No role",
+    "joined": "Joined",
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member"
+    },
+    "makeRole": "Make {{role}}",
+    "changeRoleFor": "Make {{name}} {{role}}",
+    "remove": "Remove",
+    "removeFor": "Remove {{name}}",
+    "leave": "Leave",
+    "removeTitle": "Remove member",
+    "leaveTitle": "Leave organization",
+    "removeConfirm": "Remove {{name}} from the organization? They will lose access to its projects and channels.",
+    "leaveConfirm": "Leave {{organization}}? You will lose access to its projects and channels until someone invites you again.",
+    "transfer": "Make owner",
+    "transferFor": "Transfer ownership to {{name}}",
+    "transferTitle": "Transfer ownership",
+    "transferConfirm": "Make {{name}} the owner of the organization? You will become an admin and only the new owner will be able to give ownership back.",
+    "transferAction": "Transfer ownership",
+    "removeAction": "Remove member",
+    "leaveAction": "Leave",
+    "cancel": "Cancel",
+    "removed": "{{name}} was removed from the organization.",
+    "transferred": "{{name}} is now the owner of the organization.",
+    "gone": "{{name}} is no longer a member.",
+    "roleFailed": "Could not change the role. Try again.",
+    "removeFailed": "Could not remove the member. Try again.",
+    "leaveFailed": "Could not leave the organization. Try again.",
+    "transferFailed": "Could not transfer ownership. Try again.",
+    "reloadFailed": "The change was saved, but your organizations could not be reloaded. Restart the app.",
+    "leftReloadFailed": "You left the organization, but your organizations could not be reloaded. Restart the app.",
     "network": "Could not reach the server."
   }
 }

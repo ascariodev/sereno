@@ -22,6 +22,7 @@ export const TASK_COMMENT_CREATED_EVENT = '.task.comment.created'
 export const TASK_COMMENT_UPDATED_EVENT = '.task.comment.updated'
 export const TASK_COMMENT_DELETED_EVENT = '.task.comment.deleted'
 export const PROJECT_MEMBERS_CHANGED_EVENT = '.project.members_changed'
+export const ORGANIZATION_MEMBERS_CHANGED_EVENT = '.organization.members_changed'
 export const LOG_SOURCE_CONNECTED_EVENT = '.log_source.connected'
 
 export interface RealtimePayload {
@@ -103,6 +104,10 @@ export function channelName(organizationId: number, channelId: number): string {
 
 export function projectChannelName(organizationId: number, projectId: number): string {
   return `organizations.${organizationId}.projects.${projectId}`
+}
+
+export function organizationMembersChannelName(organizationId: number): string {
+  return `organizations.${organizationId}.members`
 }
 
 function subscribe(name: string, events: string[], handler: Subscriber): () => void {
@@ -365,6 +370,10 @@ export function subscribeToProject(
     if (event === TASK_UPDATED_EVENT) onTaskUpdated(data.task)
     else onTaskCreated(data.task)
   })
+}
+
+export function subscribeToOrganizationMembers(organizationId: number, onChanged: () => void): () => void {
+  return subscribe(organizationMembersChannelName(organizationId), [ORGANIZATION_MEMBERS_CHANGED_EVENT], () => onChanged())
 }
 
 export function onReconnect(callback: () => void): () => void {
