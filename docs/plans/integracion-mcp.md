@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 14
+**Estado:** en curso · Fase actual: 15
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -139,7 +139,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Archivos:** `api/app/Mcp/Tools/MoveTaskTool.php`, `SerenoServer.php`.
 - **Terminado cuando:** tests: cambia de columna, posición, resuelve el grupo de log si el proyecto lo pide, sin permiso = error.
 
-### [ ] Fase 14 — Vista de tokens en la web
+### [x] Fase 14 — Vista de tokens en la web
 - **Alcance:** módulo `src/api/accessTokens.ts` y tipos (leyendo `AccessTokenResource`, L-09). Vista `AccessTokensView.vue`:
   lista, crear (nombre y expiración; muestra el token una sola vez con botón copiar y el comando de Claude Code con la URL
   `${VITE_API_URL}/mcp`) y revocar con diálogo de confirmación. Textos en `en` y `es`.
@@ -228,6 +228,10 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   pasa como `before_id` la primera tarea de la columna destino excluyendo la propia (`whereKeyNot`: si ya es la primera,
   se queda arriba); `MoveTask` y el REST no cambian. La tool replica `authorize()` y `after()` de `MoveTaskRequest` y usa
   sus `rules()` con un resolver de ruta mínimo (clase anónima local). `TaskPolicy::update` solo delega en `view`.
+- 2026-10-15 — Web: `AccessTokensView` con los diálogos de crear, token emitido y revocar dentro de la vista. El token en
+  claro vive solo en el estado local `issued` (ni store ni storage) y se descarta al cerrar, al confirmar y al cambiar de
+  organización. El diálogo muestra el comando `claude mcp add --transport http sereno ${config.apiUrl}/mcp --header
+  "Authorization: Bearer <token>"`. Sin restricción por rol: cada miembro gestiona sus tokens.
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
   del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
   worktree; `vendor/` es el volumen compartido con el checkout principal).
@@ -237,10 +241,10 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   aserciones `assertSee`, `assertDontSee`, `assertStructuredContent`, `assertHasErrors`. `tool()` solo ejecuta tools
   registradas en el servidor. Usar Edit (no sed) para los `use`: sed comió barras invertidas. `replies_count` no es
   fillable: en tests, `forceFill(...)->save()`. Pint reescribe los CRLF que deja Python en Windows: escribir con Edit.
-- API terminada (fases 1 a 13). Fase 14: web, leer `AccessTokenResource` y `AccessTokenController` para los tipos (L-09);
-  el `POST` devuelve `data` y `token` al mismo nivel. Comandos web: `docker compose exec web ...` del CLAUDE.md montan
-  el checkout principal; desde la raíz del worktree usar `docker compose -p workspace run --rm --no-deps web ...`.
-  Reiniciar el contenedor de 8013 para probar las tools nuevas a mano.
+- Comandos web en el worktree, desde su raíz: `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps -T
+  --entrypoint sh web -c '<comando>'` (el entrypoint normal arranca Vite). Fase 15: ruta e item de menú y prueba en el
+  navegador; el Vite de 5174 sirve el checkout principal, así que para probar hace falta un Vite del worktree en otro
+  puerto apuntando al API de 8013 (reiniciarlo para que cargue las tools nuevas).
 
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
@@ -275,3 +279,5 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - [ ] M-13: llevar los locks (`lockActiveProject`, `lockAssigneeAccess`), `RELATIONS` y `counts()` de `TaskController`
       a un soporte compartido, para que `CreateTask` y `MoveTask` no dependan del controller.
       Complejidad: media · Archivos: 5 · Riesgo: concurrencia → opus
+- [ ] M-14: si se cambia de organización con un `createAccessToken` en vuelo, el token se crea pero no se muestra; avisar
+      con un toast o revocarlo. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

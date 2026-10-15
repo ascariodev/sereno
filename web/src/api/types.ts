@@ -480,3 +480,20 @@ export interface LogSourceConnectedEvent {
 export interface LogSourceWithKey extends LogSource {
   key: string
 }
+
+/** Access token for MCP clients. The plain token is never listed; `expires_at` is null when it does not expire. Expired tokens are listed so they can be revoked. */
+export interface AccessToken {
+  id: number
+  name: string
+  last_used_at: string | null
+  expires_at: string | null
+  created_at: string
+}
+
+export type AccessTokenExpiryDays = 30 | 90 | 365
+
+/** `token` is the plain text token, returned only by the create call. */
+export interface CreatedAccessToken {
+  data: AccessToken
+  token: string
+}
