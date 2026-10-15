@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 14
+**Estado:** en curso · Fase actual: 15
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -115,7 +115,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `packages/node/src/next.ts`, `packages/node/test/next.test.ts`, `packages/node/package.json`
 - **Terminado cuando:** una app Next mínima en un contenedor, con un route handler que lanza, deja el evento en el API local.
 
-### [ ] Fase 14 — sereno-node: comando de prueba
+### [x] Fase 14 — sereno-node: comando de prueba
 - **Alcance:** `npx @ascariodev/sereno-node test` con la interpretación de `ConnectionTester`.
 - **Archivos:** `packages/node/src/cli.ts`, `packages/node/package.json`, `packages/node/test/cli.test.ts`
 - **Terminado cuando:** contra el API local da "conectado" y código 1 con una key revocada.
@@ -262,7 +262,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 13: el subpath next de sereno-node no importa nada de Node a nivel de módulo (solo import type) y carga el SDK con import() tras comprobar process.env.NEXT_RUNTIME === 'nodejs' escrito literal, para que el bundle edge de instrumentation.ts no arrastre node:util. Errores de control de Next se ignoran por digest (NEXT_REDIRECT, NEXT_NOT_FOUND, NEXT_HTTP_ERROR_FALLBACK, BAILOUT_TO_CLIENT_SIDE_RENDERING, DYNAMIC_SERVER_USAGE).
 
 ## Notas para la próxima sesión
-- Fase 13 cerrada (sereno-js c78b5bc): subpath @ascariodev/sereno-node/next con onRequestError, createOnRequestError(options?: {minStatus?}) y register(options?): Promise<void> (solo NEXT_RUNTIME nodejs, sin reinicializar); next >=15 peer opcional; el cliente activo vive en globalThis[Symbol.for('@ascariodev/sereno-node.active')]. Para el README (fase 15): receta export { register, onRequestError } from '@ascariodev/sereno-node/next' en instrumentation.ts, register es async, handlers: false si no se quieren los handlers de proceso dentro de Next, Pages Router y modo dev sin probar. Sigue la fase 14 (comando de prueba).
+- Fase 14 cerrada (sereno-js 1fd935f): npx @ascariodev/sereno-node test [--url] [--key] (bin sereno-node en dist/esm/cli.js), lógica en src/connection.ts (testConnection, runCli, TEST_TIMEOUT_SECONDS), mensajes iguales a bin/sereno-test de PHP; core suma TransportOptions.retry (por defecto true). Para el README (fase 15): el subcomando test es obligatorio y acepta --key valor además de --key=valor. Sigue la fase 15 (README de sereno-node, tag local node-v0.1.0).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -292,3 +292,4 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-14: sereno-node Nest: en rpc y ws toda RpcException o WsException se captura, aunque suelen ser errores esperados del cliente; ignorarlas como los HttpException < 500 o dejarlo como opción. Complejidad baja.
 - [ ] M-15: sereno-node Nest: probar rpc y ws con un microservicio y un gateway reales, y Fastify, en vez de hosts falsos. Complejidad media.
 - [ ] M-16: sereno-node Next: probar Pages Router y el modo dev (next dev). Complejidad baja.
+- [ ] M-17: sereno-node CLI: tests de runCli con --key que verifiquen que la key no aparece en la salida, y de --help. Complejidad baja.
