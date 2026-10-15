@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 18
+**Estado:** en curso · Fase actual: 19
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -136,7 +136,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `src/sereno/transport.py`, `tests/test_transport.py`
 - **Terminado cuando:** tests con `http.server` local cubren los mismos casos que la fase 3.
 
-### [ ] Fase 18 — sereno-python: handler de logging
+### [x] Fase 18 — sereno-python: handler de logging
 - **Alcance:** `SerenoHandler(logging.Handler)` y `sereno.init(key, url)` que lo agrega al root logger, instala
   `sys.excepthook` y `threading.excepthook` encadenados y vacía en `atexit`.
 - **Archivos:** `src/sereno/{handler.py,__init__.py}`, `tests/test_handler.py`
@@ -262,9 +262,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 13: el subpath next de sereno-node no importa nada de Node a nivel de módulo (solo import type) y carga el SDK con import() tras comprobar process.env.NEXT_RUNTIME === 'nodejs' escrito literal, para que el bundle edge de instrumentation.ts no arrastre node:util. Errores de control de Next se ignoran por digest (NEXT_REDIRECT, NEXT_NOT_FOUND, NEXT_HTTP_ERROR_FALLBACK, BAILOUT_TO_CLIENT_SIDE_RENDERING, DYNAMIC_SERVER_USAGE).
 - 2026-10-15 — Fase 16: equivalencias de tipos de Python en el formateador: Enum por .value, Decimal como string (NAN/INF), bytes decodificados con ?, set/tuple/frozenset/deque como lista, date a T00:00:00+00:00, datetime con su desfase, int fuera de int64 como string, funciones [function], otras instancias [object módulo.Clase] sin usar __str__; nivel inválido pasa a error.
 - 2026-10-15 — Fase 17: el Client de sereno-python usa un hilo daemon con Condition sobre RLock, guardia thread-local y reinicio tras os.fork (register_at_fork, buffer vacío en el hijo); el timeout de urllib es por operación de socket y no cubre DNS.
+- 2026-10-15 — Fase 18: sereno-python solo captura Exception (KeyboardInterrupt y SystemExit pasan), encadena sys.excepthook y threading.excepthook llamando siempre al anterior, no toca el nivel del root logger, ignora los loggers sereno* y lo que llega con client.reentrant, y vacía en un atexit registrado al importar el paquete con tope de 10 s.
 
 ## Notas para la próxima sesión
-- Fase 17 cerrada (sereno-python 3f229a2): sereno.transport con Transport(url, key, timeout=None, *, retry=True, clock, sender, headers).send(batch) -> DeliveryResult y Client(url=None, key=None, *, level, timeout, retry, notifier, clock, sender, headers, flush_delay=1.0) con log(record), handles(level), flush(timeout=None) -> bool, close(timeout=None) -> bool, guard(), reentrant, sent, failed. Hilo daemon perezoso: la fase 18 debe llamar a flush o close en atexit; si no se puede crear el hilo, flush y close vacían síncrono. Para la prueba de conexión (fase 21): Transport(..., retry=False) con timeout 5. Sigue la fase 18 (handler de logging e init).
+- Fase 18 cerrada (sereno-python 0d1d177): sereno exporta init(key=None, url=None, *, level=None, timeout=None, handlers=True, **options) -> Client, capture_exception(exc=None, **context), flush(timeout=None), close(timeout=None), get_client(); SerenoHandler(client, level=NOTSET) con to_log_record, psr_level y exception_record en sereno.handler. Contexto: logger, extra y exception. Para el README (fase 22): el nivel del root no se toca (con WARNING los INFO no llegan), SIGTERM y os._exit pierden el buffer, solo se capturan Exception. Las fases 19 y 20 usan get_client, capture_exception y exception_record. Sigue la fase 19 (Django).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -297,3 +298,4 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-17: sereno-node CLI: tests de runCli con --key que verifiquen que la key no aparece en la salida, y de --help. Complejidad baja.
 - [ ] M-18: sereno-python formateador: claves de mapa no string distintas de PHP (None da [object NoneType] en vez de cadena vacía, bool true/false en vez de 1/0); tratar None como cadena vacía para paridad. Complejidad baja.
 - [ ] M-19: sereno-python Client: si _drain_sync sale porque un hilo arrancó a mitad del vaciado, flush puede devolver False sin timeout; repetir wait_for si hay hilo vivo y documentar que el vaciado síncrono ignora el timeout restante. Complejidad baja.
+- [ ] M-20: sereno-python: vaciar el buffer en SIGTERM como sereno-node (sin cambiar la salida del proceso). Complejidad media.
