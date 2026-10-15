@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -39,7 +39,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `docs/sdk/contrato.md`, `api/tests/Fixtures/sdk/vectores.json`, `api/tests/Feature/Log/SdkVectorsTest.php`
 - **Terminado cuando:** el test pasa con todos los vectores y el contrato cubre cada punto del README de sereno-laravel.
 
-### [ ] Fase 2 — sereno-php: formateador
+### [x] Fase 2 — sereno-php: formateador
 - **Alcance:** `../sereno-php` (`ascariodev/sereno-php`, PHP ^8.1, `monolog/monolog ^3`), PHPUnit. `EventFormatter` sin
   Illuminate (UUID propio con `random_bytes`) que pasa los vectores de la fase 1 (copiados en `tests/fixtures`).
 - **Archivos:** `composer.json`, `phpunit.xml`, `src/EventFormatter.php`, `tests/EventFormatterTest.php`, `tests/fixtures/vectores.json`
@@ -249,10 +249,10 @@ fragmentos por lenguaje en el diálogo de la key.
   un commit por fase; el merge a `main` solo a pedido del usuario. Cada repo nuevo se crea con `git init -b main` y un
   commit vacío inicial, y se trabaja en su worktree `.claude/worktrees/sdks` (rama `feat/sdks`) con un commit por fase.
 - 2026-10-15 — El usuario pidió ejecutar todas las fases seguidas sin parar.
+- 2026-10-15 — sereno-php: `composer.lock` no se versiona (librería); PHPUnit `^10.5 || ^11`; commit de fase 2 fbbb912 en `feat/sdks` de sereno-php.
 
 ## Notas para la próxima sesión
-- Fase 1 hecha: contrato en `docs/sdk/contrato.md`, vectores y `SdkVectorsTest` (28 tests). Sigue la fase 2 (crear
-  `../sereno-php`). Para los tests del API desde el worktree, Postgres tiene que estar arriba (`docker compose up -d postgres`).
+- Fase 2 hecha: sereno-php con EventFormatter (29 tests, composer:2). Sigue la fase 3 (Transport con ext-curl). Tests: `MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W):/app" -w /app composer:2 sh -c 'composer install -q; vendor/bin/phpunit'` desde el worktree.
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -265,4 +265,6 @@ fragmentos por lenguaje en el diálogo de la key.
       Complejidad: alta · Riesgo: BD → plan nuevo
 - [ ] M-5: vectores extra: `trace` cortado a 2000, excepción anidada en profundidad 8, valor no string reemplazado por
       `"[truncated]"` por tamaño (hoy el ajuste de tamaño solo se prueba con strings).
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-6: sereno-php: tests propios de UTF-8 inválido a `?` (mensaje y clave), `JsonSerializable`, `Stringable` y excepción anidada, y probar la suite en PHP 8.1.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
