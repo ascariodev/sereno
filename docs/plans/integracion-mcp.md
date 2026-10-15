@@ -1,0 +1,185 @@
+# Plan: integracion-mcp
+
+**Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
+y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
+usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
+**Estado:** en curso · Fase actual: 1
+<!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
+
+## Contexto mínimo
+- Apps afectadas: `api/` y `web/` (commits con `git` en la raíz). `app/` (móvil) no cambia.
+- Paquete oficial `laravel/mcp` (docs: https://laravel.com/docs/13.x/mcp). Servidor `App\Mcp\Servers\...` extiende
+  `Laravel\Mcp\Server`, tools en `$tools`; tool = `Laravel\Mcp\Server\Tool` con `handle(Request): Response` y
+  `schema(JsonSchema)`; `#[Description]`, anotaciones `#[IsReadOnly]`, `#[IsIdempotent]` en
+  `Laravel\Mcp\Server\Tools\Annotations`; `$request->user()`, `$request->validate()`, `Response::text|structured|error`.
+  Ruta: `Mcp::web('/mcp', Server::class)->middleware([...])` en `routes/ai.php` (`vendor:publish --tag=ai-routes`).
+  Tests: `Server::actingAs($user)->tool(Tool::class, [...])->assertOk()->assertSee(...)`, `assertHasErrors`.
+  Inspector: `php artisan mcp:inspector mcp`.
+- Auth hoy: `AuthController::tokenResponse()` crea tokens Sanctum con abilities `*` y sin expiración (sesiones web y
+  móvil, nombre = `device_name`). `expo_push_tokens.personal_access_token_id` en cascada. No hay tokens personales.
+- Multi-tenant: `Http/Middleware/ResolveOrganization.php` (header `X-Organization-Id`: limpia, valida membresía,
+  `CurrentOrganization::set` que llama a `setPermissionsTeamId`, `unsetRelation('roles')`). `BelongsToOrganization` falla
+  cerrado sin organización activa. El MCP repite ese flujo con la organización del token en vez del header.
+- Dominio: la lógica vive en los controllers. Proyectos `ProjectController::index` + `Support/ProjectAccess.php`; tareas
+  `TaskController` (`index` sin filtros, `show`, `store` con `notifyAssignee()` privado, `move` con locks, renumeración y
+  `PostLogGroupStatusNotice`; eventos `TaskCreated`/`TaskUpdated`); comentarios `TaskCommentController::store`
+  (`syncMentions()` privado, `TaskCommentCreated`, listener `NotifyTaskCommentRecipients`); mensajes
+  `MessageController::index` (L-66: `RELATIONS` + `loadParticipants`); avisos `LogGroupController::index` (status, level).
+- Web: ajustes como rutas hijas de `AppLayout` en `web/src/router/index.ts` (`settings/invitations`, `settings/members`),
+  entrada por `components/UserMenu.vue`; cliente `src/api/client.ts`, módulos por recurso (patrón `src/api/invitations.ts`),
+  tipos `src/api/types.ts`, i18n `src/i18n/{en,es}.json`.
+- Lecciones clave: L-02 (limpiar organización por petición), L-04/L-72 (autorizar y 404 antes de validar), L-15 (otro
+  punto de entrada reutiliza las `rules()` del Form Request), L-49 (suite completa al restringir acceso), L-66, L-82
+  (`forgetGuards()` entre peticiones Bearer de usuarios distintos), L-09 (tipos web leyendo los Resources).
+- Restricciones: `api/.env.example` lo edita el usuario. Antes de extraer lógica de un controller, `graphify affected`.
+
+## Fases
+
+### [ ] Fase 1 — Token de acceso ligado a organización
+- **Alcance:** migración que suma `organization_id` nullable a `personal_access_tokens` (FK `cascadeOnDelete`, índice).
+  Modelo propio `App\Models\PersonalAccessToken` (extiende el de Sanctum, relación `organization()`, `isAccessToken()`
+  = `organization_id !== null`) registrado con `Sanctum::usePersonalAccessTokenModel`. `User::createAccessToken(Organization,
+  string $name, ?CarbonInterface $expiresAt)` con abilities `['mcp']`. Documentar en `database.md`. Verificar que
+  `ExpoPushTokenController` sigue aceptando el modelo propio.
+- **Archivos:** migración, `api/app/Models/PersonalAccessToken.php`, `api/app/Providers/AppServiceProvider.php`,
+  `api/app/Models/User.php`, `.claude/rules/database.md`.
+- **Terminado cuando:** migra y revierte limpio; tests del modelo (ability, organización, cascada al borrar la organización)
+  y los de `ExpoPushToken` siguen pasando.
+
+### [ ] Fase 2 — Endpoints de tokens de acceso
+- **Alcance:** en el grupo `auth:sanctum` + `organization`: `GET /api/access-tokens` (los del usuario en la organización
+  activa: id, name, last_used_at, expires_at, created_at; nunca el token), `POST /api/access-tokens` (name requerido,
+  `expires_in_days` nullable en 30/90/365; devuelve el token en claro una sola vez), `DELETE /api/access-tokens/{id}`
+  (solo los propios de esa organización; ajeno o de otra organización = 404). Textos por `__()`.
+- **Archivos:** `api/app/Http/Controllers/Api/AccessTokenController.php`, `StoreAccessTokenRequest.php`,
+  `AccessTokenResource.php`, `api/routes/api.php`, `lang/{en,es}.json`.
+- **Terminado cuando:** tests de alta, listado (no incluye sesiones ni tokens de otra organización), expiración, baja propia,
+  baja ajena 404 y validación.
+
+### [ ] Fase 3 — La API REST rechaza tokens de acceso [riesgo]
+- **Alcance:** middleware que responde 403 si el token actual es de acceso (`isAccessToken()`), aplicado a los grupos
+  `auth:sanctum` de `api/routes/api.php` y a la autorización de broadcasting. Los tokens de sesión y
+  `Sanctum::actingAs` (mock sin `organization_id`) siguen pasando. Así un token filtrado solo sirve para el MCP.
+- **Archivos:** `api/app/Http/Middleware/RejectAccessTokens.php`, `api/bootstrap/app.php`, `api/routes/api.php`
+  (+ `routes/channels.php` o donde se registre `/broadcasting/auth`).
+- **Terminado cuando:** test de token de acceso rechazado en REST y en broadcasting, token de sesión aceptado; suite
+  completa del API en verde (L-49, en subagente).
+
+### [ ] Fase 4 — Servidor MCP autenticado [riesgo]
+- **Alcance:** `composer require laravel/mcp`, publicar `routes/ai.php` y comprobar cómo se carga. Servidor
+  `App\Mcp\Servers\SerenoServer` sin tools, con nombre, versión e instrucciones. Ruta `Mcp::web('/mcp', ...)` con
+  `auth:sanctum`, un middleware `ResolveTokenOrganization` (exige token de acceso con ability `mcp`, valida membresía
+  vigente, `CurrentOrganization::set`, `unsetRelation('roles')`, limpia al empezar como pide L-02) y `throttle:mcp`
+  (limitador por token en `AppServiceProvider`).
+- **Archivos:** `api/composer.json`, `api/composer.lock`, `api/routes/ai.php`, `api/app/Mcp/Servers/SerenoServer.php`,
+  `api/app/Http/Middleware/ResolveTokenOrganization.php` (+ `AppServiceProvider.php` para el limitador).
+- **Terminado cuando:** tests HTTP del endpoint: sin token 401, token de sesión 403, token de acceso de un ex miembro 403,
+  token válido completa `initialize` y `tools/list` vacío.
+
+### [ ] Fase 5 — Base de tools y listado de proyectos
+- **Alcance:** clase base o trait para las tools (usuario y organización actual, `Gate` con error MCP en vez de excepción,
+  serializar con los Resources existentes a `Response::structured`). Tool `list-projects` (visibles por `ProjectAccess`,
+  `include_archived`). Descripciones y schemas en inglés (son para el modelo); errores por `__()`.
+- **Archivos:** `api/app/Mcp/Tools/Tool.php` (o trait), `api/app/Mcp/Tools/ListProjectsTool.php`, `SerenoServer.php`.
+- **Terminado cuando:** tests: owner ve todos, member solo los suyos, archivados solo con el flag, nada de otra organización.
+
+### [ ] Fase 6 — Prueba con Claude Code local [manual]
+- **Alcance:** con el stack de desarrollo, crear un token (tinker o el endpoint de la fase 2), registrar el servidor en
+  Claude Code por HTTP con la cabecera `Authorization` (verificar la sintaxis de `claude mcp add` en la documentación
+  vigente) y pedirle que liste proyectos. Probar también `php artisan mcp:inspector mcp`. Anotar en Decisiones la URL y el
+  comando que funcionaron.
+- **Archivos:** ninguno (salvo ajustes que aparezcan, que van en una fase nueva).
+- **Terminado cuando:** Claude Code lista los proyectos del usuario en una sesión real.
+
+### [ ] Fase 7 — Lectura de tareas
+- **Alcance:** tools `list-tasks` (por proyecto; filtros opcionales `status`, `assignee_id`, `search` en título; límite de
+  hechas como `done_limit`) y `get-task` (tarea con `TaskResource` y sus últimos comentarios, paginado por cursor).
+  Mismas comprobaciones que `TaskController::show` (proyecto visible, tarea del proyecto).
+- **Archivos:** `api/app/Mcp/Tools/ListTasksTool.php`, `GetTaskTool.php`, `SerenoServer.php`.
+- **Terminado cuando:** tests de filtros, tarea de otro proyecto o no visible = error, comentarios en orden.
+
+### [ ] Fase 8 — Mensajes del canal
+- **Alcance:** tool `list-channel-messages` (canal del proyecto, raíces por cursor con sus respuestas contadas; opcional
+  `thread_id` para leer un hilo). Carga como `MessageController::index` (L-66).
+- **Archivos:** `api/app/Mcp/Tools/ListChannelMessagesTool.php`, `SerenoServer.php`.
+- **Terminado cuando:** tests de paginación, hilo, canal no visible = error.
+
+### [ ] Fase 9 — Avisos de log
+- **Alcance:** tools `list-log-groups` (por proyecto, filtros `status` y `level` reutilizando `ListLogGroupsRequest`
+  como pide L-15) y `get-log-group` (detalle con eventos recientes, `LogGroupPolicy`).
+- **Archivos:** `api/app/Mcp/Tools/ListLogGroupsTool.php`, `GetLogGroupTool.php`, `SerenoServer.php`.
+- **Terminado cuando:** tests de filtros, grupo de otro proyecto o no visible = error.
+
+### [ ] Fase 10 — Comentar tareas
+- **Alcance:** extraer de `TaskCommentController::store` una acción `App\Actions\CreateTaskComment` (transacción,
+  `syncMentions`, `TaskCommentCreated`) sin cambiar el comportamiento; el controller la usa. Tool `comment-on-task`
+  (body con menciones; sin adjuntos), autorizada con `TaskCommentPolicy`, validada con las `rules()` del Form Request.
+- **Archivos:** `api/app/Actions/CreateTaskComment.php`, `TaskCommentController.php`, `api/app/Mcp/Tools/CommentOnTaskTool.php`,
+  `SerenoServer.php`.
+- **Terminado cuando:** tests existentes de comentarios en verde; tests de la tool (crea, menciona y notifica, evento
+  emitido, sin permiso = error).
+
+### [ ] Fase 11 — Crear tareas
+- **Alcance:** extraer de `TaskController::store` una acción `App\Actions\CreateTask` (incluye `notifyAssignee` y
+  `TaskCreated`) sin cambiar el comportamiento. Tool `create-task` (title, description, status, assignee_id, log_group_id
+  opcional), con las `rules()` de `StoreTaskRequest`.
+- **Archivos:** `api/app/Actions/CreateTask.php`, `TaskController.php`, `api/app/Mcp/Tools/CreateTaskTool.php`, `SerenoServer.php`.
+- **Terminado cuando:** tests existentes de alta en verde; tests de la tool (crea, notifica al asignado, evento, assignee
+  fuera del proyecto = error).
+
+### [ ] Fase 12 — Extraer el movimiento de tareas [riesgo]
+- **Alcance:** mover la lógica de `TaskController::move` (locks, renumeración, resolución del grupo de log, eventos) a
+  `App\Actions\MoveTask`, sin cambio de comportamiento. Solo refactor.
+- **Archivos:** `api/app/Actions/MoveTask.php`, `TaskController.php`.
+- **Terminado cuando:** `TaskMoveApiTest` y los tests de resolución de grupos en verde sin tocarlos; suite de `Plan/` completa.
+
+### [ ] Fase 13 — Mover tareas
+- **Alcance:** tool `move-task` (status requerido; `before_id`/`after_id` opcionales, por defecto al principio de la
+  columna como hace la web), con las `rules()` de `MoveTaskRequest` y `TaskPolicy`.
+- **Archivos:** `api/app/Mcp/Tools/MoveTaskTool.php`, `SerenoServer.php`.
+- **Terminado cuando:** tests: cambia de columna, posición, resuelve el grupo de log si el proyecto lo pide, sin permiso = error.
+
+### [ ] Fase 14 — Vista de tokens en la web
+- **Alcance:** módulo `src/api/accessTokens.ts` y tipos (leyendo `AccessTokenResource`, L-09). Vista `AccessTokensView.vue`:
+  lista, crear (nombre y expiración; muestra el token una sola vez con botón copiar y el comando de Claude Code con la URL
+  `${VITE_API_URL}/mcp`) y revocar con diálogo de confirmación. Textos en `en` y `es`.
+- **Archivos:** `web/src/api/accessTokens.ts`, `web/src/api/types.ts`, `web/src/views/AccessTokensView.vue`,
+  `web/src/i18n/en.json`, `web/src/i18n/es.json`.
+- **Terminado cuando:** spec de la vista (listar, crear muestra el token una vez, revocar) con mocks estrictos por URL
+  (L-73); typecheck en verde.
+
+### [ ] Fase 15 — Entrada a la vista de tokens
+- **Alcance:** ruta `settings/access-tokens` bajo `AppLayout` e item en `UserMenu.vue`.
+- **Archivos:** `web/src/router/index.ts`, `web/src/components/UserMenu.vue`, `web/src/i18n/{en,es}.json`.
+- **Terminado cuando:** spec del menú navega a la vista; prueba en el navegador de crear, copiar y revocar.
+
+### [ ] Fase 16 — Producción y documentación [manual] [riesgo]
+- **Alcance:** deploy; comprobar que `https://<api>/mcp` llega a PHP a través del proxy de producción (el nginx del stack
+  ya manda todo a `index.php`) y que el límite de tamaño y tiempos no cortan la respuesta. Conectar Claude Code contra
+  producción con un token real. Documentar en `CLAUDE.md` (sección del MVP o transversal) cómo conectarse.
+- **Archivos:** `CLAUDE.md` (+ configuración de producción solo si hace falta).
+- **Terminado cuando:** Claude Code lista proyectos y comenta una tarea de prueba en producción.
+
+## Decisiones
+- 2026-10-14 — Claude actúa como el usuario dueño del token (sin usuario de sistema) — mismo modelo que el conector de Jira;
+  sin usuarios ni roles nuevos.
+- 2026-10-14 — Tokens desde una pantalla de la web (crear, listar, revocar), cada uno ligado a una organización — el
+  usuario los gestiona sin acceso al servidor.
+- 2026-10-14 — Alcance: leer, comentar, crear y mover; nada de borrar.
+- 2026-10-14 — OAuth (conector en claude.ai) queda para después; primero Claude Code con Bearer.
+- 2026-10-14 — Tokens de acceso = `personal_access_tokens` con `organization_id` y ability `mcp`; las sesiones siguen con
+  `organization_id` nulo. Solo valen en `/mcp` (fase 3) y la membresía se revalida en cada petición.
+- 2026-10-14 — Descripciones y schemas de las tools en inglés (los lee el modelo, no las personas); errores por `__()`.
+
+## Notas para la próxima sesión
+- Plan recién creado; empezar por la fase 1.
+
+## Mejoras propuestas
+- [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
+      Complejidad: alta · Archivos: 8+ · Riesgo: seguridad → plan nuevo
+- [ ] M-2: tool `update-task` (título, descripción, asignado) y `list-project-members` para elegir asignado.
+      Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
+- [ ] M-3: marcar el origen "vía MCP" en comentarios y tareas creadas por Claude.
+      Complejidad: media · Archivos: 5 · Riesgo: BD → opus
+- [ ] M-4: revocar los tokens de acceso de un usuario al sacarlo de la organización (hoy solo dejan de funcionar).
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
