@@ -9,6 +9,7 @@ import { ApiError } from '../api/client'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
 import { useOrganizationStore } from '../stores/organization'
+import AccessTokensView from '../views/AccessTokensView.vue'
 import ChannelView from '../views/ChannelView.vue'
 import IntegrationsView from '../views/IntegrationsView.vue'
 import InvitationsView from '../views/InvitationsView.vue'
@@ -66,6 +67,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
           { path: 'projects/:projectId/integrations', name: 'project-integrations', component: IntegrationsView },
           { path: 'settings/invitations', name: 'invitations', component: InvitationsView },
           { path: 'settings/members', name: 'members', component: MembersView },
+          { path: 'settings/access-tokens', name: 'access-tokens', component: AccessTokensView },
         ],
       },
     ],

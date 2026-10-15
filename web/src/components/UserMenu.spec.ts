@@ -196,6 +196,22 @@ describe('UserMenu', () => {
     })
   })
 
+  describe('access tokens entry', () => {
+    it('navigates to the screen', async () => {
+      const router = createAppRouter(createMemoryHistory())
+      const push = vi.spyOn(router, 'push')
+      mountMenu(router)
+      await open()
+      const entry = Array.from(document.querySelectorAll<HTMLElement>('[role=menuitem]')).find(
+        (el) => el.textContent!.trim() === 'Access tokens',
+      )
+      expect(entry).toBeDefined()
+      entry!.click()
+      await settle()
+      expect(push).toHaveBeenCalledWith({ name: 'access-tokens' })
+    })
+  })
+
   describe('invitations entry', () => {
     function entry(): HTMLElement | undefined {
       return Array.from(document.querySelectorAll<HTMLElement>('[role=menuitem]')).find(

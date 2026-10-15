@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 15
+**Estado:** en curso · Fase actual: 16
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -148,7 +148,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Terminado cuando:** spec de la vista (listar, crear muestra el token una vez, revocar) con mocks estrictos por URL
   (L-73); typecheck en verde.
 
-### [ ] Fase 15 — Entrada a la vista de tokens
+### [x] Fase 15 — Entrada a la vista de tokens
 - **Alcance:** ruta `settings/access-tokens` bajo `AppLayout` e item en `UserMenu.vue`.
 - **Archivos:** `web/src/router/index.ts`, `web/src/components/UserMenu.vue`, `web/src/i18n/{en,es}.json`.
 - **Terminado cuando:** spec del menú navega a la vista; prueba en el navegador de crear, copiar y revocar.
@@ -232,6 +232,12 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   claro vive solo en el estado local `issued` (ni store ni storage) y se descarta al cerrar, al confirmar y al cambiar de
   organización. El diálogo muestra el comando `claude mcp add --transport http sereno ${config.apiUrl}/mcp --header
   "Authorization: Bearer <token>"`. Sin restricción por rol: cada miembro gestiona sus tokens.
+- 2026-10-15 — Fase 15: ruta `settings/access-tokens` (nombre `access-tokens`) e item "Tokens de acceso" en `UserMenu`
+  después de Notificaciones, para todos los roles. Probado en el navegador con un Vite del worktree en 5184
+  (`docker compose -p workspace run --rm --no-deps -T --name sereno_web_mcp -p 5184:5174 -e
+  VITE_API_URL=http://localhost:8013 --entrypoint sh web -c "npm run dev"`): menú, crear con expiración, token visible
+  una vez con el comando y revocar con confirmación. Copiar no se pudo probar en el panel embebido (portapapeles
+  bloqueado; `CopyButton` muestra su aviso de fallo).
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
   del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
   worktree; `vendor/` es el volumen compartido con el checkout principal).
@@ -241,10 +247,10 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   aserciones `assertSee`, `assertDontSee`, `assertStructuredContent`, `assertHasErrors`. `tool()` solo ejecuta tools
   registradas en el servidor. Usar Edit (no sed) para los `use`: sed comió barras invertidas. `replies_count` no es
   fillable: en tests, `forceFill(...)->save()`. Pint reescribe los CRLF que deja Python en Windows: escribir con Edit.
-- Comandos web en el worktree, desde su raíz: `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps -T
-  --entrypoint sh web -c '<comando>'` (el entrypoint normal arranca Vite). Fase 15: ruta e item de menú y prueba en el
-  navegador; el Vite de 5174 sirve el checkout principal, así que para probar hace falta un Vite del worktree en otro
-  puerto apuntando al API de 8013 (reiniciarlo para que cargue las tools nuevas).
+- Fase 16 (manual, riesgo): falta mergear `feat/integracion-mcp` a `main` y desplegar (push solo con pedido del
+  usuario), comprobar `/mcp` detrás del proxy de producción, conectar Claude Code con un token real y documentar en
+  `CLAUDE.md`. En local siguen el API del worktree en 8013 (registrado como `sereno-dev` en Claude Code, scope user) y
+  la BD de desarrollo con la migración de la fase 1.
 
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.

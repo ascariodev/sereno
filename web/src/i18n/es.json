@@ -261,6 +261,7 @@
   "userMenu": {
     "notificationPreferences": "Notificaciones",
     "invitations": "Invitaciones",
+    "accessTokens": "Tokens de acceso",
     "members": "Miembros",
     "label": "Menú de usuario",
     "language": "Idioma",
