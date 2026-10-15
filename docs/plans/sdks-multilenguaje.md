@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 16
+**Estado:** en curso · Fase actual: 17
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -125,7 +125,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `packages/node/README.md`, `packages/core/README.md`, `LICENSE`
 - **Terminado cuando:** una app Express nueva, siguiendo solo el README, envía una excepción al API local.
 
-### [ ] Fase 16 — sereno-python: formateador
+### [x] Fase 16 — sereno-python: formateador
 - **Alcance:** `../sereno-python` (Python ≥3.10, `pyproject.toml` con hatchling, pytest, sin dependencias de runtime).
   `format_event` que pasa los vectores (excepciones con `traceback`).
 - **Archivos:** `pyproject.toml`, `src/sereno/{__init__.py,format.py}`, `tests/test_format.py`, `tests/fixtures/vectores.json`
@@ -262,7 +262,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 13: el subpath next de sereno-node no importa nada de Node a nivel de módulo (solo import type) y carga el SDK con import() tras comprobar process.env.NEXT_RUNTIME === 'nodejs' escrito literal, para que el bundle edge de instrumentation.ts no arrastre node:util. Errores de control de Next se ignoran por digest (NEXT_REDIRECT, NEXT_NOT_FOUND, NEXT_HTTP_ERROR_FALLBACK, BAILOUT_TO_CLIENT_SIDE_RENDERING, DYNAMIC_SERVER_USAGE).
 
 ## Notas para la próxima sesión
-- Fase 15 cerrada (sereno-js 47b06eb, tag local node-v0.1.0): README de node y core, LICENSE MIT copiada en la raíz y en cada paquete, .gitattributes con eol=lf (shebang del bin). Bloque sereno-js core y node terminado. Sigue la fase 16 (sereno-python formateador) en ../sereno-python, worktree .claude/worktrees/sdks, paquete PyPI sereno-sdk con módulo sereno.
+- Fase 16 cerrada (sereno-python c4ef0c4): paquete sereno-sdk (hatchling, src/sereno, Python >= 3.10, extra test con pytest), exporta format_event(record: LogRecord | Mapping) -> dict, LogRecord(level, message, context=None, time=None) dataclass, serialize_exception, class_name, trim, php_json_size, new_uuid, is_log_level, LOG_LEVELS. Para la fase 18: time=datetime.fromtimestamp(r.created, timezone.utc). Para el README (fase 22): equivalencias propias de Python (Enum por .value, Decimal string, bytes decodificados, set/tuple/deque como lista, date a medianoche UTC, int fuera de int64 como string). Sigue la fase 17 (Transport con hilo de fondo).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
