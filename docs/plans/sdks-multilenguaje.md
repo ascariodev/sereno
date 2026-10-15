@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -65,7 +65,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Terminado cuando:** una excepción no capturada en un script de prueba llega como evento `error` con fingerprint
   `Clase|archivo:línea` y el handler previo se sigue llamando.
 
-### [ ] Fase 6 — sereno-php: comando de prueba
+### [x] Fase 6 — sereno-php: comando de prueba
 - **Alcance:** `vendor/bin/sereno-test` (lee `SERENO_KEY`/`SERENO_URL` o argumentos) con la misma interpretación que
   `ConnectionTester` (202, 401, URL o key faltante, error).
 - **Archivos:** `bin/sereno-test`, `src/ConnectionTester.php`, `composer.json`, `tests/ConnectionTesterTest.php`
@@ -253,9 +253,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — sereno-php fase 3 (a21c152): cualquier 2xx es enviado; 3xx no se sigue y cuenta como rechazo; sin `curl_close` (deprecado en 8.5).
 - 2026-10-15 — sereno-php fase 4 (6b818e4): avisos en texto plano por `error_log` (notifier inyectable); el tope de 1000 es defensivo en PHP síncrono (el buffer no pasa de 99).
 - 2026-10-15 — sereno-php fase 5 (02b0938): errores desde E_WARNING; los warnings y fatales llevan file/line/errno en el contexto y el fingerprint lo calcula el servidor; con handler previo de excepciones no se hace exit.
+- 2026-10-15 — sereno-php fase 6 (fb0e778): ConnectionTester usa curl directo (Transport reintenta y no sirve para 5 s sin reintento); `.gitattributes` fuerza LF en `bin/sereno-test`.
 
 ## Notas para la próxima sesión
-- Fase 5 hecha: `Sereno::init(key, url, options)` (level, timeout, errorLevel, handlers), `Sereno::logger()`, `Sereno::flush()`; 70 tests y prueba real. Sigue la fase 6 (bin/sereno-test).
+- Fase 6 hecha: `vendor/bin/sereno-test [--key= --url=]` o `SERENO_KEY`/`SERENO_URL`; `Sereno\ConnectionTester::test(url, key)`; 78 tests y prueba real. Sigue la fase 7 (README con Symfony y tag v0.1.0).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -277,3 +278,5 @@ fragmentos por lenguaje en el diálogo de la key.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-9: sereno-php: evitar duplicados en Sereno (E_USER_ERROR registrado en handleError y otra vez como fatal en shutdown; handler previo que lanza).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-10: sereno-php: `export-ignore` de `tests/` y archivos de desarrollo en `.gitattributes` para aligerar el dist.
+      Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
