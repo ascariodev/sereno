@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 25
+**Estado:** en curso · Fase actual: 26
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -178,7 +178,7 @@ fragmentos por lenguaje en el diálogo de la key.
   `.claude/rules/database.md`
 - **Terminado cuando:** tests: origen permitido 202, otro origen 401, sin `Origin` 401, límite por IP 429, keys `wsk_` sin cambios.
 
-### [ ] Fase 25 — API: cabeceras CORS en los rechazos de la ingesta [riesgo]
+### [x] Fase 25 — API: cabeceras CORS en los rechazos de la ingesta [riesgo]
 - **Alcance:** que 401, 413 y 429 de la ingesta lleven las cabeceras CORS (hoy el 413 sale antes de `HandleCors`), para que el
   SDK de navegador lea el código en vez de un error de red.
 - **Archivos:** `api/app/Http/Middleware/RejectOversizedIngestBody.php`, `api/bootstrap/app.php`
@@ -268,9 +268,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 21: sereno-python redacta la key (y Bearer <key>, también escapada) y las credenciales userinfo de la URL en todo error del transporte, que alimenta tanto los avisos por stderr como el comando de prueba.
 - 2026-10-15 — Fase 23: log_sources.kind string default server con CHECK; allowed_origins jsonb null en server y array no vacío (1 a 20) en browser. Payload de creación {name, kind?, allowed_origins?}. Orígenes https://host[:puerto] o http://localhost|127.0.0.1[:puerto], normalizados a minúsculas, sin puerto por defecto y sin duplicados; comparables por igualdad exacta con la cabecera Origin. LogSourceKind::keyPrefix() da wsk_ o wsp_; newPlainKey(kind), issueFor(project, name, kind, origins) y rotateKey respetan el tipo.
 - 2026-10-15 — Fase 24: LogSource::KEY_PREFIX e isWellFormedPlainKey eliminados; kindOfPlainKey(string): ?LogSourceKind y acceptsOrigin(?string) (igualdad exacta, sin normalizar el Origin entrante). El prefijo debe coincidir con kind. Limiter log-ingest: 600/min por fuente (log-source:{id}) y, para browser, 30/min por IP y fuente (log-source-ip:{id}|{ip}, AppServiceProvider::LOG_INGEST_BROWSER_REQUESTS_PER_IP_PER_MINUTE); los rechazos cuentan en log-ingest-auth-failures por IP.
+- 2026-10-15 — Fase 25: bootstrap/app.php prepend([HandleCors::class, RejectOversizedIngestBody::class]); array_unique de getGlobalMiddleware deja HandleCors una sola vez y primero. Sin cabeceras CORS a mano.
 
 ## Notas para la próxima sesión
-- Fase 24 cerrada: wsp_ autentica solo con Origin exacto en allowed_origins (mismo 401 en todo rechazo); limiter log-ingest suma 30/min por IP y fuente para browser. El preflight OPTIONS ya da 204 con CORS; el 202 trae Access-Control-Allow-Origin. Sigue la fase 25 (cabeceras CORS en 401, 413 y 429 de la ingesta [riesgo]).
+- Fase 25 cerrada: HandleCors va primero en la pila global junto a RejectOversizedIngestBody; 401, 413 y 429 de la ingesta traen Access-Control-Allow-Origin. Bloque API terminado. Sigue la fase 26 (web: crear fuente de navegador) en web/ del worktree.
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -309,3 +310,5 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-23: Que el mensaje de error de origen diga que los dominios IDN van en punycode (xn--) [simple, haiku]
 - [ ] M-24: Opciones --kind y --origin en log:source-create para crear fuentes de navegador por consola [simple, sonnet]
 - [ ] M-25: Tope por fuente más bajo para fuentes browser (hoy comparten 600/min por fuente, agotable desde una IP con Origin falsificado) [media, sonnet]
+- [ ] M-26: Producción: client_max_body_size de nginx igual o mayor que MAX_BODY_BYTES de la ingesta, para que el 413 lo dé Laravel con CORS y el SDK de navegador no vea un error de red opaco [simple, haiku]
+- [ ] M-27: GenerateVapidKeysCommandTest falla en main desde app-movil fase 3 (6948bb0): config push suma expo_access_token y el test espera solo las tres claves VAPID [simple, haiku]

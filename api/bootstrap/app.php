@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Illuminate\Routing\Middleware\ThrottleRequests;
@@ -33,7 +34,8 @@ return Application::configure(basePath: dirname(__DIR__))
             at: 'REMOTE_ADDR',
             headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO,
         );
-        $middleware->prepend(RejectOversizedIngestBody::class);
+        // HandleCors moves to the front with it so the 413 also carries the CORS headers a browser needs to read it.
+        $middleware->prepend([HandleCors::class, RejectOversizedIngestBody::class]);
         $middleware->api(append: [
             SetLocale::class,
         ]);
