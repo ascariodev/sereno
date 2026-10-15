@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "dev.ascario.sereno",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#4B4FD8",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

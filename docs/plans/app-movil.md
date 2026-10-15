@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 30
+**Estado:** en curso · Fase actual: 31
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -178,7 +178,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** pantalla de ajustes con preferencias email/push por tipo y `PATCH /api/me/locale`.
 - **Terminado cuando:** tests de guardado.
 
-### [ ] Fase 30 — Firebase y build de desarrollo [manual] [riesgo]
+### [x] Fase 30 — Firebase y build de desarrollo [manual] [riesgo]
 - **Alcance:** el usuario crea el proyecto de Firebase, sube la credencial FCM V1 a EAS y genera un development build
   (Expo Go no recibe push remoto en Android). `eas.json` con perfil `development`.
 - **Terminado cuando:** el development build instalado abre la app y la herramienta de push de Expo entrega un aviso de prueba.
@@ -287,19 +287,21 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-14 — Las fases 30 a 32 (push) esperan a que el usuario cree Firebase y suba la credencial FCM V1 a EAS; con su
   ok se sigue con la 33 en adelante y se vuelve a la 30 cuando avise.
 - Fase 44: ícono y splash quedan configurados; verlos en el dispositivo se hace con el dev build de la fase 30. La fase 45 va después de la 30 porque ambas escriben `eas.json` y su criterio necesita builds del usuario.
+- 2026-10-15 — Fase 30: el aviso de prueba con la herramienta de push de Expo pasa a la 31 (necesita `expo-notifications` y un dev build nuevo). `eas.json` y `.easignore` quedan en el repo; la 45 suma los perfiles `preview` y `production`.
 
 ## Notas para la próxima sesión
+- Fase 30 hecha: Firebase (`app/google-services.json`, `android.googleServicesFile`) y credencial FCM V1 subidas por el
+  usuario a EAS; `app/eas.json` con perfil `development` (dev client, interno, APK), `expo-dev-client` instalado y
+  `.easignore` en la raíz (EAS empaqueta la raíz del repo y en Windows no aplica los `.gitignore` de subcarpetas: pasaba
+  de 2 GB). Dev build instalado en el emulador, abre la app con Metro en 8087 y muestra el ícono. La prueba con la
+  herramienta de push pasa a la 31: `expo-notifications` no está instalado y suma un módulo nativo, así que la 31 necesita
+  un dev build nuevo (`eas build --profile development --platform android`).
 - Fase 44 hecha en config: ícono 1024 (glifo de `web/public/favicon.svg` en blanco sobre `#4B4FD8`, la `--accent` de la
   web), adaptativo con fondo de color, foreground y monochrome, splash claro (`#4B4FD8`) y oscuro (`#0F1114`, glifo
   `#A9ABF5`) con `imageWidth` 200; PNG dibujados con System.Drawing (no hay ImageMagick ni sharp). `npx expo config`
   resuelve. Falta verlos en el dev build de la fase 30 (afinar `imageWidth` con el recorte de Android 12). No hay tema
   centralizado en `app/src`. Siguen 30 a 32 (Firebase), 45 (perfiles de build, comparte `eas.json` con la 30) y 46 manual:
   todas esperan al usuario. Próxima: 30.
-- Fase 43 hecha: `organization/invitations.ts` y pantalla `/invitations` (botón en Ajustes y ruta solo owner/admin).
-  Roles invitables como `InvitationPolicy` (admin no invita ni revoca owner), `project_ids` solo para member, lista por
-  cursor completa, revocar con `Alert` (404 quita la fila), aviso de enviado, acciones bloqueadas mientras carga. Sin
-  tiempo real, reenvío ni estado "vencida", igual que la web. Siguen el bloque G: 44 identidad visual, 45, y la 46 manual;
-  las 30 a 32 esperan Firebase.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->

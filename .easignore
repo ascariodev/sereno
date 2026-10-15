@@ -1,0 +1,24 @@
+# EAS Build only needs app/. When this file exists EAS ignores every .gitignore.
+/*
+!/app
+
+.git
+node_modules
+.env
+.env.*
+!.env.example
+
+/app/.expo
+/app/android
+/app/ios
+/app/dist
+/app/web-build
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+*.apk
+*.aab
+*.ipa
