@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 22
+**Estado:** en curso · Fase actual: 23
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -159,7 +159,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `src/sereno/__main__.py`, `tests/test_cli.py`
 - **Terminado cuando:** contra el API local da "conectado" y código 1 con una key revocada.
 
-### [ ] Fase 22 — sereno-python: README
+### [x] Fase 22 — sereno-python: README
 - **Alcance:** instalación, `init`, logging, Django, FastAPI, variables y comportamiento de envío. Tag local `v0.1.0`.
 - **Archivos:** `README.md`, `LICENSE`
 - **Terminado cuando:** una app FastAPI nueva, siguiendo solo el README, envía una excepción al API local.
@@ -268,7 +268,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 21: sereno-python redacta la key (y Bearer <key>, también escapada) y las credenciales userinfo de la URL en todo error del transporte, que alimenta tanto los avisos por stderr como el comando de prueba.
 
 ## Notas para la próxima sesión
-- Fase 21 cerrada (sereno-python e02f2b7): python -m sereno test y script sereno test (sereno.connection: test_connection(url, key, *, sender=None) -> ConnectionResult, run_cli(args, out, err, env=None, *, sender=None)), mensajes iguales a Node y PHP; transport.redact(text, *secrets) quita la key, Bearer <key> y userinfo de URLs de todo DeliveryResult.error. Sigue la fase 22 (README de sereno-python, tag local v0.1.0).
+- Fase 22 cerrada (sereno-python 709d06c, tag local v0.1.0): README en inglés y classifiers en pyproject; sin [project.urls] hasta que exista el repo público. Bloque sereno-python terminado. Sigue la fase 23 (API: tipo de fuente pública con key wsp_) en el monorepo, worktree sdks-fase-1.
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
