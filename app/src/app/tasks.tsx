@@ -7,6 +7,7 @@ import { TaskMoveMenu } from '@/components/TaskMoveMenu'
 import { useProjectsStore } from '@/projects/store';
 import { useAuthStore } from '@/session/auth';
 import { TASK_FILTERS, TASK_STATUSES, type Task, type TaskColumns, toColumns, useTasksStore } from '@/tasks/store';
+import { useProjectLive } from '@/tasks/useProjectLive';
 
 function TaskCard({ task, columns, canMove }: { task: Task; columns: TaskColumns; canMove: boolean }) {
   const { t } = useTranslation();
@@ -39,13 +40,20 @@ export default function Tasks() {
   const projectName = useProjectsStore((state) => state.projects.find((item) => item.id === projectId)?.name);
   const archived = useProjectsStore((state) => state.projects.find((item) => item.id === projectId)?.archived_at != null);
   const userId = useAuthStore((state) => state.user?.id ?? null);
-  const { tasks, loading, failed, filter, hasMoreDone, doneTotal, loadingMoreDone, open, showMoreDone, setFilter } =
-    useTasksStore();
+  const tasks = useTasksStore((state) => state.tasks);
+  const loading = useTasksStore((state) => state.loading);
+  const failed = useTasksStore((state) => state.failed);
+  const filter = useTasksStore((state) => state.filter);
+  const hasMoreDone = useTasksStore((state) => state.hasMoreDone);
+  const doneTotal = useTasksStore((state) => state.doneTotal);
+  const loadingMoreDone = useTasksStore((state) => state.loadingMoreDone);
+  const { open, showMoreDone, setFilter } = useTasksStore.getState();
 
   useEffect(() => {
     if (projectId !== null) void useTasksStore.getState().open(projectId);
     return () => useTasksStore.getState().clear();
   }, [projectId]);
+  useProjectLive(projectId);
 
   const columns = useMemo(() => toColumns(tasks, filter, userId), [tasks, filter, userId]);
   const fullColumns = useMemo(() => toColumns(tasks), [tasks]);

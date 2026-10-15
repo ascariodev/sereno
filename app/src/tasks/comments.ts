@@ -41,6 +41,7 @@ interface TaskCommentsState {
   failed: boolean
   open(projectId: number, taskId: number): Promise<void>
   loadOlder(): Promise<void>
+  refresh(): Promise<void>
   send(body: string, attachmentIds?: number[]): Promise<number | null>
   update(projectId: number, taskId: number, commentId: number, body: string): Promise<TaskComment>
   destroy(projectId: number, taskId: number, commentId: number): Promise<void>
@@ -53,126 +54,183 @@ interface TaskCommentsState {
 let generation = 0
 // Bumped when the list is replaced, so a page of older comments requested before it is dropped.
 let listVersion = 0
+let opening: Promise<void> = Promise.resolve()
+let openFailed = false
+// Deleted while a page was in flight: the page must not bring them back.
+let removedIds = new Set<number>()
 
-export const useTaskCommentsStore = create<TaskCommentsState>()((set, get) => ({
-  projectId: null,
-  taskId: null,
-  comments: [],
-  nextCursor: null,
-  loading: false,
-  loadingMore: false,
-  failed: false,
+function withoutRemoved(page: readonly TaskComment[]): TaskComment[] {
+  return page.filter((comment) => !removedIds.has(comment.id))
+}
 
-  async open(projectId, taskId) {
-    get().clear()
-    const current = generation
-    set({ projectId, taskId, loading: true })
+export const useTaskCommentsStore = create<TaskCommentsState>()((set, get) => {
+  async function load(current: number, projectId: number, taskId: number): Promise<void> {
     try {
       const page = await api.get<CommentsPage>(base(projectId, taskId), {
         query: { per_page: COMMENTS_PER_PAGE },
       })
       if (current !== generation) return
       set((state) => ({
-        comments: mergeComments(state.comments, page.data),
+        comments: mergeComments(state.comments, withoutRemoved(page.data)),
         nextCursor: page.meta.next_cursor,
       }))
     } catch {
       if (current !== generation) return
+      openFailed = true
       set({ failed: true })
     } finally {
       if (current === generation) set({ loading: false })
     }
-  },
+  }
 
-  async loadOlder() {
-    const { projectId, taskId, nextCursor, loading, loadingMore } = get()
-    if (projectId === null || taskId === null || nextCursor === null || loading || loadingMore) return
-    const current = generation
-    const version = listVersion
-    set({ loadingMore: true, failed: false })
-    try {
-      const page = await api.get<CommentsPage>(base(projectId, taskId), {
-        query: { per_page: COMMENTS_PER_PAGE, cursor: nextCursor },
-      })
-      if (current !== generation || version !== listVersion) return
+  return {
+    projectId: null,
+    taskId: null,
+    comments: [],
+    nextCursor: null,
+    loading: false,
+    loadingMore: false,
+    failed: false,
+
+    open(projectId, taskId) {
+      get().clear()
+      const current = generation
+      set({ projectId, taskId, loading: true })
+      opening = load(current, projectId, taskId)
+      return opening
+    },
+
+    async refresh() {
+      const { projectId, taskId } = get()
+      if (projectId === null || taskId === null) return
+      const current = generation
+      await opening
+      if (current !== generation || openFailed) return
+      const loaded = get().comments
+      const newestLoaded = loaded.length > 0 ? loaded[loaded.length - 1].id : null
+      let page: CommentsPage
+      try {
+        page = await api.get<CommentsPage>(base(projectId, taskId), { query: { per_page: COMMENTS_PER_PAGE } })
+      } catch {
+        return
+      }
+      if (current !== generation) return
+      const fresh = withoutRemoved(page.data)
+      const joined = newestLoaded === null || page.meta.next_cursor === null || page.data.some((comment) => comment.id <= newestLoaded)
+      if (joined) {
+        set((state) => ({
+          comments: mergeComments(state.comments, fresh),
+          ...(newestLoaded === null ? { nextCursor: page.meta.next_cursor } : {}),
+        }))
+        return
+      }
+      // The page does not reach the loaded comments: the gap is dropped and older ones load again from its cursor.
+      const newestInPage = Math.max(...page.data.map((comment) => comment.id))
+      listVersion++
       set((state) => ({
-        comments: mergeComments(state.comments, page.data),
+        comments: mergeComments(
+          state.comments.filter((comment) => comment.id > newestInPage),
+          fresh,
+        ),
         nextCursor: page.meta.next_cursor,
+        loadingMore: false,
       }))
-    } catch {
-      if (current !== generation || version !== listVersion) return
-      // Keeps what is shown (L-89): the cursor stays, so the retry asks for the page that failed.
-      set({ failed: true })
-    } finally {
-      if (current === generation && version === listVersion) set({ loadingMore: false })
-    }
-  },
+    },
 
-  async send(body, attachmentIds = []) {
-    const { projectId, taskId } = get()
-    if (projectId === null || taskId === null) return null
-    const current = generation
-    const response = await api.post<{ data: TaskComment }>(base(projectId, taskId), {
-      body,
-      ...(attachmentIds.length > 0 ? { attachment_ids: attachmentIds } : {}),
-    })
-    if (current !== generation) return null
-    get().insert(response.data)
-    return response.data.id
-  },
+    async loadOlder() {
+      const { projectId, taskId, nextCursor, loading, loadingMore } = get()
+      if (projectId === null || taskId === null || nextCursor === null || loading || loadingMore) return
+      const current = generation
+      const version = listVersion
+      set({ loadingMore: true, failed: false })
+      try {
+        const page = await api.get<CommentsPage>(base(projectId, taskId), {
+          query: { per_page: COMMENTS_PER_PAGE, cursor: nextCursor },
+        })
+        if (current !== generation || version !== listVersion) return
+        set((state) => ({
+          comments: mergeComments(state.comments, withoutRemoved(page.data)),
+          nextCursor: page.meta.next_cursor,
+        }))
+      } catch {
+        if (current !== generation || version !== listVersion) return
+        // Keeps what is shown (L-89): the cursor stays, so the retry asks for the page that failed.
+        set({ failed: true })
+      } finally {
+        if (current === generation && version === listVersion) set({ loadingMore: false })
+      }
+    },
 
-  async update(projectId, taskId, commentId, body) {
-    const response = await api.patch<{ data: TaskComment }>(`${base(projectId, taskId)}/${commentId}`, { body })
-    if (get().taskId === taskId) get().replace(response.data)
-    return response.data
-  },
+    async send(body, attachmentIds = []) {
+      const { projectId, taskId } = get()
+      if (projectId === null || taskId === null) return null
+      const current = generation
+      const response = await api.post<{ data: TaskComment }>(base(projectId, taskId), {
+        body,
+        ...(attachmentIds.length > 0 ? { attachment_ids: attachmentIds } : {}),
+      })
+      if (current !== generation) return null
+      get().insert(response.data)
+      return response.data.id
+    },
 
-  async destroy(projectId, taskId, commentId) {
-    await api.delete(`${base(projectId, taskId)}/${commentId}`)
-    if (get().taskId === taskId) get().remove(commentId)
-  },
+    async update(projectId, taskId, commentId, body) {
+      const response = await api.patch<{ data: TaskComment }>(`${base(projectId, taskId)}/${commentId}`, { body })
+      if (get().taskId === taskId) get().replace(response.data)
+      return response.data
+    },
 
-  insert(comment) {
-    const { taskId, comments } = get()
-    if (taskId === null || comment.task_id !== taskId) return false
-    if (comments.some((known) => known.id === comment.id)) return false
-    set({ comments: mergeComments(comments, [comment]) })
-    return true
-  },
+    async destroy(projectId, taskId, commentId) {
+      await api.delete(`${base(projectId, taskId)}/${commentId}`)
+      if (get().taskId === taskId) get().remove(commentId)
+    },
 
-  replace(comment) {
-    const { taskId, comments } = get()
-    if (taskId === null || comment.task_id !== taskId) return false
-    const known = comments.find((item) => item.id === comment.id)
-    if (known === undefined) return false
-    if (
-      known.edited_at != null &&
-      (comment.edited_at == null || Date.parse(comment.edited_at) < Date.parse(known.edited_at))
-    ) {
-      return false
-    }
-    set({ comments: mergeComments(comments, [comment]) })
-    return true
-  },
+    insert(comment) {
+      const { taskId, comments } = get()
+      if (taskId === null || comment.task_id !== taskId || removedIds.has(comment.id)) return false
+      if (comments.some((known) => known.id === comment.id)) return false
+      set({ comments: mergeComments(comments, [comment]) })
+      return true
+    },
 
-  remove(id) {
-    const { comments } = get()
-    if (!comments.some((item) => item.id === id)) return false
-    set({ comments: comments.filter((item) => item.id !== id) })
-    return true
-  },
+    replace(comment) {
+      const { taskId, comments } = get()
+      if (taskId === null || comment.task_id !== taskId) return false
+      const known = comments.find((item) => item.id === comment.id)
+      if (known === undefined) return false
+      if (
+        known.edited_at != null &&
+        (comment.edited_at == null || Date.parse(comment.edited_at) < Date.parse(known.edited_at))
+      ) {
+        return false
+      }
+      set({ comments: mergeComments(comments, [comment]) })
+      return true
+    },
 
-  clear() {
-    generation++
-    listVersion++
-    set({
-      projectId: null,
-      taskId: null,
-      comments: [],
-      nextCursor: null,
-      loading: false,
-      loadingMore: false,
-      failed: false,
-    })
-  },
-}))
+    remove(id) {
+      const { comments } = get()
+      removedIds.add(id)
+      if (!comments.some((item) => item.id === id)) return false
+      set({ comments: comments.filter((item) => item.id !== id) })
+      return true
+    },
+
+    clear() {
+      generation++
+      listVersion++
+      opening = Promise.resolve()
+      openFailed = false
+      removedIds = new Set()
+      set({
+        projectId: null,
+        taskId: null,
+        comments: [],
+        nextCursor: null,
+        loading: false,
+        loadingMore: false,
+        failed: false,
+      })
+    },
+  }
+})

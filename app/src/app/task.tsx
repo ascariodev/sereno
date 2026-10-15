@@ -12,6 +12,7 @@ import { useOrganizationStore } from '@/organization/store';
 import { useProjectsStore } from '@/projects/store';
 import { useAuthStore } from '@/session/auth';
 import { type Task, useTasksStore } from '@/tasks/store';
+import { useProjectLive } from '@/tasks/useProjectLive';
 
 const FIELDS = ['title', 'description', 'assignee_id'] as const;
 const charCount = (value: string) => [...value].length;
@@ -178,6 +179,7 @@ export default function TaskScreen() {
   const userId = useAuthStore((state) => state.user?.id ?? null);
   const moderator = useOrganizationStore((state) => state.canModerate());
   const canDelete = !archived && task !== undefined && (task.created_by === userId || moderator);
+  useProjectLive(creating ? null : projectId);
 
   function close() {
     if (router.canGoBack()) router.back();

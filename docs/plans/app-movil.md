@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 38
+**Estado:** en curso · Fase actual: 39
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -215,7 +215,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** reutilizar ver y subir adjuntos con las rutas `task-attachments`.
 - **Terminado cuando:** test del flujo.
 
-### [ ] Fase 38 — Tareas en vivo
+### [x] Fase 38 — Tareas en vivo
 - **Alcance:** `task.*` y `task.comment.*` en tablero y detalle.
 - **Terminado cuando:** test con eventos simulados.
 
@@ -288,16 +288,16 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   ok se sigue con la 33 en adelante y se vuelve a la 30 cuando avise.
 
 ## Notas para la próxima sesión
+- Fase 38 hecha: `realtime/echo.ts` suma `subscribeToProject` (`organizations.{org}.projects.{id}`, los ocho eventos de la
+  web; `.project.members_changed` y `.log_source.connected` llegan pero se manejan en las fases 40 y 41).
+  `tasks/useProjectLive.ts` comparte una suscripción por `org:projectId` con contador de referencias (tablero y detalle) y
+  refresca una vez al reconectar. `tasks/store.ts`: `fetchAll` conserva lo llegado en vivo, `refresh`, `insert`,
+  `replace`, `setCommentsCount`. `tasks/comments.ts`: `refresh` como la web y `removedIds` para no revivir borrados. Suite
+  completa de la app: 314 tests pasan.
 - Fase 37 hecha: adjuntos en comentarios de tarea. `messages/attachments.ts` suma `getTaskAttachmentUrl`,
   `channelAttachmentsPath` y `taskAttachmentsPath` (`uploadAttachment` recibe la ruta); `useAttachmentUploads(key,
   { path, tooManyKey })` con el canal por defecto; `MessageAttachments` acepta `renewUrl`. `TaskComments` muestra y sube
   (bloquea enviar mientras sube, `attachment_ids` solo si hay). Quitar adjuntos al editar queda como mejora.
-- Fase 36 hecha: `tasks/comments.ts` (store: cursor de 30, viejo a nuevo, `generation`/`listVersion`, `mergeComments`,
-  fallo de `loadOlder` conserva lista y cursor, `insert`/`replace`/`remove` listos para la fase 38) y
-  `components/TaskComments.tsx` (lista, composer con menciones, editor, borrar; editar propios, borrar propios o
-  `canModerate`; cuerpo con `MarkdownContent`, tope 10000), montado en el detalle con `key={task.id}`. Para la 37: los
-  tipos de adjuntos ya están en `TaskComment`. Para la 38: `comments_count` en `tasks/store.ts` (la web solo lo cambia por
-  eventos) y `refresh` tras reconexión.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -362,3 +362,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-43: Tests de la app: quitar el aviso que imprime `src/projects/members.ts:46` en jest (probable mock de miembros incompleto). Complejidad baja, sonnet.
 - [ ] M-44: Quitar adjuntos al editar un comentario de tarea y un mensaje del chat (`remove_attachment_ids`, como `TaskCommentEditor` de la web); hoy el editor de la app no los toca. Complejidad media, sonnet.
 - [ ] M-45: Extraer el bloque de selector y lista de subidas duplicado entre `MessageComposer` y `TaskComments`, y renombrar el parámetro `channelId` de `useAttachmentUploads` a `scopeId`. Complejidad baja, sonnet.
+- [ ] M-46: Tareas en vivo: `setCommentsCount` que llega con una recarga en vuelo puede quedar pisado por el contador de la respuesta (igual en la web), test directo de `fetchAll` con una tarea en tombstone que el servidor sigue devolviendo, y quitar los avisos de `act` de `taskForm.test.tsx`. Complejidad baja, sonnet.

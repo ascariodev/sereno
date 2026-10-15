@@ -50,6 +50,7 @@ const members = [
 function mockApi(handler: (url: string, init?: RequestInit) => Response | Promise<Response>) {
   const fn = jest.fn(async (url: string, init?: RequestInit) => {
     if (url.endsWith('/api/projects/3/members')) return json({ data: members });
+    if ((!init?.method || init.method === 'GET') && url.includes('/comments')) return json({ data: [], meta: { next_cursor: null } });
     return handler(url, init);
   });
   globalThis.fetch = fn as never;

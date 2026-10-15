@@ -93,6 +93,7 @@ interface TasksState {
   loadingMoreDone: boolean
   filter: TaskFilter
   open(projectId: number): Promise<void>
+  refresh(): Promise<boolean>
   showMoreDone(): Promise<void>
   setFilter(filter: TaskFilter): void
   create(projectId: number, input: CreateTaskInput): Promise<Task>
@@ -100,7 +101,10 @@ interface TasksState {
   move(projectId: number, taskId: number, input: MoveTaskInput): Promise<Task>
   destroy(projectId: number, taskId: number): Promise<void>
   ensure(projectId: number, taskId: number): Promise<Task | null>
+  insert(task: Task): void
+  replace(task: Task): void
   remove(projectId: number, taskId: number): void
+  setCommentsCount(taskId: number, count: number): void
   clear(): void
 }
 
@@ -140,19 +144,31 @@ export const useTasksStore = create<TasksState>()((set, get) => {
     return latestLoad
   }
 
+  // Takes the server list, keeping live versions newer than it and the tasks that arrived while it loaded;
+  // tasks loaded before it started and missing from it were deleted.
   async function runFetch(projectId: number, current: number, seq: number): Promise<boolean> {
+    const knownAtStart = new Set(get().tasks.map((task) => task.id))
     try {
       const response = await api.get<TaskListResponse>(`/api/projects/${projectId}/tasks`, {
         query: { done_limit: doneLimit },
       })
       if (current !== generation) return false
       if (seq !== loadSeq) return latestLoad
-      const seen = new Set<number>()
-      const tasks = response.data.filter(
-        (task) => task.project_id === projectId && isTaskStatus(task.status) && !tombstones.has(task.id) && !seen.has(task.id) && seen.add(task.id),
-      )
+      const live = get().tasks
+      const byId = new Map(live.map((task) => [task.id, task]))
+      const fetched = new Set<number>()
+      const merged: Task[] = []
+      for (const task of response.data) {
+        if (task.project_id !== projectId || !isTaskStatus(task.status) || tombstones.has(task.id) || fetched.has(task.id)) continue
+        fetched.add(task.id)
+        const known = byId.get(task.id)
+        merged.push(known !== undefined && isStale(task, known) ? known : task)
+      }
+      for (const task of live) {
+        if (!fetched.has(task.id) && !knownAtStart.has(task.id)) merged.push(task)
+      }
       set({
-        tasks,
+        tasks: merged,
         hasMoreDone: response.meta?.has_more_done === true,
         doneTotal: response.meta?.done_total ?? null,
         failed: false,
@@ -216,6 +232,11 @@ export const useTasksStore = create<TasksState>()((set, get) => {
       set({ projectId, tasks: [], loading: true, failed: false, hasMoreDone: false, doneTotal: null, loadingMoreDone: false })
       await fetchAll(projectId, current)
       if (current === generation) set({ loading: false })
+    },
+    refresh() {
+      const { projectId } = get()
+      if (projectId === null) return Promise.resolve(false)
+      return fetchAll(projectId, generation)
     },
     async showMoreDone() {
       const { projectId, hasMoreDone, loadingMoreDone } = get()
@@ -286,8 +307,22 @@ export const useTasksStore = create<TasksState>()((set, get) => {
         return null
       }
     },
+    insert(task) {
+      upsert(task)
+    },
+    replace(task) {
+      upsert(task)
+    },
     remove(projectId, taskId) {
       forget(projectId, taskId)
+    },
+    setCommentsCount(taskId, count) {
+      const { tasks } = get()
+      const index = tasks.findIndex((task) => task.id === taskId)
+      if (index < 0) return
+      const next = tasks.slice()
+      next[index] = { ...next[index], comments_count: count }
+      set({ tasks: next })
     },
     clear() {
       generation++

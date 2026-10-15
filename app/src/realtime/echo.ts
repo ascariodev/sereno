@@ -3,6 +3,8 @@ import Pusher, { type ChannelAuthorizationCallback } from 'pusher-js/react-nativ
 
 import { config } from '@/config'
 import type { Message, MessageDeletedEvent } from '@/messages/store'
+import type { TaskComment } from '@/tasks/comments'
+import { isTaskStatus, type Task } from '@/tasks/store'
 
 export const MEMBERSHIP_REVOKED_EVENT = '.membership.revoked'
 export const MEMBERSHIP_ROLE_CHANGED_EVENT = '.membership.role_changed'
@@ -13,6 +15,14 @@ export const MENTION_REMOVED_EVENT = '.mention.removed'
 export const MESSAGE_CREATED_EVENT = '.message.created'
 export const MESSAGE_UPDATED_EVENT = '.message.updated'
 export const MESSAGE_DELETED_EVENT = '.message.deleted'
+export const TASK_CREATED_EVENT = '.task.created'
+export const TASK_UPDATED_EVENT = '.task.updated'
+export const TASK_DELETED_EVENT = '.task.deleted'
+export const TASK_COMMENT_CREATED_EVENT = '.task.comment.created'
+export const TASK_COMMENT_UPDATED_EVENT = '.task.comment.updated'
+export const TASK_COMMENT_DELETED_EVENT = '.task.comment.deleted'
+export const PROJECT_MEMBERS_CHANGED_EVENT = '.project.members_changed'
+export const LOG_SOURCE_CONNECTED_EVENT = '.log_source.connected'
 
 export interface RealtimePayload {
   organization_id?: number
@@ -28,6 +38,9 @@ export interface RealtimePayload {
   message_id?: number
   deleted_at?: string
   root?: { id?: number; replies_count?: number; last_reply_at?: string | null; recent_participants?: { id: number; name: string }[] }
+  task?: Partial<Task>
+  comment?: Partial<TaskComment>
+  comments_count?: unknown
 }
 
 export interface NotificationCreatedPayload {
@@ -85,6 +98,10 @@ export function userChannelName(userId: number): string {
 
 export function channelName(organizationId: number, channelId: number): string {
   return `organizations.${organizationId}.channels.${channelId}`
+}
+
+export function projectChannelName(organizationId: number, projectId: number): string {
+  return `organizations.${organizationId}.projects.${projectId}`
 }
 
 function subscribe(name: string, events: string[], handler: Subscriber): () => void {
@@ -219,6 +236,112 @@ export function subscribeToChannel(
     if (typeof data.message?.id !== 'number' || typeof data.message.channel_id !== 'number') return
     if (event === MESSAGE_UPDATED_EVENT) onUpdated(data.message)
     else onCreated(data.message)
+  })
+}
+
+export interface TaskDeletedEvent {
+  id: number
+  project_id: number
+}
+
+export interface TaskCommentDeletedEvent {
+  id: number
+  task_id: number
+  comments_count: number
+}
+
+export interface ProjectSubscriptionHandlers {
+  onTaskCreated?: (task: Task) => void
+  onTaskUpdated?: (task: Task) => void
+  onTaskDeleted?: (event: TaskDeletedEvent) => void
+  onTaskCommentCreated?: (comment: TaskComment, commentsCount?: number) => void
+  onTaskCommentUpdated?: (comment: TaskComment) => void
+  onTaskCommentDeleted?: (event: TaskCommentDeletedEvent) => void
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function validTask(task: Partial<Task> | undefined): task is Task {
+  return (
+    typeof task?.id === 'number' &&
+    typeof task.project_id === 'number' &&
+    isTaskStatus(task.status) &&
+    typeof task.title === 'string' &&
+    typeof task.updated_at === 'string'
+  )
+}
+
+function validComment(comment: Partial<TaskComment> | undefined): comment is TaskComment {
+  return (
+    typeof comment?.id === 'number' &&
+    typeof comment.task_id === 'number' &&
+    typeof comment.body === 'string' &&
+    typeof comment.created_at === 'string' &&
+    (comment.edited_at === null || typeof comment.edited_at === 'string') &&
+    (comment.user === null || (isRecord(comment.user) && typeof comment.user.id === 'number' && typeof comment.user.name === 'string')) &&
+    Array.isArray(comment.mentions) &&
+    comment.mentions.every((m) => isRecord(m) && typeof m.id === 'number' && typeof m.name === 'string') &&
+    Array.isArray(comment.attachments) &&
+    comment.attachments.every(
+      (a) => isRecord(a) && typeof a.id === 'number' && typeof a.original_name === 'string' && typeof a.url === 'string',
+    )
+  )
+}
+
+export function subscribeToProject(
+  organizationId: number,
+  projectId: number,
+  handlers: ProjectSubscriptionHandlers,
+): () => void {
+  const {
+    onTaskCreated = () => {},
+    onTaskUpdated = () => {},
+    onTaskDeleted = () => {},
+    onTaskCommentCreated = () => {},
+    onTaskCommentUpdated = () => {},
+    onTaskCommentDeleted = () => {},
+  } = handlers
+  // Every event of the project channel, so a later subscriber (members, integrations) does not need new ones.
+  const events = [
+    TASK_CREATED_EVENT,
+    TASK_UPDATED_EVENT,
+    TASK_DELETED_EVENT,
+    TASK_COMMENT_CREATED_EVENT,
+    TASK_COMMENT_UPDATED_EVENT,
+    TASK_COMMENT_DELETED_EVENT,
+    PROJECT_MEMBERS_CHANGED_EVENT,
+    LOG_SOURCE_CONNECTED_EVENT,
+  ]
+  return subscribe(projectChannelName(organizationId, projectId), events, (event, data) => {
+    if (event === TASK_COMMENT_CREATED_EVENT) {
+      if (validComment(data.comment)) {
+        onTaskCommentCreated(data.comment, typeof data.comments_count === 'number' ? data.comments_count : undefined)
+      }
+      return
+    }
+    if (event === TASK_COMMENT_UPDATED_EVENT) {
+      if (validComment(data.comment)) onTaskCommentUpdated(data.comment)
+      return
+    }
+    if (event === TASK_COMMENT_DELETED_EVENT) {
+      const { id, task_id: taskId, comments_count: count } = data
+      if (typeof id === 'number' && typeof taskId === 'number' && typeof count === 'number') {
+        onTaskCommentDeleted({ id, task_id: taskId, comments_count: count })
+      }
+      return
+    }
+    if (event === TASK_DELETED_EVENT) {
+      if (typeof data.id === 'number' && typeof data.project_id === 'number') {
+        onTaskDeleted({ id: data.id, project_id: data.project_id })
+      }
+      return
+    }
+    if (event !== TASK_CREATED_EVENT && event !== TASK_UPDATED_EVENT) return
+    if (!validTask(data.task)) return
+    if (event === TASK_UPDATED_EVENT) onTaskUpdated(data.task)
+    else onTaskCreated(data.task)
   })
 }
 

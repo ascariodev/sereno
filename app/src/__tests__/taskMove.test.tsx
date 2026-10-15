@@ -50,6 +50,7 @@ const board = [task(1, 'todo', 1, { assignee: { id: 1, name: 'Ana' } }), task(2,
 
 function mockApi(handler: (url: string, init?: RequestInit) => Response | Promise<Response>) {
   const fn = jest.fn(async (url: string, init?: RequestInit) => {
+    if ((!init?.method || init.method === 'GET') && url.includes('/comments')) return json({ data: [], meta: { next_cursor: null } });
     if ((!init?.method || init.method === 'GET') && url.includes('/api/projects/3/tasks')) {
       return json({ data: board, meta: {} });
     }
