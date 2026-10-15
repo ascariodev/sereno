@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -58,7 +58,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `src/SerenoHandler.php`, `tests/SerenoHandlerTest.php`
 - **Terminado cuando:** tests del lote, vaciado y fallo pasan; un script contra el API local deja el evento en el canal.
 
-### [ ] Fase 5 — sereno-php: captura global
+### [x] Fase 5 — sereno-php: captura global
 - **Alcance:** `Sereno::init(key, url, options)` para PHP puro: crea el logger, registra `set_exception_handler`,
   `set_error_handler` (desde un nivel) y fatales en shutdown, encadenando los handlers previos.
 - **Archivos:** `src/Sereno.php`, `tests/SerenoTest.php`
@@ -252,9 +252,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — sereno-php: `composer.lock` no se versiona (librería); PHPUnit `^10.5 || ^11`; commit de fase 2 fbbb912 en `feat/sdks` de sereno-php.
 - 2026-10-15 — sereno-php fase 3 (a21c152): cualquier 2xx es enviado; 3xx no se sigue y cuenta como rechazo; sin `curl_close` (deprecado en 8.5).
 - 2026-10-15 — sereno-php fase 4 (6b818e4): avisos en texto plano por `error_log` (notifier inyectable); el tope de 1000 es defensivo en PHP síncrono (el buffer no pasa de 99).
+- 2026-10-15 — sereno-php fase 5 (02b0938): errores desde E_WARNING; los warnings y fatales llevan file/line/errno en el contexto y el fingerprint lo calcula el servidor; con handler previo de excepciones no se hace exit.
 
 ## Notas para la próxima sesión
-- Fase 4 hecha: SerenoHandler (61 tests; verificado contra el API local con la key de desarrollo `sdk-e2e` del proyecto DEMO, guardada en el scratchpad de la sesión, no en el repo). Sigue la fase 5 (`Sereno::init`). Constructor del handler: url, key, level, bubble, timeout, transport (instancia o fábrica), formatter, shutdownRegistrar, notifier.
+- Fase 5 hecha: `Sereno::init(key, url, options)` (level, timeout, errorLevel, handlers), `Sereno::logger()`, `Sereno::flush()`; 70 tests y prueba real. Sigue la fase 6 (bin/sereno-test).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -273,4 +274,6 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-7: sereno-php: robustez de TransportTest (carrera de `freePort()`, hijos de `php -S` con workers, márgenes de tiempo reales).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-8: sereno-php: la fábrica de Transport del constructor de SerenoHandler va en try/catch (hoy si lanza, lanza el constructor).
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-9: sereno-php: evitar duplicados en Sereno (E_USER_ERROR registrado en handleError y otra vez como fatal en shutdown; handler previo que lanza).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
