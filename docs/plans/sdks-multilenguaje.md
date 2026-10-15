@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 19
+**Estado:** en curso · Fase actual: 20
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -142,7 +142,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `src/sereno/{handler.py,__init__.py}`, `tests/test_handler.py`
 - **Terminado cuando:** un subproceso que lanza una excepción no capturada deja el evento en el servidor de prueba.
 
-### [ ] Fase 19 — sereno-python: Django [riesgo]
+### [x] Fase 19 — sereno-python: Django [riesgo]
 - **Alcance:** configuración por `LOGGING` (el logger `django.request` ya registra los 500 con `exc_info`); helper
   `sereno.django.logging_config()` si hace falta.
 - **Archivos:** `src/sereno/django.py`, `tests/test_django.py`
@@ -263,9 +263,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 16: equivalencias de tipos de Python en el formateador: Enum por .value, Decimal como string (NAN/INF), bytes decodificados con ?, set/tuple/frozenset/deque como lista, date a T00:00:00+00:00, datetime con su desfase, int fuera de int64 como string, funciones [function], otras instancias [object módulo.Clase] sin usar __str__; nivel inválido pasa a error.
 - 2026-10-15 — Fase 17: el Client de sereno-python usa un hilo daemon con Condition sobre RLock, guardia thread-local y reinicio tras os.fork (register_at_fork, buffer vacío en el hijo); el timeout de urllib es por operación de socket y no cubre DNS.
 - 2026-10-15 — Fase 18: sereno-python solo captura Exception (KeyboardInterrupt y SystemExit pasan), encadena sys.excepthook y threading.excepthook llamando siempre al anterior, no toca el nivel del root logger, ignora los loggers sereno* y lo que llega con client.reentrant, y vacía en un atexit registrado al importar el paquete con tope de 10 s.
+- 2026-10-15 — Fase 19: DjangoHandler se cuelga de django.request y django.security (no de django, para no reemplazar console ni mail_admins), descarta status_code < 500 y la deduplicación entre handlers se hace anotando id(client) en el registro (_sereno_handled_by), así un registro llega una vez por cliente.
 
 ## Notas para la próxima sesión
-- Fase 18 cerrada (sereno-python 0d1d177): sereno exporta init(key=None, url=None, *, level=None, timeout=None, handlers=True, **options) -> Client, capture_exception(exc=None, **context), flush(timeout=None), close(timeout=None), get_client(); SerenoHandler(client, level=NOTSET) con to_log_record, psr_level y exception_record en sereno.handler. Contexto: logger, extra y exception. Para el README (fase 22): el nivel del root no se toca (con WARNING los INFO no llegan), SIGTERM y os._exit pierden el buffer, solo se capturan Exception. Las fases 19 y 20 usan get_client, capture_exception y exception_record. Sigue la fase 19 (Django).
+- Fase 19 cerrada (sereno-python c306c67): sereno.django con DjangoHandler(level=NOTSET, client=None), logging_config(config=None) -> dict y request_context(request); SerenoHandler gana resolve_client() y convert(record) sobrescribibles; extra django en pyproject y test incluye django. Uso: sereno.init() y LOGGING = logging_config() (o logging_config(LOGGING)). Para el README (fase 22): con solo init() los 4xx de django.request llegan como warning; el mensaje de Django trae la ruta concreta sin query; un LOGGING con clave root pierde el handler de init(); DjangoHandler(level=ERROR) manual deja pasar el 404 por el root; un client explícito distinto duplica. Sigue la fase 20 (FastAPI).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
