@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 17
+**Estado:** en curso · Fase actual: 18
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -131,7 +131,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `pyproject.toml`, `src/sereno/{__init__.py,format.py}`, `tests/test_format.py`, `tests/fixtures/vectores.json`
 - **Terminado cuando:** `pytest` pasa en `python:3.12` y `python:3.10`.
 
-### [ ] Fase 17 — sereno-python: transporte
+### [x] Fase 17 — sereno-python: transporte
 - **Alcance:** `Transport` con `urllib.request` y un hilo de fondo con cola: lote, reintento, presupuesto, `flush(timeout)`.
 - **Archivos:** `src/sereno/transport.py`, `tests/test_transport.py`
 - **Terminado cuando:** tests con `http.server` local cubren los mismos casos que la fase 3.
@@ -262,7 +262,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 13: el subpath next de sereno-node no importa nada de Node a nivel de módulo (solo import type) y carga el SDK con import() tras comprobar process.env.NEXT_RUNTIME === 'nodejs' escrito literal, para que el bundle edge de instrumentation.ts no arrastre node:util. Errores de control de Next se ignoran por digest (NEXT_REDIRECT, NEXT_NOT_FOUND, NEXT_HTTP_ERROR_FALLBACK, BAILOUT_TO_CLIENT_SIDE_RENDERING, DYNAMIC_SERVER_USAGE).
 
 ## Notas para la próxima sesión
-- Fase 16 cerrada (sereno-python c4ef0c4): paquete sereno-sdk (hatchling, src/sereno, Python >= 3.10, extra test con pytest), exporta format_event(record: LogRecord | Mapping) -> dict, LogRecord(level, message, context=None, time=None) dataclass, serialize_exception, class_name, trim, php_json_size, new_uuid, is_log_level, LOG_LEVELS. Para la fase 18: time=datetime.fromtimestamp(r.created, timezone.utc). Para el README (fase 22): equivalencias propias de Python (Enum por .value, Decimal string, bytes decodificados, set/tuple/deque como lista, date a medianoche UTC, int fuera de int64 como string). Sigue la fase 17 (Transport con hilo de fondo).
+- Fase 17 cerrada (sereno-python 3f229a2): sereno.transport con Transport(url, key, timeout=None, *, retry=True, clock, sender, headers).send(batch) -> DeliveryResult y Client(url=None, key=None, *, level, timeout, retry, notifier, clock, sender, headers, flush_delay=1.0) con log(record), handles(level), flush(timeout=None) -> bool, close(timeout=None) -> bool, guard(), reentrant, sent, failed. Hilo daemon perezoso: la fase 18 debe llamar a flush o close en atexit; si no se puede crear el hilo, flush y close vacían síncrono. Para la prueba de conexión (fase 21): Transport(..., retry=False) con timeout 5. Sigue la fase 18 (handler de logging e init).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
