@@ -148,7 +148,8 @@
   "settings": {
     "title": "Settings",
     "members": "Members",
-    "language": "Language"
+    "language": "Language",
+    "invitations": "Invitations"
   },
   "tasks": {
     "title": "Tasks",
@@ -495,5 +496,47 @@
     "reloadFailed": "The change was saved, but your organizations could not be reloaded. Restart the app.",
     "leftReloadFailed": "You left the organization, but your organizations could not be reloaded. Restart the app.",
     "network": "Could not reach the server."
+  },
+  "invitations": {
+    "title": "Invitations",
+    "invite": "Invite someone",
+    "email": "Email",
+    "role": "Role",
+    "roleOption": "Invite as {{role}}",
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member"
+    },
+    "projects": "Projects",
+    "projectsHint": "Optional. The invited member will be added to the projects you select.",
+    "projectsFailed": "Could not load the projects.",
+    "submit": "Send invitation",
+    "sending": "Sending...",
+    "empty": "There are no pending invitations.",
+    "loadFailed": "Could not load the invitations.",
+    "invitedBy": "Invited by",
+    "unknownInviter": "Unknown",
+    "expires": "Expires",
+    "revoke": "Revoke",
+    "revokeFor": "Revoke invitation for {{email}}",
+    "revokeTitle": "Revoke invitation",
+    "revokeConfirm": "Revoke the invitation for {{email}}? The link will stop working.",
+    "revokeAction": "Revoke invitation",
+    "cancel": "Cancel",
+    "form": {
+      "forbidden": "You are not allowed to send this invitation.",
+      "tooManyAttempts": "Too many attempts. Try again in a minute.",
+      "network": "Could not reach the server.",
+      "failed": "Could not send the invitation. Try again."
+    },
+    "notice": {
+      "sent": "Invitation sent to {{email}}.",
+      "revoked": "Invitation for {{email}} revoked.",
+      "gone": "That invitation no longer exists.",
+      "forbidden": "You are not allowed to revoke this invitation.",
+      "failed": "Could not revoke the invitation. Try again.",
+      "network": "Could not reach the server."
+    }
   }
 }

@@ -148,7 +148,8 @@
   "settings": {
     "title": "Ajustes",
     "members": "Miembros",
-    "language": "Idioma"
+    "language": "Idioma",
+    "invitations": "Invitaciones"
   },
   "tasks": {
     "title": "Tareas",
@@ -495,5 +496,47 @@
     "reloadFailed": "El cambio se guardó, pero no se pudieron recargar tus organizaciones. Reinicia la app.",
     "leftReloadFailed": "Saliste de la organización, pero no se pudieron recargar tus organizaciones. Reinicia la app.",
     "network": "No se pudo conectar con el servidor."
+  },
+  "invitations": {
+    "title": "Invitaciones",
+    "invite": "Invitar a alguien",
+    "email": "Correo",
+    "role": "Rol",
+    "roleOption": "Invitar como {{role}}",
+    "roles": {
+      "owner": "Propietario",
+      "admin": "Administrador",
+      "member": "Miembro"
+    },
+    "projects": "Proyectos",
+    "projectsHint": "Opcional. El miembro invitado se agregará a los proyectos que elijas.",
+    "projectsFailed": "No se pudieron cargar los proyectos.",
+    "submit": "Enviar invitación",
+    "sending": "Enviando...",
+    "empty": "No hay invitaciones pendientes.",
+    "loadFailed": "No se pudieron cargar las invitaciones.",
+    "invitedBy": "Invitado por",
+    "unknownInviter": "Desconocido",
+    "expires": "Vence",
+    "revoke": "Revocar",
+    "revokeFor": "Revocar la invitación de {{email}}",
+    "revokeTitle": "Revocar invitación",
+    "revokeConfirm": "¿Revocar la invitación de {{email}}? El enlace dejará de funcionar.",
+    "revokeAction": "Revocar invitación",
+    "cancel": "Cancelar",
+    "form": {
+      "forbidden": "No tienes permiso para enviar esta invitación.",
+      "tooManyAttempts": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
+      "network": "No se pudo contactar con el servidor.",
+      "failed": "No se pudo enviar la invitación. Inténtalo de nuevo."
+    },
+    "notice": {
+      "sent": "Invitación enviada a {{email}}.",
+      "revoked": "Invitación de {{email}} revocada.",
+      "gone": "Esa invitación ya no existe.",
+      "forbidden": "No tienes permiso para revocar esta invitación.",
+      "failed": "No se pudo revocar la invitación. Inténtalo de nuevo.",
+      "network": "No se pudo contactar con el servidor."
+    }
   }
 }

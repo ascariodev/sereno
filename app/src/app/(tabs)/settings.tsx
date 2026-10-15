@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { NotificationPreferences } from '@/components/NotificationPreferences';
 import { getLocale, LOCALE_LABELS, SUPPORTED_LOCALES, type Locale } from '@/i18n';
+import { invitableRolesFor } from '@/organization/invitations';
 import { useOrganizationStore } from '@/organization/store';
 import { useAuthStore } from '@/session/auth';
 
@@ -13,6 +14,7 @@ export default function Settings() {
   const logout = useAuthStore((state) => state.logout);
   const chooseAndSaveLocale = useAuthStore((state) => state.chooseAndSaveLocale);
   const organizationName = useOrganizationStore((state) => state.active()?.name ?? null);
+  const canInvite = useOrganizationStore((state) => invitableRolesFor(state.active()?.roles ?? []).length > 0);
   const [localeSaveFailed, setLocaleSaveFailed] = useState(false);
   const current = getLocale();
 
@@ -49,6 +51,11 @@ export default function Settings() {
       <Pressable accessibilityRole="button" onPress={() => router.push('/members')} style={styles.button}>
         <Text style={styles.buttonText}>{t('settings.members')}</Text>
       </Pressable>
+      {canInvite ? (
+        <Pressable accessibilityRole="button" onPress={() => router.push('/invitations')} style={styles.button}>
+          <Text style={styles.buttonText}>{t('settings.invitations')}</Text>
+        </Pressable>
+      ) : null}
       <Pressable accessibilityRole="button" onPress={() => router.push('/select-organization')} style={styles.button}>
         <Text style={styles.buttonText}>{t('common.changeOrganization')}</Text>
       </Pressable>

@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 43
+**Estado:** en curso · Fase actual: 44
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -237,7 +237,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** lista, cambio de rol, quitar y transferir la propiedad (como `MembersView.vue`).
 - **Terminado cuando:** tests por rol.
 
-### [ ] Fase 43 — Invitaciones
+### [x] Fase 43 — Invitaciones
 - **Alcance:** invitar, listar y revocar (como `InvitationsView.vue`). Aceptar una invitación sigue en la web.
 - **Terminado cuando:** tests por rol.
 
@@ -288,17 +288,17 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   ok se sigue con la 33 en adelante y se vuelve a la 30 cuando avise.
 
 ## Notas para la próxima sesión
+- Fase 43 hecha: `organization/invitations.ts` y pantalla `/invitations` (botón en Ajustes y ruta solo owner/admin).
+  Roles invitables como `InvitationPolicy` (admin no invita ni revoca owner), `project_ids` solo para member, lista por
+  cursor completa, revocar con `Alert` (404 quita la fila), aviso de enviado, acciones bloqueadas mientras carga. Sin
+  tiempo real, reenvío ni estado "vencida", igual que la web. Siguen el bloque G: 44 identidad visual, 45, y la 46 manual;
+  las 30 a 32 esperan Firebase.
 - Fase 42 hecha: `organization/members.ts` (`assignableRolesFor`, `canRemoveMember`, `mergeFetched`, errores) y pantalla
   `/members` desde Ajustes para todos los roles. Rol con un botón por destino; quitar, salir ("Leave" para uno mismo) y
   transferir con `Alert`. Cambiar el rol propio y transferir recargan la organización; salir recarga y vuelve a `/` solo
   si sigue en `/members`, y si la recarga falla avisa (`leftReloadFailed`) sin navegar. `echo.ts` suma
   `subscribeToOrganizationMembers` (`.organization.members_changed`), usado solo por owner/admin. La revocación y el cambio
   de rol globales (`onMembershipRevoked`/`onRoleChanged`) siguen en M-17.
-- Fase 41 hecha: `projects/projectMembers.ts` y pantalla `/project-members` (botón "Members" en la tarjeta y ruta solo
-  para owner/admin; quitar solo rol `member`, candidatos con "Add" en vez de select; sin restricción por archivado, igual
-  que `ProjectPolicy::manageMembers` y la web). `projects/members.ts` suma `invalidate(projectId?)`, que descarta cargas en
-  vuelo. `echo.ts` acepta `onMembersChanged`; la pantalla invalida el directorio y refresca sus listas por evento y al
-  reconectar. Falta cablear `onMembersChanged` en canal, tareas y log (mejora) y M-17 (`useMembershipWatch`).
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
