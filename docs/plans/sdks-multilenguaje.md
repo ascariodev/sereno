@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -84,7 +84,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `package.json`, `tsconfig.json`, `packages/core/{package.json,src/format.ts}`, `packages/core/test/format.test.ts`
 - **Terminado cuando:** `npm test` y `npm run build` pasan en `node:24`.
 
-### [ ] Fase 9 — sereno-js: transporte y buffer del núcleo
+### [x] Fase 9 — sereno-js: transporte y buffer del núcleo
 - **Alcance:** `Client` con `fetch` y `AbortController`: buffer, lote de 100, reintento ante red/5xx, presupuesto, `flush()`
   que devuelve promesa, guardia de reentrada, nunca rechaza.
 - **Archivos:** `packages/core/src/{client.ts,index.ts}`, `packages/core/test/client.test.ts`
@@ -255,9 +255,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — sereno-php fase 5 (02b0938): errores desde E_WARNING; los warnings y fatales llevan file/line/errno en el contexto y el fingerprint lo calcula el servidor; con handler previo de excepciones no se hace exit.
 - 2026-10-15 — sereno-php fase 6 (fb0e778): ConnectionTester usa curl directo (Transport reintenta y no sirve para 5 s sin reintento); `.gitattributes` fuerza LF en `bin/sereno-test`.
 - 2026-10-15 — Fase 8: sereno-js usa TypeScript ~5.9 (la salida CJS necesita moduleResolution node10, obsoleto en TS 6), Vitest 4 (el 5 pide Node 22.12) y build con tsc dos veces sin bundler; core compila con lib ES2020 y types [] (sin APIs de Node), SHA-1 propio síncrono y UUID con getRandomValues. package-lock.json se versiona. Valores propios de JS: surrogate suelto ?, undefined y Date inválida o fuera de 0000-9999 null, bigint su string, funciones [function], símbolos [symbol], Map y clases [object Nombre], ciclos [truncated] y lo que lanza al leerlo [unserializable], siempre con _truncated.
+- 2026-10-15 — Fase 9: el Client de sereno-js envía secuencialmente por una cadena de promesas; drain saca lotes de 100 con splice para que lo pendiente cuente contra el tope de 1000; headers y fetchOptions son el punto de extensión (keepalive del navegador) y los campos propios del SDK siempre ganan; 3xx con redirect manual es rechazo sin reintento; avisos con el mismo texto que sereno-php.
 
 ## Notas para la próxima sesión
-- Fase 8 cerrada (sereno-js 026deb7): workspaces packages/{core,node,browser}, core exporta formatEvent(record: LogRecord): SerenoEvent, serializeException, isError, isLogLevel, uuid, sha1, trim, phpJsonSize y constantes; LogRecord {level, message, context?, time?}. Build con scripts/build-package.mjs (tsc ESM y CJS). Docker: volumen sereno-js-node-modules en /app/node_modules. Sigue la fase 9 (Client del núcleo).
+- Fase 9 cerrada (sereno-js 0a767dc): core exporta new Client(options?: ClientOptions) con log(record), flush(): Promise<FlushResult {sent, failed, dropped}>, guard(run), configured, level, size; ClientOptions {url, key, level, notifier, timeout, fetch, now, scheduler, headers, fetchOptions}; Transport, DeliveryResult, defaultScheduler (setTimeout con unref), normalizeTimeout, normalizeLevel. Core no lee SERENO_*: lo hace la fase 10. Client no tiene close(). Sigue la fase 10 (sereno-node init y captura del proceso).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
