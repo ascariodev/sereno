@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AccessTokenController;
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChannelController;
@@ -51,6 +52,9 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::middleware(['auth:sanctum', 'organization'])->group(function () {
+    Route::get('access-tokens', [AccessTokenController::class, 'index']);
+    Route::post('access-tokens', [AccessTokenController::class, 'store']);
+    Route::delete('access-tokens/{id}', [AccessTokenController::class, 'destroy'])->whereNumber('id');
     Route::get('projects', [ProjectController::class, 'index']);
     Route::post('projects', [ProjectController::class, 'store']);
     Route::get('projects/{project}', [ProjectController::class, 'show']);

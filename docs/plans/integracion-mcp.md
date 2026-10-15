@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -46,7 +46,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Terminado cuando:** migra y revierte limpio; tests del modelo (ability, organización, cascada al borrar la organización)
   y los de `ExpoPushToken` siguen pasando.
 
-### [ ] Fase 2 — Endpoints de tokens de acceso
+### [x] Fase 2 — Endpoints de tokens de acceso
 - **Alcance:** en el grupo `auth:sanctum` + `organization`: `GET /api/access-tokens` (los del usuario en la organización
   activa: id, name, last_used_at, expires_at, created_at; nunca el token), `POST /api/access-tokens` (name requerido,
   `expires_in_days` nullable en 30/90/365; devuelve el token en claro una sola vez), `DELETE /api/access-tokens/{id}`
@@ -172,12 +172,16 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - 2026-10-14 — Descripciones y schemas de las tools en inglés (los lee el modelo, no las personas); errores por `__()`.
 - 2026-10-15 — `User::createAccessToken` escribe el token en una sola operación con `organization_id` y abilities `['mcp']`;
   `organization_id` va en `$fillable` del modelo propio.
+- 2026-10-15 — `/api/access-tokens`: el `POST` devuelve `data` y `token` (en claro) al mismo nivel; `DELETE` filtra por
+  usuario y organización activa sin route-model binding (ajeno, de otra organización o de sesión = 404). Los vencidos se
+  listan para poder revocarlos. Sin textos nuevos en `lang/`.
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren con
   `docker compose run --rm --no-deps -v "<worktree>/api:/var/www/api" api ...` desde la raíz del checkout principal.
 
 ## Notas para la próxima sesión
 - Fase 3: `currentAccessToken()` devuelve `App\Models\PersonalAccessToken`, salvo con `Sanctum::actingAs`, donde es un
-  `TransientToken`: tratarlo como "no es token de acceso".
+  `TransientToken`: tratarlo como "no es token de acceso". Los endpoints de `/api/access-tokens` también deben quedar
+  bloqueados para tokens de acceso.
 
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
