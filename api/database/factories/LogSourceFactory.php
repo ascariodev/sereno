@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\LogSourceKind;
 use App\Models\LogSource;
 use App\Models\Project;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -21,6 +22,8 @@ class LogSourceFactory extends Factory
                 ->whereKey($attributes['project_id'])
                 ->value('organization_id'),
             'name' => fake()->unique()->words(2, true),
+            'kind' => LogSourceKind::Server,
+            'allowed_origins' => null,
             'key_hash' => LogSource::hashKey($plainKey),
             'key_prefix' => LogSource::displayPrefix($plainKey),
             'last_used_at' => null,
@@ -31,6 +34,19 @@ class LogSourceFactory extends Factory
     public function withPlainKey(string $plainKey): static
     {
         return $this->state([
+            'key_hash' => LogSource::hashKey($plainKey),
+            'key_prefix' => LogSource::displayPrefix($plainKey),
+        ]);
+    }
+
+    /** @param  list<string>  $allowedOrigins */
+    public function browser(array $allowedOrigins = ['https://app.example.com']): static
+    {
+        $plainKey = LogSource::newPlainKey(LogSourceKind::Browser);
+
+        return $this->state([
+            'kind' => LogSourceKind::Browser,
+            'allowed_origins' => $allowedOrigins,
             'key_hash' => LogSource::hashKey($plainKey),
             'key_prefix' => LogSource::displayPrefix($plainKey),
         ]);

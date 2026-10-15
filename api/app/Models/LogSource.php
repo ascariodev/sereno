@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\LogSourceKind;
 use App\Events\LogSourceConnected;
 use App\Models\Concerns\BelongsToOrganization;
 use App\Models\Concerns\EnsuresProjectInOrganization;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'key_hash', 'key_prefix'])]
+#[Fillable(['name', 'kind', 'allowed_origins', 'key_hash', 'key_prefix'])]
 #[Hidden(['key_hash'])]
 class LogSource extends Model
 {
@@ -32,14 +33,16 @@ class LogSource extends Model
     protected function casts(): array
     {
         return [
+            'kind' => LogSourceKind::class,
+            'allowed_origins' => 'array',
             'last_used_at' => 'datetime',
             'revoked_at' => 'datetime',
         ];
     }
 
-    public static function newPlainKey(): string
+    public static function newPlainKey(LogSourceKind $kind = LogSourceKind::Server): string
     {
-        return self::KEY_PREFIX.Str::random(self::KEY_RANDOM_LENGTH);
+        return $kind->keyPrefix().Str::random(self::KEY_RANDOM_LENGTH);
     }
 
     public static function isWellFormedPlainKey(string $plainKey): bool
@@ -57,12 +60,26 @@ class LogSource extends Model
         return substr($plainKey, 0, self::DISPLAY_PREFIX_LENGTH);
     }
 
-    /** @return array{0: self, 1: string} the source and its plain key, which is never stored. */
-    public static function issueFor(Project $project, string $name): array
-    {
-        $plainKey = static::newPlainKey();
+    /**
+     * Server sources never store origins; browser sources need at least one (a CHECK enforces both).
+     *
+     * @param  list<string>  $allowedOrigins  normalized origins, only kept for browser sources
+     * @return array{0: self, 1: string} the source and its plain key, which is never stored.
+     */
+    public static function issueFor(
+        Project $project,
+        string $name,
+        LogSourceKind $kind = LogSourceKind::Server,
+        array $allowedOrigins = [],
+    ): array {
+        $plainKey = static::newPlainKey($kind);
 
-        $source = $project->logSources()->make(['name' => $name, ...static::keyAttributes($plainKey)]);
+        $source = $project->logSources()->make([
+            'name' => $name,
+            'kind' => $kind,
+            'allowed_origins' => $kind === LogSourceKind::Browser ? array_values($allowedOrigins) : null,
+            ...static::keyAttributes($plainKey),
+        ]);
         $source->organization_id = $project->organization_id;
         $source->save();
 
@@ -85,7 +102,7 @@ class LogSource extends Model
      */
     public function rotateKey(): ?string
     {
-        $plainKey = static::newPlainKey();
+        $plainKey = static::newPlainKey($this->kind ?? LogSourceKind::Server);
         $attributes = [
             ...static::keyAttributes($plainKey),
             'last_used_at' => null,

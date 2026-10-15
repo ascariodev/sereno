@@ -15,6 +15,8 @@ class LogSourceResource extends JsonResource
             'id' => $this->id,
             'project_id' => $this->project_id,
             'name' => $this->name,
+            'kind' => $this->kind,
+            'allowed_origins' => $this->allowed_origins,
             'key_prefix' => $this->key_prefix,
             'last_used_at' => $this->last_used_at,
             'revoked_at' => $this->revoked_at,

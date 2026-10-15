@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 23
+**Estado:** en curso · Fase actual: 24
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -164,7 +164,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `README.md`, `LICENSE`
 - **Terminado cuando:** una app FastAPI nueva, siguiendo solo el README, envía una excepción al API local.
 
-### [ ] Fase 23 — API: tipo de fuente pública [riesgo]
+### [x] Fase 23 — API: tipo de fuente pública [riesgo]
 - **Alcance:** migración `log_sources.kind` (`server` por defecto, `browser`) y `allowed_origins` (jsonb); keys de navegador
   con prefijo `wsp_`; crear con tipo y orígenes (validados como origen `https://host[:puerto]`); resource expone ambos.
 - **Archivos:** migración nueva, `api/app/Models/LogSource.php`, `api/app/Http/Requests/LogSource/StoreLogSourceRequest.php`,
@@ -266,9 +266,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 19: DjangoHandler se cuelga de django.request y django.security (no de django, para no reemplazar console ni mail_admins), descarta status_code < 500 y la deduplicación entre handlers se hace anotando id(client) en el registro (_sereno_handled_by), así un registro llega una vez por cliente.
 - 2026-10-15 — Fase 20: la deduplicación de sereno-python se extiende a la excepción (atributo _sereno_handled_by con ids de cliente) y la comparten el middleware ASGI, capture_exception, los excepthooks y SerenoHandler; solo se marca si el cliente acepta el nivel. SerenoMiddleware lee la ruta de scope[route].path con el prefijo de Mount y no importa Starlette ni FastAPI.
 - 2026-10-15 — Fase 21: sereno-python redacta la key (y Bearer <key>, también escapada) y las credenciales userinfo de la URL en todo error del transporte, que alimenta tanto los avisos por stderr como el comando de prueba.
+- 2026-10-15 — Fase 23: log_sources.kind string default server con CHECK; allowed_origins jsonb null en server y array no vacío (1 a 20) en browser. Payload de creación {name, kind?, allowed_origins?}. Orígenes https://host[:puerto] o http://localhost|127.0.0.1[:puerto], normalizados a minúsculas, sin puerto por defecto y sin duplicados; comparables por igualdad exacta con la cabecera Origin. LogSourceKind::keyPrefix() da wsk_ o wsp_; newPlainKey(kind), issueFor(project, name, kind, origins) y rotateKey respetan el tipo.
 
 ## Notas para la próxima sesión
-- Fase 22 cerrada (sereno-python 709d06c, tag local v0.1.0): README en inglés y classifiers en pyproject; sin [project.urls] hasta que exista el repo público. Bloque sereno-python terminado. Sigue la fase 23 (API: tipo de fuente pública con key wsp_) en el monorepo, worktree sdks-fase-1.
+- Fase 23 cerrada: log_sources.kind (server|browser) y allowed_origins (jsonb, null en server, no vacío en browser), keys wsp_ por tipo. isWellFormedPlainKey todavía usa KEY_PREFIX (wsk_) y rechaza wsp_: la fase 24 debe validar por tipo y comparar Origin por igualdad exacta con el valor normalizado. Sigue la fase 24 (ingesta con key de navegador [riesgo]); verificación API con verify.sh api <archivos>.
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -304,3 +305,5 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-20: sereno-python: vaciar el buffer en SIGTERM como sereno-node (sin cambiar la salida del proceso). Complejidad media.
 - [ ] M-21: sereno-python dedupe: la marca _sereno_handled_by vive en la instancia de la excepción, así que una instancia reutilizada (constante o cacheada) se envía una sola vez por cliente; documentarlo o desmarcar al terminar la petición, y agregar tests de __slots__, ExceptionGroup de anyio y excepción reutilizada. Complejidad baja.
 - [ ] M-22: sereno-php y sereno-js: redactar la key y el userinfo de la URL en los mensajes de error del transporte y del comando de prueba, como transport.redact de sereno-python (una key con salto de línea interno aparece en el error del cliente HTTP). Complejidad baja.
+- [ ] M-23: Que el mensaje de error de origen diga que los dominios IDN van en punycode (xn--) [simple, haiku]
+- [ ] M-24: Opciones --kind y --origin en log:source-create para crear fuentes de navegador por consola [simple, sonnet]
