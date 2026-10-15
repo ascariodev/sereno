@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -91,7 +91,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Archivos:** ninguno (salvo ajustes que aparezcan, que van en una fase nueva).
 - **Terminado cuando:** Claude Code lista los proyectos del usuario en una sesión real.
 
-### [ ] Fase 7 — Lectura de tareas
+### [x] Fase 7 — Lectura de tareas
 - **Alcance:** tools `list-tasks` (por proyecto; filtros opcionales `status`, `assignee_id`, `search` en título; límite de
   hechas como `done_limit`) y `get-task` (tarea con `TaskResource` y sus últimos comentarios, paginado por cursor).
   Mismas comprobaciones que `TaskController::show` (proyecto visible, tarea del proyecto).
@@ -198,6 +198,10 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   "Authorization: Bearer <token>"`; queda Connected y una sesión nueva de Claude Code lista los proyectos. En este equipo
   el CLI `claude` no está en el PATH: el de la app vive en la AppData virtualizada de la app y solo se ve desde sus
   sesiones. `mcp:inspector` no se probó.
+- 2026-10-15 — `list-tasks` y `get-task` duplican la consulta de `TaskController::index`/`show` (sin extraer) y reusan
+  `RELATIONS`, `counts()`, `MAX_DONE_LIMIT`, `TaskResource` y `TaskCommentResource`; autorizan el proyecto antes de
+  validar. `list-tasks` devuelve `data` y `meta{done_total, has_more_done}`; `get-task` devuelve `data` y
+  `comments{data, next_cursor}` (más nuevos primero, `per_page` 30, reglas de `ListTaskCommentsRequest`).
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
   del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
   worktree; `vendor/` es el volumen compartido con el checkout principal).
@@ -224,3 +228,5 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - [ ] M-7: tests de `ResolveTokenOrganization`: usuario de dos organizaciones que manda `X-Organization-Id` de la otra
       (queda la del token), y en el de ex miembro fijar antes otra organización para que pruebe de verdad L-02.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
+- [ ] M-8: extraer la consulta del tablero (orden por CASE y límite de hechas) que comparten `TaskController::index` y
+      `ListTasksTool`, para no mantenerla en dos sitios. Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
