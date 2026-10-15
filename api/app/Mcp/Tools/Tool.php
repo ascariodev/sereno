@@ -8,6 +8,7 @@ use App\Support\CurrentOrganization;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -25,6 +26,8 @@ abstract class Tool extends McpTool
             return Response::error(__('You do not belong to this organization.'));
         }
 
+        $request->setArguments($this->normalize($request->toArray()));
+
         try {
             return $this->run($request, $user, $organization);
         } catch (AuthorizationException $exception) {
@@ -32,6 +35,23 @@ abstract class Tool extends McpTool
         } catch (NotFoundHttpException|ModelNotFoundException) {
             return Response::error(__('Not found.'));
         }
+    }
+
+    /**
+     * Mirrors the TrimStrings and ConvertEmptyStringsToNull middleware, which MCP calls skip.
+     *
+     * @param  array<array-key, mixed>  $data
+     * @return array<array-key, mixed>
+     */
+    private function normalize(array $data): array
+    {
+        return array_map(function (mixed $value): mixed {
+            if (is_array($value)) {
+                return $this->normalize($value);
+            }
+
+            return is_string($value) ? (Str::trim($value) === '' ? null : Str::trim($value)) : $value;
+        }, $data);
     }
 
     abstract protected function run(Request $request, User $user, Organization $organization): Response|ResponseFactory;

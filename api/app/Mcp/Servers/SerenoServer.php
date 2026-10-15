@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Servers;
 
+use App\Mcp\Tools\CommentOnTaskTool;
 use App\Mcp\Tools\GetLogGroupTool;
 use App\Mcp\Tools\GetTaskTool;
 use App\Mcp\Tools\ListChannelMessagesTool;
@@ -28,6 +29,7 @@ class SerenoServer extends Server
         ListChannelMessagesTool::class,
         ListLogGroupsTool::class,
         GetLogGroupTool::class,
+        CommentOnTaskTool::class,
     ];
 
     protected array $resources = [];

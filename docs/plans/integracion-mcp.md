@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -110,7 +110,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Archivos:** `api/app/Mcp/Tools/ListLogGroupsTool.php`, `GetLogGroupTool.php`, `SerenoServer.php`.
 - **Terminado cuando:** tests de filtros, grupo de otro proyecto o no visible = error.
 
-### [ ] Fase 10 — Comentar tareas
+### [x] Fase 10 — Comentar tareas
 - **Alcance:** extraer de `TaskCommentController::store` una acción `App\Actions\CreateTaskComment` (transacción,
   `syncMentions`, `TaskCommentCreated`) sin cambiar el comportamiento; el controller la usa. Tool `comment-on-task`
   (body con menciones; sin adjuntos), autorizada con `TaskCommentPolicy`, validada con las `rules()` del Form Request.
@@ -208,6 +208,12 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - 2026-10-15 — `list-log-groups` (reglas de `ListLogGroupsRequest`, argumento `page`, `data` + `meta{current_page, total,
   has_more}`) y `get-log-group` (`DETAIL_EVENTS_LIMIT`, retención, `LogGroupResource` con `events` y `task`) duplican
   `LogGroupController::index`/`show`. El contenedor de 8013 corre con `--no-reload`: reiniciarlo para ver tools nuevas.
+- 2026-10-15 — Fase 10: además de `CreateTaskComment(Task, User, body, attachmentIds = [])` se extrajo
+  `SyncTaskCommentMentions` (también la usa `update`). La acción carga `RELATIONS` y despacha `TaskCommentCreated` tras
+  el commit; las notificaciones siguen en el listener. `comment-on-task` responde `{data: TaskCommentResource}`.
+- 2026-10-15 — La base `Tool` normaliza los argumentos antes de `run()` como `TrimStrings` y `ConvertEmptyStringsToNull`
+  (`Str::trim`, `''` a `null`, recursivo), porque MCP no pasa por esos middleware. Las tools reutilizan `rules()` de los
+  Form Requests sin normalizar a mano.
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
   del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
   worktree; `vendor/` es el volumen compartido con el checkout principal).
@@ -243,3 +249,5 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - [ ] M-10: extraer a una acción compartida la lógica de `LogGroupController::index`/`show` (y `levelsAtLeast`) que
       duplican las tools de log; tests de `get-log-group` con eventos fuera de retención o sobre el límite y de `page`
       inválido. Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
+- [ ] M-11: mover `TaskCommentController::RELATIONS` (y el equivalente de tareas) al modelo, para que las acciones no
+      importen un controller. Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
