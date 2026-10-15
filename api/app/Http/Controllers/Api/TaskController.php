@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\CreateTask;
 use App\Actions\DeleteTask;
-use App\Actions\PostLogGroupStatusNotice;
-use App\Enums\LogGroupStatus;
+use App\Actions\MoveTask;
+use App\Actions\NotifyTaskAssignee;
 use App\Enums\TaskStatus;
-use App\Events\TaskAssigned;
-use App\Events\TaskCreated;
 use App\Events\TaskDeleted;
 use App\Events\TaskUpdated;
 use App\Http\Controllers\Controller;
@@ -16,19 +15,13 @@ use App\Http\Requests\Task\MoveTaskRequest;
 use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Requests\Task\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
-use App\Models\Channel;
-use App\Models\LogGroup;
-use App\Models\Message;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
-use App\Notifications\TaskAssignedNotification;
 use App\Support\ProjectAccess;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -52,9 +45,6 @@ class TaskController extends Controller
     {
         return ['comments' => fn (Builder $query) => $query->withoutGlobalScopes()];
     }
-
-    /** Below this gap between neighbors the column is renumbered instead of halving it again. */
-    private const MIN_POSITION_GAP = 1e-9;
 
     /** Done tasks listed when the board asks for a bounded Done column (`done_limit`). */
     public const MAX_DONE_LIMIT = 500;
@@ -123,127 +113,40 @@ class TaskController extends Controller
         return new TaskResource($task);
     }
 
-    public function store(StoreTaskRequest $request, Project $project): JsonResponse
+    public function store(StoreTaskRequest $request, Project $project, CreateTask $createTask): JsonResponse
     {
-        $status = $request->taskStatus();
-
-        try {
-            $task = DB::transaction(function () use ($request, $project, $status) {
-                $this->lockAssigneeAccess($project, $request->validated('assignee_id'));
-                $this->lockActiveProject($project, __('This project is archived and cannot have new tasks.'));
-
-                // Locks the project row until commit, so numbers and positions of the project are serialized.
-                $number = DB::selectOne(
-                    'UPDATE projects SET last_task_number = last_task_number + 1 WHERE id = ? RETURNING last_task_number',
-                    [$project->id],
-                )->last_task_number;
-
-                $last = Task::query()
-                    ->where('project_id', $project->id)
-                    ->where('status', $status)
-                    ->max('position');
-
-                $task = new Task([
-                    'title' => $request->validated('title'),
-                    'description' => $request->validated('description'),
-                    'status' => $status,
-                    'position' => $last === null ? 1.0 : (float) $last + 1.0,
-                ]);
-                $task->project_id = $project->id;
-                $task->number = (int) $number;
-                $task->assignee_id = $request->validated('assignee_id');
-                $task->log_group_id = $request->validated('log_group_id');
-                $task->created_by = $request->user()->id;
-                $task->save();
-
-                if ($task->log_group_id !== null) {
-                    $task->setRelation('project', $project);
-                    $this->postTaskCreatedNotice($project, $task);
-                }
-
-                return $task;
-            });
-        } catch (UniqueConstraintViolationException $exception) {
-            if (! str_contains($exception->getMessage(), 'tasks_log_group_id_unique')) {
-                throw $exception;
-            }
-
-            // Another request linked the same log group between validation and insert.
-            throw ValidationException::withMessages([
-                'log_group_id' => __('The log group already has a task.'),
-            ]);
-        }
-
-        $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
-        TaskCreated::dispatch($task);
-        $this->notifyAssignee($task, $request->user());
+        $task = $createTask(
+            $project,
+            $request->user(),
+            $request->validated('title'),
+            $request->validated('description'),
+            $request->taskStatus(),
+            $request->validated('assignee_id'),
+            $request->validated('log_group_id'),
+        );
 
         return (new TaskResource($task))->response()->setStatusCode(201);
     }
 
-    private function postTaskCreatedNotice(Project $project, Task $task): void
-    {
-        $channel = Channel::query()
-            ->where('project_id', $project->id)
-            ->whereNull('archived_at')
-            ->first();
-
-        if ($channel === null) {
-            return;
-        }
-
-        $message = new Message([
-            'kind' => Message::KIND_SYSTEM,
-            'payload' => [
-                'type' => 'task.created_from_group',
-                'log_group_id' => $task->log_group_id,
-                'task_id' => $task->id,
-                'task_key' => $task->key(),
-                'task_status' => $task->status->value,
-            ],
-        ]);
-        $message->forceFill([
-            'organization_id' => $task->organization_id,
-            'channel_id' => $channel->id,
-            'user_id' => $task->created_by,
-            'log_group_id' => $task->log_group_id,
-        ])->save();
-    }
-
-    public function update(UpdateTaskRequest $request, Project $project, Task $task): TaskResource
+    public function update(UpdateTaskRequest $request, Project $project, Task $task, NotifyTaskAssignee $notifyAssignee): TaskResource
     {
         $data = $request->validated();
         $newAssigneeId = array_key_exists('assignee_id', $data) && $data['assignee_id'] !== null
             && (int) $data['assignee_id'] !== $task->assignee_id ? (int) $data['assignee_id'] : null;
 
         DB::transaction(function () use ($project, $task, $data, $newAssigneeId) {
-            $this->lockAssigneeAccess($project, $newAssigneeId);
-            $this->lockActiveProject($project, __('This project is archived and its tasks cannot be edited.'));
+            self::lockAssigneeAccess($project, $newAssigneeId);
+            self::lockActiveProject($project, __('This project is archived and its tasks cannot be edited.'));
             $task->fill($data)->save();
         });
 
         $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
         TaskUpdated::dispatch($task);
         if ($newAssigneeId !== null) {
-            $this->notifyAssignee($task, $request->user());
+            $notifyAssignee($task, $request->user());
         }
 
         return new TaskResource($task);
-    }
-
-    private function notifyAssignee(Task $task, User $actor): void
-    {
-        if ($task->assignee_id === null || $task->assignee_id === $actor->id) {
-            return;
-        }
-
-        TaskAssigned::dispatch($task->assignee_id, $task->organization_id, $task->project_id, $task->id);
-
-        $assignee = User::query()->find($task->assignee_id);
-
-        if ($assignee !== null && ProjectAccess::canViewId($assignee, $task->organization_id, $task->project_id)) {
-            $assignee->notify(TaskAssignedNotification::for($task, $actor));
-        }
     }
 
     public function destroy(DeleteTaskRequest $request, Project $project, Task $task, DeleteTask $deleteTask): Response
@@ -254,81 +157,14 @@ class TaskController extends Controller
         return response()->noContent();
     }
 
-    public function move(MoveTaskRequest $request, Project $project, Task $task, PostLogGroupStatusNotice $postGroupNotice): TaskResource
+    public function move(MoveTaskRequest $request, Project $project, Task $task, MoveTask $moveTask): TaskResource
     {
-        $status = $request->taskStatus();
-        $beforeId = $request->beforeId();
-        $afterId = $request->afterId();
-        $actor = $request->user();
-
-        $renumbered = [];
-
-        $task = DB::transaction(function () use ($project, $task, $status, $beforeId, $afterId, $actor, $postGroupNotice, &$renumbered) {
-            // Same lock as store() takes with its UPDATE: creations and moves of the project are serialized, so no
-            // task enters the target column while it is read. NO KEY keeps inserts that reference the project free.
-            $projectRow = $this->lockActiveProject($project, __('This project is archived and its tasks cannot be moved.'));
-
-            // The group goes before the task: retention deletes groups and then nulls their tasks (group, then task),
-            // and ingestion's upsert holds only the group (project and source just FOR KEY SHARE, which this NO KEY
-            // project lock lets through), so neither can close a cycle with this transaction.
-            $group = $projectRow->tasks_resolve_log_groups && $status === TaskStatus::Done && $task->log_group_id !== null
-                ? LogGroup::query()
-                    ->whereKey($task->log_group_id)
-                    ->where('project_id', $project->id)
-                    ->lock('for no key update')
-                    ->first()
-                : null;
-
-            $task = Task::query()->whereKey($task->id)->lockForUpdate()->firstOrFail();
-            $entersDone = $status === TaskStatus::Done && $task->status !== TaskStatus::Done;
-
-            $column = Task::query()
-                ->where('project_id', $project->id)
-                ->where('status', $status)
-                ->whereKeyNot($task->id)
-                ->orderBy('position')
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get(['id', 'position'])
-                ->values();
-
-            $slot = $this->moveSlot($column, $beforeId, $afterId);
-
-            $previous = $column[$slot - 1] ?? null;
-            $next = $column[$slot] ?? null;
-            $position = match (true) {
-                $previous === null && $next === null => 1.0,
-                $previous === null => $next->position - 1.0,
-                $next === null => $previous->position + 1.0,
-                default => ($previous->position + $next->position) / 2,
-            };
-
-            if ($previous !== null && $next !== null && (
-                $next->position - $previous->position <= self::MIN_POSITION_GAP
-                || $position <= $previous->position
-                || $position >= $next->position
-            )) {
-                $position = $this->renumberColumn($column, $slot, $renumbered);
-            }
-
-            $task->status = $status;
-            $task->position = $position;
-            $task->save();
-
-            if ($entersDone && $group?->status === LogGroupStatus::Open && $task->log_group_id === $group->id) {
-                $group->status = LogGroupStatus::Resolved;
-                $group->save();
-                $postGroupNotice($group, LogGroupStatus::Open, $actor);
-            }
-
-            return $task;
-        });
-
-        $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
-        TaskUpdated::dispatch($task);
-
-        Task::query()->with(self::RELATIONS)->withCount(self::counts())->whereKey($renumbered)->get()->each(
-            fn (Task $neighbor) => TaskUpdated::dispatch($neighbor->setRelation('project', $project))
+        $task = $moveTask(
+            $task->setRelation('project', $project),
+            $request->user(),
+            $request->taskStatus(),
+            $request->beforeId(),
+            $request->afterId(),
         );
 
         return new TaskResource($task);
@@ -338,7 +174,7 @@ class TaskController extends Controller
      * Locks the project row and re-checks, now that archiving cannot interleave, that it is still active: the request
      * validated it before the transaction. NO KEY keeps inserts that reference the project free.
      */
-    private function lockActiveProject(Project $project, string $archivedMessage): object
+    public static function lockActiveProject(Project $project, string $archivedMessage): object
     {
         $row = DB::table('projects')
             ->where('id', $project->id)
@@ -359,7 +195,7 @@ class TaskController extends Controller
      * then project_user and tasks), so no lock cycle; assignments do not block each other or inserts that reference
      * the organization.
      */
-    private function lockAssigneeAccess(Project $project, ?int $assigneeId): void
+    public static function lockAssigneeAccess(Project $project, ?int $assigneeId): void
     {
         if ($assigneeId === null) {
             return;
@@ -374,58 +210,5 @@ class TaskController extends Controller
                 'assignee_id' => StoreTaskRequest::assigneeWithoutAccessMessage(),
             ]);
         }
-    }
-
-    /**
-     * Index in the target column (without the moved task) where the task goes; validates that the neighbors are in
-     * that column and, when both come, that nothing sits between them.
-     *
-     * @param  Collection<int, Task>  $column
-     */
-    private function moveSlot(Collection $column, ?int $beforeId, ?int $afterId): int
-    {
-        $index = fn (int $id) => $column->search(fn (Task $neighbor) => $neighbor->id === $id);
-
-        $afterIndex = $afterId === null ? null : $index($afterId);
-        $beforeIndex = $beforeId === null ? null : $index($beforeId);
-
-        foreach (['after_id' => $afterIndex, 'before_id' => $beforeIndex] as $field => $found) {
-            if ($found === false) {
-                throw ValidationException::withMessages([
-                    $field => __('The neighbor task is not in the target column of this project.'),
-                ]);
-            }
-        }
-
-        if ($afterIndex !== null && $beforeIndex !== null && $beforeIndex !== $afterIndex + 1) {
-            throw ValidationException::withMessages([
-                'before_id' => __('The neighbor tasks are not next to each other.'),
-            ]);
-        }
-
-        return match (true) {
-            $afterIndex !== null => $afterIndex + 1,
-            $beforeIndex !== null => $beforeIndex,
-            default => $column->count(),
-        };
-    }
-
-    /**
-     * Spreads the column over 1, 2, 3... leaving the moved task's slot free, and returns the position of that slot.
-     *
-     * @param  Collection<int, Task>  $column
-     * @param  list<int>  $renumbered  receives the ids whose position changed, so other clients get them in live
-     */
-    private function renumberColumn(Collection $column, int $slot, array &$renumbered): float
-    {
-        foreach ($column as $index => $neighbor) {
-            $position = (float) ($index < $slot ? $index + 1 : $index + 2);
-            if ((float) $neighbor->position !== $position) {
-                DB::table('tasks')->where('id', $neighbor->id)->update(['position' => $position]);
-                $renumbered[] = $neighbor->id;
-            }
-        }
-
-        return (float) ($slot + 1);
     }
 }

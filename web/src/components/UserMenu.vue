@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bell, Languages, LogOut, Mail, Users } from '@lucide/vue'
+import { Bell, KeyRound, Languages, LogOut, Mail, Users } from '@lucide/vue'
 import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -28,6 +28,7 @@ const items = computed<AppMenuItem[]>(() => [
   { value: 'members', label: t('userMenu.members'), icon: Users },
   ...(organization.canManageInvitations ? [{ value: 'invitations', label: t('userMenu.invitations'), icon: Mail }] : []),
   { value: 'notification-preferences', label: t('userMenu.notificationPreferences'), icon: Bell },
+  { value: 'access-tokens', label: t('userMenu.accessTokens'), icon: KeyRound },
   {
     value: 'theme',
     label: t('userMenu.themeLabel'),
@@ -75,6 +76,10 @@ async function onSelect(value: string): Promise<void> {
   }
   if (value === 'notification-preferences') {
     preferencesOpen.value = true
+    return
+  }
+  if (value === 'access-tokens') {
+    await router.push({ name: 'access-tokens' })
     return
   }
   if (value === 'invitations') {

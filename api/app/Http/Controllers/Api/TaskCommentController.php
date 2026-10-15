@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\NotificationType;
-use App\Events\TaskCommentCreated;
+use App\Actions\CreateTaskComment;
+use App\Actions\SyncTaskCommentMentions;
 use App\Events\TaskCommentDeleted;
 use App\Events\TaskCommentUpdated;
 use App\Http\Controllers\Controller;
@@ -17,9 +17,6 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TaskCommentAttachment;
-use App\Models\TaskCommentMention;
-use App\Models\User;
-use App\Support\MentionTargets;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -27,7 +24,6 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class TaskCommentController extends Controller
@@ -45,29 +41,21 @@ class TaskCommentController extends Controller
         return TaskCommentResource::collection($page);
     }
 
-    public function store(StoreTaskCommentRequest $request, Project $project, Task $task): JsonResponse
+    public function store(StoreTaskCommentRequest $request, Project $project, Task $task, CreateTaskComment $createTaskComment): JsonResponse
     {
-        $comment = $task->comments()->make(['body' => $request->validated('body')]);
-        $comment->user_id = $request->user()->id;
-        DB::transaction(function () use ($comment, $task, $request) {
-            $comment->save();
-            $this->syncMentions($comment, $task, $request->user()->id, []);
-            $this->linkAttachments($comment, $request->attachmentIds(), $request->user()->id);
-        });
-        $comment->load(self::RELATIONS);
-        TaskCommentCreated::dispatch($comment, $project->id);
+        $comment = $createTaskComment($task, $request->user(), $request->validated('body'), $request->attachmentIds());
 
         return (new TaskCommentResource($comment))->response()->setStatusCode(201);
     }
 
-    public function update(UpdateTaskCommentRequest $request, Project $project, Task $task, TaskComment $comment): TaskCommentResource
+    public function update(UpdateTaskCommentRequest $request, Project $project, Task $task, TaskComment $comment, SyncTaskCommentMentions $syncMentions): TaskCommentResource
     {
         $body = $request->validated('body');
         $removeIds = $request->removeAttachmentIds();
         $edited = false;
         $addedMentionIds = [];
 
-        DB::transaction(function () use ($request, $task, &$comment, $body, $removeIds, &$edited, &$addedMentionIds) {
+        DB::transaction(function () use ($request, $task, &$comment, $body, $removeIds, &$edited, &$addedMentionIds, $syncMentions) {
             // Reread after the lock: a delete or another edit committed while waiting must not be overwritten.
             $locked = TaskComment::query()->whereKey($comment->id)->lockForUpdate()->first();
             throw_if($locked === null, ModelNotFoundException::class);
@@ -82,7 +70,7 @@ class TaskCommentController extends Controller
                 $comment->save();
             }
 
-            $addedMentionIds = $this->syncMentions($comment, $task, $request->user()->id);
+            $addedMentionIds = $syncMentions($comment, $task, $request->user()->id);
         });
 
         $comment->load(self::RELATIONS);
@@ -154,90 +142,5 @@ class TaskCommentController extends Controller
                 }
             }
         });
-    }
-
-    /**
-     * Takes the attachments only if they are still free: another comment sent at the same time may have taken
-     * them after validation, and then the whole comment is rolled back.
-     *
-     * @param  list<int>  $ids
-     */
-    private function linkAttachments(TaskComment $comment, array $ids, int $authorId): void
-    {
-        if ($ids === []) {
-            return;
-        }
-
-        $owned = fn () => TaskCommentAttachment::query()
-            ->whereIn('id', $ids)
-            ->where('task_id', $comment->task_id)
-            ->where('user_id', $authorId);
-
-        $owned()->orderBy('id')->lockForUpdate()->pluck('id');
-
-        $linked = $owned()->whereNull('task_comment_id')->update(['task_comment_id' => $comment->id]);
-
-        if ($linked !== count($ids)) {
-            throw ValidationException::withMessages([
-                'attachment_ids' => __('The attachments do not exist or are already in use.'),
-            ]);
-        }
-    }
-
-    /**
-     * Only syncs the mention rows; notifications are sent by the NotifyTaskCommentRecipients listener. `$currentIds` skips the lookup (new comment: []).
-     *
-     * A removed mention also drops its notification, as the chat does. Returns the ids of the newly mentioned users.
-     *
-     * @param  list<int>|null  $currentIds
-     * @return list<int>
-     */
-    private function syncMentions(TaskComment $comment, Task $task, int $authorId, ?array $currentIds = null): array
-    {
-        $targets = MentionTargets::resolve(
-            $comment->body,
-            $authorId,
-            $comment->organization_id,
-            $task->project_id,
-            config('chat.mentions.max_per_message'),
-        );
-
-        $currentIds ??= TaskCommentMention::query()
-            ->where('task_comment_id', $comment->id)
-            ->pluck('user_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-
-        $removed = array_values(array_diff($currentIds, $targets->pluck('id')->all()));
-        $added = $targets->reject(fn (User $user) => in_array($user->id, $currentIds, true));
-
-        if ($removed !== []) {
-            TaskCommentMention::query()
-                ->where('task_comment_id', $comment->id)
-                ->whereIn('user_id', $removed)
-                ->delete();
-            AppNotification::query()
-                ->withoutGlobalScopes()
-                ->where('organization_id', $comment->organization_id)
-                ->where('type', NotificationType::TaskCommentMention->value)
-                ->where('subject_type', TaskComment::class)
-                ->where('subject_id', $comment->id)
-                ->whereIn('user_id', $removed)
-                ->delete();
-        }
-
-        if ($added->isEmpty()) {
-            return [];
-        }
-
-        $now = now();
-        TaskCommentMention::query()->insert($added->map(fn (User $user) => [
-            'organization_id' => $comment->organization_id,
-            'task_comment_id' => $comment->id,
-            'user_id' => $user->id,
-            'created_at' => $now,
-        ])->values()->all());
-
-        return $added->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
     }
 }

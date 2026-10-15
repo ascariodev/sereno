@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Http\Middleware\AuthenticateLogSource;
+use App\Models\PersonalAccessToken;
 use App\Models\User;
 use App\Policies\MemberPolicy;
 use App\Support\CurrentOrganization;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -40,6 +42,8 @@ class AppServiceProvider extends ServiceProvider
 
     public const ATTACHMENT_URLS_PER_MINUTE = 120;
 
+    public const MCP_REQUESTS_PER_MINUTE = 120;
+
     /**
      * Register any application services.
      */
@@ -55,6 +59,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
         Gate::policy(User::class, MemberPolicy::class);
         $this->configureRateLimiting();
     }
@@ -105,6 +110,11 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('notifications', fn (Request $request) => Limit::perMinute(self::NOTIFICATIONS_PER_MINUTE)
             ->by('user:'.$request->user()->getKey())
+            ->response($this->tooManyAttemptsResponse(...)));
+
+        // Keyed on the access token, so each Claude Code connection has its own budget.
+        RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute(self::MCP_REQUESTS_PER_MINUTE)
+            ->by('mcp-token:'.$request->user()->currentAccessToken()->getKey())
             ->response($this->tooManyAttemptsResponse(...)));
 
         RateLimiter::for('invitation-preview', fn (Request $request) => Limit::perMinute(self::INVITATION_PREVIEWS_PER_MINUTE)

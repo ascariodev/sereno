@@ -128,3 +128,6 @@
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
 -->
+- L-95: Un punto de entrada nuevo que traduce excepciones a errores propios (tools MCP) mapea igual `ModelNotFoundException`, `NotFoundHttpException` y `AuthorizationException` con status 404 (`denyAsNotFound`): si no, el mensaje distingue un recurso oculto de uno inexistente. — aplicada en: test (ToolErrorMappingTest)
+- L-96: Un punto de entrada que no pasa por el kernel HTTP (tools MCP, comandos) y reutiliza `rules()` de un Form Request normaliza antes la entrada como `TrimStrings` y `ConvertEmptyStringsToNull`: si no, acepta lo que el REST rechaza (body de solo espacios). — aplicada en: test (CommentOnTaskToolTest)
+- L-97: Cada punto del "Terminado cuando" de una fase tiene un test del punto de entrada nuevo (la tool), aunque la acción que reutiliza ya lo pruebe por REST: el revisor no acepta la cobertura indirecta. — aplicada en: test (MoveTaskToolTest)

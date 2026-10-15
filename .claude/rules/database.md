@@ -42,7 +42,7 @@ Reglas:
 ## Modelo de datos
 
 Previsto en el plan `nucleo` (actualizar al crear cada tabla):
-- `users` (+ `locale` nullable, + `notification_preferences` jsonb nullable: `{"email": {"<NotificationType>": bool}, "push": {"<NotificationType>": bool}}`, un tipo ausente o nulo cuenta como encendido en ambas claves; `User::wantsEmail` y `User::wantsPush`), `personal_access_tokens`, tablas de spatie con `organization_id` como team.
+- `users` (+ `locale` nullable, + `notification_preferences` jsonb nullable: `{"email": {"<NotificationType>": bool}, "push": {"<NotificationType>": bool}}`, un tipo ausente o nulo cuenta como encendido en ambas claves; `User::wantsEmail` y `User::wantsPush`), `personal_access_tokens` (+ `organization_id` nullable, FK `cascadeOnDelete`, índice: nulo en las sesiones web y móvil; con valor es un token de acceso para el MCP, ability `mcp`, creado con `User::createAccessToken`; modelo propio `App\Models\PersonalAccessToken` con `organization()` e `isAccessToken()`, registrado con `Sanctum::usePersonalAccessTokenModel`), tablas de spatie con `organization_id` como team.
 - `organizations`: name, slug único, `settings` jsonb (`default_locale`).
 - `organization_user`: solo membresía; los roles (`owner`, `admin`, `member`) viven en
   `model_has_roles.organization_id`. Un usuario puede pertenecer a varias organizaciones.

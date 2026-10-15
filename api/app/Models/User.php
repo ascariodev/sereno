@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\Locale;
 use App\Enums\NotificationType;
+use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Sanctum\NewAccessToken;
 use LogicException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
@@ -77,6 +79,21 @@ class User extends Authenticatable implements HasLocalePreference
     public function notifications(): HasMany
     {
         return $this->hasMany(AppNotification::class);
+    }
+
+    public function createAccessToken(Organization $organization, string $name, ?CarbonInterface $expiresAt = null): NewAccessToken
+    {
+        $plainTextToken = $this->generateTokenString();
+
+        $token = $this->tokens()->create([
+            'name' => $name,
+            'token' => hash('sha256', $plainTextToken),
+            'abilities' => ['mcp'],
+            'expires_at' => $expiresAt,
+            'organization_id' => $organization->getKey(),
+        ]);
+
+        return new NewAccessToken($token, $token->getKey().'|'.$plainTextToken);
     }
 
     public function expoPushTokens(): HasMany
