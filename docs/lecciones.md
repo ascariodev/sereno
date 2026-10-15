@@ -120,6 +120,7 @@
 - L-89: Un store móvil que recarga una vista ya mostrada ("mostrar más", reintento) marca error solo si nunca cargó (`everLoaded` de la web): un fallo posterior conserva lo visible y revierte el parámetro que lo pidió. — aplicada en: test (tasks.test)
 - L-90: Al portar una vista de la web a la app se portan también sus condiciones de habilitación (`canCreate`, proyecto archivado, rol), en el botón y en la ruta destino (un deep link no pasa por el botón). — aplicada en: test (tasks.test, taskForm.test)
 - L-91: `app/` no tiene config de prettier: no se corre prettier con valores por defecto (pasa a comillas dobles y reformatea el archivo entero); se sigue el estilo del archivo vecino y el diff queda en las líneas reales. — aplicada en: pendiente
+- L-92: En una lista paginada por número de página, si una acción local saca una fila que sale del filtro, se recargan las páginas ya cargadas (como `onPanelStatus` de la web): el servidor también la excluye y la página siguiente se saltaría filas. — aplicada en: test (logView.test)
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente

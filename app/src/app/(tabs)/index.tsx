@@ -53,6 +53,14 @@ function ProjectCard({ project, canManage }: { project: Project; canManage: bool
       >
         <Text style={styles.buttonText}>{t('projects.openBoard')}</Text>
       </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${t('projects.openLog')} ${project.name}`}
+        onPress={() => router.push({ pathname: '/log', params: { projectId: String(project.id), name: project.name } })}
+        style={styles.button}
+      >
+        <Text style={styles.buttonText}>{t('projects.openLog')}</Text>
+      </Pressable>
       {canManage ? (
         <Pressable
           accessibilityRole="button"

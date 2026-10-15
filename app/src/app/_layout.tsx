@@ -50,6 +50,8 @@ export default function RootLayout() {
         <Stack.Screen name="thread" />
         <Stack.Screen name="tasks" />
         <Stack.Screen name="task" />
+        <Stack.Screen name="log" />
+        <Stack.Screen name="log-group" />
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="select-organization" />

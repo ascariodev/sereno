@@ -103,7 +103,8 @@
     "archiveConfirm": "¿Archivar este proyecto? Desaparecerá de la lista.",
     "archiveYes": "Sí, archivar",
     "archiving": "Archivando...",
-    "archiveFailed": "No se pudo archivar el proyecto. Prueba de nuevo."
+    "archiveFailed": "No se pudo archivar el proyecto. Prueba de nuevo.",
+    "openLog": "Abrir log"
   },
   "channel": {
     "title": "Canal",
@@ -275,7 +276,17 @@
   "logGroup": {
     "levelLabel": "Nivel",
     "events": "Eventos",
-    "createTask": "Crear tarea"
+    "createTask": "Crear tarea",
+    "label": "Detalle del grupo de log",
+    "heading": "Grupo de log #{{id}}",
+    "firstSeen": "Visto por primera vez",
+    "lastSeen": "Visto por última vez",
+    "lastEvent": "Último evento",
+    "eventSource": "Origen {{name}}",
+    "viewTask": "Ver {{key}}",
+    "noEvents": "No hay eventos disponibles.",
+    "loadFailed": "No se pudo cargar el grupo de log.",
+    "notFound": "Este grupo de log no existe o no tienes acceso."
   },
   "taskAside": {
     "edit": "Editar tarea",
@@ -356,5 +367,25 @@
     "deleteCancel": "Cancelar",
     "deleteForbidden": "No puedes eliminar este comentario.",
     "deleteFailed": "No se pudo eliminar el comentario."
+  },
+  "log": {
+    "title": "Log",
+    "invalid": "Este proyecto no es válido.",
+    "loadFailed": "No se pudieron cargar los grupos de log.",
+    "empty": "Ningún grupo de log coincide con estos filtros.",
+    "showMore": "Mostrar más",
+    "statusFilter": {
+      "label": "Estado",
+      "open": "Abiertos",
+      "resolved": "Resueltos",
+      "ignored": "Ignorados",
+      "all": "Todos"
+    },
+    "level": {
+      "label": "Nivel",
+      "all": "Todos los niveles",
+      "atLeast": "{{level}} o superior"
+    },
+    "notFound": "Este proyecto no existe o no tienes acceso."
   }
 }

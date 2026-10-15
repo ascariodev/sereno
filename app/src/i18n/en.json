@@ -103,7 +103,8 @@
     "archiveConfirm": "Archive this project? It will disappear from the list.",
     "archiveYes": "Yes, archive",
     "archiving": "Archiving...",
-    "archiveFailed": "Could not archive the project. Try again."
+    "archiveFailed": "Could not archive the project. Try again.",
+    "openLog": "Open log"
   },
   "channel": {
     "title": "Channel",
@@ -275,7 +276,17 @@
   "logGroup": {
     "levelLabel": "Level",
     "events": "Events",
-    "createTask": "Create task"
+    "createTask": "Create task",
+    "label": "Log group details",
+    "heading": "Log group #{{id}}",
+    "firstSeen": "First seen",
+    "lastSeen": "Last seen",
+    "lastEvent": "Latest event",
+    "eventSource": "Source {{name}}",
+    "viewTask": "View {{key}}",
+    "noEvents": "No events available.",
+    "loadFailed": "Could not load the log group.",
+    "notFound": "This log group does not exist or you cannot access it."
   },
   "taskAside": {
     "edit": "Edit task",
@@ -356,5 +367,25 @@
     "deleteCancel": "Cancel",
     "deleteForbidden": "You cannot delete this comment.",
     "deleteFailed": "Could not delete the comment."
+  },
+  "log": {
+    "title": "Log",
+    "invalid": "This project is not valid.",
+    "loadFailed": "Could not load the log groups.",
+    "empty": "No log groups match these filters.",
+    "showMore": "Show more",
+    "statusFilter": {
+      "label": "Status",
+      "open": "Open",
+      "resolved": "Resolved",
+      "ignored": "Ignored",
+      "all": "All"
+    },
+    "level": {
+      "label": "Level",
+      "all": "All levels",
+      "atLeast": "{{level}} or higher"
+    },
+    "notFound": "This project does not exist or you cannot access it."
   }
 }
