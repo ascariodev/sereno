@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -98,7 +98,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Terminado cuando:** un script hijo que lanza una excepción no capturada deja el evento en el servidor de prueba y sale
   con el mismo código que sin el SDK.
 
-### [ ] Fase 11 — sereno-node: middleware de Express
+### [x] Fase 11 — sereno-node: middleware de Express
 - **Alcance:** `expressErrorHandler()` que captura y llama a `next(err)`, con método y ruta en el `context`.
 - **Archivos:** `packages/node/src/express.ts`, `packages/node/test/express.test.ts`, `packages/node/package.json`
 - **Terminado cuando:** test con una app Express que lanza en una ruta: evento enviado y la respuesta 500 de Express intacta.
@@ -257,9 +257,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 8: sereno-js usa TypeScript ~5.9 (la salida CJS necesita moduleResolution node10, obsoleto en TS 6), Vitest 4 (el 5 pide Node 22.12) y build con tsc dos veces sin bundler; core compila con lib ES2020 y types [] (sin APIs de Node), SHA-1 propio síncrono y UUID con getRandomValues. package-lock.json se versiona. Valores propios de JS: surrogate suelto ?, undefined y Date inválida o fuera de 0000-9999 null, bigint su string, funciones [function], símbolos [symbol], Map y clases [object Nombre], ciclos [truncated] y lo que lanza al leerlo [unserializable], siempre con _truncated.
 - 2026-10-15 — Fase 9: el Client de sereno-js envía secuencialmente por una cadena de promesas; drain saca lotes de 100 con splice para que lo pendiente cuente contra el tope de 1000; headers y fetchOptions son el punto de extensión (keepalive del navegador) y los campos propios del SDK siempre ganan; 3xx con redirect manual es rechazo sin reintento; avisos con el mismo texto que sereno-php.
 - 2026-10-15 — Fase 10: sereno-node solo reemplaza la salida de Node en uncaughtException si no hay otro listener (imprime inspect, vacía con tope de 10 s y exit 1); en modos throw y strict no registra unhandledRejection (llega por uncaughtException); en señales sin listener de la app vacía con tope y reenvía la señal con process.kill. El tsconfig raíz mapea @ascariodev/sereno-core a su src con paths para el typecheck.
+- 2026-10-15 — Fase 11: las integraciones de framework de sereno-node van por subpath (./express, y lo mismo para nest y next) para que el import raíz no arrastre el framework; el framework es peer dependency opcional y los tipos son propios. Criterio común: se ignoran errores con status < 500.
 
 ## Notas para la próxima sesión
-- Fase 10 cerrada (sereno-js dbd1a22): @ascariodev/sereno-node exporta init(options?: InitOptions {…ClientOptions, handlers?}): Client, captureException(error, context?), log(level, message, context?), flush(), close(), getClient(); src/capture.ts tiene capture(client, valor, ctx) interno para Express, Nest y Next. Los tests de node compilan core y node en globalSetup (los hijos usan dist). Para el README (fase 15): init después de los hooks unhandledRejection propios de la app en modo throw/strict, process.exit() directo pierde el buffer y captureException pisa la clave exception del contexto. Sigue la fase 11 (middleware de Express).
+- Fase 11 cerrada (sereno-js 54aed8b): expressErrorHandler(options?: {minStatus?}) solo por el subpath @ascariodev/sereno-node/express, express >=4 peer opcional, tipos propios mínimos, context {method, route}. Para el README (fase 15): route es relativo al router si el handler se registra en la app, y Express 4 no propaga rechazos async. Sigue la fase 12 (filtro de NestJS, ignorar HttpException < 500 como Express).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -285,3 +286,4 @@ fragmentos por lenguaje en el diálogo de la key.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-11: Contrato: una excepción JS sin frames en el stack da fingerprint "Error|" y agrupa todos esos errores juntos; decidir si sin location no se envía fingerprint (afecta a los cuatro SDKs). Complejidad baja.
 - [ ] M-12: sereno-node: en modo strict con listeners propios de uncaughtException y unhandledRejection el mismo rechazo se captura dos veces; deduplicar con un WeakSet de errores ya capturados. Complejidad baja.
+- [ ] M-13: sereno-node Express: un error con status fuera de 400-599 (por ejemplo 200) no se captura aunque Express responde 500; capturarlo o documentarlo, y agregar tests de headersSent y minStatus. Complejidad baja.
