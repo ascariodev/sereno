@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -90,7 +90,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `packages/core/src/{client.ts,index.ts}`, `packages/core/test/client.test.ts`
 - **Terminado cuando:** tests con un servidor `http` local cubren los mismos casos que la fase 3.
 
-### [ ] Fase 10 — sereno-node: init y captura del proceso
+### [x] Fase 10 — sereno-node: init y captura del proceso
 - **Alcance:** `init({key, url})` (o `SERENO_KEY`/`SERENO_URL`), `captureException`, `log(level, ...)`,
   `uncaughtException`/`unhandledRejection` sin cambiar la semántica de salida, vaciado en `beforeExit` y señales,
   `flush()` exportado para entornos sin proceso largo.
@@ -256,9 +256,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — sereno-php fase 6 (fb0e778): ConnectionTester usa curl directo (Transport reintenta y no sirve para 5 s sin reintento); `.gitattributes` fuerza LF en `bin/sereno-test`.
 - 2026-10-15 — Fase 8: sereno-js usa TypeScript ~5.9 (la salida CJS necesita moduleResolution node10, obsoleto en TS 6), Vitest 4 (el 5 pide Node 22.12) y build con tsc dos veces sin bundler; core compila con lib ES2020 y types [] (sin APIs de Node), SHA-1 propio síncrono y UUID con getRandomValues. package-lock.json se versiona. Valores propios de JS: surrogate suelto ?, undefined y Date inválida o fuera de 0000-9999 null, bigint su string, funciones [function], símbolos [symbol], Map y clases [object Nombre], ciclos [truncated] y lo que lanza al leerlo [unserializable], siempre con _truncated.
 - 2026-10-15 — Fase 9: el Client de sereno-js envía secuencialmente por una cadena de promesas; drain saca lotes de 100 con splice para que lo pendiente cuente contra el tope de 1000; headers y fetchOptions son el punto de extensión (keepalive del navegador) y los campos propios del SDK siempre ganan; 3xx con redirect manual es rechazo sin reintento; avisos con el mismo texto que sereno-php.
+- 2026-10-15 — Fase 10: sereno-node solo reemplaza la salida de Node en uncaughtException si no hay otro listener (imprime inspect, vacía con tope de 10 s y exit 1); en modos throw y strict no registra unhandledRejection (llega por uncaughtException); en señales sin listener de la app vacía con tope y reenvía la señal con process.kill. El tsconfig raíz mapea @ascariodev/sereno-core a su src con paths para el typecheck.
 
 ## Notas para la próxima sesión
-- Fase 9 cerrada (sereno-js 0a767dc): core exporta new Client(options?: ClientOptions) con log(record), flush(): Promise<FlushResult {sent, failed, dropped}>, guard(run), configured, level, size; ClientOptions {url, key, level, notifier, timeout, fetch, now, scheduler, headers, fetchOptions}; Transport, DeliveryResult, defaultScheduler (setTimeout con unref), normalizeTimeout, normalizeLevel. Core no lee SERENO_*: lo hace la fase 10. Client no tiene close(). Sigue la fase 10 (sereno-node init y captura del proceso).
+- Fase 10 cerrada (sereno-js dbd1a22): @ascariodev/sereno-node exporta init(options?: InitOptions {…ClientOptions, handlers?}): Client, captureException(error, context?), log(level, message, context?), flush(), close(), getClient(); src/capture.ts tiene capture(client, valor, ctx) interno para Express, Nest y Next. Los tests de node compilan core y node en globalSetup (los hijos usan dist). Para el README (fase 15): init después de los hooks unhandledRejection propios de la app en modo throw/strict, process.exit() directo pierde el buffer y captureException pisa la clave exception del contexto. Sigue la fase 11 (middleware de Express).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -283,3 +284,4 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-10: sereno-php: `export-ignore` de `tests/` y archivos de desarrollo en `.gitattributes` para aligerar el dist.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-11: Contrato: una excepción JS sin frames en el stack da fingerprint "Error|" y agrupa todos esos errores juntos; decidir si sin location no se envía fingerprint (afecta a los cuatro SDKs). Complejidad baja.
+- [ ] M-12: sereno-node: en modo strict con listeners propios de uncaughtException y unhandledRejection el mismo rechazo se captura dos veces; deduplicar con un WeakSet de errores ya capturados. Complejidad baja.
