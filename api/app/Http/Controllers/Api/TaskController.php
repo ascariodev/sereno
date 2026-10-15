@@ -4,9 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\CreateTask;
 use App\Actions\DeleteTask;
+use App\Actions\MoveTask;
 use App\Actions\NotifyTaskAssignee;
-use App\Actions\PostLogGroupStatusNotice;
-use App\Enums\LogGroupStatus;
 use App\Enums\TaskStatus;
 use App\Events\TaskDeleted;
 use App\Events\TaskUpdated;
@@ -16,14 +15,12 @@ use App\Http\Requests\Task\MoveTaskRequest;
 use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Requests\Task\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
-use App\Models\LogGroup;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\ProjectAccess;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,9 +45,6 @@ class TaskController extends Controller
     {
         return ['comments' => fn (Builder $query) => $query->withoutGlobalScopes()];
     }
-
-    /** Below this gap between neighbors the column is renumbered instead of halving it again. */
-    private const MIN_POSITION_GAP = 1e-9;
 
     /** Done tasks listed when the board asks for a bounded Done column (`done_limit`). */
     public const MAX_DONE_LIMIT = 500;
@@ -163,81 +157,14 @@ class TaskController extends Controller
         return response()->noContent();
     }
 
-    public function move(MoveTaskRequest $request, Project $project, Task $task, PostLogGroupStatusNotice $postGroupNotice): TaskResource
+    public function move(MoveTaskRequest $request, Project $project, Task $task, MoveTask $moveTask): TaskResource
     {
-        $status = $request->taskStatus();
-        $beforeId = $request->beforeId();
-        $afterId = $request->afterId();
-        $actor = $request->user();
-
-        $renumbered = [];
-
-        $task = DB::transaction(function () use ($project, $task, $status, $beforeId, $afterId, $actor, $postGroupNotice, &$renumbered) {
-            // Same lock as store() takes with its UPDATE: creations and moves of the project are serialized, so no
-            // task enters the target column while it is read. NO KEY keeps inserts that reference the project free.
-            $projectRow = self::lockActiveProject($project, __('This project is archived and its tasks cannot be moved.'));
-
-            // The group goes before the task: retention deletes groups and then nulls their tasks (group, then task),
-            // and ingestion's upsert holds only the group (project and source just FOR KEY SHARE, which this NO KEY
-            // project lock lets through), so neither can close a cycle with this transaction.
-            $group = $projectRow->tasks_resolve_log_groups && $status === TaskStatus::Done && $task->log_group_id !== null
-                ? LogGroup::query()
-                    ->whereKey($task->log_group_id)
-                    ->where('project_id', $project->id)
-                    ->lock('for no key update')
-                    ->first()
-                : null;
-
-            $task = Task::query()->whereKey($task->id)->lockForUpdate()->firstOrFail();
-            $entersDone = $status === TaskStatus::Done && $task->status !== TaskStatus::Done;
-
-            $column = Task::query()
-                ->where('project_id', $project->id)
-                ->where('status', $status)
-                ->whereKeyNot($task->id)
-                ->orderBy('position')
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get(['id', 'position'])
-                ->values();
-
-            $slot = $this->moveSlot($column, $beforeId, $afterId);
-
-            $previous = $column[$slot - 1] ?? null;
-            $next = $column[$slot] ?? null;
-            $position = match (true) {
-                $previous === null && $next === null => 1.0,
-                $previous === null => $next->position - 1.0,
-                $next === null => $previous->position + 1.0,
-                default => ($previous->position + $next->position) / 2,
-            };
-
-            if ($previous !== null && $next !== null && (
-                $next->position - $previous->position <= self::MIN_POSITION_GAP
-                || $position <= $previous->position
-                || $position >= $next->position
-            )) {
-                $position = $this->renumberColumn($column, $slot, $renumbered);
-            }
-
-            $task->status = $status;
-            $task->position = $position;
-            $task->save();
-
-            if ($entersDone && $group?->status === LogGroupStatus::Open && $task->log_group_id === $group->id) {
-                $group->status = LogGroupStatus::Resolved;
-                $group->save();
-                $postGroupNotice($group, LogGroupStatus::Open, $actor);
-            }
-
-            return $task;
-        });
-
-        $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
-        TaskUpdated::dispatch($task);
-
-        Task::query()->with(self::RELATIONS)->withCount(self::counts())->whereKey($renumbered)->get()->each(
-            fn (Task $neighbor) => TaskUpdated::dispatch($neighbor->setRelation('project', $project))
+        $task = $moveTask(
+            $task->setRelation('project', $project),
+            $request->user(),
+            $request->taskStatus(),
+            $request->beforeId(),
+            $request->afterId(),
         );
 
         return new TaskResource($task);
@@ -283,58 +210,5 @@ class TaskController extends Controller
                 'assignee_id' => StoreTaskRequest::assigneeWithoutAccessMessage(),
             ]);
         }
-    }
-
-    /**
-     * Index in the target column (without the moved task) where the task goes; validates that the neighbors are in
-     * that column and, when both come, that nothing sits between them.
-     *
-     * @param  Collection<int, Task>  $column
-     */
-    private function moveSlot(Collection $column, ?int $beforeId, ?int $afterId): int
-    {
-        $index = fn (int $id) => $column->search(fn (Task $neighbor) => $neighbor->id === $id);
-
-        $afterIndex = $afterId === null ? null : $index($afterId);
-        $beforeIndex = $beforeId === null ? null : $index($beforeId);
-
-        foreach (['after_id' => $afterIndex, 'before_id' => $beforeIndex] as $field => $found) {
-            if ($found === false) {
-                throw ValidationException::withMessages([
-                    $field => __('The neighbor task is not in the target column of this project.'),
-                ]);
-            }
-        }
-
-        if ($afterIndex !== null && $beforeIndex !== null && $beforeIndex !== $afterIndex + 1) {
-            throw ValidationException::withMessages([
-                'before_id' => __('The neighbor tasks are not next to each other.'),
-            ]);
-        }
-
-        return match (true) {
-            $afterIndex !== null => $afterIndex + 1,
-            $beforeIndex !== null => $beforeIndex,
-            default => $column->count(),
-        };
-    }
-
-    /**
-     * Spreads the column over 1, 2, 3... leaving the moved task's slot free, and returns the position of that slot.
-     *
-     * @param  Collection<int, Task>  $column
-     * @param  list<int>  $renumbered  receives the ids whose position changed, so other clients get them in live
-     */
-    private function renumberColumn(Collection $column, int $slot, array &$renumbered): float
-    {
-        foreach ($column as $index => $neighbor) {
-            $position = (float) ($index < $slot ? $index + 1 : $index + 2);
-            if ((float) $neighbor->position !== $position) {
-                DB::table('tasks')->where('id', $neighbor->id)->update(['position' => $position]);
-                $renumbered[] = $neighbor->id;
-            }
-        }
-
-        return (float) ($slot + 1);
     }
 }

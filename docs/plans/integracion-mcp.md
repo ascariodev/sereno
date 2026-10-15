@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 12
+**Estado:** en curso · Fase actual: 13
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -127,7 +127,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Terminado cuando:** tests existentes de alta en verde; tests de la tool (crea, notifica al asignado, evento, assignee
   fuera del proyecto = error).
 
-### [ ] Fase 12 — Extraer el movimiento de tareas [riesgo]
+### [x] Fase 12 — Extraer el movimiento de tareas [riesgo]
 - **Alcance:** mover la lógica de `TaskController::move` (locks, renumeración, resolución del grupo de log, eventos) a
   `App\Actions\MoveTask`, sin cambio de comportamiento. Solo refactor.
 - **Archivos:** `api/app/Actions/MoveTask.php`, `TaskController.php`.
@@ -220,6 +220,12 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   `CreateTask`, `update` y `move`). Las comprobaciones del `after()` de `StoreTaskRequest` están en
   `StoreTaskRequest::validateBusinessRules(Validator, Project, assigneeId, logGroupId)`, que usan `after()` y la tool.
   `create-task` devuelve `{data: TaskResource}`.
+- 2026-10-15 — Fase 12: `MoveTask(Task $task, User $actor, TaskStatus $status, ?int $beforeId = null, ?int $afterId =
+  null): Task`, proyecto desde `$task->project` (el controller hace `setRelation`). `moveSlot`, `renumberColumn` y
+  `MIN_POSITION_GAP` viven en la acción; los locks siguen `public static` en `TaskController`. Sin `before_id` ni
+  `after_id` la acción deja la tarea al final (como el REST).
+- 2026-10-15 — `move-task` sin `before_id`/`after_id` la deja al principio de la columna, como pide el alcance: la tool
+  pasa como `before_id` la primera tarea de la columna destino (si no es la misma tarea); `MoveTask` y el REST no cambian.
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
   del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
   worktree; `vendor/` es el volumen compartido con el checkout principal).
@@ -229,8 +235,9 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   aserciones `assertSee`, `assertDontSee`, `assertStructuredContent`, `assertHasErrors`. `tool()` solo ejecuta tools
   registradas en el servidor. Usar Edit (no sed) para los `use`: sed comió barras invertidas. `replies_count` no es
   fillable: en tests, `forceFill(...)->save()`. Pint reescribe los CRLF que deja Python en Windows: escribir con Edit.
-- Fase 12: los locks (`lockActiveProject`, `lockAssigneeAccess`) pueden pasar de `TaskController` a `MoveTask` o a un
-  soporte compartido; `CreateTask` ya los usa.
+- Fase 13: la tool replica el `authorize()` de `MoveTaskRequest` (tarea del proyecto o 404, luego `update`) y su
+  `after()` de proyecto archivado (la acción lo vuelve a comprobar bajo lock). Reiniciar el contenedor de 8013 para
+  probar las tools nuevas a mano.
 
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
@@ -262,3 +269,6 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - [ ] M-12: alinear el orden de autorización de `create-task` con el REST (`create` antes que `view`) y test de la tool
       para el 422 lanzado dentro de los locks (proyecto archivado o acceso perdido entre validación e insert).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-13: llevar los locks (`lockActiveProject`, `lockAssigneeAccess`), `RELATIONS` y `counts()` de `TaskController`
+      a un soporte compartido, para que `CreateTask` y `MoveTask` no dependan del controller.
+      Complejidad: media · Archivos: 5 · Riesgo: concurrencia → opus
