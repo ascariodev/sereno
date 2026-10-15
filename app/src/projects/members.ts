@@ -20,10 +20,12 @@ interface Entry {
 interface MemberDirectoryState {
   entries: Record<number, Entry>;
   ensureLoaded(projectId: number | null | undefined): Promise<void>;
+  invalidate(projectId?: number): void;
   clear(): void;
 }
 
 let epoch = 0;
+const versions = new Map<number, number>();
 
 export const useMemberDirectoryStore = create<MemberDirectoryState>()((set, get) => ({
   entries: {},
@@ -36,8 +38,9 @@ export const useMemberDirectoryStore = create<MemberDirectoryState>()((set, get)
     }
     if (existing?.inFlight) return existing.inFlight;
     const mine = epoch;
+    const mineVersion = versions.get(projectId) ?? 0;
     const patch = (entry: Partial<Entry>) => {
-      if (mine !== epoch) return;
+      if (mine !== epoch || mineVersion !== (versions.get(projectId) ?? 0)) return;
       const current = get().entries[projectId] ?? { members: [], loadedAt: 0, inFlight: null };
       set({ entries: { ...get().entries, [projectId]: { ...current, ...entry } } });
     };
@@ -49,8 +52,17 @@ export const useMemberDirectoryStore = create<MemberDirectoryState>()((set, get)
     return request;
   },
 
+  invalidate(projectId) {
+    const ids = projectId === undefined ? Object.keys(get().entries).map(Number) : [projectId];
+    for (const id of ids) versions.set(id, (versions.get(id) ?? 0) + 1);
+    const entries = { ...get().entries };
+    for (const id of ids) if (entries[id]) entries[id] = { ...entries[id], loadedAt: 0, inFlight: null };
+    set({ entries });
+  },
+
   clear() {
     epoch++;
+    versions.clear();
     set({ entries: {} });
   },
 }));

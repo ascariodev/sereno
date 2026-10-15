@@ -105,7 +105,8 @@
     "archiving": "Archivando...",
     "archiveFailed": "No se pudo archivar el proyecto. Prueba de nuevo.",
     "openLog": "Abrir log",
-    "openIntegrations": "Integraciones"
+    "openIntegrations": "Integraciones",
+    "openMembers": "Miembros"
   },
   "channel": {
     "title": "Canal",
@@ -433,5 +434,24 @@
     "endpoint": "Endpoint de ingesta",
     "done": "Listo",
     "revokedNotice": "Se revocó \"{{name}}\"."
+  },
+  "projectMembers": {
+    "title": "Miembros del proyecto",
+    "invalid": "Este proyecto no es válido.",
+    "notFound": "Este proyecto no existe o no tienes acceso.",
+    "noPermission": "Solo propietarios y administradores pueden gestionar los miembros del proyecto.",
+    "loadFailed": "No se pudieron cargar los miembros del proyecto.",
+    "add": "Dar acceso a un miembro",
+    "assign": "Agregar",
+    "addFor": "Agregar a {{name}} al proyecto",
+    "remove": "Quitar",
+    "removeFor": "Quitar a {{name}} del proyecto",
+    "alwaysSees": "Ve todos los proyectos",
+    "noCandidates": "Todos los miembros de la organización ya tienen acceso.",
+    "added": "{{name}} ahora tiene acceso al proyecto.",
+    "removed": "{{name}} ya no tiene acceso al proyecto.",
+    "addFailed": "No se pudo agregar al miembro. Prueba de nuevo.",
+    "removeFailed": "No se pudo quitar al miembro. Prueba de nuevo.",
+    "network": "No se pudo conectar con el servidor."
   }
 }

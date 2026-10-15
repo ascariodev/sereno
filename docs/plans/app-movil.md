@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 41
+**Estado:** en curso · Fase actual: 42
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -229,7 +229,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** fuentes de log: crear, rotar y revocar, mostrando la key una sola vez (como `IntegrationsView.vue`).
 - **Terminado cuando:** tests por rol.
 
-### [ ] Fase 41 — Miembros del proyecto
+### [x] Fase 41 — Miembros del proyecto
 - **Alcance:** agregar y quitar miembros (como `ProjectMembersDialog.vue`).
 - **Terminado cuando:** tests por rol.
 
@@ -288,17 +288,16 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   ok se sigue con la 33 en adelante y se vuelve a la 30 cuando avise.
 
 ## Notas para la próxima sesión
+- Fase 41 hecha: `projects/projectMembers.ts` y pantalla `/project-members` (botón "Members" en la tarjeta y ruta solo
+  para owner/admin; quitar solo rol `member`, candidatos con "Add" en vez de select; sin restricción por archivado, igual
+  que `ProjectPolicy::manageMembers` y la web). `projects/members.ts` suma `invalidate(projectId?)`, que descarta cargas en
+  vuelo. `echo.ts` acepta `onMembersChanged`; la pantalla invalida el directorio y refresca sus listas por evento y al
+  reconectar. Falta cablear `onMembersChanged` en canal, tareas y log (mejora) y M-17 (`useMembershipWatch`).
 - Fase 40 hecha: `integrations/store.ts` y pantalla `/integrations` (solo owner/admin en la tarjeta y en la ruta; crear,
   rotar y revocar ocultos en archivados; confirmación con `Alert`; aviso `revokedNotice`). La key vive solo en `issued` y
   se borra con "Done" o al desmontar; se copia con `Text selectable` (sin `expo-clipboard`). `mergeFetched` en `open` y
   `refresh` conserva lo creado durante una carga. `echo.ts` entrega `onLogSourceConnected`; la pantalla se suscribe con
   `subscribeToProject` (no con `useProjectLive`, que es de tareas). `.project.members_changed` queda para la 41.
-- Fase 39 hecha: `log/store.ts` (grupos por proyecto con filtros de estado y nivel al API, "Mostrar más" acumulativo en vez
-  de Anterior/Siguiente, `refresh` de páginas 1..n, `notFound` sin Reintentar, `LOG_LEVELS`, `getLogGroup`) y pantallas
-  `/log` y `/log-group` (detalle propio con resolver, ignorar, crear tarea y enlace a la tarea; tras cambiar estado
-  recarga la lista como `onPanelStatus`). Se entra con "Abrir log" en la tarjeta del proyecto. Tiempo real como `LogView`:
-  `subscribeToChannel`, recarga con debounce de 300 ms y `refreshCounts`. El detalle no se refresca por evento (igual que
-  la web). Sin sparklines.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -367,3 +366,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-47: Log: sparklines de actividad por hora (`getHourlyCounts`) en la lista y el detalle, como la web. Complejidad media, sonnet.
 - [ ] M-48: Log: `loadMore` no debe cancelar un `refresh` en curso tras cambiar el estado desde el detalle (si no, la página siguiente se salta filas hasta el próximo refresh); y que el test "does not skip rows" espere el refresh con `waitFor`. Complejidad baja, sonnet.
 - [ ] M-49: Integraciones: botón "Copiar" para la key y los comandos (requiere `npx expo install expo-clipboard`, con aprobación del usuario), curl de ejemplo como la web, test del botón "Integrations" de la tarjeta y ocultar la key al pasar a segundo plano (FLAG_SECURE o similar). Complejidad media, sonnet.
+- [ ] M-50: Cablear `onMembersChanged` a `useMemberDirectoryStore.invalidate` en las pantallas de canal, tareas y log, como `ChannelView.vue:340`, `PlanView.vue:151` y `LogView.vue:238` (hoy menciones y asignados tardan hasta 5 min); tests de `clear()` e `invalidate()` sin id. Complejidad baja, sonnet.

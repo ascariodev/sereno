@@ -105,7 +105,8 @@
     "archiving": "Archiving...",
     "archiveFailed": "Could not archive the project. Try again.",
     "openLog": "Open log",
-    "openIntegrations": "Integrations"
+    "openIntegrations": "Integrations",
+    "openMembers": "Members"
   },
   "channel": {
     "title": "Channel",
@@ -433,5 +434,24 @@
     "endpoint": "Ingest endpoint",
     "done": "Done",
     "revokedNotice": "\"{{name}}\" was revoked."
+  },
+  "projectMembers": {
+    "title": "Project members",
+    "invalid": "This project is not valid.",
+    "notFound": "This project does not exist or you cannot access it.",
+    "noPermission": "Only owners and admins can manage project members.",
+    "loadFailed": "Could not load the project members.",
+    "add": "Give access to a member",
+    "assign": "Add",
+    "addFor": "Add {{name}} to the project",
+    "remove": "Remove",
+    "removeFor": "Remove {{name}} from the project",
+    "alwaysSees": "Sees every project",
+    "noCandidates": "Every member of the organization already has access.",
+    "added": "{{name}} now has access to the project.",
+    "removed": "{{name}} no longer has access to the project.",
+    "addFailed": "Could not add the member. Try again.",
+    "removeFailed": "Could not remove the member. Try again.",
+    "network": "Could not reach the server."
   }
 }

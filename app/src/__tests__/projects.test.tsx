@@ -79,6 +79,19 @@ describe('Projects tab', () => {
     expect(useProjectsStore.getState().channelByProject).toEqual({ 1: 50 });
   });
 
+  it.each([
+    ['owner', true],
+    ['admin', true],
+    ['member', false],
+  ])('shows the project members entry for %s: %s', async (role, visible) => {
+    useOrganizationStore.setState({ organizations: [{ ...acme, roles: [role] }], activeId: 7, loaded: true });
+    mockApi([project(1)]);
+    await render(<Projects />);
+
+    expect(await screen.findByText('Project 1')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Members Project 1') !== null).toBe(visible);
+  });
+
   it('shows a retry when the load fails and loads again', async () => {
     mockApi([], 500);
     await render(<Projects />);

@@ -259,6 +259,7 @@ export interface ProjectSubscriptionHandlers {
   onTaskCommentUpdated?: (comment: TaskComment) => void
   onTaskCommentDeleted?: (event: TaskCommentDeletedEvent) => void
   onLogSourceConnected?: (event: LogSourceConnectedEvent) => void
+  onMembersChanged?: (projectId: number) => void
 }
 
 export interface LogSourceConnectedEvent {
@@ -311,6 +312,7 @@ export function subscribeToProject(
     onTaskCommentUpdated = () => {},
     onTaskCommentDeleted = () => {},
     onLogSourceConnected = () => {},
+    onMembersChanged = () => {},
   } = handlers
   // Every event of the project channel, so a later subscriber (members, integrations) does not need new ones.
   const events = [
@@ -324,6 +326,10 @@ export function subscribeToProject(
     LOG_SOURCE_CONNECTED_EVENT,
   ]
   return subscribe(projectChannelName(organizationId, projectId), events, (event, data) => {
+    if (event === PROJECT_MEMBERS_CHANGED_EVENT) {
+      if (typeof data.project_id === 'number') onMembersChanged(data.project_id)
+      return
+    }
     if (event === LOG_SOURCE_CONNECTED_EVENT) {
       const { id, project_id: eventProjectId, last_used_at: lastUsedAt } = data
       if (typeof id === 'number' && typeof eventProjectId === 'number' && typeof lastUsedAt === 'string') {
