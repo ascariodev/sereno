@@ -14,8 +14,9 @@ use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Authenticates ingestion with a log source key (Authorization: Bearer wsk_...). Every failure is the
- * same 401 so the response does not reveal whether a key exists, is revoked or its project is archived.
+ * Authenticates ingestion with a log source key (Authorization: Bearer wsk_... or, from a browser,
+ * wsp_... plus an allowed Origin). Every failure is the same 401 so the response does not reveal
+ * whether a key exists, is revoked or its project is archived.
  */
 class AuthenticateLogSource
 {
@@ -40,7 +41,7 @@ class AuthenticateLogSource
         }
 
         try {
-            $source = $this->resolve($request->bearerToken());
+            $source = $this->resolve($request->bearerToken(), $request->headers->get('Origin'));
         } catch (AuthenticationException $e) {
             RateLimiter::hit($failuresKey, config('workspace.log.auth_failures.decay_seconds'));
 
@@ -59,15 +60,17 @@ class AuthenticateLogSource
         return $request->attributes->get(self::ATTRIBUTE);
     }
 
-    private function resolve(?string $plainKey): LogSource
+    private function resolve(?string $plainKey, ?string $origin): LogSource
     {
-        if ($plainKey === null || ! LogSource::isWellFormedPlainKey($plainKey)) {
+        $kind = $plainKey === null ? null : LogSource::kindOfPlainKey($plainKey);
+
+        if ($kind === null) {
             throw new AuthenticationException;
         }
 
         $source = LogSource::findByPlainKey($plainKey);
 
-        if ($source === null || $source->isRevoked()) {
+        if ($source === null || $source->kind !== $kind || $source->isRevoked() || ! $source->acceptsOrigin($origin)) {
             throw new AuthenticationException;
         }
 

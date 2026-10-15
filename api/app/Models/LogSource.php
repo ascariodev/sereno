@@ -22,8 +22,6 @@ class LogSource extends Model
     /** @use HasFactory<LogSourceFactory> */
     use BelongsToOrganization, EnsuresProjectInOrganization, HasFactory;
 
-    public const KEY_PREFIX = 'wsk_';
-
     public const KEY_RANDOM_LENGTH = 40;
 
     public const DISPLAY_PREFIX_LENGTH = 12;
@@ -45,9 +43,26 @@ class LogSource extends Model
         return $kind->keyPrefix().Str::random(self::KEY_RANDOM_LENGTH);
     }
 
-    public static function isWellFormedPlainKey(string $plainKey): bool
+    /** The kind a plain key was issued for, from its prefix; null when the key is malformed. */
+    public static function kindOfPlainKey(string $plainKey): ?LogSourceKind
     {
-        return preg_match('/\A'.preg_quote(self::KEY_PREFIX, '/').'[A-Za-z0-9]{'.self::KEY_RANDOM_LENGTH.'}\z/', $plainKey) === 1;
+        foreach (LogSourceKind::cases() as $kind) {
+            if (preg_match('/\A'.preg_quote($kind->keyPrefix(), '/').'[A-Za-z0-9]{'.self::KEY_RANDOM_LENGTH.'}\z/', $plainKey) === 1) {
+                return $kind;
+            }
+        }
+
+        return null;
+    }
+
+    /** Browser keys are public, so they only count with an Origin listed on the source, compared exactly. */
+    public function acceptsOrigin(?string $origin): bool
+    {
+        if ($this->kind !== LogSourceKind::Browser) {
+            return true;
+        }
+
+        return $origin !== null && in_array($origin, $this->allowed_origins ?? [], true);
     }
 
     public static function hashKey(string $plainKey): string

@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 24
+**Estado:** en curso · Fase actual: 25
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -171,7 +171,7 @@ fragmentos por lenguaje en el diálogo de la key.
   `api/app/Http/Controllers/Api/LogSourceController.php`, `api/app/Http/Resources/LogSourceResource.php`
 - **Terminado cuando:** tests de creación de ambos tipos, validación de orígenes y que las fuentes existentes quedan `server`.
 
-### [ ] Fase 24 — API: ingesta con key de navegador [riesgo]
+### [x] Fase 24 — API: ingesta con key de navegador [riesgo]
 - **Alcance:** `AuthenticateLogSource` acepta `wsp_` solo con `Origin` en `allowed_origins` (401 uniforme si no); las `wsk_`
   siguen igual; límite propio por IP para keys de navegador. Actualizar `.claude/rules/database.md` (columnas de la fase 23).
 - **Archivos:** `api/app/Http/Middleware/AuthenticateLogSource.php`, `api/app/Providers/AppServiceProvider.php`,
@@ -267,9 +267,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 20: la deduplicación de sereno-python se extiende a la excepción (atributo _sereno_handled_by con ids de cliente) y la comparten el middleware ASGI, capture_exception, los excepthooks y SerenoHandler; solo se marca si el cliente acepta el nivel. SerenoMiddleware lee la ruta de scope[route].path con el prefijo de Mount y no importa Starlette ni FastAPI.
 - 2026-10-15 — Fase 21: sereno-python redacta la key (y Bearer <key>, también escapada) y las credenciales userinfo de la URL en todo error del transporte, que alimenta tanto los avisos por stderr como el comando de prueba.
 - 2026-10-15 — Fase 23: log_sources.kind string default server con CHECK; allowed_origins jsonb null en server y array no vacío (1 a 20) en browser. Payload de creación {name, kind?, allowed_origins?}. Orígenes https://host[:puerto] o http://localhost|127.0.0.1[:puerto], normalizados a minúsculas, sin puerto por defecto y sin duplicados; comparables por igualdad exacta con la cabecera Origin. LogSourceKind::keyPrefix() da wsk_ o wsp_; newPlainKey(kind), issueFor(project, name, kind, origins) y rotateKey respetan el tipo.
+- 2026-10-15 — Fase 24: LogSource::KEY_PREFIX e isWellFormedPlainKey eliminados; kindOfPlainKey(string): ?LogSourceKind y acceptsOrigin(?string) (igualdad exacta, sin normalizar el Origin entrante). El prefijo debe coincidir con kind. Limiter log-ingest: 600/min por fuente (log-source:{id}) y, para browser, 30/min por IP y fuente (log-source-ip:{id}|{ip}, AppServiceProvider::LOG_INGEST_BROWSER_REQUESTS_PER_IP_PER_MINUTE); los rechazos cuentan en log-ingest-auth-failures por IP.
 
 ## Notas para la próxima sesión
-- Fase 23 cerrada: log_sources.kind (server|browser) y allowed_origins (jsonb, null en server, no vacío en browser), keys wsp_ por tipo. isWellFormedPlainKey todavía usa KEY_PREFIX (wsk_) y rechaza wsp_: la fase 24 debe validar por tipo y comparar Origin por igualdad exacta con el valor normalizado. Sigue la fase 24 (ingesta con key de navegador [riesgo]); verificación API con verify.sh api <archivos>.
+- Fase 24 cerrada: wsp_ autentica solo con Origin exacto en allowed_origins (mismo 401 en todo rechazo); limiter log-ingest suma 30/min por IP y fuente para browser. El preflight OPTIONS ya da 204 con CORS; el 202 trae Access-Control-Allow-Origin. Sigue la fase 25 (cabeceras CORS en 401, 413 y 429 de la ingesta [riesgo]).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -307,3 +308,4 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-22: sereno-php y sereno-js: redactar la key y el userinfo de la URL en los mensajes de error del transporte y del comando de prueba, como transport.redact de sereno-python (una key con salto de línea interno aparece en el error del cliente HTTP). Complejidad baja.
 - [ ] M-23: Que el mensaje de error de origen diga que los dominios IDN van en punycode (xn--) [simple, haiku]
 - [ ] M-24: Opciones --kind y --origin en log:source-create para crear fuentes de navegador por consola [simple, sonnet]
+- [ ] M-25: Tope por fuente más bajo para fuentes browser (hoy comparten 600/min por fuente, agotable desde una IP con Origin falsificado) [media, sonnet]

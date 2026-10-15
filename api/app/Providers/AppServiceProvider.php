@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Enums\LogSourceKind;
 use App\Http\Middleware\AuthenticateLogSource;
 use App\Models\User;
 use App\Policies\MemberPolicy;
@@ -27,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
     public const REGISTER_ATTEMPTS_PER_MINUTE = 5;
 
     public const LOG_INGEST_REQUESTS_PER_MINUTE = 600;
+
+    public const LOG_INGEST_BROWSER_REQUESTS_PER_IP_PER_MINUTE = 30;
 
     public const CHANNEL_MESSAGES_PER_MINUTE = 30;
 
@@ -82,9 +85,24 @@ class AppServiceProvider extends ServiceProvider
             ->response($this->tooManyAttemptsResponse(...)));
 
         // Per source, not per IP: many systems may share an egress IP and the key identifies the sender.
-        RateLimiter::for('log-ingest', fn (Request $request) => Limit::perMinute(self::LOG_INGEST_REQUESTS_PER_MINUTE)
-            ->by('log-source:'.AuthenticateLogSource::source($request)->getKey())
-            ->response($this->tooManyAttemptsResponse(...)));
+        // A browser key is public, so each visitor's IP also gets its own share of the source.
+        RateLimiter::for('log-ingest', function (Request $request) {
+            $source = AuthenticateLogSource::source($request);
+
+            $limits = [
+                Limit::perMinute(self::LOG_INGEST_REQUESTS_PER_MINUTE)
+                    ->by('log-source:'.$source->getKey())
+                    ->response($this->tooManyAttemptsResponse(...)),
+            ];
+
+            if ($source->kind === LogSourceKind::Browser) {
+                $limits[] = Limit::perMinute(self::LOG_INGEST_BROWSER_REQUESTS_PER_IP_PER_MINUTE)
+                    ->by('log-source-ip:'.$source->getKey().'|'.$request->ip())
+                    ->response($this->tooManyAttemptsResponse(...));
+            }
+
+            return $limits;
+        });
 
         RateLimiter::for('channel-messages', fn (Request $request) => Limit::perMinute(self::CHANNEL_MESSAGES_PER_MINUTE)
             ->by('user:'.$request->user()->getKey())

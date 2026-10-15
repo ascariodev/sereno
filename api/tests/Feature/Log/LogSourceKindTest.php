@@ -169,14 +169,6 @@ it('keeps the key prefix of the kind when rotating', function () {
         ->and($browser->fresh()->allowed_origins)->toBe(['https://app.example.com']);
 });
 
-it('does not authenticate ingestion with a browser key yet', function () {
-    [, $plainKey] = LogSource::issueFor($this->project, 'spa', LogSourceKind::Browser, ['https://app.example.com']);
-
-    $this->withHeaders(['Authorization' => "Bearer {$plainKey}", 'Origin' => 'https://app.example.com'])
-        ->postJson('/api/ingest/events', ['events' => [['level' => 'error', 'message' => 'boom']]])
-        ->assertUnauthorized();
-});
-
 it('enforces the kind and origins in the database', function (array $attributes) {
     $source = LogSource::factory()->for($this->project)->create();
 
