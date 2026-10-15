@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 32
+**Estado:** en curso · Fase actual: 45
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -188,7 +188,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   borrarlo antes de cerrar sesión.
 - **Terminado cuando:** tests del registro y una tarea asignada desde la web llega como push al teléfono con la app cerrada.
 
-### [ ] Fase 32 — Abrir el destino al tocar el aviso
+### [x] Fase 32 — Abrir el destino al tocar el aviso
 - **Alcance:** al tocar un push (app cerrada o en segundo plano) cambiar de organización si hace falta y abrir la pantalla;
   en primer plano no mostrar el aviso del sistema.
 - **Terminado cuando:** tests del manejador y prueba en el teléfono.
@@ -289,15 +289,11 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - Fase 44: ícono y splash quedan configurados; verlos en el dispositivo se hace con el dev build de la fase 30. La fase 45 va después de la 30 porque ambas escriben `eas.json` y su criterio necesita builds del usuario.
 - 2026-10-15 — Fase 30: el aviso de prueba con la herramienta de push de Expo pasa a la 31 (necesita `expo-notifications` y un dev build nuevo). `eas.json` y `.easignore` quedan en el repo; la 45 suma los perfiles `preview` y `production`.
 - 2026-10-15 — Fase 31: Android 13+ reporta `denied` antes del primer pedido, así que el pedido automático usa `!granted && canAskAgain` y una marca por instalación `sereno.pushPrompted` en secure-store (no se borra al cerrar sesión). La marca se escribe antes del diálogo: si el sistema mata la app con el diálogo abierto no se vuelve a pedir solo y queda el botón de Ajustes. Cerrar la app con `am kill` (no `force-stop`, que bloquea FCM) para probar push con la app cerrada.
+- 2026-10-15 — Fase 32: en el dev build el toque con la app cerrada abre el lanzador del dev client y la respuesta del aviso se pierde; segundo plano y primer plano verificados. El arranque en frío se verifica en la fase 45 con el build `preview`. Un push de chat abre el canal o el hilo, sin hacer scroll al mensaje.
 
 ## Notas para la próxima sesión
+- Fase 32 hecha: `app/src/push/open.ts` traduce `data.url` + `organizationId` a `/task`, `/thread` o `/channel`, cambia de organización si hace falta y no muestra aviso en primer plano. Retrabajo: navegar en el montaje crasheaba en Android (L-95). Pendiente de la 45: probar el toque con la app cerrada en el build `preview`. Siguiente: 45 `[riesgo]` (perfiles `preview` y `production` y EAS Update; necesita builds del usuario).
 - Fase 31 hecha: registro del token Expo tras el login, al rotar y borrado antes del logout; pedido automático una vez por instalación. Probado en el dev build: una tarea asignada por API como member llegó como push con la app cerrada. `app/google-services.json` queda sin versionar a la espera del usuario. Siguiente: 32 (abrir el destino al tocar el aviso; JS, sirve el mismo dev build).
-- Fase 30 hecha: Firebase (`app/google-services.json`, `android.googleServicesFile`) y credencial FCM V1 subidas por el
-  usuario a EAS; `app/eas.json` con perfil `development` (dev client, interno, APK), `expo-dev-client` instalado y
-  `.easignore` en la raíz (EAS empaqueta la raíz del repo y en Windows no aplica los `.gitignore` de subcarpetas: pasaba
-  de 2 GB). Dev build instalado en el emulador, abre la app con Metro en 8087 y muestra el ícono. La prueba con la
-  herramienta de push pasa a la 31: `expo-notifications` no está instalado y suma un módulo nativo, así que la 31 necesita
-  un dev build nuevo (`eas build --profile development --platform android`).
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -371,3 +367,6 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-52: `pushDevice.test.tsx`: resetear `secureStore.getItemAsync` en el `beforeEach` (`mockReset().mockResolvedValue(null)`); hoy el `'1'` de un test se filtra a los siguientes. Baja, sonnet.
 - [ ] M-53: test de que un fallo al escribir la marca `sereno.pushPrompted` no pide el permiso y se reintenta al volver. Baja, sonnet.
 - [ ] M-54: los íconos de la barra de pestañas se ven como cuadros vacíos (tofu) en el dev build de Android; revisar la fuente o el paquete de símbolos que usan. Media, sonnet.
+- [ ] M-55: abrir el push de chat en el mensaje concreto (`?message=`) con scroll, y pasar el nombre del canal en el payload para el título. Media, sonnet.
+- [ ] M-56: si la carga de organizaciones falla, el toque del aviso se consume sin avisar; reintentar o avisar. Baja, sonnet.
+- [ ] M-57: acortar el comentario de `pushDestination` en `app/src/push/open.ts`, que repite el nombre. Baja, sonnet.

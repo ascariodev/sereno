@@ -24,6 +24,13 @@ jest.mock('expo-secure-store', () => {
   };
 });
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en-US' }] }));
+jest.mock('expo-notifications', () => ({
+  DEFAULT_ACTION_IDENTIFIER: 'default',
+  setNotificationHandler: jest.fn(),
+  getLastNotificationResponse: jest.fn(() => null),
+  clearLastNotificationResponse: jest.fn(),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+}));
 jest.mock('expo-device', () => ({ deviceName: 'Pixel', modelName: 'Pixel 8' }));
 
 const user = { id: 1, name: 'Ana', email: 'ana@example.com', locale: null };
