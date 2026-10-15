@@ -1,13 +1,15 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import { TASK_DESCRIPTION_MAX_LENGTH, TASK_TITLE_MAX_LENGTH } from '@/components/TaskCreateModal';
 import { MarkdownContent } from '@/markdown/MarkdownContent';
 import { useMemberDirectoryStore } from '@/projects/members';
+import { useOrganizationStore } from '@/organization/store';
 import { useProjectsStore } from '@/projects/store';
+import { useAuthStore } from '@/session/auth';
 import { type Task, useTasksStore } from '@/tasks/store';
 
 const FIELDS = ['title', 'description', 'assignee_id'] as const;
@@ -171,6 +173,10 @@ export default function TaskScreen() {
   const task = useTasksStore((state) => (taskId === null ? undefined : state.tasks.find((item) => item.id === taskId)));
   const [lookedUp, setLookedUp] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const userId = useAuthStore((state) => state.user?.id ?? null);
+  const moderator = useOrganizationStore((state) => state.canModerate());
+  const canDelete = !archived && task !== undefined && (task.created_by === userId || moderator);
 
   function close() {
     if (router.canGoBack()) router.back();
@@ -195,6 +201,32 @@ export default function TaskScreen() {
       if (opened) useTasksStore.getState().clear();
     };
   }, [projectId, taskId]);
+
+  async function destroy(current: Task) {
+    if (deleting || projectId === null) return;
+    setDeleting(true);
+    try {
+      await useTasksStore.getState().destroy(projectId, current.id);
+      close();
+    } catch (caught) {
+      const status = caught instanceof ApiError ? caught.status : 0;
+      if (status === 404) {
+        Alert.alert(t('taskAside.notFound'));
+        close();
+      } else if (status === 403) Alert.alert(t('taskAside.deleteForbidden'));
+      else if (status === 0) Alert.alert(t('taskCreate.network'));
+      else Alert.alert(caught instanceof ApiError && status === 422 ? caught.message : t('taskAside.deleteFailed'));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  function confirmDelete(current: Task) {
+    Alert.alert(t('taskAside.deleteTitle'), t('taskAside.deleteConfirm', { key: current.key }), [
+      { text: t('taskAside.cancel'), style: 'cancel' },
+      { text: t('taskAside.deleteAction'), style: 'destructive', onPress: () => void destroy(current) },
+    ]);
+  }
 
   if (projectId === null || (!creating && taskId === null)) {
     return (
@@ -303,6 +335,16 @@ export default function TaskScreen() {
           <Pressable accessibilityRole="button" onPress={() => setEditing(true)} style={styles.secondary}>
             <Text>{t('taskAside.edit')}</Text>
           </Pressable>
+          {canDelete ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={deleting}
+              onPress={() => confirmDelete(task)}
+              style={styles.secondary}
+            >
+              <Text style={styles.error}>{deleting ? t('taskAside.deleting') : t('taskAside.delete')}</Text>
+            </Pressable>
+          ) : null}
         </>
       )}
     </ScrollView>

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import { api } from '@/api/client'
+import { api, ApiError } from '@/api/client'
 import { forgetGroupTask } from '@/messages/logGroups'
 
 export const TASK_STATUSES = ['todo', 'in_progress', 'in_review', 'done'] as const
@@ -19,6 +19,7 @@ export interface Task {
   description: string | null
   status: TaskStatus
   position: number
+  created_by?: number | null
   assignee?: { id: number; name: string } | null
   log_group?: { id: number; title: string } | null
   comments_count?: number
@@ -45,6 +46,33 @@ export interface UpdateTaskInput {
   assigneeId?: number | null
 }
 
+export interface MoveTaskInput {
+  status: TaskStatus
+  afterId?: number | null
+  beforeId?: number | null
+}
+
+export type MoveAnchor = { beforeId: number } | { afterId: number } | null
+
+export const movingTaskIds = new Set<number>()
+
+const MAX_TOMBSTONES = 200
+
+export function moveNeighbours(
+  column: readonly Task[],
+  taskId: number,
+  anchor: MoveAnchor,
+): { afterId: number | null; beforeId: number | null } {
+  const list = column.filter((item) => item.id !== taskId)
+  if (anchor !== null) {
+    const id = 'beforeId' in anchor ? anchor.beforeId : anchor.afterId
+    const at = list.findIndex((item) => item.id === id)
+    if (at >= 0 && 'beforeId' in anchor) return { afterId: list[at - 1]?.id ?? null, beforeId: id }
+    if (at >= 0) return { afterId: id, beforeId: list[at + 1]?.id ?? null }
+  }
+  return { afterId: list[list.length - 1]?.id ?? null, beforeId: null }
+}
+
 export function updatedStamp(iso: string): number {
   const fraction = /\.(\d+)/.exec(iso)?.[1] ?? ''
   const millis = Date.parse(iso.replace(/(\.\d{3})\d+/, '$1'))
@@ -69,6 +97,8 @@ interface TasksState {
   setFilter(filter: TaskFilter): void
   create(projectId: number, input: CreateTaskInput): Promise<Task>
   update(projectId: number, taskId: number, input: UpdateTaskInput): Promise<Task>
+  move(projectId: number, taskId: number, input: MoveTaskInput): Promise<Task>
+  destroy(projectId: number, taskId: number): Promise<void>
   ensure(projectId: number, taskId: number): Promise<Task | null>
   remove(projectId: number, taskId: number): void
   clear(): void
@@ -102,6 +132,7 @@ let doneLimit = DONE_PAGE_SIZE
 let loadSeq = 0
 let everLoaded = false
 let latestLoad: Promise<boolean> = Promise.resolve(false)
+let tombstones = new Set<number>()
 
 export const useTasksStore = create<TasksState>()((set, get) => {
   function fetchAll(projectId: number, current: number): Promise<boolean> {
@@ -118,7 +149,7 @@ export const useTasksStore = create<TasksState>()((set, get) => {
       if (seq !== loadSeq) return latestLoad
       const seen = new Set<number>()
       const tasks = response.data.filter(
-        (task) => task.project_id === projectId && isTaskStatus(task.status) && !seen.has(task.id) && seen.add(task.id),
+        (task) => task.project_id === projectId && isTaskStatus(task.status) && !tombstones.has(task.id) && !seen.has(task.id) && seen.add(task.id),
       )
       set({
         tasks,
@@ -138,7 +169,7 @@ export const useTasksStore = create<TasksState>()((set, get) => {
 
   function upsert(task: Task, force = false): void {
     const { projectId, tasks, hasMoreDone } = get()
-    if (projectId === null || task.project_id !== projectId || !isTaskStatus(task.status)) return
+    if (projectId === null || task.project_id !== projectId || !isTaskStatus(task.status) || tombstones.has(task.id)) return
     const index = tasks.findIndex((item) => item.id === task.id)
     if (index >= 0 && isStale(task, tasks[index])) return
     if (index < 0 && !force && hasMoreDone && task.status === 'done') {
@@ -155,6 +186,17 @@ export const useTasksStore = create<TasksState>()((set, get) => {
     if (current === generation && get().projectId === projectId) upsert(task)
   }
 
+  function forget(projectId: number, taskId: number): void {
+    if (get().projectId !== projectId) return
+    forgetGroupTask(taskId)
+    tombstones.add(taskId)
+    if (tombstones.size > MAX_TOMBSTONES) {
+      const oldest = tombstones.values().next()
+      if (!oldest.done) tombstones.delete(oldest.value)
+    }
+    set((state) => ({ tasks: state.tasks.filter((task) => task.id !== taskId) }))
+  }
+
   return {
     projectId: null,
     tasks: [],
@@ -168,6 +210,7 @@ export const useTasksStore = create<TasksState>()((set, get) => {
       generation++
       loadSeq++
       everLoaded = false
+      tombstones = new Set()
       doneLimit = DONE_PAGE_SIZE
       const current = generation
       set({ projectId, tasks: [], loading: true, failed: false, hasMoreDone: false, doneTotal: null, loadingMoreDone: false })
@@ -209,10 +252,30 @@ export const useTasksStore = create<TasksState>()((set, get) => {
       applyOwn(current, projectId, response.data)
       return response.data
     },
+    async move(projectId, taskId, input) {
+      const current = generation
+      const response = await api.post<{ data: Task }>(`/api/projects/${projectId}/tasks/${taskId}/move`, {
+        status: input.status,
+        after_id: input.afterId,
+        before_id: input.beforeId,
+      })
+      if (current === generation && get().projectId === projectId) upsert(response.data, true)
+      return response.data
+    },
+    async destroy(projectId, taskId) {
+      const current = generation
+      try {
+        await api.delete(`/api/projects/${projectId}/tasks/${taskId}`)
+      } catch (caught) {
+        if (caught instanceof ApiError && caught.status === 404 && current === generation) forget(projectId, taskId)
+        throw caught
+      }
+      if (current === generation) forget(projectId, taskId)
+    },
     async ensure(projectId, taskId) {
       const known = get().tasks.find((task) => task.id === taskId)
       if (known) return known
-      if (get().projectId !== projectId) return null
+      if (get().projectId !== projectId || tombstones.has(taskId)) return null
       const current = generation
       try {
         const response = await api.get<{ data: Task }>(`/api/projects/${projectId}/tasks/${taskId}`)
@@ -224,14 +287,13 @@ export const useTasksStore = create<TasksState>()((set, get) => {
       }
     },
     remove(projectId, taskId) {
-      if (get().projectId !== projectId) return
-      forgetGroupTask(taskId)
-      set((state) => ({ tasks: state.tasks.filter((task) => task.id !== taskId) }))
+      forget(projectId, taskId)
     },
     clear() {
       generation++
       loadSeq++
       everLoaded = false
+      tombstones = new Set()
       doneLimit = DONE_PAGE_SIZE
       set({
         projectId: null,

@@ -3,14 +3,16 @@ import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { TaskMoveMenu } from '@/components/TaskMoveMenu'
 import { useProjectsStore } from '@/projects/store';
 import { useAuthStore } from '@/session/auth';
-import { TASK_FILTERS, TASK_STATUSES, type Task, toColumns, useTasksStore } from '@/tasks/store';
+import { TASK_FILTERS, TASK_STATUSES, type Task, type TaskColumns, toColumns, useTasksStore } from '@/tasks/store';
 
-function TaskCard({ task }: { task: Task }) {
+function TaskCard({ task, columns, canMove }: { task: Task; columns: TaskColumns; canMove: boolean }) {
   const { t } = useTranslation();
   const comments = task.comments_count ?? 0;
   return (
+    <View style={styles.cardWrap}>
     <Pressable
       testID={`task-${task.id}`}
       accessibilityRole="button"
@@ -25,6 +27,8 @@ function TaskCard({ task }: { task: Task }) {
       {task.log_group ? <Text style={styles.meta}>{t('tasks.fromNotice')}</Text> : null}
       {comments > 0 ? <Text style={styles.meta}>{t('tasks.commentsCount', { count: comments })}</Text> : null}
     </Pressable>
+    {canMove ? <TaskMoveMenu task={task} columns={columns} /> : null}
+    </View>
   );
 }
 
@@ -44,6 +48,7 @@ export default function Tasks() {
   }, [projectId]);
 
   const columns = useMemo(() => toColumns(tasks, filter, userId), [tasks, filter, userId]);
+  const fullColumns = useMemo(() => toColumns(tasks), [tasks]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -112,7 +117,7 @@ export default function Tasks() {
                 ) : null}
                 {shown === 0 ? <Text style={styles.meta}>{t('tasks.empty')}</Text> : null}
                 {columns[status].map((task) => (
-                  <TaskCard key={task.id} task={task} />
+                  <TaskCard key={task.id} task={task} columns={fullColumns} canMove={!archived} />
                 ))}
               </View>
             );
@@ -134,6 +139,7 @@ const styles = StyleSheet.create({
   chipActiveText: { color: '#fff', fontWeight: '600' },
   column: { gap: 8, padding: 10, borderRadius: 10, backgroundColor: '#f4f4f5' },
   columnTitle: { fontSize: 15, fontWeight: '600' },
+  cardWrap: { gap: 6 },
   card: { gap: 4, padding: 12, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' },
   key: { fontSize: 12, fontWeight: '700', color: '#555' },
   taskTitle: { fontSize: 15, fontWeight: '500' },

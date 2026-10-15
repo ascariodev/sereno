@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 35
+**Estado:** en curso · Fase actual: 36
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -203,7 +203,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** formulario de tarea (título, descripción, responsable) y detalle.
 - **Terminado cuando:** tests de crear y editar.
 
-### [ ] Fase 35 — Mover y borrar tareas
+### [x] Fase 35 — Mover y borrar tareas
 - **Alcance:** cambiar de estado y posición con un menú (como `TaskMoveMenu.vue`, sin arrastrar) y borrar.
 - **Terminado cuando:** tests de mover y borrar.
 
@@ -288,18 +288,17 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   ok se sigue con la 33 en adelante y se vuelve a la 30 cuando avise.
 
 ## Notas para la próxima sesión
+- Fase 35 hecha: `components/TaskMoveMenu.tsx` (en cada tarjeta del tablero: subir, bajar y a otra columna, con vecinos de
+  la columna completa aunque haya filtro; oculto en archivados) y borrar en el detalle (`Alert` de confirmación; visible si
+  no está archivado y la tarea es propia o `canModerate`). En `tasks/store.ts`: `move` (sin optimismo, aplica la respuesta
+  con `upsert(force)` como la web), `destroy` (404 también quita), `tombstones` (tope 200; los respetan `upsert`, `ensure`
+  y la carga) y `created_by`. Para la 38: `fetchAll` no conserva las tareas llegadas en vivo durante la carga.
 - Fase 34 hecha: ruta `/task` (`app/task.tsx`, params `projectId` e `id` opcional: sin `id` crea, con `id` detalle y edición)
   y en `tasks/store.ts` `create`, `update`, `ensure` (GET de una tarea que el tablero no tiene), `updatedStamp`/`isStale`
   (descarta versiones viejas). Validaciones como la web (título 200, descripción 10000), descripción con `MarkdownContent`
   no interactiva. "Nueva tarea" oculta y crear bloqueado en proyectos archivados (si el proyecto está cargado); editar no se
   bloquea, como la web. Las notificaciones de tareas y el chip del aviso abren `/task`. Para la 35 y la 38: `ensure` no
   tiene el `tombstones` de la web (una tarea borrada podría reaparecer).
-- Fase 33 hecha: `tasks/store.ts` (zustand: agrupado por estado, orden `position` y luego `id`, filtros all/mine/from_notices,
-  `done_limit` con "mostrar más", `everLoaded` como la web para no tapar el tablero con un error posterior, `loadSeq` para
-  cargas solapadas, `remove(projectId, taskId)` que llama a `forgetGroupTask`) y pantalla `app/tasks.tsx` (ruta `/tasks`
-  con `projectId`). Se entra desde la tarjeta del proyecto y desde el chip de tarea del aviso (lleva al tablero, no a la
-  tarea). Pendiente para la fase 34: destino de las notificaciones de tareas en `notifications/target.ts` y abrir la tarea
-  concreta desde el chip. Tiempo real y selectores de zustand en `tasks.tsx`, fase 38.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -360,3 +359,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-39: Ajustes: test de que el idioma se guarda en SecureStore (`LOCALE_STORAGE_KEY`), del interruptor deshabilitado mientras guarda, y contenedor `radiogroup` para los botones de idioma. Complejidad baja, sonnet.
 - [ ] M-40: Tablero de tareas: acceso desde la pantalla del canal (hoy solo desde la tarjeta del proyecto y el chip del aviso). Complejidad baja, sonnet.
 - [ ] M-41: Detalle de tarea: checklist del markdown interactiva (`toggleTaskItem` de la web); hoy la descripción se muestra solo lectura. Complejidad media, sonnet.
+- [ ] M-42: Tareas: pasar prettier a `app/tasks.tsx` (import sin `;`, `TaskCard` sin indentar), mostrar `error.message` en el 422 de mover como `moveErrorMessage` de la web, proteger `setDeleting` tras cerrar en `task.tsx` y quitar los avisos "overlapping act() calls" de `taskMove.test.tsx`. Complejidad baja, sonnet.

@@ -159,8 +159,27 @@
     "commentsCount_one": "{{count}} comentario",
     "commentsCount_other": "{{count}} comentarios",
     "filtersLabel": "Filtros de tareas",
-    "filters": { "all": "Todas", "mine": "Mías", "from_notices": "De avisos" },
-    "status": { "todo": "Por hacer", "in_progress": "En curso", "in_review": "En revisión", "done": "Hecha" }
+    "filters": {
+      "all": "Todas",
+      "mine": "Mías",
+      "from_notices": "De avisos"
+    },
+    "status": {
+      "todo": "Por hacer",
+      "in_progress": "En curso",
+      "in_review": "En revisión",
+      "done": "Hecha"
+    },
+    "move": {
+      "label": "Mover {{key}}",
+      "menu": "Mover",
+      "up": "Subir",
+      "down": "Bajar",
+      "to": "Mover a {{column}}",
+      "forbidden": "No tienes permiso para mover esta tarea.",
+      "notFound": "Esta tarea ya no existe.",
+      "failed": "No se pudo mover la tarea. Inténtalo de nuevo."
+    }
   },
   "notice": {
     "openedLabel": "Nuevo grupo de logs",
@@ -265,7 +284,15 @@
     "save": "Guardar cambios",
     "saving": "Guardando...",
     "notFound": "Esta tarea ya no existe.",
-    "failed": "No se pudo guardar la tarea. Inténtalo de nuevo."
+    "failed": "No se pudo guardar la tarea. Inténtalo de nuevo.",
+    "delete": "Borrar tarea",
+    "deleteTitle": "Borrar tarea",
+    "deleteConfirm": "¿Borrar {{key}}? No se puede deshacer.",
+    "deleteAction": "Borrar",
+    "deleting": "Borrando...",
+    "cancel": "Cancelar",
+    "deleteForbidden": "No tienes permiso para borrar esta tarea.",
+    "deleteFailed": "No se pudo borrar la tarea. Inténtalo de nuevo."
   },
   "taskCreate": {
     "title": "Nueva tarea",
