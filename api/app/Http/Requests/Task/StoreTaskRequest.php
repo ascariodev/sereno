@@ -43,31 +43,34 @@ class StoreTaskRequest extends FormRequest
     {
         return [
             function (Validator $validator) {
-                /** @var Project $project */
-                $project = $this->route('project');
-
-                if ($project->isArchived()) {
-                    $validator->errors()->add('project', __('This project is archived and cannot have new tasks.'));
-                }
-
-                self::validateAssigneeAccess($validator, $project, $this->input('assignee_id'));
-
-                if ($validator->errors()->has('log_group_id') || $this->input('log_group_id') === null) {
-                    return;
-                }
-
-                $groupId = $this->integer('log_group_id');
-
-                // The organization scope hides groups of other organizations.
-                $inProject = LogGroup::query()->whereKey($groupId)->where('project_id', $project->id)->exists();
-
-                if (! $inProject) {
-                    $validator->errors()->add('log_group_id', __('The log group does not exist in this project.'));
-                } elseif (Task::query()->where('log_group_id', $groupId)->exists()) {
-                    $validator->errors()->add('log_group_id', __('The log group already has a task.'));
-                }
+                self::validateBusinessRules($validator, $this->route('project'), $this->input('assignee_id'), $this->input('log_group_id'));
             },
         ];
+    }
+
+    /** Checks shared by the endpoint and the MCP tool, on top of rules(). */
+    public static function validateBusinessRules(Validator $validator, Project $project, mixed $assigneeId, mixed $logGroupId): void
+    {
+        if ($project->isArchived()) {
+            $validator->errors()->add('project', __('This project is archived and cannot have new tasks.'));
+        }
+
+        self::validateAssigneeAccess($validator, $project, $assigneeId);
+
+        if ($validator->errors()->has('log_group_id') || $logGroupId === null) {
+            return;
+        }
+
+        $groupId = (int) $logGroupId;
+
+        // The organization scope hides groups of other organizations.
+        $inProject = LogGroup::query()->whereKey($groupId)->where('project_id', $project->id)->exists();
+
+        if (! $inProject) {
+            $validator->errors()->add('log_group_id', __('The log group does not exist in this project.'));
+        } elseif (Task::query()->where('log_group_id', $groupId)->exists()) {
+            $validator->errors()->add('log_group_id', __('The log group already has a task.'));
+        }
     }
 
     public static function validateAssigneeAccess(Validator $validator, Project $project, mixed $assigneeId): void

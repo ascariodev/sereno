@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 11
+**Estado:** en curso · Fase actual: 12
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -119,7 +119,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Terminado cuando:** tests existentes de comentarios en verde; tests de la tool (crea, menciona y notifica, evento
   emitido, sin permiso = error).
 
-### [ ] Fase 11 — Crear tareas
+### [x] Fase 11 — Crear tareas
 - **Alcance:** extraer de `TaskController::store` una acción `App\Actions\CreateTask` (incluye `notifyAssignee` y
   `TaskCreated`) sin cambiar el comportamiento. Tool `create-task` (title, description, status, assignee_id, log_group_id
   opcional), con las `rules()` de `StoreTaskRequest`.
@@ -214,6 +214,12 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - 2026-10-15 — La base `Tool` normaliza los argumentos antes de `run()` como `TrimStrings` y `ConvertEmptyStringsToNull`
   (`Str::trim`, `''` a `null`, recursivo), porque MCP no pasa por esos middleware. Las tools reutilizan `rules()` de los
   Form Requests sin normalizar a mano.
+- 2026-10-15 — Fase 11: `CreateTask(Project, User, title, ?description, TaskStatus, ?assigneeId, ?logGroupId)` (locks,
+  transacción, aviso de grupo, relaciones, `TaskCreated`, notificación, 422 por índice único) y `NotifyTaskAssignee`
+  (también la usa `update`). `TaskController::lockActiveProject` y `lockAssigneeAccess` son `public static` (las usan
+  `CreateTask`, `update` y `move`). Las comprobaciones del `after()` de `StoreTaskRequest` están en
+  `StoreTaskRequest::validateBusinessRules(Validator, Project, assigneeId, logGroupId)`, que usan `after()` y la tool.
+  `create-task` devuelve `{data: TaskResource}`.
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
   del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
   worktree; `vendor/` es el volumen compartido con el checkout principal).
@@ -222,7 +228,9 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - Tests de tools: `app(CurrentOrganization::class)->set(...)` antes de `SerenoServer::actingAs(...)->tool(...)`;
   aserciones `assertSee`, `assertDontSee`, `assertStructuredContent`, `assertHasErrors`. `tool()` solo ejecuta tools
   registradas en el servidor. Usar Edit (no sed) para los `use`: sed comió barras invertidas. `replies_count` no es
-  fillable: en tests, `forceFill(...)->save()`.
+  fillable: en tests, `forceFill(...)->save()`. Pint reescribe los CRLF que deja Python en Windows: escribir con Edit.
+- Fase 12: los locks (`lockActiveProject`, `lockAssigneeAccess`) pueden pasar de `TaskController` a `MoveTask` o a un
+  soporte compartido; `CreateTask` ya los usa.
 
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
@@ -251,3 +259,6 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       inválido. Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
 - [ ] M-11: mover `TaskCommentController::RELATIONS` (y el equivalente de tareas) al modelo, para que las acciones no
       importen un controller. Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
+- [ ] M-12: alinear el orden de autorización de `create-task` con el REST (`create` antes que `view`) y test de la tool
+      para el 422 lanzado dentro de los locks (proyecto archivado o acceso perdido entre validación e insert).
+      Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
