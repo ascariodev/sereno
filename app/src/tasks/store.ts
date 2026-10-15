@@ -32,6 +32,29 @@ interface TaskListResponse {
   meta?: { done_total?: number; has_more_done?: boolean }
 }
 
+export interface CreateTaskInput {
+  title: string
+  description?: string | null
+  status?: TaskStatus
+  assigneeId?: number | null
+}
+
+export interface UpdateTaskInput {
+  title?: string
+  description?: string | null
+  assigneeId?: number | null
+}
+
+export function updatedStamp(iso: string): number {
+  const fraction = /\.(\d+)/.exec(iso)?.[1] ?? ''
+  const millis = Date.parse(iso.replace(/(\.\d{3})\d+/, '$1'))
+  return millis * 1000 + Number(fraction.slice(3, 6).padEnd(3, '0'))
+}
+
+export function isStale(incoming: Task, current: Task): boolean {
+  return updatedStamp(incoming.updated_at) < updatedStamp(current.updated_at)
+}
+
 interface TasksState {
   projectId: number | null
   tasks: Task[]
@@ -44,6 +67,9 @@ interface TasksState {
   open(projectId: number): Promise<void>
   showMoreDone(): Promise<void>
   setFilter(filter: TaskFilter): void
+  create(projectId: number, input: CreateTaskInput): Promise<Task>
+  update(projectId: number, taskId: number, input: UpdateTaskInput): Promise<Task>
+  ensure(projectId: number, taskId: number): Promise<Task | null>
   remove(projectId: number, taskId: number): void
   clear(): void
 }
@@ -110,6 +136,25 @@ export const useTasksStore = create<TasksState>()((set, get) => {
     }
   }
 
+  function upsert(task: Task, force = false): void {
+    const { projectId, tasks, hasMoreDone } = get()
+    if (projectId === null || task.project_id !== projectId || !isTaskStatus(task.status)) return
+    const index = tasks.findIndex((item) => item.id === task.id)
+    if (index >= 0 && isStale(task, tasks[index])) return
+    if (index < 0 && !force && hasMoreDone && task.status === 'done') {
+      const first = tasks.filter((item) => item.status === 'done').sort(compareTasks)[0]
+      if (first !== undefined && compareTasks(task, first) < 0) return
+    }
+    const next = tasks.slice()
+    if (index >= 0) next[index] = task
+    else next.push(task)
+    set({ tasks: next })
+  }
+
+  function applyOwn(current: number, projectId: number, task: Task): void {
+    if (current === generation && get().projectId === projectId) upsert(task)
+  }
+
   return {
     projectId: null,
     tasks: [],
@@ -143,6 +188,40 @@ export const useTasksStore = create<TasksState>()((set, get) => {
     },
     setFilter(filter) {
       set({ filter })
+    },
+    async create(projectId, input) {
+      const current = generation
+      const body: Record<string, unknown> = { title: input.title }
+      if (input.description !== undefined) body.description = input.description
+      if (input.status !== undefined) body.status = input.status
+      if (input.assigneeId !== undefined) body.assignee_id = input.assigneeId
+      const response = await api.post<{ data: Task }>(`/api/projects/${projectId}/tasks`, body)
+      applyOwn(current, projectId, response.data)
+      return response.data
+    },
+    async update(projectId, taskId, input) {
+      const current = generation
+      const body: Record<string, unknown> = {}
+      if (input.title !== undefined) body.title = input.title
+      if (input.description !== undefined) body.description = input.description
+      if (input.assigneeId !== undefined) body.assignee_id = input.assigneeId
+      const response = await api.patch<{ data: Task }>(`/api/projects/${projectId}/tasks/${taskId}`, body)
+      applyOwn(current, projectId, response.data)
+      return response.data
+    },
+    async ensure(projectId, taskId) {
+      const known = get().tasks.find((task) => task.id === taskId)
+      if (known) return known
+      if (get().projectId !== projectId) return null
+      const current = generation
+      try {
+        const response = await api.get<{ data: Task }>(`/api/projects/${projectId}/tasks/${taskId}`)
+        if (current !== generation || get().projectId !== projectId) return null
+        upsert(response.data, true)
+        return get().tasks.find((task) => task.id === taskId) ?? null
+      } catch {
+        return null
+      }
     },
     remove(projectId, taskId) {
       if (get().projectId !== projectId) return

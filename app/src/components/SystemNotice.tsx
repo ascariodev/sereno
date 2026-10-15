@@ -107,7 +107,8 @@ export function SystemNotice({ message }: { message: Message }) {
               accessibilityRole="link"
               disabled={project === null}
               onPress={() =>
-                project !== null && router.push({ pathname: '/tasks', params: { projectId: String(project.id) } })
+                project !== null &&
+                router.push({ pathname: '/task', params: { projectId: String(project.id), id: String(groupTask.id) } })
               }
             >
               <Text style={styles.chip}>{t('notice.taskChip', { key: groupTask.key })}</Text>

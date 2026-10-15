@@ -162,7 +162,7 @@ describe('live and edge cases', () => {
     expect(screen.queryByText('Create task')).toBeNull();
   });
 
-  it('opens the task board from the task chip', async () => {
+  it('opens the task from the task chip', async () => {
     setProject();
     mockApi(() => undefined);
     await render(<Channel />);
@@ -175,7 +175,7 @@ describe('live and edge cases', () => {
 
     await fireEvent.press(await screen.findByTestId('notice-task-chip'));
 
-    expect(router.push).toHaveBeenCalledWith({ pathname: '/tasks', params: { projectId: '7' } });
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/task', params: { projectId: '7', id: '8' } });
   });
 
   it('keeps a live status change that arrives while the PATCH is in flight', async () => {

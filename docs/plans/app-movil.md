@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 34
+**Estado:** en curso · Fase actual: 35
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -199,7 +199,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** tareas del proyecto por estado (columnas deslizables o lista agrupada), como `PlanView.vue`.
 - **Terminado cuando:** test de agrupado y orden.
 
-### [ ] Fase 34 — Crear y editar tareas
+### [x] Fase 34 — Crear y editar tareas
 - **Alcance:** formulario de tarea (título, descripción, responsable) y detalle.
 - **Terminado cuando:** tests de crear y editar.
 
@@ -288,17 +288,18 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
   ok se sigue con la 33 en adelante y se vuelve a la 30 cuando avise.
 
 ## Notas para la próxima sesión
+- Fase 34 hecha: ruta `/task` (`app/task.tsx`, params `projectId` e `id` opcional: sin `id` crea, con `id` detalle y edición)
+  y en `tasks/store.ts` `create`, `update`, `ensure` (GET de una tarea que el tablero no tiene), `updatedStamp`/`isStale`
+  (descarta versiones viejas). Validaciones como la web (título 200, descripción 10000), descripción con `MarkdownContent`
+  no interactiva. "Nueva tarea" oculta y crear bloqueado en proyectos archivados (si el proyecto está cargado); editar no se
+  bloquea, como la web. Las notificaciones de tareas y el chip del aviso abren `/task`. Para la 35 y la 38: `ensure` no
+  tiene el `tombstones` de la web (una tarea borrada podría reaparecer).
 - Fase 33 hecha: `tasks/store.ts` (zustand: agrupado por estado, orden `position` y luego `id`, filtros all/mine/from_notices,
   `done_limit` con "mostrar más", `everLoaded` como la web para no tapar el tablero con un error posterior, `loadSeq` para
   cargas solapadas, `remove(projectId, taskId)` que llama a `forgetGroupTask`) y pantalla `app/tasks.tsx` (ruta `/tasks`
   con `projectId`). Se entra desde la tarjeta del proyecto y desde el chip de tarea del aviso (lleva al tablero, no a la
   tarea). Pendiente para la fase 34: destino de las notificaciones de tareas en `notifications/target.ts` y abrir la tarea
   concreta desde el chip. Tiempo real y selectores de zustand en `tasks.tsx`, fase 38.
-- Fase 29 hecha: `notifications/preferences.ts` (GET/PATCH `/api/me/notification-preferences`) y
-  `components/NotificationPreferences.tsx` (4 tipos por email/push, optimista con reversión por celda, candado por celda,
-  generación) dentro de Ajustes, que además tiene Idioma con `chooseAndSaveLocale` (aviso `common.localeSaveFailed` si
-  falla el PATCH). En el API, `SendPushNotification` ya corta el canal Expo con `wantsPush($type)`. La sección "Este
-  dispositivo" (permiso y activar push) va con la fase 31.
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -358,3 +359,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-38: Web: escuchar `.mention.removed` en el store de notificaciones (hoy solo se entera al refrescar), como la app. Complejidad media, sonnet.
 - [ ] M-39: Ajustes: test de que el idioma se guarda en SecureStore (`LOCALE_STORAGE_KEY`), del interruptor deshabilitado mientras guarda, y contenedor `radiogroup` para los botones de idioma. Complejidad baja, sonnet.
 - [ ] M-40: Tablero de tareas: acceso desde la pantalla del canal (hoy solo desde la tarjeta del proyecto y el chip del aviso). Complejidad baja, sonnet.
+- [ ] M-41: Detalle de tarea: checklist del markdown interactiva (`toggleTaskItem` de la web); hoy la descripción se muestra solo lectura. Complejidad media, sonnet.

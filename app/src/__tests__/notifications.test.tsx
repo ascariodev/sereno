@@ -68,8 +68,12 @@ describe('notificationTarget', () => {
     expect(notificationTarget(reply)).toEqual({ pathname: '/thread', params: { channelId: '50', id: '77' } });
   });
 
-  it('has no target for tasks or unknown types', () => {
-    expect(notificationTarget(parseNotification(row(1, 'task_assigned', taskData))!)).toBeNull();
+  it('targets the task and has none for unknown types or a task without project', () => {
+    expect(notificationTarget(parseNotification(row(1, 'task_assigned', taskData))!)).toEqual({
+      pathname: '/task',
+      params: { projectId: '1', id: '5' },
+    });
+    expect(notificationTarget(parseNotification(row(3, 'task_assigned', taskData, { project_id: null }))!)).toBeNull();
     expect(notificationTarget(parseNotification(row(2, 'mystery', {}))!)).toBeNull();
   });
 
@@ -90,7 +94,7 @@ describe('Notifications tab', () => {
     expect(await screen.findByText(/Bea mentioned you in General/)).toBeOnTheScreen();
     expect(screen.getByText('hello there')).toBeOnTheScreen();
     expect(screen.getByText(/Bea assigned you P1-5/)).toBeOnTheScreen();
-    expect(screen.getByText('Not available in the app yet.')).toBeOnTheScreen();
+    expect(screen.queryByText('Not available in the app yet.')).toBeNull();
 
     await act(async () => {
       await fireEvent.press(screen.getByText(/Bea mentioned you in General/));
@@ -103,7 +107,7 @@ describe('Notifications tab', () => {
     expect(JSON.parse(String(call[1]?.body))).toEqual({ ids: [2] });
   });
 
-  it('does not navigate for a task notification but marks it read', async () => {
+  it('opens the task for a task notification and marks it read', async () => {
     mockApi((url) => (url.includes('/read') ? json({ unread_count: 0 }) : page([row(1, 'task_assigned', taskData)], 1)));
     await render(<Notifications />);
 
@@ -111,7 +115,7 @@ describe('Notifications tab', () => {
       await fireEvent.press(await screen.findByText(/Bea assigned you P1-5/));
     });
 
-    expect(router.push).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/task', params: { projectId: '1', id: '5' } });
     expect(useNotificationsStore.getState().unreadCount).toBe(0);
   });
 

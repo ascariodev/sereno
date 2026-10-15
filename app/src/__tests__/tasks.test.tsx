@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react-n
 
 import { api } from '@/api/client';
 import Tasks from '@/app/tasks';
+import { router } from 'expo-router';
 import { forgetGroupTask, resetLogGroups, setGroupTask, useLogGroupsStore } from '@/messages/logGroups';
 import { useOrganizationStore } from '@/organization/store';
 import { useProjectsStore } from '@/projects/store';
@@ -201,5 +202,32 @@ describe('forgetGroupTask', () => {
     useTasksStore.getState().remove(3, 6);
     expect(useLogGroupsStore.getState().tasks).toEqual({});
     expect(useTasksStore.getState().tasks).toEqual([]);
+  });
+});
+
+describe('new task button', () => {
+  const project = { id: 3, name: 'Acme API', key: 'ACME', description: null, archived_at: null };
+
+  it('opens the create form for the project', async () => {
+    useProjectsStore.setState({ projects: [project] });
+    mockTasks([task(1, 'todo', 1)]);
+    await act(async () => {
+      render(<Tasks />);
+    });
+
+    await fireEvent.press(await screen.findByText('New task'));
+
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/task', params: { projectId: '3' } });
+  });
+
+  it('is hidden in an archived project', async () => {
+    useProjectsStore.setState({ projects: [{ ...project, archived_at: '2026-01-01T00:00:00Z' }] });
+    mockTasks([task(1, 'todo', 1)]);
+    await act(async () => {
+      render(<Tasks />);
+    });
+
+    await screen.findByText('Task 1');
+    expect(screen.queryByText('New task')).toBeNull();
   });
 });

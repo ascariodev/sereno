@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,7 +11,12 @@ function TaskCard({ task }: { task: Task }) {
   const { t } = useTranslation();
   const comments = task.comments_count ?? 0;
   return (
-    <View testID={`task-${task.id}`} style={styles.card}>
+    <Pressable
+      testID={`task-${task.id}`}
+      accessibilityRole="button"
+      onPress={() => router.push({ pathname: '/task', params: { projectId: String(task.project_id), id: String(task.id) } })}
+      style={styles.card}
+    >
       <Text style={styles.key}>{task.key}</Text>
       <Text style={styles.taskTitle}>{task.title}</Text>
       <Text style={styles.meta}>
@@ -19,7 +24,7 @@ function TaskCard({ task }: { task: Task }) {
       </Text>
       {task.log_group ? <Text style={styles.meta}>{t('tasks.fromNotice')}</Text> : null}
       {comments > 0 ? <Text style={styles.meta}>{t('tasks.commentsCount', { count: comments })}</Text> : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -28,6 +33,7 @@ export default function Tasks() {
   const { projectId: rawId, name } = useLocalSearchParams<{ projectId?: string; name?: string }>();
   const projectId = rawId !== undefined && /^[1-9]\d*$/.test(rawId) ? Number(rawId) : null;
   const projectName = useProjectsStore((state) => state.projects.find((item) => item.id === projectId)?.name);
+  const archived = useProjectsStore((state) => state.projects.find((item) => item.id === projectId)?.archived_at != null);
   const userId = useAuthStore((state) => state.user?.id ?? null);
   const { tasks, loading, failed, filter, hasMoreDone, doneTotal, loadingMoreDone, open, showMoreDone, setFilter } =
     useTasksStore();
@@ -64,6 +70,15 @@ export default function Tasks() {
         </View>
       ) : (
         <>
+          {archived ? null : (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push({ pathname: '/task', params: { projectId: String(projectId) } })}
+              style={styles.button}
+            >
+              <Text style={styles.buttonText}>{t('tasks.newTask')}</Text>
+            </Pressable>
+          )}
           <View accessibilityLabel={t('tasks.filtersLabel')} style={styles.filters}>
             {TASK_FILTERS.map((item) => (
               <Pressable

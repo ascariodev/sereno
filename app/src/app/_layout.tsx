@@ -49,6 +49,7 @@ export default function RootLayout() {
         <Stack.Screen name="channel" />
         <Stack.Screen name="thread" />
         <Stack.Screen name="tasks" />
+        <Stack.Screen name="task" />
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="select-organization" />

@@ -152,6 +152,7 @@
     "loadFailed": "Could not load the tasks.",
     "empty": "No tasks",
     "showMoreDone": "Show more done tasks",
+    "newTask": "New task",
     "unassigned": "Unassigned",
     "assignedTo": "Assigned to {{name}}",
     "fromNotice": "From a log notice",
@@ -257,6 +258,15 @@
     "events": "Events",
     "createTask": "Create task"
   },
+  "taskAside": {
+    "edit": "Edit task",
+    "noDescription": "No description.",
+    "close": "Close",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "notFound": "This task no longer exists.",
+    "failed": "Could not save the task. Try again."
+  },
   "taskCreate": {
     "title": "New task",
     "titleLabel": "Title",
@@ -271,7 +281,8 @@
     "network": "Could not reach the server.",
     "failed": "Could not create the task. Try again.",
     "assigneeLabel": "Assignee",
-    "unassigned": "Unassigned"
+    "unassigned": "Unassigned",
+    "archived": "This project is archived; you cannot create tasks."
   },
   "notificationPreferences": {
     "title": "Notifications",
