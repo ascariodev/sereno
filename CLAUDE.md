@@ -96,9 +96,13 @@ App móvil (Expo, en el **host Windows** con su Node, no en Docker; desde `app/`
 - Dependencias: `npm install`; librerías nuevas con `npx expo install <paquete>` (no fijar versiones a mano).
 - Desarrollo: `npm start` (`npx expo start --port 8087`); `npm run android` abre la app en Expo Go en el emulador o el
   teléfono conectado por `adb`.
-- Tests: `npm test` (jest-expo y Testing Library; un archivo: `npm test -- <ruta>`). Tipos: `npm run typecheck`. Lint: `npm run lint`.
+- Tests: `npm test` (jest-expo y Testing Library; un archivo: `npm test -- <ruta>`). Tipos: `npm run typecheck` (necesita `app/.expo/types/router.d.ts`, ignorado por git: lo genera `npm start`; en un clon limpio
+  o CI arrancar Expo una vez antes, o el typecheck falla con las rutas tipadas). Lint: `npm run lint`.
 - Desde el emulador de Android el host es `10.0.2.2` (API `http://10.0.2.2:8003`, Reverb `10.0.2.2:8086`); desde un
   teléfono físico, la IP de la PC en la LAN.
+- Variables de Reverb de la app (en `app/.env.local`, que crea el usuario; no hay `.env.example`): `EXPO_PUBLIC_REVERB_APP_KEY` (sin ella
+  Echo queda en null en silencio y no hay tiempo real), `EXPO_PUBLIC_REVERB_HOST` (por defecto `10.0.2.2`), `EXPO_PUBLIC_REVERB_PORT`
+  (`8086`) y `EXPO_PUBLIC_REVERB_SCHEME` (`http`; solo acepta `https`).
 - Builds en EAS (`npx eas-cli`, sesión de `ascariodev`): `build --profile preview --platform android` (APK interno, canal
   `preview`) y `--profile production` (APK interno, canal `production`, `versionCode` remoto con autoincremento);
   `development` es el dev client. `.easignore` en la raíz sube solo `app/` (incluido `google-services.json`, sin versionar).
