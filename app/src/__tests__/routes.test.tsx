@@ -73,8 +73,23 @@ async function fillAndSubmit() {
   await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
 }
 
+const stackScreens = [
+  'project-form',
+  'channel',
+  'thread',
+  'tasks',
+  'task',
+  'log',
+  'log-group',
+  'integrations',
+  'project-members',
+  'members',
+  'invitations',
+];
+const stackScreenStubs = Object.fromEntries(stackScreens.map((name) => [name, () => null]));
+
 describe('route protection', () => {
-  const routes = { _layout: RootLayout, '(tabs)/_layout': TabsLayout, '(tabs)/index': Projects, '(tabs)/notifications': Notifications, '(tabs)/settings': Settings, login: Login, register: Register, 'select-organization': SelectOrganization };
+  const routes = { ...stackScreenStubs, _layout: RootLayout, '(tabs)/_layout': TabsLayout, '(tabs)/index': Projects, '(tabs)/notifications': Notifications, '(tabs)/settings': Settings, login: Login, register: Register, 'select-organization': SelectOrganization };
 
   it('redirects to the login without a session', async () => {
     await renderRouter(routes, { initialUrl: '/' });
