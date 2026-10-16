@@ -15,8 +15,8 @@ interface AuthState {
   user: User | null
   hydrated: boolean
   hydrate(): Promise<void>
-  login(email: string, password: string, explicitLocale?: Locale | null): Promise<boolean>
-  register(name: string, email: string, password: string, passwordConfirmation: string): Promise<boolean>
+  login(email: string, password: string): Promise<void>
+  register(name: string, email: string, password: string, passwordConfirmation: string): Promise<void>
   fetchMe(): Promise<void>
   chooseAndSaveLocale(locale: Locale): Promise<boolean>
   logout(): Promise<void>
@@ -39,14 +39,10 @@ export const useAuthStore = create<AuthState>()((set, get) => {
     }
   }
 
-  async function startSession(
-    path: string,
-    body: Record<string, unknown>,
-    explicitLocale: Locale | null,
-  ): Promise<boolean> {
+  async function startSession(path: string, body: Record<string, unknown>): Promise<void> {
     const mine = ++generation
     const response = await api.post<LoginResponse>(path, { ...body, device_name: deviceName() })
-    if (mine !== generation) return true
+    if (mine !== generation) return
     set({ token: response.token, user: response.user })
     try {
       await writeStored(TOKEN_STORAGE_KEY, response.token)
@@ -60,15 +56,9 @@ export const useAuthStore = create<AuthState>()((set, get) => {
     }
     if (mine !== generation) {
       if (get().token === null) await removeStored(TOKEN_STORAGE_KEY)
-      return true
+      return
     }
-    if (!explicitLocale) {
-      setLocale(response.user.locale)
-      return true
-    }
-    const saved = await saveLocale(explicitLocale)
-    if (mine === generation) await persistChoice(explicitLocale)
-    return saved
+    setLocale(response.user.locale)
   }
 
   return {
@@ -88,16 +78,17 @@ export const useAuthStore = create<AuthState>()((set, get) => {
       set({ token, hydrated: true })
     },
 
-    login(email, password, explicitLocale = null) {
-      return startSession('/api/auth/login', { email, password }, explicitLocale)
+    login(email, password) {
+      return startSession('/api/auth/login', { email, password })
     },
 
     register(name, email, password, passwordConfirmation) {
-      return startSession(
-        '/api/auth/register',
-        { name, email, password, password_confirmation: passwordConfirmation },
-        null,
-      )
+      return startSession('/api/auth/register', {
+        name,
+        email,
+        password,
+        password_confirmation: passwordConfirmation,
+      })
     },
 
     // Like the web: if saveLocale failed offline, the account locale overrides the manual choice here.

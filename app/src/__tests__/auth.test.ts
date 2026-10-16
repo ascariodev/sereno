@@ -142,18 +142,6 @@ describe('auth store', () => {
     expect(store.get(LOCALE_STORAGE_KEY)).toBe('es')
   })
 
-  it('login with an explicit locale saves it on the account and persists it', async () => {
-    let call = 0
-    mockFetch(() => (call++ === 0 ? json({ token: 'tk', user: { ...user, locale: null } }) : json({ data: { ...user, locale: 'es' } })))
-
-    const saved = await useAuthStore.getState().login('a@b.c', 'x', 'es')
-
-    expect(saved).toBe(true)
-    expect(store.get(LOCALE_STORAGE_KEY)).toBe('es')
-    expect(getLocale()).toBe('es')
-    expect(useAuthStore.getState().user?.locale).toBe('es')
-  })
-
   it('a clearSession during the token write removes what was written', async () => {
     mockFetch(() => json({ token: 'tk', user }))
     const setItem = SecureStore.setItemAsync as jest.Mock

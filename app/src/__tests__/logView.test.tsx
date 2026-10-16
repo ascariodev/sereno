@@ -327,6 +327,36 @@ describe('Log group detail', () => {
     expect(useLogStore.getState().page).toBe(2);
   });
 
+  it('drops a queued loadMore when the store is cleared during the refresh', async () => {
+    project();
+    let release!: () => void;
+    const gate = new Promise<void>((done) => {
+      release = done;
+    });
+    let refreshCalls = 0;
+    const fetchMock = jest.fn(async (url: string) => {
+      const at = url.includes('page=2') ? 2 : 1;
+      if (at === 1 && ++refreshCalls === 2) await gate;
+      return json(page([group(at * 10 + 1)], at, 2));
+    });
+    globalThis.fetch = fetchMock as never;
+    await act(async () => {
+      await useLogStore.getState().open(3);
+    });
+    const refreshing = useLogStore.getState().refresh();
+    await act(async () => {
+      await useLogStore.getState().loadMore();
+    });
+    useLogStore.getState().clear();
+    release();
+    await act(async () => {
+      await refreshing;
+    });
+
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('page=2'))).toBe(false);
+    expect(useLogStore.getState()).toMatchObject({ projectId: null, groups: [], page: 1, loadingMore: false });
+  });
+
   it('drops a queued loadMore when the filters change during the refresh', async () => {
     project();
     let release!: () => void;
