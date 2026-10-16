@@ -263,7 +263,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       Complejidad: media · Archivos: 5 · Riesgo: BD → opus
 - [x] M-4: revocar los tokens de acceso de un usuario al sacarlo de la organización (hoy solo dejan de funcionar).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-5: `ExpoPushTokenController` y `ExpoPushToken` importan el `PersonalAccessToken` de Sanctum; apuntarlos al modelo
+- [x] M-5: `ExpoPushTokenController` y `ExpoPushToken` importan el `PersonalAccessToken` de Sanctum; apuntarlos al modelo
       propio por coherencia. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-6: corregir el comentario de `RejectAccessTokens` ("public routes trigger no token lookup" no es exacto por
       `SetLocale`) y agregar un test de token de acceso en una ruta pública (p. ej. `/api/auth/registration`).
