@@ -126,6 +126,13 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   (DCR crea clientes públicos). `config/mcp.php` propio se fusiona con `mergeConfigFrom` (superficial): una clave presente
   reemplaza la del paquete entera, así que la fase 3 define `redirect_domains` completo.
 
+- 2026-10-16 — Callback verificado en https://claude.com/docs/connectors/building/authentication: claude.ai web, escritorio,
+  móvil y Cowork usan exactamente `https://claude.ai/api/mcp/auth_callback` (claude.com no figura). Claude Code usaría
+  loopback (`http://localhost:<puerto>/callback`), pero sigue con tokens Bearer: no se aceptan loopback en el DCR. Otros
+  requisitos de Claude para fases 5, 6 y 11: `/oauth/token` con form-urlencoded, `invalid_grant` al refresh inválido, rotar
+  refresh tokens (clientes públicos), respuesta en menos de 10 s, `resource` del protected resource igual a la URL que se
+  pega en claude.ai (con `/mcp`), y la pantalla de consentimiento muestra el host del `redirect_uri`.
+
 ## Notas para la próxima sesión
 - El comando docker del worktree se pasa directo, sin `sh -c` (lo bloquea la comprobación de seguridad).
 - En el worktree, `vendor/` vive en el volumen `workspace_oauthmcp_vendor` (con Passport): los comandos llevan además
