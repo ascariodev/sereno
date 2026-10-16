@@ -66,7 +66,7 @@ it('translates the rejection', function () {
 
 it('rejects the access token of a former member', function () {
     $token = $this->user->createAccessToken($this->organization, 'Claude Code')->plainTextToken;
-    $this->organization->removeMember($this->user);
+    $this->organization->users()->detach($this->user->id);
 
     $this->postJson('/mcp', $this->initialize, ($this->bearer)($token))
         ->assertForbidden()
