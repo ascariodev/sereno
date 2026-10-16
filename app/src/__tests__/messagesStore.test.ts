@@ -149,6 +149,28 @@ describe('messages store thread counters', () => {
   });
 });
 
+describe('messages store send', () => {
+  function posted(fetchMock: jest.Mock) {
+    const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!;
+    return JSON.parse(String(call[1].body));
+  }
+
+  it('sends attachment_ids only when there are attachments', async () => {
+    const fetchMock = jest.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === 'POST' ? page([]) : page([message(1)]),
+    );
+    globalThis.fetch = fetchMock as never;
+    await useMessagesStore.getState().open(50);
+
+    await useMessagesStore.getState().send('Hi', [7, 8]);
+    expect(posted(fetchMock)).toEqual({ body: 'Hi', attachment_ids: [7, 8] });
+
+    fetchMock.mockClear();
+    await useMessagesStore.getState().send('Plain');
+    expect(posted(fetchMock)).toEqual({ body: 'Plain' });
+  });
+});
+
 describe('messages store catch-up and guards', () => {
   it('catches up while the first page is still loading', async () => {
     const first = deferred();
@@ -172,6 +194,20 @@ describe('messages store catch-up and guards', () => {
 
     expect(useMessagesStore.getState().insert(message(1, { replies_count: 2 }))).toBe(true);
     expect(root(1).deleted_at).toBe('2026-01-02T00:00:00Z');
+  });
+
+  it('stops counting a root against the unloaded-deletions cap once it is inserted', () => {
+    useMessagesStore.setState({ channelId: 50 });
+    const gone = { deleted_at: '2026-01-02T00:00:00Z', root: { id: 1, replies_count: 1, last_reply_at: '2026-01-01T09:00:00Z' } };
+    useMessagesStore.getState().remove({ id: 1, channel_id: 50, parent_id: null, ...gone });
+    useMessagesStore.getState().insert(message(1, { replies_count: 2 }));
+    useMessagesStore.setState({ messages: [] });
+    for (let id = 2; id <= 201; id++) {
+      useMessagesStore.getState().remove({ id, channel_id: 50, parent_id: null, deleted_at: '2026-01-02T00:00:00Z' });
+    }
+
+    expect(useMessagesStore.getState().insert(message(1, { replies_count: 2 }))).toBe(true);
+    expect(root(1).replies_count).toBe(1);
   });
 
   it('discards an older page that was in flight when catch-up replaced the list', async () => {

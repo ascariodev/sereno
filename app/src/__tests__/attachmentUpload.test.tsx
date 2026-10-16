@@ -129,6 +129,24 @@ describe('Uploading attachments from the channel composer', () => {
     expect(JSON.parse(String(send[1]?.body))).toEqual({ body: '', attachment_ids: [31] });
   });
 
+  it('shows the attachment_ids error when the server rejects the attachments on send', async () => {
+    const fetchMock = jest.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/attachments')) return json({ data: attachment(31, 'Report.pdf') }, 201);
+      if (init?.method === 'POST') return json({ message: 'bad', errors: { attachment_ids: ['The attachment is no longer available.'] } }, 422);
+      return json({ data: [message(1)], meta: { next_cursor: null } });
+    });
+    globalThis.fetch = fetchMock as never;
+    getDocument.mockResolvedValue(document('Report.pdf'));
+    await render(<Channel />);
+    await screen.findByText('Body 1');
+    await pickDocument();
+    expect(await screen.findByText('2 KB')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+
+    expect(await screen.findByText('The attachment is no longer available.')).toBeOnTheScreen();
+  });
+
   it('rejects a file over the size limit without uploading it', async () => {
     const fetchMock = jest.fn(async () => json({ data: [message(1)], meta: { next_cursor: null } }));
     globalThis.fetch = fetchMock as never;

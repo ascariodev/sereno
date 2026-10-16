@@ -105,7 +105,7 @@ export function MessageComposer({ channelId: channelIdProp, send, placeholder }:
       uploads.discardSent(sentIds);
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 422) {
-        setErrorText(caught.errors.body?.[0] ?? caught.message);
+        setErrorText(caught.errors.body?.[0] ?? caught.errors.attachment_ids?.[0] ?? caught.message);
       } else if (caught instanceof ApiError && caught.status === 429) {
         setErrorText(t('channel.composer.rateLimited'));
       } else {

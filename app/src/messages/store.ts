@@ -274,6 +274,7 @@ export const useMessagesStore = create<MessagesState>()((set, get) => ({
     if (messages.some((known) => known.id === message.id)) return false
     let incoming: Message | null = message
     if (deletedRoots.has(message.id)) {
+      unloadedDeletions.delete(message.id)
       if (message.deleted_at !== null) return false
       const early = removals.get(message.id)
       incoming = settle(early !== undefined ? rebase(message, early) : message)

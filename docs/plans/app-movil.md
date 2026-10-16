@@ -311,7 +311,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-5: Log "gave up" de `SendPushNotification`: omitir la lista del canal que no falló (hoy sale `subscriptions: []`).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-6: Quitar restos de la plantilla de Expo que no se usan: `assets/expo.icon/`, `ios.icon` y `web.output` en `app.json`,
+- [ ] M-6: Quitar restos de la plantilla de Expo que no se usan: `assets/expo.icon/`, `ios.icon` y `web.output` en `app.json`, Aplicado: `ios`, `web.output`, scripts `ios`/`web` y `assets/expo.icon/`; las dependencias de plantilla pasan a M-63.
       scripts `ios` y `web`, y dependencias sin uso (`react-native-web`, `react-dom`, `expo-glass-effect`, `expo-symbols`,
       `@expo/ui`, `expo-web-browser`, `expo-image` si nadie la usa). Verificar con typecheck, tests y `expo lint`.
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
@@ -337,7 +337,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [x] M-20: Sumar `intent:` y `data:` al test de esquemas no permitidos de `markdownContent.test.tsx`; tipar `Message.mentions` como opcional o confirmar que la API siempre lo manda. Complejidad baja, sonnet. Confirmado: `MessageController` y los eventos `MessageCreated`/`MessageUpdated` cargan `mentionedUsers`, así que el tipo queda obligatorio.
 - [x] M-21: Quitar el aviso de `act(...)` que deja `loadOlder` en `channel.test.tsx`. Complejidad baja, sonnet.
 - [ ] M-22: Sparkline de eventos por hora en la tarjeta del aviso (`/log-groups/hourly`), como `SystemNotice.vue`; no está en ninguna fase. Complejidad media, sonnet.
-- [ ] M-23: Avisos de sistema: quitar la clave sin uso `channel.notice`, tests de `status_changed` sin título y de nivel o estado desconocido, y confirmar contra la web qué se muestra con un aviso con `deleted_at`. Complejidad baja, sonnet.
+- [ ] M-23: Avisos de sistema: quitar la clave sin uso `channel.notice`, tests de `status_changed` sin título y de nivel o estado desconocido, y confirmar contra la web qué se muestra con un aviso con `deleted_at`. Complejidad baja, sonnet. Confirmado: ni la app ni la web miran `deleted_at` de un aviso, hay paridad.
 - [ ] M-24: Negritas en actor y estado de las líneas de aviso con `Trans` de react-i18next, como `i18n-t` en la web. Complejidad baja, sonnet.
 - [ ] M-25: Ocultar el compositor en canales archivados (`archived_at` de `ChannelResource`, pasarlo a la pantalla del canal), como la web. Complejidad baja, sonnet.
 - [ ] M-26: Envolver el canal en `KeyboardAvoidingView` (o el equivalente de Expo) si en el teléfono el teclado tapa el compositor. Complejidad baja, sonnet.
@@ -348,7 +348,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [x] M-31: `settle` debe vaciar `attachments` al borrar, como `asDeleted` de la web (cuando lleguen los adjuntos, fase 24). Complejidad baja, sonnet.
 - [x] M-32: `threadStore.catchUp` relanza errores que no son `ApiError`/`AbortError` y se llama con `void`: tragarlos como la web para evitar rechazos sin capturar. Complejidad baja, sonnet.
 - [ ] M-33: Conservar el borrador de la respuesta del hilo entre aperturas de la misma raíz (`draft` de la web) y usar selectores en `thread.tsx`. Complejidad baja, sonnet.
-- [ ] M-34: Un 422 de `attachment_ids` al enviar muestra el mensaje genérico: mostrar `errors.attachment_ids[0]`; test directo de `attachment_ids` en `send` del store del canal. Complejidad baja, sonnet.
+- [x] M-34: Un 422 de `attachment_ids` al enviar muestra el mensaje genérico: mostrar `errors.attachment_ids[0]`; test directo de `attachment_ids` en `send` del store del canal. Complejidad baja, sonnet.
 - [ ] M-35: `TaskCreateModal`: lista de miembros en un `ScrollView` con altura máxima y comprobar en el teléfono que el teclado no tapa el modal. Complejidad baja, sonnet.
 - [ ] M-36: Enfocar el mensaje mencionado al abrir una notificación `chat_mention` de primer nivel (la web usa `?message=`; la app necesita abrir el canal "around"). Complejidad media, sonnet.
 - [x] M-37: `notifications/store.ts`: condicionar el `refresh()` del cambio de organización a que el store esté iniciado (como `live` en la web), podar `removedMentions` en sesiones largas y sumar tests de `loadMore` filtrado por `removedMentions` y de cambio de organización con el store iniciado. Complejidad baja, sonnet.
@@ -373,6 +373,9 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [x] M-56: si la carga de organizaciones falla, el toque del aviso se consume sin avisar; reintentar o avisar. Baja, sonnet.
 - [ ] M-57: acortar el comentario de `pushDestination` en `app/src/push/open.ts`, que repite el nombre. Baja, sonnet.
 - [x] M-58: `autoIncrement` también en el perfil `preview` de `app/eas.json`, para que un preview no choque por downgrade con un production más nuevo. Baja, sonnet.
-- [ ] M-59: `messages/store.ts` `insert`: al insertar una raíz que estaba en `unloadedDeletions`, quitarla del set como hace la web (si no, al expulsarla se pierde el rebase de contadores). Complejidad baja, sonnet.
+- [x] M-59: `messages/store.ts` `insert`: al insertar una raíz que estaba en `unloadedDeletions`, quitarla del set como hace la web (si no, al expulsarla se pierde el rebase de contadores). Complejidad baja, sonnet.
 - [x] M-60: Web: portar el arreglo de `setCommentsCount` con una recarga en vuelo (sello de contadores en `web/src/stores` del plan, como `app/src/tasks/store.ts`); hoy la web tiene la misma carrera. Complejidad baja, sonnet.
 - [ ] M-61: Log: un `loadMore` que llega con un `refresh` en vuelo se descarta (M-48) y hay que volver a hacer scroll; encolarlo y correrlo al terminar el refresh. Complejidad baja, sonnet.
+- [ ] M-62: `TaskComments`: un 422 de `attachment_ids` muestra el mensaje genérico; mostrar `errors.attachment_ids[0]` como `MessageComposer` (M-34). Baja, sonnet.
+- [ ] M-63: Quitar las dependencias de plantilla sin uso de `app/package.json` (`@expo/ui`, `expo-glass-effect`, `expo-symbols`, `expo-web-browser`, `react-native-web`) tras verificar con grep, typecheck y lint; es cambio nativo: subir `version` y hacer build nuevo. Media, sonnet.
+- [ ] M-64: `session/auth.ts`: quitar la rama de `explicitLocale` de `startSession` y el `Promise<boolean>` de `login`/`register`, que quedaron muertos tras M-10; test de `clear()` del log con un `loadMore` encolado. Baja, sonnet.
