@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 31
+**Estado:** en curso · Fase actual: 32
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -215,7 +215,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `packages/browser/README.md`
 - **Terminado cuando:** una app Vite + Vue nueva siguiendo solo el README envía un error al API local.
 
-### [ ] Fase 31 — Web: fragmentos por lenguaje en el diálogo de la key
+### [x] Fase 31 — Web: fragmentos por lenguaje en el diálogo de la key
 - **Alcance:** pestañas Laravel, PHP, Node.js, Python, Navegador y curl en `LogSourceKeyDialog` (para fuentes de navegador,
   solo Navegador); nombres de paquete tomados de Decisiones.
 - **Archivos:** `web/src/components/LogSourceKeyDialog.vue`, `web/src/components/LogSourceKeyDialog.spec.ts`,
@@ -274,9 +274,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 28: SerenoVue (app.use(SerenoVue, {client?, init?})); sin client ni init resuelve getClient() en cada error; context {component, info}; sin handler previo hace console.error(error) sin relanzar (como Vue); con previo lo llama después de enviar. Tipos propios VueErrorHandler y VueAppLike; vue >=3 peer opcional. README (fase 30): explicar que con el plugin Vue deja de emitir su aviso de dev.
 - 2026-10-15 — Fase 29: SerenoErrorBoundary (props children, fallback ReactNode | ({error, reset}) => ReactNode, onError después de enviar e ignorado si lanza, client; sin client usa getClient()); componentStack sin recorte propio (lo recorta el formateador). react >=18 peer opcional; react.tsx no usa JSX y el dist solo importa Component de react.
 - 2026-10-15 — Fase 30: una key wsk_ es aceptada desde el navegador (acceptsOrigin es true para fuentes server); el README de browser advierte no usarla en el front. Solo hay builds ESM y CJS para bundlers, sin bundle para <script>.
+- 2026-10-15 — Fase 31: LogSourceKeyDialog usa AppSegmented; server muestra Laravel (por defecto), PHP, Node.js, Python y curl; browser solo Navegador con aviso de orígenes y sin curl. Paquetes: ascariodev/sereno-laravel, ascariodev/sereno-php, @ascariodev/sereno-node, sereno-sdk (import sereno), @ascariodev/sereno-browser (/vue). URL interpolada = config.apiUrl, base sin /api.
 
 ## Notas para la próxima sesión
-- Fase 30 cerrada (sereno-js ea8f720, tag local browser-v0.1.0): README probado con una app Vite + Vue nueva siguiendo solo el README (3 eventos aceptados, 202). Bloque sereno-browser terminado. Sigue la fase 31 (web: fragmentos por lenguaje en LogSourceKeyDialog).
+- Fase 31 cerrada: LogSourceKeyDialog con pestañas Laravel, PHP, Node.js, Python y curl (server) o solo Navegador (browser), fragmentos tomados de cada README. Sigue la fase 32 (app móvil: tipo de fuente y fragmentos), última del plan.
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -327,3 +328,4 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-35: Tests de SerenoErrorBoundary: error dentro de fallback, reset con un hijo que sigue fallando y una corrida con React 18 [simple, sonnet]
 - [ ] M-36: README de browser, sección React: decir que sin init previo (o client) el boundary no envía nada, aclarar 'tested with React 19' y usar ({ reset }) en el ejemplo [simple, haiku]
 - [ ] M-37: API: rechazar keys wsk_ que llegan con cabecera Origin, para que una key de servidor pegada en el front falle en vez de funcionar expuesta (cambia comportamiento: decidir antes) [media, opus]
+- [ ] M-38: LogSourceKeyDialog: título 'Environment variables' sin '(.env)' en PHP, Node y Python (no leen .env), y volver a Laravel al abrir una key nueva [simple, haiku]
