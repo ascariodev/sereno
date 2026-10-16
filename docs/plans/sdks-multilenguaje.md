@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 28
+**Estado:** en curso · Fase actual: 29
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -200,7 +200,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Terminado cuando:** tests en jsdom pasan y una página de prueba servida desde un origen permitido deja el evento en el
   API local.
 
-### [ ] Fase 28 — sereno-browser: plugin de Vue
+### [x] Fase 28 — sereno-browser: plugin de Vue
 - **Alcance:** `SerenoVue` que encadena `app.config.errorHandler` con el componente y la info del hook en el `context`.
 - **Archivos:** `packages/browser/src/vue.ts`, `packages/browser/test/vue.test.ts`, `packages/browser/package.json`
 - **Terminado cuando:** test con un componente que lanza en `setup`: evento enviado y el handler previo llamado.
@@ -271,9 +271,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 25: bootstrap/app.php prepend([HandleCors::class, RejectOversizedIngestBody::class]); array_unique de getGlobalMiddleware deja HandleCors una sola vez y primero. Sin cabeceras CORS a mano.
 - 2026-10-15 — Fase 26: web LogSource {kind: 'server'|'browser', allowed_origins: string[]|null}; createLogSource(projectId, string | {name, kind?, allowed_origins?}); server envía solo {name}. Validación y normalización de orígenes en el cliente replican StoreLogSourceRequest.
 - 2026-10-15 — Fase 27: @ascariodev/sereno-browser init(InitOptions = ClientOptions & {keepalive?: 'unload'|'never', handlers?}) nunca lanza (opciones inválidas dan un cliente inerte con INVALID_OPTIONS_NOTICE); BrowserClient extiende Client de core y aplica dedupe (fingerprint del context, o clase y ubicación; 60 s) y tope (MAX_EVENTS_PER_PAGE=100 por init) dentro de log. keepalive va por un envoltorio de fetch (no fetchOptions) solo en modo salida (pagehide o hidden; se apaga en pageshow o visible), presupuesto KEEPALIVE_BUDGET_BYTES=60000. Cliente activo en globalThis[Symbol.for('@ascariodev/sereno-browser.active')]. Solo ESM y CJS con tipos, sin bundle IIFE. En Chrome 152, keepalive con preflight de Authorization funciona.
+- 2026-10-15 — Fase 28: SerenoVue (app.use(SerenoVue, {client?, init?})); sin client ni init resuelve getClient() en cada error; context {component, info}; sin handler previo hace console.error(error) sin relanzar (como Vue); con previo lo llama después de enviar. Tipos propios VueErrorHandler y VueAppLike; vue >=3 peer opcional. README (fase 30): explicar que con el plugin Vue deja de emitir su aviso de dev.
 
 ## Notas para la próxima sesión
-- Fase 27 cerrada (sereno-js 55222a1): init/captureException/log/flush/close/getClient en @ascariodev/sereno-browser, dedupe 60 s, tope 100 por init, keepalive solo al salir. Prueba real en Chrome 152 contra un API del worktree (8093, workspace_test): 202 con preflight, keepalive con Authorization funciona y el vaciado en pagehide llega. Sigue la fase 28 (plugin de Vue) usando getClient().log para heredar dedupe y tope.
+- Fase 28 cerrada (sereno-js 6b7b072): SerenoVue en @ascariodev/sereno-browser/vue encadena app.config.errorHandler con component e info en el context. Sigue la fase 29 (ErrorBoundary de React).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -318,3 +319,5 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-29: IntegrationsView originsSummary: una sola clave i18n con parámetros en vez de concatenar, para idiomas con otro orden [simple, haiku]
 - [ ] M-30: README de browser: documentar que el aviso de descarte por presupuesto sale durante la salida y que los eventos recortados cuentan como enviados en FlushResult [simple, haiku]
 - [ ] M-31: Probar keepalive con preflight en Firefox y Safari (solo verificado en Chrome 152) [media, sonnet]
+- [ ] M-32: Tests de SerenoVue con handler previo que relanza y con setup async [simple, haiku]
+- [ ] M-33: SerenoVue: marcar el handler envuelto para no encadenarlo dos veces si el plugin se instala de nuevo [simple, haiku]
