@@ -4,6 +4,7 @@ import { api } from '@/api/client';
 import Tasks from '@/app/tasks';
 import { resetLogGroups } from '@/messages/logGroups';
 import { useOrganizationStore } from '@/organization/store';
+import { useMemberDirectoryStore } from '@/projects/members';
 import { useProjectsStore } from '@/projects/store';
 import {
   disconnectRealtime,
@@ -145,6 +146,17 @@ afterEach(() => {
 const ids = () => useTasksStore.getState().tasks.map((item) => item.id).sort((a, b) => a - b);
 
 describe('Tasks live on the board', () => {
+  it('invalidates the member directory of the project when its members change', async () => {
+    globalThis.fetch = jest.fn(async () => json({ data: [task(1, 'todo', 1)], meta: {} })) as never;
+    await render(<Tasks />);
+    expect(await screen.findByText('Task 1')).toBeOnTheScreen();
+    useMemberDirectoryStore.setState({ entries: { 3: { members: [], loadedAt: 1000, inFlight: null } } });
+
+    await act(async () => fake.emit('.project.members_changed', { project_id: 3 }));
+
+    expect(useMemberDirectoryStore.getState().entries[3].loadedAt).toBe(0);
+  });
+
   it('applies task and comment events and leaves the project channel on exit', async () => {
     globalThis.fetch = jest.fn(async () => json({ data: [task(1, 'todo', 1)], meta: {} })) as never;
     const view = await render(<Tasks />);

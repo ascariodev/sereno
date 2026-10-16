@@ -9,6 +9,7 @@ import LogGroupDetail from '@/app/log-group';
 import { useLogStore } from '@/log/store';
 import { resetLogGroups } from '@/messages/logGroups';
 import { useOrganizationStore } from '@/organization/store';
+import { useMemberDirectoryStore } from '@/projects/members';
 import { useProjectsStore } from '@/projects/store';
 import {
   disconnectRealtime,
@@ -202,6 +203,22 @@ describe('Log list', () => {
     await waitFor(() => expect(fn.mock.calls.length).toBeGreaterThan(before));
   });
 
+  it('invalidates the member directory of the project when its members change', async () => {
+    const fake = fakeClient();
+    setRealtimeClientFactory(() => fake.client);
+    useProjectsStore.setState({ projects: [], channelByProject: { 3: 50 }, loaded: true });
+    globalThis.fetch = jest.fn(async () => json(page([group(1)]))) as never;
+    await act(async () => {
+      render(<Log />);
+    });
+    await screen.findByText('Group 1');
+    useMemberDirectoryStore.setState({ entries: { 3: { members: [], loadedAt: 1000, inFlight: null } } });
+
+    await act(async () => fake.emit('organizations.7.channels.50', '.project.members_changed', { project_id: 3 }));
+
+    expect(useMemberDirectoryStore.getState().entries[3].loadedAt).toBe(0);
+  });
+
   it('navigates to the detail', async () => {
     globalThis.fetch = jest.fn(async () => json(page([group(1)]))) as never;
     await act(async () => {
@@ -280,6 +297,65 @@ describe('Log group detail', () => {
     });
 
     expect(useLogStore.getState().groups.map((item) => item.id)).toEqual([2, 3, 4]);
+  });
+
+  it('runs a loadMore that arrives during a refresh once the refresh ends', async () => {
+    project();
+    let release!: () => void;
+    const gate = new Promise<void>((done) => {
+      release = done;
+    });
+    let refreshCalls = 0;
+    globalThis.fetch = jest.fn(async (url: string) => {
+      const at = url.includes('page=2') ? 2 : 1;
+      if (at === 1 && ++refreshCalls === 2) await gate;
+      return json(page([group(at * 10 + 1)], at, 2));
+    }) as never;
+    await act(async () => {
+      await useLogStore.getState().open(3);
+    });
+    const refreshing = useLogStore.getState().refresh();
+    await act(async () => {
+      await useLogStore.getState().loadMore();
+    });
+    expect(useLogStore.getState().page).toBe(1);
+    release();
+    await act(async () => {
+      await refreshing;
+    });
+    await waitFor(() => expect(useLogStore.getState().groups.map((item) => item.id)).toEqual([11, 21]));
+    expect(useLogStore.getState().page).toBe(2);
+  });
+
+  it('drops a queued loadMore when the filters change during the refresh', async () => {
+    project();
+    let release!: () => void;
+    const gate = new Promise<void>((done) => {
+      release = done;
+    });
+    let refreshCalls = 0;
+    globalThis.fetch = jest.fn(async (url: string) => {
+      const at = url.includes('page=2') ? 2 : 1;
+      if (at === 1 && ++refreshCalls === 2) await gate;
+      return json(page([group(at * 10 + 1)], at, 2));
+    }) as never;
+    await act(async () => {
+      await useLogStore.getState().open(3);
+    });
+    const refreshing = useLogStore.getState().refresh();
+    await act(async () => {
+      await useLogStore.getState().loadMore();
+    });
+    await act(async () => {
+      await useLogStore.getState().setFilters('all', 'all');
+    });
+    release();
+    await act(async () => {
+      await refreshing;
+    });
+
+    expect(useLogStore.getState().page).toBe(1);
+    expect(useLogStore.getState().groups.map((item) => item.id)).toEqual([11]);
   });
 
   it('hides create task in an archived project and links the existing task', async () => {

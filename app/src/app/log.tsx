@@ -8,6 +8,7 @@ import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload, levelTone } fr
 import { type LogGroup, LOG_LEVELS, STATUS_FILTERS, useLogStore } from '@/log/store';
 import { useOrganizationStore } from '@/organization/store';
 import { useProjectsStore } from '@/projects/store';
+import { useMemberDirectoryStore } from '@/projects/members';
 import { onReconnect, subscribeToChannel } from '@/realtime/echo';
 
 const LIVE_RELOAD_DELAY_MS = 300;
@@ -92,6 +93,7 @@ export default function Log() {
         const row = useLogStore.getState().groups.find((item) => item.id === payload.log_group_id);
         if (row?.status !== payload.status) scheduleReload();
       },
+      onMembersChanged: (projectId) => useMemberDirectoryStore.getState().invalidate(projectId),
     });
     const unsubscribeReconnect = onReconnect(() => {
       void useLogStore.getState().refresh();

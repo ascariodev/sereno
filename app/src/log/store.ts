@@ -99,12 +99,14 @@ const initial = {
 
 let generation = 0
 let refreshing: number | null = null
+let loadMoreQueued = false
 
 export const useLogStore = create<LogState>()((set, get) => ({
   ...initial,
 
   async open(projectId) {
     generation++
+    loadMoreQueued = false
     set({ ...initial, projectId, loading: true })
     await get().refresh()
   },
@@ -113,6 +115,7 @@ export const useLogStore = create<LogState>()((set, get) => ({
     const { projectId, status: previousStatus, level: previousLevel, everLoaded } = get()
     if (projectId === null) return
     const current = ++generation
+    loadMoreQueued = false
     set({ status, level, loading: true, loadingMore: false, failed: false, notFound: false, actionFailed: false })
     try {
       const response = await fetchPage(projectId, status, level, 1)
@@ -134,7 +137,11 @@ export const useLogStore = create<LogState>()((set, get) => ({
 
   async loadMore() {
     const { projectId, status, level, page, lastPage, loading, loadingMore } = get()
-    if (projectId === null || loading || loadingMore || refreshing !== null || page >= lastPage) return
+    if (projectId === null || loading || loadingMore || page >= lastPage) return
+    if (refreshing !== null) {
+      loadMoreQueued = true
+      return
+    }
     const current = ++generation
     set({ loadingMore: true, actionFailed: false })
     try {
@@ -177,7 +184,13 @@ export const useLogStore = create<LogState>()((set, get) => ({
       else if (everLoaded) set({ loading: false, loadingMore: false })
       else set({ loading: false, failed: true })
     } finally {
-      if (refreshing === current) refreshing = null
+      if (refreshing === current) {
+        refreshing = null
+        if (loadMoreQueued && current === generation) {
+          loadMoreQueued = false
+          await get().loadMore()
+        }
+      }
     }
   },
 
@@ -199,6 +212,7 @@ export const useLogStore = create<LogState>()((set, get) => ({
 
   clear() {
     generation++
+    loadMoreQueued = false
     set({ ...initial })
   },
 }))

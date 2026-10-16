@@ -4,6 +4,7 @@ import { api } from '@/api/client';
 import Channel from '@/app/channel';
 import { type Message, useMessagesStore } from '@/messages/store';
 import { useOrganizationStore } from '@/organization/store';
+import { useMemberDirectoryStore } from '@/projects/members';
 import { useProjectsStore } from '@/projects/store';
 import { disconnectRealtime, setRealtimeClientFactory, type ConnectionStatus, type RealtimeClient, type RealtimePayload } from '@/realtime/echo';
 
@@ -104,6 +105,17 @@ afterEach(() => {
 });
 
 describe('Channel live messages', () => {
+  it('invalidates the member directory of the project when its members change', async () => {
+    globalThis.fetch = jest.fn(async () => json({ data: [message(1)], meta: { next_cursor: null } })) as never;
+    await render(<Channel />);
+    await screen.findByText('Body 1');
+    useMemberDirectoryStore.setState({ entries: { 3: { members: [], loadedAt: 1000, inFlight: null } } });
+
+    await act(async () => fake.emit('.project.members_changed', { project_id: 3 }));
+
+    expect(useMemberDirectoryStore.getState().entries[3].loadedAt).toBe(0);
+  });
+
   it('applies created, updated and deleted events and leaves the channel on exit', async () => {
     globalThis.fetch = jest.fn(async () =>
       json({ data: [message(2), message(1)], meta: { next_cursor: null } }),

@@ -212,6 +212,7 @@ export interface ChannelSubscriptionHandlers {
   onCreated?: (message: Message) => void
   onUpdated?: (message: Message) => void
   onDeleted?: (event: MessageDeletedEvent) => void
+  onMembersChanged?: (projectId: number) => void
 }
 
 export function subscribeToChannel(
@@ -219,9 +220,13 @@ export function subscribeToChannel(
   channelId: number,
   handlers: ChannelSubscriptionHandlers,
 ): () => void {
-  const { onCreated = () => {}, onUpdated = () => {}, onDeleted = () => {} } = handlers
-  const events = [MESSAGE_CREATED_EVENT, MESSAGE_UPDATED_EVENT, MESSAGE_DELETED_EVENT]
+  const { onCreated = () => {}, onUpdated = () => {}, onDeleted = () => {}, onMembersChanged = () => {} } = handlers
+  const events = [MESSAGE_CREATED_EVENT, MESSAGE_UPDATED_EVENT, MESSAGE_DELETED_EVENT, PROJECT_MEMBERS_CHANGED_EVENT]
   return subscribe(channelName(organizationId, channelId), events, (event, data) => {
+    if (event === PROJECT_MEMBERS_CHANGED_EVENT) {
+      if (typeof data.project_id === 'number') onMembersChanged(data.project_id)
+      return
+    }
     if (event === MESSAGE_DELETED_EVENT) {
       const { id, channel_id: deletedChannelId, parent_id: parentId, deleted_at: deletedAt } = data
       if (typeof id !== 'number' || typeof deletedChannelId !== 'number' || typeof deletedAt !== 'string') return

@@ -103,6 +103,33 @@ describe('member directory', () => {
     expect(store().entries[5].members).toEqual([{ id: 8, name: 'Cy' }]);
   });
 
+  it('invalidates every project when called without an id', async () => {
+    const fetchMock = mockFetch(() => json({ data: [bea] }));
+    await store().ensureLoaded(5);
+    await store().ensureLoaded(6);
+
+    store().invalidate();
+    expect(store().entries[5].loadedAt).toBe(0);
+    expect(store().entries[6].loadedAt).toBe(0);
+    await store().ensureLoaded(5);
+    await store().ensureLoaded(6);
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('clear empties the directory and drops answers still in flight', async () => {
+    let resolve: (response: Response) => void = () => {};
+    mockFetch(() => new Promise<Response>((r) => (resolve = r)));
+    const pending = store().ensureLoaded(5);
+
+    store().clear();
+    expect(store().entries).toEqual({});
+    resolve(json({ data: [bea] }));
+    await pending;
+
+    expect(store().entries).toEqual({});
+  });
+
   it('keeps the entry reloadable when the request fails', async () => {
     const fetchMock = mockFetch(() => json({ message: 'no' }, 500));
 

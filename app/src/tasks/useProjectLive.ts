@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 
 import { useOrganizationStore } from '@/organization/store'
+import { useMemberDirectoryStore } from '@/projects/members'
 import { onReconnect, subscribeToProject } from '@/realtime/echo'
 
 import { useTaskCommentsStore } from './comments'
@@ -23,6 +24,7 @@ function join(organizationId: number, projectId: number): () => void {
       useTaskCommentsStore.getState().remove(id)
       useTasksStore.getState().setCommentsCount(taskId, count)
     },
+    onMembersChanged: (projectId) => useMemberDirectoryStore.getState().invalidate(projectId),
   })
   const unsubscribeReconnect = onReconnect(() => {
     void useTasksStore.getState().refresh()

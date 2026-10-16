@@ -10,6 +10,7 @@ import { useThreadStore } from '@/messages/threadStore';
 import { useOrganizationStore } from '@/organization/store';
 import { isLogGroupOpenedPayload, isLogGroupStatusChangedPayload } from '@/messages/payload';
 import { useProjectsStore } from '@/projects/store';
+import { useMemberDirectoryStore } from '@/projects/members';
 import { onReconnect, subscribeToChannel } from '@/realtime/echo';
 
 export default function Channel() {
@@ -47,6 +48,7 @@ export default function Channel() {
         useMessagesStore.getState().remove(event);
         useThreadStore.getState().remove(event);
       },
+      onMembersChanged: (projectId) => useMemberDirectoryStore.getState().invalidate(projectId),
     });
     const unsubscribeReconnect = onReconnect(() => {
       void useMessagesStore.getState().catchUp();
