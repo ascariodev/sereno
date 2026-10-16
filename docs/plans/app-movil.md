@@ -341,7 +341,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-24: Negritas en actor y estado de las líneas de aviso con `Trans` de react-i18next, como `i18n-t` en la web. Complejidad baja, sonnet.
 - [ ] M-25: Ocultar el compositor en canales archivados (`archived_at` de `ChannelResource`, pasarlo a la pantalla del canal), como la web. Complejidad baja, sonnet.
 - [ ] M-26: Envolver el canal en `KeyboardAvoidingView` (o el equivalente de Expo) si en el teléfono el teclado tapa el compositor. Complejidad baja, sonnet.
-- [ ] M-27: Tests de `app/src/projects/members.ts` (TTL, dedupe en vuelo, vaciado al cambiar de organización). Complejidad baja, sonnet.
+- [x] M-27: Tests de `app/src/projects/members.ts` (TTL, dedupe en vuelo, vaciado al cambiar de organización). Complejidad baja, sonnet.
 - [x] M-28: `catchUp` sale si `loading`; la web solo si `hasNewer`. Si la carga de `open` falla y hay reconexión, no se recupera nada. Complejidad baja, sonnet.
 - [x] M-29: Tests de errores 404/422/429 del borrado y del `catchUp` en 404 (borrar y editar) en `messageActions.test.tsx`; tipar `t` de `deleteMessage` con `TFunction`. Complejidad baja, sonnet.
 - [x] M-30: Store de mensajes: separar el tope de 200 de `deletedRoots` (al expulsar una entrada un snapshot tardío puede resucitar la raíz; la web solo limita `unloadedDeletions`) y sumar la guarda `listVersion` en `loadOlder` como la web. Complejidad baja, sonnet.
