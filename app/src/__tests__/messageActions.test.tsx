@@ -145,6 +145,22 @@ describe('editing', () => {
     expect(screen.getByLabelText('Edit message')).toBeOnTheScreen();
   });
 
+  it('reports a 404 on save and catches up with the server', async () => {
+    const fetchMock = mockApi([message(1)], (url, init) => (init?.method === 'PATCH' ? json({ message: 'gone' }, 404) : undefined));
+    await render(<Channel />);
+    await screen.findByText('Body 1');
+    const listCalls = () => fetchMock.mock.calls.filter(([, init]) => init?.method !== 'PATCH').length;
+    const before = listCalls();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Message actions' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Edit' }));
+    await fireEvent.changeText(screen.getByLabelText('Edit message'), 'Changed');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('The message no longer exists.')).toBeOnTheScreen();
+    await waitFor(() => expect(listCalls()).toBeGreaterThan(before));
+  });
+
   it('cancels without calling the API and blocks an empty body', async () => {
     const fetchMock = mockApi([message(1)]);
     await render(<Channel />);
@@ -221,5 +237,41 @@ describe('deleting', () => {
 
     await waitFor(() => expect(alert).toHaveBeenCalledWith('You cannot delete this message.'));
     expect(screen.getByText('Body 1')).toBeOnTheScreen();
+  });
+
+  it.each([
+    [422, 'This channel is archived; messages cannot be deleted.'],
+    [429, 'Too many requests. Try again in a moment.'],
+  ])('reports a %i, keeps the message and does not catch up', async (status, text) => {
+    const alert = confirmDelete();
+    const fetchMock = mockApi([message(1)], (url, init) => (init?.method === 'DELETE' ? json({ message: 'no' }, status) : undefined));
+    await render(<Channel />);
+    await screen.findByText('Body 1');
+    const listCalls = () => fetchMock.mock.calls.filter(([, init]) => init?.method !== 'DELETE').length;
+    const before = listCalls();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Message actions' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));
+    await act(async () => alert.mock.calls[0][2]![1].onPress?.());
+
+    await waitFor(() => expect(alert).toHaveBeenCalledWith(text));
+    expect(screen.getByText('Body 1')).toBeOnTheScreen();
+    expect(listCalls()).toBe(before);
+  });
+
+  it('reports a 404 and catches up with the server', async () => {
+    const alert = confirmDelete();
+    const fetchMock = mockApi([message(1)], (url, init) => (init?.method === 'DELETE' ? json({ message: 'gone' }, 404) : undefined));
+    await render(<Channel />);
+    await screen.findByText('Body 1');
+    const listCalls = () => fetchMock.mock.calls.filter(([, init]) => init?.method !== 'DELETE').length;
+    const before = listCalls();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Message actions' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));
+    await act(async () => alert.mock.calls[0][2]![1].onPress?.());
+
+    await waitFor(() => expect(alert).toHaveBeenCalledWith('The message was already deleted.'));
+    await waitFor(() => expect(listCalls()).toBeGreaterThan(before));
   });
 });

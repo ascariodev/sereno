@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -29,7 +30,7 @@ function deleteErrorKey(status: number): string {
   return 'message.deleteFailed';
 }
 
-async function deleteMessage(message: Message, t: (key: string) => string): Promise<void> {
+async function deleteMessage(message: Message, t: TFunction): Promise<void> {
   try {
     const response = await api.delete<{ data: Message; meta?: { root?: RootCounters } }>(`/api/channels/${message.channel_id}/messages/${message.id}`);
     const event: MessageDeletedEvent = {
