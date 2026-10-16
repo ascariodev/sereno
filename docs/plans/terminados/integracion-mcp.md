@@ -258,7 +258,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   y la BD de desarrollo con la migración de la fase 1; las mejoras pendientes se aplican con `/aplicar-mejoras`.
 
 ## Mejoras propuestas
-- [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
+- [x] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai. Pasó al plan `oauth-mcp`.
       Complejidad: alta · Archivos: 8+ · Riesgo: seguridad → plan nuevo
 - [x] M-2: tool `update-task` (título, descripción, asignado) y `list-project-members` para elegir asignado.
       Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
