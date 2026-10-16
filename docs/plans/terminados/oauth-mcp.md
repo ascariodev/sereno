@@ -227,7 +227,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   revisor fase 7.
 - M-12: Accesibilidad del consentimiento (L-25): foco al `h1` al cargar y región `aria-live` siempre presente para "Volviendo
   a...". Complejidad: baja. Modelo: sonnet. Origen: revisor fase 7.
-- M-13: Carrera entre un `approve` de OAuth y la expulsión del miembro: `ApproveAuthorizationRequest` valida la membresía sin
+- [x] M-13: Carrera entre un `approve` de OAuth y la expulsión del miembro: `ApproveAuthorizationRequest` valida la membresía sin
   bloqueo, así que un grant podría crearse justo al sacar al usuario. Validar la membresía bajo el lock de la organización.
   Complejidad: media (seguridad). Modelo: sonnet. Origen: revisor fase 8.
 - M-14: En `AccessTokensView`, ignorar `AbortError` en `loadConnections` y en la carga de tokens (rechazos sin capturar al
@@ -239,3 +239,6 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - M-17: Alinear el discovery raíz `/.well-known/oauth-protected-resource` (hoy `resource = url('/')`) para que publique
   `url('/mcp')` con una ruta propia (como `oauth-authorization-server` en `routes/ai.php`): desde M-9 el authorize rechaza
   `url('/')`. Complejidad: baja. Modelo: sonnet. Origen: revisor M-9.
+- M-18: Si un grant pasa de la organización A a la B mientras se expulsa al usuario de A, `revokeOauthConnections` puede leer
+  la versión vieja y borrar el grant ya movido (revoca de más, sin acceso indebido): bloquear o releer los grants bajo el
+  lock. Complejidad: baja. Modelo: sonnet. Origen: revisor M-13.

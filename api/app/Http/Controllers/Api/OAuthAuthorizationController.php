@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OAuth\ApproveAuthorizationRequest;
 use App\Models\McpOauthGrant;
+use App\Models\Organization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -55,12 +56,19 @@ class OAuthAuthorizationController extends Controller
             $authRequest->setAuthorizationApproved(true);
 
             $response = DB::transaction(function () use ($authRequest, $user, $request, $psrResponse) {
+                $organizationId = (int) $request->validated('organization_id');
+
+                // Same lock as Organization::removeMember: the membership is checked again under it, so a removal
+                // either revokes this grant or is seen here before it is created.
+                Organization::query()->whereKey($organizationId)->lockForUpdate()->first();
+                validator(['organization_id' => $organizationId], $request->rules())->validate();
+
                 $clientId = $authRequest->getClient()->getIdentifier();
                 $grant = McpOauthGrant::query()->where('client_id', $clientId)->where('user_id', $user->getKey())->first()
                     ?? new McpOauthGrant;
                 $grant->client_id = $clientId;
                 $grant->user_id = $user->getKey();
-                $grant->organization_id = (int) $request->validated('organization_id');
+                $grant->organization_id = $organizationId;
                 $grant->save();
 
                 return $this->server->completeAuthorizationRequest($authRequest, $psrResponse);

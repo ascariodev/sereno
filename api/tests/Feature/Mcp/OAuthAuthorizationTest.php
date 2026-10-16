@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Http\Requests\OAuth\ApproveAuthorizationRequest;
 use App\Models\McpOauthGrant;
 use App\Models\Organization;
 use App\Models\User;
@@ -242,6 +243,20 @@ it('rejects an organization of someone else like a missing one', function () {
 
     expect($foreign->json())->toBe($missing->json());
     $this->postJson(oauthConsentQuery($this->client), [])->assertJsonValidationErrors('organization_id');
+    oauthConsentNothingIssued();
+});
+
+it('rejects the approval when the user is removed after the request was validated', function () {
+    $this->app->afterResolving(ApproveAuthorizationRequest::class, function (ApproveAuthorizationRequest $request) {
+        if ($request->validated('organization_id') !== null) {
+            $this->organization->removeMember($this->user);
+        }
+    });
+
+    $this->postJson(oauthConsentQuery($this->client), ['organization_id' => $this->organization->id])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('organization_id');
+
     oauthConsentNothingIssued();
 });
 
