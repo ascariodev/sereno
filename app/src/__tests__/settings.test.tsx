@@ -1,10 +1,12 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
+import * as SecureStore from 'expo-secure-store';
 
 import { api } from '@/api/client';
 import { i18n } from '@/i18n';
 import Settings from '@/app/(tabs)/settings';
 import { useOrganizationStore } from '@/organization/store';
 import { useAuthStore } from '@/session/auth';
+import { LOCALE_STORAGE_KEY } from '@/session/storage';
 
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
@@ -109,6 +111,44 @@ describe('Settings', () => {
     expect(JSON.parse(String(patch?.[1]?.body))).toEqual({ locale: 'es' });
     expect(i18n.language).toBe('es');
     expect(screen.getByText('Ajustes')).toBeTruthy();
+  });
+
+  it('groups the language options as a radio group and saves the choice in SecureStore', async () => {
+    mockApi((url, init) =>
+      init?.method === 'PATCH'
+        ? json({ data: { id: 1, name: 'Ana', email: 'a@x.test', locale: 'es' } })
+        : json({ data: allOn() }),
+    );
+    await act(async () => {
+      render(<Settings />);
+    });
+    const group = screen.getByLabelText('Language');
+    expect(group.props.accessibilityRole).toBe('radiogroup');
+    expect(within(group).getAllByRole('radio')).toHaveLength(2);
+
+    await act(async () => {
+      await fireEvent.press(screen.getByText('Español'));
+    });
+
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith(LOCALE_STORAGE_KEY, 'es');
+  });
+
+  it('disables a preference switch while its save is in flight', async () => {
+    let release: (response: Response) => void = () => {};
+    mockApi((url, init) =>
+      init?.method === 'PATCH' ? new Promise<Response>((resolve) => (release = resolve)) : json({ data: allOn() }),
+    );
+    await act(async () => {
+      render(<Settings />);
+    });
+    await act(async () => {
+      fireEvent(switchFor('A task is assigned to me', 'Email'), 'valueChange', false);
+    });
+    expect(switchFor('A task is assigned to me', 'Email').props.disabled).toBe(true);
+    expect(switchFor('A task is assigned to me', 'Push').props.disabled).toBeFalsy();
+
+    await act(async () => release(json({ data: { ...allOn(), email: { ...allOn().email, task_assigned: false } } })));
+    expect(switchFor('A task is assigned to me', 'Email').props.disabled).toBeFalsy();
   });
 
   it('warns when the language could not be saved', async () => {

@@ -35,17 +35,19 @@ export default function Settings() {
         <Text accessibilityRole="header" style={styles.heading}>
           {t('settings.language')}
         </Text>
-        {SUPPORTED_LOCALES.map((locale) => (
-          <Pressable
-            key={locale}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: current === locale }}
-            onPress={() => void selectLocale(locale)}
-            style={[styles.button, current === locale && styles.selected]}
-          >
-            <Text style={styles.buttonText}>{LOCALE_LABELS[locale]}</Text>
-          </Pressable>
-        ))}
+        <View accessibilityRole="radiogroup" accessibilityLabel={t('settings.language')} style={styles.section}>
+          {SUPPORTED_LOCALES.map((locale) => (
+            <Pressable
+              key={locale}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: current === locale }}
+              onPress={() => void selectLocale(locale)}
+              style={[styles.button, current === locale && styles.selected]}
+            >
+              <Text style={styles.buttonText}>{LOCALE_LABELS[locale]}</Text>
+            </Pressable>
+          ))}
+        </View>
         {localeSaveFailed ? <Text accessibilityRole="alert">{t('common.localeSaveFailed')}</Text> : null}
       </View>
       <NotificationPreferences />
