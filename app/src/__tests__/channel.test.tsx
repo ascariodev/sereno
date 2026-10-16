@@ -123,6 +123,31 @@ describe('Channel screen', () => {
     expect(screen.getAllByText('System notice')).toHaveLength(2);
   });
 
+  it('words a status change without a title and shows an unknown status as sent and an unknown level as debug', async () => {
+    globalThis.fetch = jest.fn(async () =>
+      json({
+        data: [
+          message(3, { kind: 'system', payload: opened('Odd one', { level: 'verbose' }) }),
+          message(2, {
+            kind: 'system',
+            payload: { type: 'log.group_status_changed', log_group_id: 9, status: 'archived', previous_status: 'open' },
+          }),
+          message(1, {
+            kind: 'system',
+            payload: { type: 'log.group_status_changed', log_group_id: 9, title: '  ', status: 'resolved', previous_status: 'open' },
+          }),
+        ],
+        meta: { next_cursor: null },
+      }),
+    ) as never;
+    await render(<Channel />);
+
+    expect(await screen.findByText('Odd one')).toBeOnTheScreen();
+    expect(screen.getByText('debug')).toBeOnTheScreen();
+    expect(screen.getByText('Ana marked the log group as archived')).toBeOnTheScreen();
+    expect(screen.getByText('Ana marked the log group as resolved')).toBeOnTheScreen();
+  });
+
   it('renders user messages as plain text and marks deleted ones', async () => {
     globalThis.fetch = jest.fn(async () =>
       json({

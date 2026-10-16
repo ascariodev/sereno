@@ -35,7 +35,6 @@
     "toLogin": "Ir a iniciar sesión",
     "statusError": "No pudimos comprobar si el registro está abierto. Inténtalo de nuevo.",
     "retry": "Reintentar",
-    "closedError": "El registro está cerrado, pide una invitación.",
     "tooManyAttempts": "Demasiados intentos. Prueba de nuevo en un minuto.",
     "network": "No se pudo conectar con el servidor.",
     "failed": "No se pudo crear la cuenta. Inténtalo de nuevo."
@@ -114,7 +113,6 @@
     "deleted": "Este mensaje fue eliminado.",
     "unknownUser": "Desconocido",
     "unknownMention": "usuario",
-    "notice": "Aviso",
     "invalid": "Este canal no existe.",
     "loadFailed": "No se pudieron cargar los mensajes.",
     "loadOlderFailed": "No se pudieron cargar mensajes anteriores. Reintentar",

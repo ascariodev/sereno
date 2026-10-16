@@ -35,7 +35,6 @@
     "toLogin": "Go to sign in",
     "statusError": "We couldn't check whether registration is open. Try again.",
     "retry": "Retry",
-    "closedError": "Registration is closed, ask for an invitation.",
     "tooManyAttempts": "Too many attempts. Try again in a minute.",
     "network": "Could not reach the server.",
     "failed": "Could not create the account. Try again."
@@ -114,7 +113,6 @@
     "deleted": "This message was deleted.",
     "unknownUser": "Unknown",
     "unknownMention": "user",
-    "notice": "Notice",
     "invalid": "This channel does not exist.",
     "loadFailed": "Could not load the messages.",
     "loadOlderFailed": "Could not load older messages. Retry",

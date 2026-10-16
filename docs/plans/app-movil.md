@@ -324,10 +324,10 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
       memoria (hoy un login más nuevo podría perder su token guardado; muy improbable); documentar que `fetchMe` aplica el idioma
       de la cuenta sobre la elección manual si `saveLocale` falló sin conexión, como la web.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-10: `login.tsx`: tras un login correcto el guard desmonta la pantalla, así que el aviso `common.localeSaveFailed` nunca se ve y el `finally` llama a `setSubmitting` ya desmontado. Mostrar el aviso fuera de la pantalla (toast global) o en la siguiente. Complejidad baja, sonnet.
+- [x] M-10: `login.tsx`: tras un login correcto el guard desmonta la pantalla, así que el aviso `common.localeSaveFailed` nunca se ve y el `finally` llama a `setSubmitting` ya desmontado. Mostrar el aviso fuera de la pantalla (toast global) o en la siguiente. Complejidad baja, sonnet.
 - [ ] M-11: Pasar los colores en línea (`#c0392b`, `#1f2937`) de login e inicio a un tema compartido cuando haya más pantallas. Complejidad baja, sonnet.
 - [x] M-12: `npm run typecheck` depende de `app/.expo/types/router.d.ts` (ignorado por git, lo genera `expo start`): en un clon limpio o en CI falla con rutas nuevas. Generarlo antes del typecheck (p. ej. `expo customize`/`npx expo start` previo o un script) o documentarlo. Complejidad baja, sonnet.
-- [ ] M-13: `register.closedError` repite el texto de `register.closed` en `en.json` y `es.json`: dejar una sola clave. Complejidad baja, sonnet.
+- [x] M-13: `register.closedError` repite el texto de `register.closed` en `en.json` y `es.json`: dejar una sola clave. Complejidad baja, sonnet.
 - [ ] M-14: Reintentar una carga fallida de organizaciones con sesión deja la pantalla en blanco (`_layout` devuelve null) hasta que se resuelve: mostrar un indicador de carga. Complejidad baja, sonnet.
 - [ ] M-15: Toggle `tasks_resolve_log_groups` en el formulario del proyecto, como `ProjectHeader.vue`. Complejidad baja, sonnet.
 - [ ] M-16: Tests de error de `archive` (403 y red) en `projectForm.test.tsx`. Complejidad baja, sonnet.
@@ -337,7 +337,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [x] M-20: Sumar `intent:` y `data:` al test de esquemas no permitidos de `markdownContent.test.tsx`; tipar `Message.mentions` como opcional o confirmar que la API siempre lo manda. Complejidad baja, sonnet. Confirmado: `MessageController` y los eventos `MessageCreated`/`MessageUpdated` cargan `mentionedUsers`, así que el tipo queda obligatorio.
 - [x] M-21: Quitar el aviso de `act(...)` que deja `loadOlder` en `channel.test.tsx`. Complejidad baja, sonnet.
 - [ ] M-22: Sparkline de eventos por hora en la tarjeta del aviso (`/log-groups/hourly`), como `SystemNotice.vue`; no está en ninguna fase. Complejidad media, sonnet.
-- [ ] M-23: Avisos de sistema: quitar la clave sin uso `channel.notice`, tests de `status_changed` sin título y de nivel o estado desconocido, y confirmar contra la web qué se muestra con un aviso con `deleted_at`. Complejidad baja, sonnet. Confirmado: ni la app ni la web miran `deleted_at` de un aviso, hay paridad.
+- [x] M-23: Avisos de sistema: quitar la clave sin uso `channel.notice`, tests de `status_changed` sin título y de nivel o estado desconocido, y confirmar contra la web qué se muestra con un aviso con `deleted_at`. Complejidad baja, sonnet. Confirmado: ni la app ni la web miran `deleted_at` de un aviso, hay paridad.
 - [ ] M-24: Negritas en actor y estado de las líneas de aviso con `Trans` de react-i18next, como `i18n-t` en la web. Complejidad baja, sonnet.
 - [ ] M-25: Ocultar el compositor en canales archivados (`archived_at` de `ChannelResource`, pasarlo a la pantalla del canal), como la web. Complejidad baja, sonnet.
 - [ ] M-26: Envolver el canal en `KeyboardAvoidingView` (o el equivalente de Expo) si en el teléfono el teclado tapa el compositor. Complejidad baja, sonnet.

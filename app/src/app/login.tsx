@@ -27,7 +27,6 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   async function submit() {
     if (submittingRef.current) return;
@@ -35,10 +34,8 @@ export default function Login() {
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
-    setNotice(null);
     try {
-      const localeSaved = await login(email, password);
-      if (!localeSaved) setNotice(t('common.localeSaveFailed'));
+      await login(email, password);
     } catch (error) {
       if (!(error instanceof ApiError)) throw error;
       if (error.status === 422) {
@@ -121,7 +118,6 @@ export default function Login() {
               {formError}
             </Text>
           ) : null}
-          {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
           <Pressable
             accessibilityRole="button"
@@ -164,7 +160,6 @@ const styles = StyleSheet.create({
   },
   inputInvalid: { borderColor: '#c0392b' },
   error: { color: '#c0392b', fontSize: 14 },
-  notice: { color: '#555', fontSize: 14 },
   button: {
     flexDirection: 'row',
     gap: 8,

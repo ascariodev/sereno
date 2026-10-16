@@ -35,7 +35,6 @@ export default function Register() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const loadStatus = useCallback(async () => {
     const mine = ++statusGeneration.current;
@@ -63,10 +62,8 @@ export default function Register() {
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
-    setNotice(null);
     try {
-      const localeSaved = await register(name, email, password, passwordConfirmation);
-      if (!localeSaved) setNotice(t('common.localeSaveFailed'));
+      await register(name, email, password, passwordConfirmation);
     } catch (error) {
       if (!(error instanceof ApiError)) throw error;
       if (error.status === 422) {
@@ -78,7 +75,7 @@ export default function Register() {
         const visible = (['name', 'email', 'password'] as const).some((field) => error.errors[field]?.length);
         if (!visible) setFormError(t('register.failed'));
       } else if (error.status === 403) {
-        setFormError(t('register.closedError'));
+        setFormError(t('register.closed'));
       } else if (error.status === 429) {
         setFormError(t('register.tooManyAttempts'));
       } else if (error.status === 0) {
@@ -231,7 +228,6 @@ export default function Register() {
               {formError}
             </Text>
           ) : null}
-          {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
           <Pressable
             accessibilityRole="button"
@@ -271,7 +267,6 @@ const styles = StyleSheet.create({
   },
   inputInvalid: { borderColor: '#c0392b' },
   error: { color: '#c0392b', fontSize: 14 },
-  notice: { color: '#555', fontSize: 14 },
   button: {
     flexDirection: 'row',
     gap: 8,
