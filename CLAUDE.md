@@ -99,6 +99,17 @@ App móvil (Expo, en el **host Windows** con su Node, no en Docker; desde `app/`
 - Tests: `npm test` (jest-expo y Testing Library; un archivo: `npm test -- <ruta>`). Tipos: `npm run typecheck`. Lint: `npm run lint`.
 - Desde el emulador de Android el host es `10.0.2.2` (API `http://10.0.2.2:8003`, Reverb `10.0.2.2:8086`); desde un
   teléfono físico, la IP de la PC en la LAN.
+- Builds en EAS (`npx eas-cli`, sesión de `ascariodev`): `build --profile preview --platform android` (APK interno, canal
+  `preview`) y `--profile production` (APK interno, canal `production`, `versionCode` remoto con autoincremento);
+  `development` es el dev client. `.easignore` en la raíz sube solo `app/` (incluido `google-services.json`, sin versionar).
+- Variables de builds y updates: entornos `preview` y `production` de EAS, no `eas.json` (`eas update` no lo lee). Una vez por
+  variable: `npx eas-cli env:set --environment preview --environment production --visibility plaintext --name <N> --value <V>`
+  con `EXPO_PUBLIC_API_URL=https://sereno-api.ascario.dev`, `EXPO_PUBLIC_REVERB_HOST=sereno-ws.ascario.dev`,
+  `EXPO_PUBLIC_REVERB_PORT=443`, `EXPO_PUBLIC_REVERB_SCHEME=https` y `EXPO_PUBLIC_REVERB_APP_KEY` (la de producción, la pone
+  el usuario). Sin ellas el build o el update apuntan a `10.0.2.2`. Revisar: `npx eas-cli env:list --environment production`.
+- Publicar un update (solo JS y assets): `npx eas-cli update --channel production --environment production -m "<mensaje>"`
+  (o `preview`). La app lo baja al abrir y lo aplica en el arranque siguiente. `runtimeVersion` sigue a `version` de
+  `app.json`: tras un cambio nativo (librería o plugin nuevo, cambios en `app.json`) subir `version` y hacer un build nuevo.
 
 ## Convenciones
 

@@ -2,7 +2,7 @@
 
 **Objetivo:** app móvil de Sereno para Android (Expo, en `app/`) con paridad con la web (chat, log, plan, notificaciones,
 ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS queda para un plan posterior.
-**Estado:** en curso · Fase actual: 45
+**Estado:** en curso · Fase actual: 46
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 <!-- Mantén el plan corto: detalla solo la fase siguiente; las lejanas, en 2–3 líneas. -->
 
@@ -247,7 +247,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - **Alcance:** ícono, ícono adaptativo, splash y colores del tema de la web.
 - **Terminado cuando:** el build muestra ícono y splash de Sereno.
 
-### [ ] Fase 45 — Perfiles de build y EAS Update [riesgo]
+### [x] Fase 45 — Perfiles de build y EAS Update [riesgo]
 - **Alcance:** perfiles `preview` (APK interno) y `production` en `eas.json`, variables de producción, canal de EAS Update y
   versión en `app.json`; comandos en `CLAUDE.md`.
 - **Terminado cuando:** `eas build --profile preview` genera el APK y una actualización por EAS Update llega a la app instalada.
@@ -290,10 +290,11 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - 2026-10-15 — Fase 30: el aviso de prueba con la herramienta de push de Expo pasa a la 31 (necesita `expo-notifications` y un dev build nuevo). `eas.json` y `.easignore` quedan en el repo; la 45 suma los perfiles `preview` y `production`.
 - 2026-10-15 — Fase 31: Android 13+ reporta `denied` antes del primer pedido, así que el pedido automático usa `!granted && canAskAgain` y una marca por instalación `sereno.pushPrompted` en secure-store (no se borra al cerrar sesión). La marca se escribe antes del diálogo: si el sistema mata la app con el diálogo abierto no se vuelve a pedir solo y queda el botón de Ajustes. Cerrar la app con `am kill` (no `force-stop`, que bloquea FCM) para probar push con la app cerrada.
 - 2026-10-15 — Fase 32: en el dev build el toque con la app cerrada abre el lanzador del dev client y la respuesta del aviso se pierde; segundo plano y primer plano verificados. El arranque en frío se verifica en la fase 45 con el build `preview`. Un push de chat abre el canal o el hilo, sin hacer scroll al mensaje.
+- 2026-10-15 — Fase 45: las `EXPO_PUBLIC_*` van como variables de los entornos `preview` y `production` de EAS (`eas env:set`), no en el bloque `env` de `eas.json`, porque `eas update` no lo lee y exige `--environment`. `runtimeVersion` con policy `appVersion`: tras un cambio nativo se sube `version`. preview y production comparten paquete: desinstalar antes de cambiar de uno a otro.
 
 ## Notas para la próxima sesión
+- Fase 45 hecha: perfiles `preview` y `production` (APK interno), `expo-updates` con `runtimeVersion` appVersion y canales por perfil; las `EXPO_PUBLIC_*` en los entornos de EAS. Probado con el build `preview` contra producción: login, tiempo real, push con la app cerrada que abre la tarea (pendiente de la 32) y tres updates aplicados en el segundo arranque. Retrabajo: import de Pusher en React Native y clave de Reverb equivocada en EAS (L-96). Siguiente: 46 [manual], APK de producción para el equipo.
 - Fase 32 hecha: `app/src/push/open.ts` traduce `data.url` + `organizationId` a `/task`, `/thread` o `/channel`, cambia de organización si hace falta y no muestra aviso en primer plano. Retrabajo: navegar en el montaje crasheaba en Android (L-95). Pendiente de la 45: probar el toque con la app cerrada en el build `preview`. Siguiente: 45 `[riesgo]` (perfiles `preview` y `production` y EAS Update; necesita builds del usuario).
-- Fase 31 hecha: registro del token Expo tras el login, al rotar y borrado antes del logout; pedido automático una vez por instalación. Probado en el dev build: una tarea asignada por API como member llegó como push con la app cerrada. `app/google-services.json` queda sin versionar a la espera del usuario. Siguiente: 32 (abrir el destino al tocar el aviso; JS, sirve el mismo dev build).
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
@@ -370,3 +371,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-55: abrir el push de chat en el mensaje concreto (`?message=`) con scroll, y pasar el nombre del canal en el payload para el título. Media, sonnet.
 - [ ] M-56: si la carga de organizaciones falla, el toque del aviso se consume sin avisar; reintentar o avisar. Baja, sonnet.
 - [ ] M-57: acortar el comentario de `pushDestination` en `app/src/push/open.ts`, que repite el nombre. Baja, sonnet.
+- [ ] M-58: `autoIncrement` también en el perfil `preview` de `app/eas.json`, para que un preview no choque por downgrade con un production más nuevo. Baja, sonnet.

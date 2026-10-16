@@ -1,10 +1,16 @@
 import Echo from 'laravel-echo'
-import Pusher, { type ChannelAuthorizationCallback } from 'pusher-js/react-native'
+import PusherModule, { type ChannelAuthorizationCallback } from 'pusher-js/react-native'
 
 import { config } from '@/config'
 import type { Message, MessageDeletedEvent } from '@/messages/store'
 import type { TaskComment } from '@/tasks/comments'
 import { isTaskStatus, type Task } from '@/tasks/store'
+
+// The React Native bundle of pusher-js ends with `module.exports.Pusher = r` (no `default`), so at runtime the
+// default import is `{ Pusher }`, not the class, even though the typings declare the class as default.
+function resolvePusher(): typeof PusherModule {
+  return (PusherModule as unknown as { Pusher?: typeof PusherModule }).Pusher ?? PusherModule
+}
 
 export const MEMBERSHIP_REVOKED_EVENT = '.membership.revoked'
 export const MEMBERSHIP_ROLE_CHANGED_EVENT = '.membership.role_changed'
@@ -433,7 +439,7 @@ function createEchoClient(): RealtimeClient | null {
   const echo = new Echo({
     broadcaster: 'reverb',
     key,
-    Pusher,
+    Pusher: resolvePusher(),
     wsHost: host,
     wsPort: port,
     wssPort: port,

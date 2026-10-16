@@ -124,6 +124,7 @@
 - L-93: Si una pantalla permite crear mientras su listado carga, la respuesta del listado pisa lo creado: se deshabilita la acción mientras `loading` (como la web) y la carga fusiona lo tocado después de lanzarla. — aplicada en: test (integrations.test)
 - L-94: Tras una acción que cambia la organización activa (salir, transferir), si la recarga de organizaciones falla se avisa y no se navega; y toda navegación después de un `await` se condiciona a que la pantalla siga activa (como `currentRoute.name` en la web). — aplicada en: test (members.test)
 - L-95: En `app/`, no navegar con `router.push` en el efecto del layout raíz que monta el `Stack`: en Android (Fabric) crashea nativo (SIGSEGV en `MountingCoordinator`). Esperar `useRootNavigationState()?.key` y diferir con `setTimeout(0)`; los tests con mocks no lo detectan, se prueba en el dev build. — aplicada en: fase 32 de app-movil
+- L-96: Lo que en desarrollo se apaga por falta de configuración (Echo sin `EXPO_PUBLIC_REVERB_APP_KEY` en `app/`) nunca se ejercita en el dispositivo: el import roto de `pusher-js/react-native` (exporta `{ Pusher }` en runtime aunque los tipos digan `default`) recién apareció en el build `preview`. Antes de dar por probada una función en vivo, comprobar que corrió con la configuración real, y cotejar las variables de EAS con las de la web de producción. — aplicada en: fase 45 de app-movil
 
 <!-- Ejemplo:
 - L-01: Las fechas se guardan en UTC y se convierten solo al mostrarlas. — aplicada en: pendiente
