@@ -174,7 +174,7 @@ class Organization extends Model
     }
 
     /**
-     * Detaches the member, deletes their roles, project assignments and task assignments in this organization only.
+     * Detaches the member, deletes their roles, project assignments, task assignments and access tokens in this organization only.
      *
      * @throws LastOwnerException when the user is the last owner
      * @throws ModelNotFoundException when the user is not a member
@@ -200,6 +200,12 @@ class Organization extends Model
                 ->delete();
 
             Task::unassignUser($this->id, $user->id);
+
+            PersonalAccessToken::query()
+                ->where('tokenable_type', $user->getMorphClass())
+                ->where('tokenable_id', $user->id)
+                ->where('organization_id', $this->id)
+                ->delete();
 
             Project::query()
                 ->withoutGlobalScopes()

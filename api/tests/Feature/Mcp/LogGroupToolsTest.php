@@ -15,9 +15,9 @@ use App\Support\CurrentOrganization;
 use App\Support\LogPartitions;
 use Illuminate\Support\Carbon;
 
-function mcpGroupEvent(LogGroup $group, string $message): LogEvent
+function mcpGroupEvent(LogGroup $group, string $message, ?Carbon $receivedAt = null): LogEvent
 {
-    $receivedAt = Carbon::now();
+    $receivedAt ??= Carbon::now();
     LogPartitions::ensure($receivedAt);
 
     $event = new LogEvent([
@@ -110,6 +110,8 @@ it('validates the list filters', function () {
     ($this->call)(ListLogGroupsTool::class, $this->owner, ['project_id' => $this->project->id, 'level' => 'nope'])->assertHasErrors();
     ($this->call)(ListLogGroupsTool::class, $this->owner, ['project_id' => $this->project->id, 'per_page' => 101])->assertHasErrors();
     ($this->call)(ListLogGroupsTool::class, $this->owner, [])->assertHasErrors();
+    ($this->call)(ListLogGroupsTool::class, $this->owner, ['project_id' => $this->project->id, 'page' => 0])->assertHasErrors();
+    ($this->call)(ListLogGroupsTool::class, $this->owner, ['project_id' => $this->project->id, 'page' => 'abc'])->assertHasErrors();
 });
 
 it('answers not found when listing a project the user cannot see or from another organization', function () {
@@ -136,6 +138,22 @@ it('returns a group with its recent events', function () {
             ->has('data.events', 2)
             ->where('data.events.0.message', 'second')
             ->where('data.events.1.message', 'first')
+            ->etc());
+});
+
+it('omits events older than the retention window and caps the events at 50', function () {
+    $group = LogGroup::factory()->for($this->project)->create();
+    mcpGroupEvent($group, 'expired', now()->subDays(config('workspace.log.retention_days') + 2));
+    foreach (range(1, 55) as $number) {
+        mcpGroupEvent($group, 'event '.$number, now()->subMinutes(100 - $number));
+    }
+
+    ($this->call)(GetLogGroupTool::class, $this->owner, ['project_id' => $this->project->id, 'group_id' => $group->id])
+        ->assertDontSee('expired')
+        ->assertStructuredContent(fn ($json) => $json
+            ->has('data.events', 50)
+            ->where('data.events.0.message', 'event 55')
+            ->where('data.events.49.message', 'event 6')
             ->etc());
 });
 

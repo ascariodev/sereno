@@ -143,6 +143,12 @@ it('paginates messages newest first with a cursor', function () {
     expect($last->json('meta.next_cursor'))->toBeNull();
 });
 
+it('rejects a non-string messages cursor with 422', function () {
+    asChannelReader($this->users['member'], $this->organization)
+        ->getJson("/api/channels/{$this->channel->id}/messages?cursor[]=x")
+        ->assertUnprocessable()->assertJsonValidationErrors('cursor');
+});
+
 it('returns system messages with payload and no user', function () {
     $message = Message::factory()->for($this->channel)->system(['type' => 'log.group_opened', 'title' => 'Boom'])->create();
 

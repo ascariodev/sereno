@@ -2,14 +2,15 @@
 
 namespace App\Actions;
 
+use App\Enums\ContentSource;
 use App\Enums\TaskStatus;
 use App\Events\TaskCreated;
-use App\Http\Controllers\Api\TaskController;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\TaskLocks;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -26,11 +27,12 @@ class CreateTask
         TaskStatus $status,
         ?int $assigneeId,
         ?int $logGroupId,
+        ?ContentSource $source = null,
     ): Task {
         try {
-            $task = DB::transaction(function () use ($project, $actor, $title, $description, $status, $assigneeId, $logGroupId) {
-                TaskController::lockAssigneeAccess($project, $assigneeId);
-                TaskController::lockActiveProject($project, __('This project is archived and cannot have new tasks.'));
+            $task = DB::transaction(function () use ($project, $actor, $title, $description, $status, $assigneeId, $logGroupId, $source) {
+                TaskLocks::lockAssigneeAccess($project, $assigneeId);
+                TaskLocks::lockActiveProject($project, __('This project is archived and cannot have new tasks.'));
 
                 // Locks the project row until commit, so numbers and positions of the project are serialized.
                 $number = DB::selectOne(
@@ -54,6 +56,7 @@ class CreateTask
                 $task->assignee_id = $assigneeId;
                 $task->log_group_id = $logGroupId;
                 $task->created_by = $actor->id;
+                $task->source = $source;
                 $task->save();
 
                 if ($task->log_group_id !== null) {
@@ -74,7 +77,7 @@ class CreateTask
             ]);
         }
 
-        $task->load(TaskController::RELATIONS)->loadCount(TaskController::counts())->setRelation('project', $project);
+        $task->load(Task::RELATIONS)->loadCount(Task::counts())->setRelation('project', $project);
         TaskCreated::dispatch($task);
         ($this->notifyAssignee)($task, $actor);
 

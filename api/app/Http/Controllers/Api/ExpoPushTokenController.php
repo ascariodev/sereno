@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Push\DestroyExpoPushTokenRequest;
 use App\Http\Requests\Push\StoreExpoPushTokenRequest;
 use App\Models\ExpoPushToken;
+use App\Models\PersonalAccessToken;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class ExpoPushTokenController extends Controller
 {

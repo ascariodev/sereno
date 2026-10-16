@@ -12,8 +12,9 @@ class RejectAccessTokens
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Runs on every api route: only a user that auth:sanctum already resolved is inspected, so public routes
-        // trigger no token lookup. Sanctum::actingAs gives a TransientToken, which is never an access token.
+        // Runs on every api route. It only inspects a user already resolved on the sanctum guard: auth:sanctum does it
+        // on protected routes and SetLocale (which reads the user's locale) does it on any route, public ones included,
+        // so an access token also gets 403 there. Sanctum::actingAs gives a TransientToken, never an access token.
         $guard = Auth::guard('sanctum');
         $token = $guard->hasUser() ? $guard->user()?->currentAccessToken() : null;
 

@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\ListLogGroups;
+use App\Actions\LoadLogGroupDetail;
 use App\Actions\PostLogGroupStatusNotice;
 use App\Actions\PostTaskGroupReopenedNotice;
 use App\Enums\LogGroupStatus;
-use App\Enums\LogLevel;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LogGroup\HourlyLogGroupsRequest;
@@ -13,7 +14,6 @@ use App\Http\Requests\LogGroup\ListLogGroupsRequest;
 use App\Http\Requests\LogGroup\UpdateLogGroupRequest;
 use App\Http\Resources\LogGroupHourlyResource;
 use App\Http\Resources\LogGroupResource;
-use App\Models\LogEvent;
 use App\Models\LogGroup;
 use App\Models\Project;
 use App\Models\Task;
@@ -26,23 +26,9 @@ use Illuminate\Support\Facades\Gate;
 
 class LogGroupController extends Controller
 {
-    public const DETAIL_EVENTS_LIMIT = 50;
-
-    public function index(ListLogGroupsRequest $request, Project $project): AnonymousResourceCollection
+    public function index(ListLogGroupsRequest $request, Project $project, ListLogGroups $list): AnonymousResourceCollection
     {
-        $minimumLevel = $request->minimumLevel();
-
-        $groups = LogGroup::query()
-            ->where('project_id', $project->id)
-            ->when($request->status(), fn ($query, $status) => $query->where('status', $status))
-            ->when($minimumLevel, fn ($query) => $query->whereIn('level', $this->levelsAtLeast($minimumLevel)))
-            ->orderByDesc('last_seen_at')
-            ->orderByDesc('id')
-            ->with('task')
-            ->paginate($request->perPage())
-            ->withQueryString();
-
-        $this->bindTaskProject($groups->getCollection(), $project);
+        $groups = $list($project, $request->status(), $request->minimumLevel(), $request->perPage())->withQueryString();
 
         return LogGroupResource::collection($groups);
     }
@@ -55,23 +41,12 @@ class LogGroupController extends Controller
         return new LogGroupHourlyResource($hourly);
     }
 
-    public function show(Project $project, LogGroup $group): LogGroupResource
+    public function show(Project $project, LogGroup $group, LoadLogGroupDetail $loadDetail): LogGroupResource
     {
         throw_unless($group->project_id === $project->id, ModelNotFoundException::class);
         Gate::authorize('view', $group);
 
-        $group->setRelation('events', LogEvent::query()
-            ->with('source:id,name')
-            ->where('log_group_id', $group->id)
-            ->where('received_at', '>=', now()->subDays(config('workspace.log.retention_days')))
-            ->orderByDesc('received_at')
-            ->orderByDesc('id')
-            ->limit(self::DETAIL_EVENTS_LIMIT)
-            ->get());
-
-        $this->bindTaskProject(collect([$group->load('task')]), $project);
-
-        return new LogGroupResource($group);
+        return new LogGroupResource($loadDetail($project, $group));
     }
 
     public function update(UpdateLogGroupRequest $request, Project $project, LogGroup $group, PostLogGroupStatusNotice $postNotice, PostTaskGroupReopenedNotice $postReopened): LogGroupResource
@@ -124,14 +99,5 @@ class LogGroupController extends Controller
         foreach ($groups as $group) {
             $group->task?->setRelation('project', $project);
         }
-    }
-
-    /** @return list<string> */
-    private function levelsAtLeast(LogLevel $minimum): array
-    {
-        return array_values(array_map(
-            fn (LogLevel $level) => $level->value,
-            array_filter(LogLevel::cases(), fn (LogLevel $level) => $level->isAtLeast($minimum)),
-        ));
     }
 }

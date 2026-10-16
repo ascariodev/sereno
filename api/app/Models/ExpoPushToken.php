@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Laravel\Sanctum\PersonalAccessToken;
 
 #[Fillable(['token', 'platform', 'device_name', 'last_used_at'])]
 class ExpoPushToken extends Model

@@ -2,14 +2,13 @@
 
 namespace App\Mcp\Tools;
 
-use App\Http\Controllers\Api\TaskCommentController;
-use App\Http\Controllers\Api\TaskController;
 use App\Http\Requests\TaskComment\ListTaskCommentsRequest;
 use App\Http\Resources\TaskCommentResource;
 use App\Http\Resources\TaskResource;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TaskComment;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -60,10 +59,10 @@ class GetTaskTool extends Tool
 
         $arguments = $request->validate((new ListTaskCommentsRequest)->rules());
 
-        $task->load(TaskController::RELATIONS)->loadCount(TaskController::counts())->setRelation('project', $project);
+        $task->load(Task::RELATIONS)->loadCount(Task::counts())->setRelation('project', $project);
 
         $page = $task->comments()
-            ->with(TaskCommentController::RELATIONS)
+            ->with(TaskComment::RELATIONS)
             ->orderByDesc('id')
             ->cursorPaginate(
                 $arguments['per_page'] ?? ListTaskCommentsRequest::DEFAULT_PER_PAGE,

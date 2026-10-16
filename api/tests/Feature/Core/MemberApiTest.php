@@ -5,6 +5,7 @@ use App\Events\MembershipRoleChanged;
 use App\Events\OrganizationMembersChanged;
 use App\Models\Invitation;
 use App\Models\Organization;
+use App\Models\PersonalAccessToken;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -319,6 +320,25 @@ it('does not remove the member from another organization', function () {
     expect($other->users()->whereKey($shared->id)->exists())->toBeTrue()
         ->and(roleIn($other, $shared))->toBe('admin');
 });
+
+it('revokes the access tokens of the removed member in this organization only', function (bool $leaves) {
+    $other = Organization::factory()->create();
+    $member = memberWithRole($this->organization, Role::Member, 'Ana');
+    $other->addMember($member, [Role::Member]);
+    $stranger = memberWithRole($this->organization, Role::Member, 'Zoe');
+
+    $revoked = $member->createAccessToken($this->organization, 'mine')->accessToken->id;
+    $kept = [
+        $member->createAccessToken($other, 'other org')->accessToken->id,
+        $member->createToken('web session')->accessToken->id,
+        $stranger->createAccessToken($this->organization, 'stranger')->accessToken->id,
+    ];
+
+    removeMemberRequest($leaves ? $member : $this->owner, $this->organization, $member)->assertNoContent();
+
+    expect(PersonalAccessToken::whereKey($revoked)->exists())->toBeFalse()
+        ->and(PersonalAccessToken::whereKey($kept)->count())->toBe(3);
+})->with(['removed by owner' => false, 'leaves by themselves' => true]);
 
 it('answers 403 to a removed member on the next request', function () {
     $member = memberWithRole($this->organization, Role::Member, 'Ana');

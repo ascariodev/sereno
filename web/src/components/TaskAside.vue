@@ -318,6 +318,7 @@ async function confirmDelete(): Promise<void> {
     >
       <div class="task-aside__top">
         <ProjectKey :value="task.key" />
+        <span v-if="task.source === 'mcp'" class="task-aside__source" data-test="task-source">{{ t('common.viaClaude') }}</span>
         <TaskMoveMenu class="task-aside__move" :task="task" :read-only="readOnly" />
         <button type="button" class="task-aside__close" name="close-task" :aria-label="t('taskAside.close')" @click="emit('close')">
           <X :size="16" aria-hidden="true" />
@@ -467,6 +468,15 @@ async function confirmDelete(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.task-aside__source {
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 600;
 }
 .task-aside__move {
   margin-left: auto;

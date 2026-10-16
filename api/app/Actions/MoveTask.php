@@ -5,10 +5,10 @@ namespace App\Actions;
 use App\Enums\LogGroupStatus;
 use App\Enums\TaskStatus;
 use App\Events\TaskUpdated;
-use App\Http\Controllers\Api\TaskController;
 use App\Models\LogGroup;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\TaskLocks;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -33,7 +33,7 @@ class MoveTask
         $task = DB::transaction(function () use ($project, $task, $status, $beforeId, $afterId, $actor, &$renumbered) {
             // Same lock as CreateTask takes with its UPDATE: creations and moves of the project are serialized, so no
             // task enters the target column while it is read. NO KEY keeps inserts that reference the project free.
-            $projectRow = TaskController::lockActiveProject($project, __('This project is archived and its tasks cannot be moved.'));
+            $projectRow = TaskLocks::lockActiveProject($project, __('This project is archived and its tasks cannot be moved.'));
 
             // The group goes before the task: retention deletes groups and then nulls their tasks (group, then task),
             // and ingestion's upsert holds only the group (project and source just FOR KEY SHARE, which this NO KEY
@@ -91,10 +91,10 @@ class MoveTask
             return $task;
         });
 
-        $task->load(TaskController::RELATIONS)->loadCount(TaskController::counts())->setRelation('project', $project);
+        $task->load(Task::RELATIONS)->loadCount(Task::counts())->setRelation('project', $project);
         TaskUpdated::dispatch($task);
 
-        Task::query()->with(TaskController::RELATIONS)->withCount(TaskController::counts())->whereKey($renumbered)->get()->each(
+        Task::query()->with(Task::RELATIONS)->withCount(Task::counts())->whereKey($renumbered)->get()->each(
             fn (Task $neighbor) => TaskUpdated::dispatch($neighbor->setRelation('project', $project))
         );
 

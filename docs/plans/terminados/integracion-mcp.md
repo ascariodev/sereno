@@ -245,6 +245,9 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   sin cambios de configuración (401 sin token, `tools/list` 200 con token). Claude Code (servidor `sereno`, scope user)
   listó proyectos y comentó una tarea en producción. Conexión documentada en `CLAUDE.md` (transversal). Un token por
   máquina; el creado en el Mac quedó expuesto en el chat y se reemplazó por uno de Windows.
+- 2026-10-15 — Mejoras: `TaskController` queda solo con sus endpoints. Los locks están en `App\Support\TaskLocks`,
+  `counts()` en `Task::counts()`, `RELATIONS` en `Task` y `TaskComment`, `MAX_DONE_LIMIT` y la consulta del tablero en
+  `ListBoardTasks`; la lógica de log en `ListLogGroups` y `LoadLogGroupDetail`; `update` en `UpdateTask`.
 
 ## Notas para la próxima sesión
 - Tests de tools: `app(CurrentOrganization::class)->set(...)` antes de `SerenoServer::actingAs(...)->tool(...)`;
@@ -255,37 +258,45 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   y la BD de desarrollo con la migración de la fase 1; las mejoras pendientes se aplican con `/aplicar-mejoras`.
 
 ## Mejoras propuestas
-- [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
+- [x] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai. Pasó al plan `oauth-mcp`.
       Complejidad: alta · Archivos: 8+ · Riesgo: seguridad → plan nuevo
-- [ ] M-2: tool `update-task` (título, descripción, asignado) y `list-project-members` para elegir asignado.
+- [x] M-2: tool `update-task` (título, descripción, asignado) y `list-project-members` para elegir asignado.
       Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
-- [ ] M-3: marcar el origen "vía MCP" en comentarios y tareas creadas por Claude.
+- [x] M-3: marcar el origen "vía MCP" en comentarios y tareas creadas por Claude.
       Complejidad: media · Archivos: 5 · Riesgo: BD → opus
-- [ ] M-4: revocar los tokens de acceso de un usuario al sacarlo de la organización (hoy solo dejan de funcionar).
+- [x] M-4: revocar los tokens de acceso de un usuario al sacarlo de la organización (hoy solo dejan de funcionar).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-5: `ExpoPushTokenController` y `ExpoPushToken` importan el `PersonalAccessToken` de Sanctum; apuntarlos al modelo
+- [x] M-5: `ExpoPushTokenController` y `ExpoPushToken` importan el `PersonalAccessToken` de Sanctum; apuntarlos al modelo
       propio por coherencia. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-6: corregir el comentario de `RejectAccessTokens` ("public routes trigger no token lookup" no es exacto por
+- [x] M-6: corregir el comentario de `RejectAccessTokens` ("public routes trigger no token lookup" no es exacto por
       `SetLocale`) y agregar un test de token de acceso en una ruta pública (p. ej. `/api/auth/registration`).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-7: tests de `ResolveTokenOrganization`: usuario de dos organizaciones que manda `X-Organization-Id` de la otra
+- [x] M-7: tests de `ResolveTokenOrganization`: usuario de dos organizaciones que manda `X-Organization-Id` de la otra
       (queda la del token), y en el de ex miembro fijar antes otra organización para que pruebe de verdad L-02.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-8: extraer la consulta del tablero (orden por CASE y límite de hechas) que comparten `TaskController::index` y
+- [x] M-8: extraer la consulta del tablero (orden por CASE y límite de hechas) que comparten `TaskController::index` y
       `ListTasksTool`, para no mantenerla en dos sitios. Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-9: extraer la validación del cursor de `CursorPaginatedRequest::validCursor` (privada, copiada en
+- [x] M-9: extraer la validación del cursor de `CursorPaginatedRequest::validCursor` (privada, copiada en
       `ListChannelMessagesTool`) a un método compartido; tests de hilo con raíz borrada y de `per_page` fuera de rango.
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-10: extraer a una acción compartida la lógica de `LogGroupController::index`/`show` (y `levelsAtLeast`) que
+- [x] M-10: extraer a una acción compartida la lógica de `LogGroupController::index`/`show` (y `levelsAtLeast`) que
       duplican las tools de log; tests de `get-log-group` con eventos fuera de retención o sobre el límite y de `page`
       inválido. Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
-- [ ] M-11: mover `TaskCommentController::RELATIONS` (y el equivalente de tareas) al modelo, para que las acciones no
+- [x] M-11: mover `TaskCommentController::RELATIONS` (y el equivalente de tareas) al modelo, para que las acciones no
       importen un controller. Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
-- [ ] M-12: alinear el orden de autorización de `create-task` con el REST (`create` antes que `view`) y test de la tool
+- [x] M-12: alinear el orden de autorización de `create-task` con el REST (`create` antes que `view`) y test de la tool
       para el 422 lanzado dentro de los locks (proyecto archivado o acceso perdido entre validación e insert).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-13: llevar los locks (`lockActiveProject`, `lockAssigneeAccess`), `RELATIONS` y `counts()` de `TaskController`
-      a un soporte compartido, para que `CreateTask` y `MoveTask` no dependan del controller.
+- [x] M-13: llevar los locks (`lockActiveProject`, `lockAssigneeAccess`), `RELATIONS` y `counts()` de `TaskController`
+      a un soporte compartido, para que `CreateTask`, `MoveTask`, `UpdateTask` y `ListBoardTasks` no dependan del controller.
       Complejidad: media · Archivos: 5 · Riesgo: concurrencia → opus
-- [ ] M-14: si se cambia de organización con un `createAccessToken` en vuelo, el token se crea pero no se muestra; avisar
+- [x] M-14: si se cambia de organización con un `createAccessToken` en vuelo, el token se crea pero no se muestra; avisar
       con un toast o revocarlo. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-15: tests de `update-task` con un usuario que ve el proyecto pero no puede actualizar la tarea (policy `update`) y
+      de que `list-project-members` excluye a un `member` no asignado. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-16: `ListTaskCommentsRequest`, `ListChannelsRequest` y `ListInvitationsRequest` tienen su copia privada de
+      `validCursor`; usar `CursorPaginatedRequest::isValidCursor`. Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
+- [ ] M-17: mover `MessageController::RELATIONS` al modelo `Message` (lo usan `MessageUpdated` y `ListChannelMessagesTool`),
+      como M-11 con tareas. Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
+- [ ] M-18: mostrar la marca "vía Claude" (`source = mcp`) en la app móvil: tipos de `app/src/tasks/store.ts` y
+      `app/src/tasks/comments.ts`, y la etiqueta en el detalle y los comentarios. Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet

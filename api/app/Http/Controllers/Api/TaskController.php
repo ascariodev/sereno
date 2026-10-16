@@ -4,11 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\CreateTask;
 use App\Actions\DeleteTask;
+use App\Actions\ListBoardTasks;
 use App\Actions\MoveTask;
-use App\Actions\NotifyTaskAssignee;
-use App\Enums\TaskStatus;
+use App\Actions\UpdateTask;
 use App\Events\TaskDeleted;
-use App\Events\TaskUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Task\DeleteTaskRequest;
 use App\Http\Requests\Task\MoveTaskRequest;
@@ -17,88 +16,28 @@ use App\Http\Requests\Task\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
 use App\Models\Project;
 use App\Models\Task;
-use App\Models\User;
-use App\Support\ProjectAccess;
-use Closure;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Validation\ValidationException;
 
 class TaskController extends Controller
 {
-    public const RELATIONS = ['assignee:id,name', 'logGroup:id,level,title,status,events_count'];
-
-    /**
-     * Counts loaded next to RELATIONS wherever a TaskResource is built. Comments are counted without their organization
-     * scope (it needs an active organization, and Task::unassignUser runs without one): the composite foreign key
-     * already ties each comment to the organization of its task.
-     *
-     * @return array<string, Closure(Builder): Builder>
-     */
-    public static function counts(): array
-    {
-        return ['comments' => fn (Builder $query) => $query->withoutGlobalScopes()];
-    }
-
-    /** Done tasks listed when the board asks for a bounded Done column (`done_limit`). */
-    public const MAX_DONE_LIMIT = 500;
-
-    public function index(Request $request, Project $project): AnonymousResourceCollection
+    public function index(Request $request, Project $project, ListBoardTasks $listBoardTasks): AnonymousResourceCollection
     {
         Gate::authorize('view', $project);
 
         $doneLimit = $request->validate([
-            'done_limit' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_DONE_LIMIT],
+            'done_limit' => ['sometimes', 'integer', 'min:1', 'max:'.ListBoardTasks::MAX_DONE_LIMIT],
         ])['done_limit'] ?? null;
 
-        $cases = array_values(array_filter(TaskStatus::cases(), fn (TaskStatus $status) => $status !== TaskStatus::Done));
-        $order = 'CASE status'.str_repeat(' WHEN ? THEN ?', count($cases)).' END';
-        $bindings = [];
-        foreach ($cases as $index => $status) {
-            array_push($bindings, $status->value, $index);
-        }
+        $board = $listBoardTasks($project, [], $doneLimit);
 
-        $active = Task::query()
-            ->where('project_id', $project->id)
-            ->where('status', '!=', TaskStatus::Done)
-            ->with(self::RELATIONS)
-            ->withCount(self::counts())
-            ->orderByRaw($order, $bindings)
-            ->orderBy('position')
-            ->orderBy('id')
-            ->get();
-
-        $doneQuery = Task::query()
-            ->where('project_id', $project->id)
-            ->where('status', TaskStatus::Done);
-        $doneTotal = (clone $doneQuery)->count();
-
-        // New and moved tasks land at the end of the column, so the last ones by position are the most recent. The
-        // cut is contiguous, which keeps drag & drop neighbors adjacent; it is returned in column order.
-        $done = $doneQuery
-            ->with(self::RELATIONS)
-            ->withCount(self::counts())
-            ->orderByDesc('position')
-            ->orderByDesc('id')
-            ->when($doneLimit !== null, fn ($query) => $query->limit($doneLimit))
-            ->get()
-            ->reverse()
-            ->values();
-
-        $tasks = $active->concat($done)->values();
-
-        // key() reads the project: share the one already loaded instead of one query per task.
-        $tasks->each(fn (Task $task) => $task->setRelation('project', $project));
-
-        return TaskResource::collection($tasks)->additional(['meta' => [
-            'done_total' => $doneTotal,
-            'has_more_done' => $done->count() < $doneTotal,
+        return TaskResource::collection($board['tasks'])->additional(['meta' => [
+            'done_total' => $board['done_total'],
+            'has_more_done' => $board['has_more_done'],
         ]]);
     }
 
@@ -108,7 +47,7 @@ class TaskController extends Controller
         throw_unless($task->project_id === $project->id, ModelNotFoundException::class);
         Gate::authorize('view', $task);
 
-        $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
+        $task->load(Task::RELATIONS)->loadCount(Task::counts())->setRelation('project', $project);
 
         return new TaskResource($task);
     }
@@ -128,25 +67,9 @@ class TaskController extends Controller
         return (new TaskResource($task))->response()->setStatusCode(201);
     }
 
-    public function update(UpdateTaskRequest $request, Project $project, Task $task, NotifyTaskAssignee $notifyAssignee): TaskResource
+    public function update(UpdateTaskRequest $request, Project $project, Task $task, UpdateTask $updateTask): TaskResource
     {
-        $data = $request->validated();
-        $newAssigneeId = array_key_exists('assignee_id', $data) && $data['assignee_id'] !== null
-            && (int) $data['assignee_id'] !== $task->assignee_id ? (int) $data['assignee_id'] : null;
-
-        DB::transaction(function () use ($project, $task, $data, $newAssigneeId) {
-            self::lockAssigneeAccess($project, $newAssigneeId);
-            self::lockActiveProject($project, __('This project is archived and its tasks cannot be edited.'));
-            $task->fill($data)->save();
-        });
-
-        $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
-        TaskUpdated::dispatch($task);
-        if ($newAssigneeId !== null) {
-            $notifyAssignee($task, $request->user());
-        }
-
-        return new TaskResource($task);
+        return new TaskResource($updateTask($project, $task, $request->user(), $request->validated()));
     }
 
     public function destroy(DeleteTaskRequest $request, Project $project, Task $task, DeleteTask $deleteTask): Response
@@ -168,47 +91,5 @@ class TaskController extends Controller
         );
 
         return new TaskResource($task);
-    }
-
-    /**
-     * Locks the project row and re-checks, now that archiving cannot interleave, that it is still active: the request
-     * validated it before the transaction. NO KEY keeps inserts that reference the project free.
-     */
-    public static function lockActiveProject(Project $project, string $archivedMessage): object
-    {
-        $row = DB::table('projects')
-            ->where('id', $project->id)
-            ->lock('for no key update')
-            ->first(['archived_at', 'tasks_resolve_log_groups']);
-
-        if ($row === null || $row->archived_at !== null) {
-            throw ValidationException::withMessages(['project' => $archivedMessage]);
-        }
-
-        return $row;
-    }
-
-    /**
-     * Re-checks the assignee's access after the request validated it. FOR SHARE on the organization row waits for the
-     * FOR UPDATE that access and membership changes hold until commit, and blocks them until this commit, so nobody is
-     * assigned while losing access. It is taken first, before projects and tasks, like those changes do (organization,
-     * then project_user and tasks), so no lock cycle; assignments do not block each other or inserts that reference
-     * the organization.
-     */
-    public static function lockAssigneeAccess(Project $project, ?int $assigneeId): void
-    {
-        if ($assigneeId === null) {
-            return;
-        }
-
-        DB::table('organizations')->where('id', $project->organization_id)->sharedLock()->first();
-
-        $assignee = User::query()->find($assigneeId);
-
-        if ($assignee === null || ! ProjectAccess::canView($assignee, $project)) {
-            throw ValidationException::withMessages([
-                'assignee_id' => StoreTaskRequest::assigneeWithoutAccessMessage(),
-            ]);
-        }
     }
 }

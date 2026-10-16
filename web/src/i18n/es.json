@@ -2,7 +2,8 @@
   "common": {
     "localeSaveFailed": "No se pudo guardar tu idioma. Se aplicó solo en este dispositivo.",
     "loading": "Cargando...",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "viaClaude": "vía Claude"
   },
   "toast": {
     "region": "Notificaciones",
@@ -775,6 +776,7 @@
     "revoking": "Revocando...",
     "revoked": "Token {name} revocado.",
     "revokeGone": "Ese token ya no existe.",
+    "createdElsewhere": "El token {name} se creó en la organización anterior. Vuelve a ella para verlo; su secreto no se muestra de nuevo.",
     "revokeFailed": "No se pudo revocar el token. Inténtalo de nuevo.",
     "cancel": "Cancelar",
     "createTitle": "Nuevo token de acceso",
