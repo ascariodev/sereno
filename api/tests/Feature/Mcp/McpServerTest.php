@@ -5,6 +5,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Providers\AppServiceProvider;
 use App\Support\CurrentOrganization;
+use App\Support\PassportGuards;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Passport\Passport;
 use Laravel\Sanctum\Sanctum;
@@ -147,6 +148,17 @@ it('throttles each access token on its own', function () {
 
     $this->postJson('/mcp', $this->initialize, ($this->bearer)($other))
         ->assertOk();
+});
+
+it('drops the Passport guards when only the public key exists', function () {
+    config(['passport.private_key' => null, 'passport.public_key' => 'public-key']);
+    Passport::loadKeysFrom(storage_path('framework/testing/missing-passport-keys'));
+
+    expect(PassportGuards::usable(['sanctum', 'api']))->toBe(['sanctum']);
+
+    config(['passport.private_key' => 'private-key']);
+
+    expect(PassportGuards::usable(['sanctum', 'api']))->toBe(['sanctum', 'api']);
 });
 
 it('keeps answering without Passport keys', function () {
