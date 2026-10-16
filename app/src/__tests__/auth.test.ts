@@ -200,6 +200,24 @@ describe('auth store', () => {
     expect(store.has(TOKEN_STORAGE_KEY)).toBe(false)
   })
 
+  it('a failed token write of an older login keeps the token of a newer login', async () => {
+    let call = 0
+    mockFetch(() => json({ token: call++ === 0 ? 'old' : 'new', user }))
+    let fail!: () => void
+    ;(SecureStore.setItemAsync as jest.Mock).mockImplementationOnce(
+      () => new Promise<void>((_, reject) => (fail = () => reject(new Error('keystore')))),
+    )
+
+    const first = useAuthStore.getState().login('a@b.c', 'x')
+    await new Promise((resolve) => setImmediate(() => resolve(undefined)))
+    await useAuthStore.getState().login('a@b.c', 'x')
+    fail()
+    await expect(first).rejects.toThrow('keystore')
+
+    expect(useAuthStore.getState().token).toBe('new')
+    expect(store.get(TOKEN_STORAGE_KEY)).toBe('new')
+  })
+
   it('a failed locale write still applies and saves the choice', async () => {
     ;(SecureStore.setItemAsync as jest.Mock).mockRejectedValueOnce(new Error('keystore'))
     mockFetch(() => json({ data: { ...user, locale: 'es' } }))

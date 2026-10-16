@@ -320,7 +320,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [x] M-8: Cliente HTTP de la app: tests de timeout y cancelación con un `AbortSignal` real y de `buildUrl` con `?` en el path;
       mover `FieldErrors` a `src/api/types.ts` cuando existan más tipos.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → haiku
-- [ ] M-9: `login` de la app: si falla la escritura del token, borrarlo de disco solo si `mine === generation` o no hay token en
+- [x] M-9: `login` de la app: si falla la escritura del token, borrarlo de disco solo si `mine === generation` o no hay token en
       memoria (hoy un login más nuevo podría perder su token guardado; muy improbable); documentar que `fetchMe` aplica el idioma
       de la cuenta sobre la elección manual si `saveLocale` falló sin conexión, como la web.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

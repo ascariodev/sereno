@@ -55,7 +55,7 @@ export const useAuthStore = create<AuthState>()((set, get) => {
         set({ token: null, user: null })
         setLocale(null)
       }
-      await removeStored(TOKEN_STORAGE_KEY)
+      if (mine === generation || get().token === null) await removeStored(TOKEN_STORAGE_KEY)
       throw error
     }
     if (mine !== generation) {
@@ -100,6 +100,7 @@ export const useAuthStore = create<AuthState>()((set, get) => {
       )
     },
 
+    // Like the web: if saveLocale failed offline, the account locale overrides the manual choice here.
     async fetchMe() {
       const mine = generation
       const response = await api.get<{ data: User }>('/api/me')
