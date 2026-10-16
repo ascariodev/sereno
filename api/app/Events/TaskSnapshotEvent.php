@@ -2,7 +2,6 @@
 
 namespace App\Events;
 
-use App\Http\Controllers\Api\TaskController;
 use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -13,7 +12,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 /**
  * Holds the serialized task instead of the model: the queue worker has no active organization. Loads what
- * TaskController::index loads (L-66); the caller sets `project` on the task so key() needs no query.
+ * Task::RELATIONS and Task::counts() load (L-66); the caller sets `project` on the task so key() needs no query.
  */
 abstract class TaskSnapshotEvent implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
@@ -30,9 +29,9 @@ abstract class TaskSnapshotEvent implements ShouldBroadcast, ShouldDispatchAfter
     {
         $this->organizationId = $task->organization_id;
         $this->projectId = $task->project_id;
-        $task->loadMissing(TaskController::RELATIONS);
+        $task->loadMissing(Task::RELATIONS);
         if (! array_key_exists('comments_count', $task->getAttributes())) {
-            $task->loadCount(TaskController::counts());
+            $task->loadCount(Task::counts());
         }
         $this->task = (new TaskResource($task))->resolve();
     }

@@ -15,6 +15,7 @@ class TaskCommentResource extends JsonResource
             'id' => $this->id,
             'task_id' => $this->task_id,
             'body' => $this->body,
+            'source' => $this->source,
             'user' => $this->whenLoaded('user', fn () => $this->user
                 ? ['id' => $this->user->id, 'name' => $this->user->name]
                 : null),

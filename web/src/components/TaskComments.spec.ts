@@ -505,6 +505,15 @@ describe('TaskComments editing', () => {
     expect(label.text()).toContain('(edited)')
     expect(label.text()).toContain(new Date(editedAt).toLocaleString('en', { dateStyle: 'full', timeStyle: 'medium' }))
   })
+
+  it('marks the comments written through MCP', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(page([comment(2, { source: 'mcp' }), comment(1, { source: null })]))
+    const wrapper = mountComments()
+    await flushPromises()
+    expect(wrapper.findAll('[data-test="comment"]')).toHaveLength(2)
+    expect(wrapper.find('[data-comment-id="1"] [data-test="comment-source"]').exists()).toBe(false)
+    expect(wrapper.get('[data-comment-id="2"] [data-test="comment-source"]').text()).toBe('via Claude')
+  })
 })
 
 describe('TaskComments deleting', () => {

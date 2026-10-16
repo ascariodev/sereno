@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ContentSource;
 use App\Models\Concerns\BelongsToOrganization;
 use Database\Factories\TaskCommentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['body'])]
 class TaskComment extends Model
 {
+    public const RELATIONS = ['user:id,name', 'mentionedUsers', 'attachments'];
+
     /** @use HasFactory<TaskCommentFactory> */
     use BelongsToOrganization, HasFactory;
 
@@ -23,6 +26,7 @@ class TaskComment extends Model
     {
         return [
             'edited_at' => 'datetime',
+            'source' => ContentSource::class,
         ];
     }
 

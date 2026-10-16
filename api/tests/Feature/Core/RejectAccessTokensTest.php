@@ -99,6 +99,16 @@ it('leaves public routes alone', function () {
     $this->getJson('/api/auth/registration')->assertOk();
 });
 
+it('rejects an access token on a public route because the locale resolves the user', function () {
+    $this->getJson('/api/auth/registration', accessTokenHeaders($this->user, $this->organization))
+        ->assertForbidden()
+        ->assertJsonPath('code', 'access_token_forbidden');
+});
+
+it('accepts a session token on a public route', function () {
+    $this->getJson('/api/auth/registration', sessionTokenHeaders($this->user, $this->organization))->assertOk();
+});
+
 describe('broadcasting', function () {
     beforeEach(function () {
         config([

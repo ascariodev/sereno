@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ContentSource;
 use App\Enums\NotificationType;
 use App\Enums\Role;
 use App\Events\TaskAssigned;
@@ -49,12 +50,14 @@ it('creates the task, emits the event and numbers it', function () {
         ->assertStructuredContent(fn ($json) => $json
             ->where('data.title', 'Fix login')
             ->where('data.status', 'in_progress')
+            ->where('data.source', 'mcp')
             ->etc());
 
     $task = Task::query()->sole();
     expect($task->created_by)->toBe($this->member->id)
         ->and($task->number)->toBe(1)
-        ->and($task->description)->toBe('Details');
+        ->and($task->description)->toBe('Details')
+        ->and($task->source)->toBe(ContentSource::Mcp);
     Event::assertDispatched(TaskCreated::class);
 });
 
@@ -140,6 +143,29 @@ it('rejects a log group of another project', function () {
         'title' => 'From alert',
         'log_group_id' => $group->id,
     ])->assertHasErrors();
+
+    expect(Task::query()->count())->toBe(0);
+});
+
+it('rejects a project archived between validation and the transaction', function () {
+    archiveProjectBeforeLock($this->project);
+
+    ($this->call)($this->member, [
+        'project_id' => $this->project->id,
+        'title' => 'Fix login',
+    ])->assertHasErrors(['This project is archived and cannot have new tasks.']);
+
+    expect(Task::query()->count())->toBe(0);
+});
+
+it('rechecks the assignee access under the organization lock', function () {
+    beforeOrganizationLock('for share', fn () => $this->project->removeMember($this->ana));
+
+    ($this->call)($this->member, [
+        'project_id' => $this->project->id,
+        'title' => 'Fix login',
+        'assignee_id' => $this->ana->id,
+    ])->assertHasErrors(['The selected assignee does not have access to this project.']);
 
     expect(Task::query()->count())->toBe(0);
 });

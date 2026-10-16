@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Actions\CreateTask;
+use App\Enums\ContentSource;
 use App\Enums\TaskStatus;
 use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Resources\TaskResource;
@@ -48,8 +49,8 @@ class CreateTaskTool extends Tool
         $projectId = $request->validate(['project_id' => ['required', 'integer', 'min:1']])['project_id'];
 
         $project = Project::query()->findOrFail($projectId);
-        $this->authorize($user, 'view', $project);
         $this->authorize($user, 'create', Task::class);
+        $this->authorize($user, 'view', $project);
 
         $input = $request->toArray();
         $data = Validator::make($input, (new StoreTaskRequest)->rules())
@@ -66,6 +67,7 @@ class CreateTaskTool extends Tool
             TaskStatus::tryFrom($data['status'] ?? '') ?? TaskStatus::Todo,
             $data['assignee_id'] ?? null,
             $data['log_group_id'] ?? null,
+            ContentSource::Mcp,
         );
 
         return $this->structured(['data' => (new TaskResource($task))->resolve()]);

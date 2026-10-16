@@ -2,7 +2,6 @@
 
 namespace App\Events;
 
-use App\Http\Controllers\Api\TaskController;
 use App\Models\Task;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -23,7 +22,7 @@ class TaskCommentDeleted implements ShouldBroadcast, ShouldDispatchAfterCommit
         public readonly int $commentId,
     ) {
         $this->commentsCount = (int) Task::query()->withoutGlobalScopes()->whereKey($taskId)
-            ->withCount(TaskController::counts())->value('comments_count');
+            ->withCount(Task::counts())->value('comments_count');
     }
 
     public function broadcastOn(): PrivateChannel

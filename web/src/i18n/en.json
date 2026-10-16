@@ -2,7 +2,8 @@
   "common": {
     "localeSaveFailed": "Could not save your language. It was applied on this device only.",
     "loading": "Loading...",
-    "retry": "Retry"
+    "retry": "Retry",
+    "viaClaude": "via Claude"
   },
   "toast": {
     "region": "Notifications",
@@ -775,6 +776,7 @@
     "revoking": "Revoking...",
     "revoked": "Token {name} revoked.",
     "revokeGone": "That token no longer exists.",
+    "createdElsewhere": "Token {name} was created in the previous organization. Switch back to see it; its secret is not shown again.",
     "revokeFailed": "Could not revoke the token. Try again.",
     "cancel": "Cancel",
     "createTitle": "New access token",

@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Actions\ListLogGroups;
 use App\Enums\LogGroupStatus;
 use App\Enums\LogLevel;
 use App\Http\Requests\LogGroup\ListLogGroupsRequest;
@@ -58,23 +59,13 @@ class ListLogGroupsTool extends Tool
         $filters = $request->validate((new ListLogGroupsRequest)->rules());
         $status = LogGroupStatus::tryFrom((string) ($filters['status'] ?? ''));
         $minimumLevel = LogLevel::tryFrom((string) ($filters['level'] ?? ''));
-        $levels = $minimumLevel === null ? null : array_values(array_map(
-            fn (LogLevel $level) => $level->value,
-            array_filter(LogLevel::cases(), fn (LogLevel $level) => $level->isAtLeast($minimumLevel)),
-        ));
-
-        $groups = LogGroup::query()
-            ->where('project_id', $project->id)
-            ->when($status, fn ($query) => $query->where('status', $status))
-            ->when($levels, fn ($query) => $query->whereIn('level', $levels))
-            ->orderByDesc('last_seen_at')
-            ->orderByDesc('id')
-            ->with('task')
-            ->paginate((int) ($filters['per_page'] ?? ListLogGroupsRequest::DEFAULT_PER_PAGE), page: $ids['page'] ?? 1);
-
-        foreach ($groups as $group) {
-            $group->task?->setRelation('project', $project);
-        }
+        $groups = app(ListLogGroups::class)(
+            $project,
+            $status,
+            $minimumLevel,
+            (int) ($filters['per_page'] ?? ListLogGroupsRequest::DEFAULT_PER_PAGE),
+            $ids['page'] ?? 1,
+        );
 
         return $this->structured([
             'data' => LogGroupResource::collection($groups->getCollection())->resolve(),

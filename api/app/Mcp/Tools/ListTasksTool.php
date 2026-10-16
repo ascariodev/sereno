@@ -2,8 +2,8 @@
 
 namespace App\Mcp\Tools;
 
+use App\Actions\ListBoardTasks;
 use App\Enums\TaskStatus;
-use App\Http\Controllers\Api\TaskController;
 use App\Http\Resources\TaskResource;
 use App\Models\Organization;
 use App\Models\Project;
@@ -39,7 +39,7 @@ class ListTasksTool extends Tool
             'search' => $schema->string()
                 ->description('Only tasks whose title contains this text, ignoring case.'),
             'done_limit' => $schema->integer()
-                ->description('Maximum number of done tasks to return (the most recent ones). Defaults to all of them; at most '.TaskController::MAX_DONE_LIMIT.'.'),
+                ->description('Maximum number of done tasks to return (the most recent ones). Defaults to all of them; at most '.ListBoardTasks::MAX_DONE_LIMIT.'.'),
         ];
     }
 
@@ -54,57 +54,16 @@ class ListTasksTool extends Tool
             'status' => ['nullable', Rule::enum(TaskStatus::class)],
             'assignee_id' => ['nullable', 'integer', 'min:1'],
             'search' => ['nullable', 'string', 'max:'.Task::TITLE_MAX_LENGTH],
-            'done_limit' => ['nullable', 'integer', 'min:1', 'max:'.TaskController::MAX_DONE_LIMIT],
+            'done_limit' => ['nullable', 'integer', 'min:1', 'max:'.ListBoardTasks::MAX_DONE_LIMIT],
         ]);
 
-        $base = fn () => Task::query()
-            ->where('project_id', $project->id)
-            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
-            ->when($filters['assignee_id'] ?? null, fn ($query, $id) => $query->where('assignee_id', $id))
-            ->when($filters['search'] ?? null, fn ($query, $text) => $query->where(
-                'title',
-                'ilike',
-                '%'.addcslashes($text, '\\%_').'%',
-            ));
-
-        $cases = array_values(array_filter(TaskStatus::cases(), fn (TaskStatus $status) => $status !== TaskStatus::Done));
-        $order = 'CASE status'.str_repeat(' WHEN ? THEN ?', count($cases)).' END';
-        $bindings = [];
-        foreach ($cases as $index => $status) {
-            array_push($bindings, $status->value, $index);
-        }
-
-        $active = $base()
-            ->where('status', '!=', TaskStatus::Done)
-            ->with(TaskController::RELATIONS)
-            ->withCount(TaskController::counts())
-            ->orderByRaw($order, $bindings)
-            ->orderBy('position')
-            ->orderBy('id')
-            ->get();
-
-        $doneQuery = $base()->where('status', TaskStatus::Done);
-        $doneTotal = (clone $doneQuery)->count();
-        $doneLimit = $filters['done_limit'] ?? null;
-
-        $done = $doneQuery
-            ->with(TaskController::RELATIONS)
-            ->withCount(TaskController::counts())
-            ->orderByDesc('position')
-            ->orderByDesc('id')
-            ->when($doneLimit !== null, fn ($query) => $query->limit($doneLimit))
-            ->get()
-            ->reverse()
-            ->values();
-
-        $tasks = $active->concat($done)->values();
-        $tasks->each(fn (Task $task) => $task->setRelation('project', $project));
+        $board = app(ListBoardTasks::class)($project, $filters, $filters['done_limit'] ?? null);
 
         return $this->structured([
-            'data' => TaskResource::collection($tasks)->resolve(),
+            'data' => TaskResource::collection($board['tasks'])->resolve(),
             'meta' => [
-                'done_total' => $doneTotal,
-                'has_more_done' => $done->count() < $doneTotal,
+                'done_total' => $board['done_total'],
+                'has_more_done' => $board['has_more_done'],
             ],
         ]);
     }

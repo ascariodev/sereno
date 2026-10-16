@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\ListProjectViewers;
 use App\Enums\Role;
 use App\Events\ProjectAccessChanged;
 use App\Events\ProjectMembersChanged;
@@ -23,23 +24,11 @@ use Illuminate\Validation\ValidationException;
 
 class ProjectMemberController extends Controller
 {
-    public function index(Project $project): AnonymousResourceCollection
+    public function index(Project $project, ListProjectViewers $listViewers): AnonymousResourceCollection
     {
         Gate::authorize('view', $project);
 
-        $organization = app(CurrentOrganization::class)->get();
-        $assignedIds = $project->members()->pluck('users.id')->all();
-
-        $viewers = $organization->users()
-            ->where(fn ($query) => $query
-                ->whereHas('roles', fn ($roles) => $roles->whereIn('roles.name', [Role::Owner->value, Role::Admin->value]))
-                ->orWhere(fn ($assigned) => $assigned
-                    ->whereIn('users.id', $assignedIds)
-                    ->whereHas('roles', fn ($roles) => $roles->where('roles.name', Role::Member->value))))
-            ->with('roles')
-            ->orderBy('name')
-            ->orderBy('users.id')
-            ->get();
+        $viewers = $listViewers(app(CurrentOrganization::class)->get(), $project);
 
         $members = MemberResource::collection($viewers);
 

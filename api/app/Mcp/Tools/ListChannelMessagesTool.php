@@ -55,12 +55,12 @@ class ListChannelMessagesTool extends Tool
         $channel = $project->channel()->firstOrFail();
         $this->authorize($user, 'view', $channel);
 
-        $cursor = isset($arguments['cursor']) ? Cursor::fromEncoded($arguments['cursor']) : null;
+        $cursor = null;
         if (isset($arguments['cursor'])) {
-            $id = $cursor?->toArray()['id'] ?? null;
-            if (! is_int($id) || $id < 1) {
+            if (! CursorPaginatedRequest::isValidCursor($arguments['cursor'])) {
                 return Response::error(__('The cursor is invalid.'));
             }
+            $cursor = Cursor::fromEncoded($arguments['cursor']);
         }
         $perPage = $arguments['per_page'] ?? CursorPaginatedRequest::DEFAULT_PER_PAGE;
 

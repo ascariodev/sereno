@@ -2,8 +2,8 @@
 
 namespace App\Actions;
 
+use App\Enums\ContentSource;
 use App\Events\TaskCommentCreated;
-use App\Http\Controllers\Api\TaskCommentController;
 use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TaskCommentAttachment;
@@ -16,10 +16,11 @@ class CreateTaskComment
     public function __construct(private readonly SyncTaskCommentMentions $syncMentions) {}
 
     /** @param  list<int>  $attachmentIds */
-    public function __invoke(Task $task, User $author, string $body, array $attachmentIds = []): TaskComment
+    public function __invoke(Task $task, User $author, string $body, array $attachmentIds = [], ?ContentSource $source = null): TaskComment
     {
         $comment = $task->comments()->make(['body' => $body]);
         $comment->user_id = $author->id;
+        $comment->source = $source;
 
         DB::transaction(function () use ($comment, $task, $author, $attachmentIds) {
             $comment->save();
@@ -27,7 +28,7 @@ class CreateTaskComment
             $this->linkAttachments($comment, $attachmentIds, $author->id);
         });
 
-        $comment->load(TaskCommentController::RELATIONS);
+        $comment->load(TaskComment::RELATIONS);
         TaskCommentCreated::dispatch($comment, $task->project_id);
 
         return $comment;

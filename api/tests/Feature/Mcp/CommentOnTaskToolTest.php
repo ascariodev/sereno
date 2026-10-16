@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ContentSource;
 use App\Enums\NotificationType;
 use App\Enums\Role;
 use App\Events\TaskCommentCreated;
@@ -60,11 +61,13 @@ it('creates the comment, stores the mention, notifies and emits the event', func
         ->assertStructuredContent(fn ($json) => $json
             ->where('data.body', "Look <@{$this->ana->id}>")
             ->where('data.mentions.0.id', $this->ana->id)
+            ->where('data.source', 'mcp')
             ->etc());
 
     $comment = TaskComment::query()->sole();
     expect($comment->user_id)->toBe($this->member->id)
-        ->and($comment->task_id)->toBe($this->task->id);
+        ->and($comment->task_id)->toBe($this->task->id)
+        ->and($comment->source)->toBe(ContentSource::Mcp);
     Event::assertDispatched(TaskCommentCreated::class);
 });
 

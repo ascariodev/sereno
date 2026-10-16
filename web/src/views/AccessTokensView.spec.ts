@@ -263,6 +263,9 @@ describe('AccessTokensView', () => {
     expect(document.body.textContent).not.toContain('SECRETSECRET')
     expect(q('[data-test=token-value]')).toBeNull()
     expect(wrapper!.findAll('[data-test=token]')).toHaveLength(0)
+    expect(toasts.value).toHaveLength(1)
+    expect(toasts.value[0].message).toContain('Laptop')
+    expect(toasts.value[0].message).not.toContain('SECRETSECRET')
   })
 
   it('discards a late revoke response after the organization changes', async () => {
