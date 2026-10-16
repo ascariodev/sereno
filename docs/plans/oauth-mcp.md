@@ -2,7 +2,7 @@
 
 **Objetivo:** que Sereno se pueda agregar como conector MCP en claude.ai con OAuth 2.1 (registro dinámico, PKCE y
 consentimiento en la web eligiendo organización), sin romper los tokens de acceso Bearer actuales de `/mcp`.
-**Estado:** en curso · Fase actual: 10
+**Estado:** en curso · Fase actual: 11
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -94,7 +94,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - **Archivos:** controller, resource, `api/routes/api.php`.
 - **Terminado cuando:** tests: lista solo lo propio, ajeno o de otra organización = 404, revocar invalida el token en `/mcp`.
 
-### [ ] Fase 10 — Conexiones en la vista de tokens
+### [x] Fase 10 — Conexiones en la vista de tokens
 - **Alcance:** sección "Conexiones" en `AccessTokensView` que lista y revoca con confirmación, con respuestas tardías (L-10).
 - **Archivos:** `web/src/api/accessTokens.ts`, `web/src/api/types.ts`, `web/src/views/AccessTokensView.vue`, i18n de la web.
 - **Terminado cuando:** specs de la vista: lista, vacío, revocar y respuesta tardía.
@@ -164,8 +164,15 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   usuario en la organización activa; `DELETE /api/oauth-connections/{id}` 204, ajeno/otra organización/inexistente 404 igual.
   `$grant->revoke()` (instancia) revoca `Token` y `RefreshToken` de su usuario y cliente y borra el grant; lo usan el
   controller (en `DB::transaction`) y `Organization::revokeOauthConnections`.
+- 2026-10-16 — Fase 10: las conexiones tienen estado propio en `AccessTokensView` y cargan en paralelo con los tokens en el
+  mismo `load()` (misma generación y AbortController); si falla una lista, la otra se muestra. Textos: "aplicaciones" y
+  "Desconectar".
 
 ## Notas para la próxima sesión
+- Fase 11 (manual): mergear `feat/oauth-mcp` a main, `composer install` en el vendor compartido, `restart queue`, `migrate`,
+  `passport:keys` en desarrollo; en producción, claves de Passport en el `.env` del servidor (las carga el usuario), nginx de
+  la web sirviendo la SPA en `/oauth/authorize`, deploy y prueba desde claude.ai. Al cerrar el worktree, borrar el volumen
+  `workspace_oauthmcp_vendor`.
 - El comando docker del worktree va sin `--network` (con él, 6 tests de notificaciones y push fallan por entorno).
 - Fase 9: extraer la revocación de `Organization::revokeOauthConnections` (hoy privada) para reusarla en el DELETE de
   conexiones.
@@ -221,3 +228,9 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - M-13: Carrera entre un `approve` de OAuth y la expulsión del miembro: `ApproveAuthorizationRequest` valida la membresía sin
   bloqueo, así que un grant podría crearse justo al sacar al usuario. Validar la membresía bajo el lock de la organización.
   Complejidad: media (seguridad). Modelo: sonnet. Origen: revisor fase 8.
+- M-14: En `AccessTokensView`, ignorar `AbortError` en `loadConnections` y en la carga de tokens (rechazos sin capturar al
+  abortar). Complejidad: baja. Modelo: sonnet. Origen: revisor fase 10.
+- M-15: Foco tras desconectar o revocar (L-65): al quitar la fila, el foco va al vecino o al encabezado, en tokens y
+  conexiones, con spec. Complejidad: baja. Modelo: sonnet. Origen: revisor fase 10.
+- M-16: "Reintentar" de conexiones recarga solo las conexiones, sin borrar los tokens ni cerrar diálogos. Complejidad: baja.
+  Modelo: sonnet. Origen: revisor fase 10.
