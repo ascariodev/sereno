@@ -55,8 +55,6 @@
   "scripts": {
     "start": "expo start --port 8087",
     "android": "expo start --port 8087 --android",
-    "ios": "expo start --port 8087 --ios",
-    "web": "expo start --port 8087 --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest"

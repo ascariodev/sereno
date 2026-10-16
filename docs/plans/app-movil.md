@@ -311,7 +311,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-5: Log "gave up" de `SendPushNotification`: omitir la lista del canal que no falló (hoy sale `subscriptions: []`).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-6: Quitar restos de la plantilla de Expo que no se usan: `assets/expo.icon/`, `ios.icon` y `web.output` en `app.json`, Aplicado: `ios`, `web.output`, scripts `ios`/`web` y `assets/expo.icon/`; las dependencias de plantilla pasan a M-63.
+- [x] M-6: Quitar restos de la plantilla de Expo que no se usan: `assets/expo.icon/`, `ios.icon` y `web.output` en `app.json`, Aplicado: `ios`, `web.output`, scripts `ios`/`web` y `assets/expo.icon/`; las dependencias de plantilla pasan a M-63.
       scripts `ios` y `web`, y dependencias sin uso (`react-native-web`, `react-dom`, `expo-glass-effect`, `expo-symbols`,
       `@expo/ui`, `expo-web-browser`, `expo-image` si nadie la usa). Verificar con typecheck, tests y `expo lint`.
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet

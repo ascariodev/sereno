@@ -13,9 +13,6 @@
     "updates": {
       "url": "https://u.expo.dev/13898f47-6f81-4a6d-82e3-2b8e1b3a667d"
     },
-    "ios": {
-      "icon": "./assets/expo.icon"
-    },
     "android": {
       "package": "dev.ascario.sereno",
       "googleServicesFile": "./google-services.json",
@@ -27,7 +24,6 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
