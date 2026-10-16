@@ -175,7 +175,9 @@ describe('Channel screen', () => {
     });
     const retry = await screen.findByText('Could not load older messages. Retry');
     failOlder = false;
-    fireEvent.press(retry);
+    await act(async () => {
+      fireEvent.press(retry);
+    });
 
     expect(await screen.findByText('Older')).toBeOnTheScreen();
   });
