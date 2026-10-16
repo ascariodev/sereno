@@ -230,7 +230,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - [x] M-13: Carrera entre un `approve` de OAuth y la expulsión del miembro: `ApproveAuthorizationRequest` valida la membresía sin
   bloqueo, así que un grant podría crearse justo al sacar al usuario. Validar la membresía bajo el lock de la organización.
   Complejidad: media (seguridad). Modelo: sonnet. Origen: revisor fase 8.
-- M-14: En `AccessTokensView`, ignorar `AbortError` en `loadConnections` y en la carga de tokens (rechazos sin capturar al
+- [x] M-14: En `AccessTokensView`, ignorar `AbortError` en `loadConnections` y en la carga de tokens (rechazos sin capturar al
   abortar). Complejidad: baja. Modelo: sonnet. Origen: revisor fase 10.
 - M-15: Foco tras desconectar o revocar (L-65): al quitar la fila, el foco va al vecino o al encabezado, en tokens y
   conexiones, con spec. Complejidad: baja. Modelo: sonnet. Origen: revisor fase 10.

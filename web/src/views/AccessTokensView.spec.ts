@@ -265,6 +265,20 @@ describe('AccessTokensView', () => {
     expect(signals.every((signal) => signal.aborted)).toBe(true)
   })
 
+  it('ignores an AbortError from the token and connection loads', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (_path: string, options?: { signal?: AbortSignal }) => {
+      return new Promise((_resolve, reject) => {
+        options?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+      })
+    })
+    await mountView()
+    switchOrganization()
+    await flushPromises()
+    wrapper!.unmount()
+    wrapper = undefined
+    await flushPromises()
+  })
+
   it('discards a late create response after the organization changes', async () => {
     mockGet([])
     const late = deferred<{ data: unknown; token: string }>()

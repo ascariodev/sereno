@@ -96,6 +96,10 @@ function resetForm(): void {
   formError.value = null
 }
 
+function isAbort(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError'
+}
+
 async function loadConnections(current: number, signal: AbortSignal): Promise<void> {
   connectionsFailed.value = false
   connectionsLoading.value = true
@@ -104,6 +108,7 @@ async function loadConnections(current: number, signal: AbortSignal): Promise<vo
     if (current !== generation) return
     connections.value = result
   } catch (error) {
+    if (isAbort(error)) return
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
     connectionsFailed.value = true
@@ -132,6 +137,7 @@ async function load(): Promise<void> {
     if (current !== generation) return
     tokens.value = result
   } catch (error) {
+    if (isAbort(error)) return
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
     failed.value = true
