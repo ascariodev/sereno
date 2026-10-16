@@ -16,6 +16,7 @@ use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use League\OAuth2\Server\Exception\OAuthServerException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -58,6 +59,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(ThrottleRequests::class, AuthenticateLogSource::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Passport report()s the exception of every invalid or expired bearer token reaching the api guard: client noise, not a fault.
+        $exceptions->dontReport(OAuthServerException::class);
+
         $wantsJson = fn (Request $request): bool => $request->is('api/*', 'broadcasting/*', 'mcp', 'oauth/*') || $request->expectsJson();
 
         $exceptions->shouldRenderJsonWhen($wantsJson);

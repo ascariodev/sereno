@@ -216,7 +216,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   revisor fase 5.
 - [x] M-7: Sin throttle propio en `/api/oauth/authorize` (solo `auth:sanctum`). Complejidad: baja. Modelo: sonnet. Origen:
   implementador fase 5.
-- M-8: Passport hace `report()` del `OAuthServerException` de cada token inválido o vencido que llega al guard `api` en
+- [x] M-8: Passport hace `report()` del `OAuthServerException` de cada token inválido o vencido que llega al guard `api` en
   `/mcp`; evaluar `dontReport`. Complejidad: baja. Modelo: sonnet. Origen: implementador fase 6.
 - M-9: Validar el parámetro `resource` (RFC 8707) del authorize contra la URL de `/mcp`. Complejidad: media (seguridad).
   Modelo: sonnet. Origen: revisor fase 5 e implementador fase 6.
