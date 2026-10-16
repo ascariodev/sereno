@@ -206,7 +206,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   Complejidad: baja. Modelo: sonnet. Origen: revisor fase 1.
 - M-3: Documentar `MCP_AUTHORIZATION_SERVER` (opcional) en `api/.env.example`. Complejidad: baja. Modelo: sonnet. Origen:
   revisor fase 2 (puede ir junto con M-1).
-- M-4: Fijar `token_endpoint_auth_methods_supported => ['none']` en el `$expected` de `OAuthDiscoveryTest`. Complejidad: baja.
+- [x] M-4: Fijar `token_endpoint_auth_methods_supported => ['none']` en el `$expected` de `OAuthDiscoveryTest`. Complejidad: baja.
   Modelo: sonnet. Origen: revisor fase 2.
 - M-5: Rechazar `..` (o normalizar la ruta) en los `redirect_uris` del DCR: hoy `https://claude.ai/api/mcp/../x` pasa el
   prefijo (mismo host, riesgo mínimo); para exigir el URI exacto habría que sobrescribir el controller del DCR.
