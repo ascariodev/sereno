@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/client'
 import * as notificationsApi from '../api/notifications'
 import type { AppNotification, NotificationPage } from '../api/types'
-import { disconnectRealtime, NOTIFICATION_CREATED_EVENT, setRealtimeClientFactory } from '../realtime/echo'
+import { disconnectRealtime, MENTION_REMOVED_EVENT, NOTIFICATION_CREATED_EVENT, setRealtimeClientFactory } from '../realtime/echo'
 import { createFakeRealtimeClient } from '../test/fakeRealtimeClient'
 import { useNotificationsStore } from './notifications'
 import { useOrganizationStore } from './organization'
@@ -354,6 +354,48 @@ describe('notifications store', () => {
     }
     const emitter = (listeners: ReturnType<typeof createFakeRealtimeClient>['listeners']) =>
       listeners.get(`users.7|${NOTIFICATION_CREATED_EVENT}`) as (data: unknown) => void
+
+    const mentionRow = (id: number, messageId: number) => ({
+      ...rawRow(id),
+      type: 'chat_mention',
+      data: { message_id: messageId, channel_id: 1, channel_name: 'general', parent_id: null, actor_id: 2, actor_name: 'Ana', message_excerpt: 'hi' },
+    })
+    const mention = (id: number, messageId: number) =>
+      notificationsApi.parseNotification(mentionRow(id, messageId)) as AppNotification
+    const removedEmitter = (listeners: ReturnType<typeof createFakeRealtimeClient>['listeners']) =>
+      listeners.get(`users.7|${MENTION_REMOVED_EVENT}`) as (data: unknown) => void
+
+    it('drops the notification of a removed mention and its unread count', async () => {
+      vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValue(page([mention(2, 90), notification(1)], 2))
+      const { listeners, store } = startLive()
+      await vi.waitFor(() => expect(store.loaded).toBe(true))
+      removedEmitter(listeners)({ organization_id: 1, message_id: 90 })
+      expect(store.notifications.map((n) => n.id)).toEqual([1])
+      expect(store.unreadCount).toBe(1)
+    })
+
+    it('ignores a removed mention of another organization', async () => {
+      vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValue(page([mention(2, 90)], 1))
+      const { listeners, store } = startLive()
+      await vi.waitFor(() => expect(store.loaded).toBe(true))
+      removedEmitter(listeners)({ organization_id: 2, message_id: 90 })
+      expect(store.notifications.map((n) => n.id)).toEqual([2])
+    })
+
+    it('a refresh in flight does not bring back a mention removed meanwhile', async () => {
+      const first = page([notification(1)], 1)
+      const stale = deferred<NotificationPage>()
+      const list = vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValueOnce(first).mockReturnValueOnce(stale.promise)
+      const { listeners, store } = startLive()
+      await vi.waitFor(() => expect(store.loaded).toBe(true))
+      const refreshing = store.refresh()
+      removedEmitter(listeners)({ organization_id: 1, message_id: 90 })
+      stale.resolve(page([mention(2, 90), notification(1)], 2))
+      await refreshing
+      expect(list).toHaveBeenCalled()
+      expect(store.notifications.map((n) => n.id)).toEqual([1])
+      expect(store.unreadCount).toBe(1)
+    })
 
     it('subscribes to the user channel and loads the initial unread count', async () => {
       const list = vi.spyOn(notificationsApi, 'listNotifications').mockResolvedValue(page([notification(1)], 4))

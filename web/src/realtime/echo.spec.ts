@@ -23,6 +23,7 @@ import {
   subscribeToChannel,
   subscribeToOrganizationMembers,
   subscribeToProject,
+  MENTION_REMOVED_EVENT,
   subscribeToUser,
   TASK_COMMENT_CREATED_EVENT,
   TASK_COMMENT_DELETED_EVENT,
@@ -455,6 +456,19 @@ describe('realtime', () => {
     emit?.({ organization_id: 3, notification: { id: 2 } })
     expect(received).toEqual([{ organizationId: 3, notification: { id: 2 } }])
     expect(client.private).toHaveBeenCalledTimes(1)
+  })
+
+  it('forwards mention.removed with the organization and message id, ignoring malformed payloads', () => {
+    const { client, listeners } = createFakeRealtimeClient()
+    setRealtimeClientFactory(() => client)
+    const received: unknown[] = []
+    subscribeToUser(5, { onMentionRemoved: (payload) => received.push(payload) })
+
+    const emit = listeners.get(`users.5|${MENTION_REMOVED_EVENT}`)
+    emit?.({ message_id: 9 })
+    emit?.({ organization_id: 3 })
+    emit?.({ organization_id: 3, message_id: 9 })
+    expect(received).toEqual([{ organizationId: 3, messageId: 9 }])
   })
 
   it('shares one user channel for both events and leaves it with the last subscriber', () => {

@@ -352,7 +352,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-35: `TaskCreateModal`: lista de miembros en un `ScrollView` con altura máxima y comprobar en el teléfono que el teclado no tapa el modal. Complejidad baja, sonnet.
 - [ ] M-36: Enfocar el mensaje mencionado al abrir una notificación `chat_mention` de primer nivel (la web usa `?message=`; la app necesita abrir el canal "around"). Complejidad media, sonnet.
 - [x] M-37: `notifications/store.ts`: condicionar el `refresh()` del cambio de organización a que el store esté iniciado (como `live` en la web), podar `removedMentions` en sesiones largas y sumar tests de `loadMore` filtrado por `removedMentions` y de cambio de organización con el store iniciado. Complejidad baja, sonnet.
-- [ ] M-38: Web: escuchar `.mention.removed` en el store de notificaciones (hoy solo se entera al refrescar), como la app. Complejidad media, sonnet.
+- [x] M-38: Web: escuchar `.mention.removed` en el store de notificaciones (hoy solo se entera al refrescar), como la app. Complejidad media, sonnet.
 - [ ] M-39: Ajustes: test de que el idioma se guarda en SecureStore (`LOCALE_STORAGE_KEY`), del interruptor deshabilitado mientras guarda, y contenedor `radiogroup` para los botones de idioma. Complejidad baja, sonnet.
 - [ ] M-40: Tablero de tareas: acceso desde la pantalla del canal (hoy solo desde la tarjeta del proyecto y el chip del aviso). Complejidad baja, sonnet.
 - [ ] M-41: Detalle de tarea: checklist del markdown interactiva (`toggleTaskItem` de la web); hoy la descripción se muestra solo lectura. Complejidad media, sonnet.

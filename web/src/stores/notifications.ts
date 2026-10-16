@@ -10,7 +10,7 @@ import {
 } from '../api/notifications'
 import type { AppNotification } from '../api/types'
 import { notifyDesktop } from '../platform/desktopNotifications'
-import { type NotificationCreatedPayload, onReconnect, subscribeToUser } from '../realtime/echo'
+import { type MentionRemovedPayload, type NotificationCreatedPayload, onReconnect, subscribeToUser } from '../realtime/echo'
 import { useOrganizationStore } from './organization'
 
 function toApiError(caught: unknown): ApiError {
@@ -61,6 +61,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
   // Rows that arrived live, with the sequence at that moment: a refresh that started before may not include them, so
   // its unread count is topped up with the unread ones it lacks. A refresh that started after supersedes the entry.
   const liveArrivals = new Map<number, number>()
+  // Chat messages whose mention was removed, with the sequence at that moment, so a page fetched before cannot bring the row back.
+  const removedMentions = new Map<number, number>()
+  const MAX_REMOVED_MENTIONS = 200
 
   function setUnread(count: number): void {
     unreadCount.value = Math.max(0, count)
@@ -74,6 +77,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     controller.abort()
     controller = new AbortController()
     liveArrivals.clear()
+    removedMentions.clear()
     notifications.value = []
     unreadCount.value = 0
     nextCursor.value = null
@@ -92,6 +96,10 @@ export const useNotificationsStore = defineStore('notifications', () => {
     },
     { flush: 'sync' },
   )
+
+  function removedSince(row: AppNotification, startedAt: number): boolean {
+    return row.type === 'chat_mention' && (removedMentions.get(row.data.message_id) ?? 0) > startedAt
+  }
 
   /** Unread live rows that arrived after the request started and are not in its page. */
   function unreadMissingFrom(page: readonly AppNotification[], startedAt: number): number {
@@ -134,12 +142,14 @@ export const useNotificationsStore = defineStore('notifications', () => {
     return listNotifications({ perPage: NOTIFICATIONS_PER_PAGE }, controller.signal)
       .then((page) => {
         if (current !== generation || version !== fetchVersion) return
-        notifications.value = mergeNotifications(pruneDeleted(notifications.value, page, startedAt), page.data)
+        const rows = page.data.filter((row) => !removedSince(row, startedAt))
+        const unreadDropped = page.data.filter((row) => removedSince(row, startedAt) && row.read_at === null).length
+        notifications.value = mergeNotifications(pruneDeleted(notifications.value, page, startedAt), rows)
         if (!loaded.value) {
           nextCursor.value = page.meta.next_cursor
           loaded.value = true
         }
-        setUnread(page.meta.unread_count + unreadMissingFrom(page.data, startedAt))
+        setUnread(page.meta.unread_count - unreadDropped + unreadMissingFrom(rows, startedAt))
         error.value = null
       })
       .catch((caught: unknown) => {
@@ -157,16 +167,18 @@ export const useNotificationsStore = defineStore('notifications', () => {
     const current = generation
     const counted = countVersion
     const readAll = readAllVersion
+    const startedAt = liveSequence
     loadingMore.value = true
     loadMoreFailed.value = false
     try {
       const page = await listNotifications({ cursor, perPage: NOTIFICATIONS_PER_PAGE }, controller.signal)
       if (current !== generation) return
       // A "mark all" confirmed while this page was in flight covers its (older) rows, which may still arrive unread.
+      const fresh = page.data.filter((row) => !removedSince(row, startedAt))
       const rows =
         readAll === readAllVersion
-          ? page.data
-          : page.data.map((row) => (row.read_at === null ? { ...row, read_at: readAllAt } : row))
+          ? fresh
+          : fresh.map((row) => (row.read_at === null ? { ...row, read_at: readAllAt } : row))
       notifications.value = mergeNotifications(notifications.value, rows)
       nextCursor.value = page.meta.next_cursor
       if (counted === countVersion) setUnread(page.meta.unread_count)
@@ -246,6 +258,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     const incoming = parseNotification(payload.notification)
     if (incoming === null) return
     if (notifications.value.some((row) => row.id === incoming.id)) return
+    if (incoming.type === 'chat_mention') removedMentions.delete(incoming.data.message_id)
     liveArrivals.set(incoming.id, ++liveSequence)
     notifications.value = mergeNotifications(notifications.value, [incoming])
     if (incoming.read_at === null) setUnread(unreadCount.value + 1)
@@ -253,11 +266,32 @@ export const useNotificationsStore = defineStore('notifications', () => {
     void notifyDesktop(incoming, payload.organizationId, () => (current === generation ? organization.activeId : null))
   }
 
-  /** Subscribes to `notification.created` in the user channel and refreshes on reconnect; call `stop()` on logout or unmount. */
+  function onMentionRemoved(payload: MentionRemovedPayload): void {
+    if (payload.organizationId !== organization.activeId) return
+    removedMentions.delete(payload.messageId)
+    removedMentions.set(payload.messageId, ++liveSequence)
+    if (removedMentions.size > MAX_REMOVED_MENTIONS) {
+      const oldest = removedMentions.keys().next()
+      if (!oldest.done) removedMentions.delete(oldest.value)
+    }
+    const removed = notifications.value.filter(
+      (row) => row.type === 'chat_mention' && row.data.message_id === payload.messageId,
+    )
+    if (removed.length === 0) {
+      if (loaded.value) void refresh()
+      return
+    }
+    const gone = new Set(removed.map((row) => row.id))
+    for (const id of gone) liveArrivals.delete(id)
+    notifications.value = notifications.value.filter((row) => !gone.has(row.id))
+    setUnread(unreadCount.value - removed.filter((row) => row.read_at === null).length)
+  }
+
+  /** Subscribes to `notification.created` and `mention.removed` in the user channel and refreshes on reconnect; call `stop()` on logout or unmount. */
   function start(userId: number): void {
     stop()
     live = true
-    const unsubscribeUser = subscribeToUser(userId, { onNotificationCreated })
+    const unsubscribeUser = subscribeToUser(userId, { onNotificationCreated, onMentionRemoved })
     const unsubscribeReconnect = onReconnect(() => void refresh())
     stopLive = () => {
       unsubscribeUser()
