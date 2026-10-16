@@ -105,9 +105,10 @@ interface MessagesState {
 }
 
 export const CATCH_UP_MAX_PAGES = 10
-const MAX_LIVE_DELETIONS = 200
+const MAX_UNLOADED_DELETIONS = 200
 
 let generation = 0
+let listVersion = 0
 let removalSeq = 0
 
 interface Removal {
@@ -125,6 +126,8 @@ let removals = new Map<number, Removal>()
 // Roots deleted in live: they stay as a marker only while they have replies.
 let deletedRoots = new Map<number, string>()
 let removedReplies = new Set<number>()
+// Deleted roots that were not loaded when the deletion arrived; only these are capped.
+let unloadedDeletions = new Set<number>()
 
 const empty = {
   channelId: null,
@@ -156,6 +159,7 @@ function resetLiveState(): void {
   removals = new Map()
   deletedRoots = new Map()
   removedReplies = new Set()
+  unloadedDeletions = new Set()
 }
 
 function withLiveReplies(root: Message, bound: string | null): Message {
@@ -246,19 +250,20 @@ export const useMessagesStore = create<MessagesState>()((set, get) => ({
     const { channelId, nextCursor, loading, loadingMore } = get()
     if (channelId === null || nextCursor === null || loading || loadingMore) return
     const mine = generation
+    const version = listVersion
     const since = removalSeq
     set({ loadingMore: true, failed: false })
     try {
       const page = await api.get<MessagesPage>(`/api/channels/${channelId}/messages`, {
         query: { per_page: MESSAGES_PER_PAGE, cursor: nextCursor },
       })
-      if (mine !== generation) return
+      if (mine !== generation || version !== listVersion) return
       const known = new Set(get().messages.map((message) => message.id))
       const older = sortedById(fromServer(page.data, since).filter((message) => !known.has(message.id)))
       set({ messages: [...older, ...get().messages], nextCursor: page.meta.next_cursor, loadingMore: false })
     } catch (error) {
       if (!(error instanceof ApiError)) throw error
-      if (mine === generation) set({ failed: true, loadingMore: false })
+      if (mine === generation && version === listVersion) set({ failed: true, loadingMore: false })
     }
   },
 
@@ -304,18 +309,26 @@ export const useMessagesStore = create<MessagesState>()((set, get) => ({
     removals.set(rootId, effective)
     if (event.parent_id === null) {
       deletedRoots.set(event.id, event.deleted_at)
-      if (deletedRoots.size > MAX_LIVE_DELETIONS) deletedRoots.delete(deletedRoots.keys().next().value as number)
     } else {
       removedReplies.add(event.id)
       countedReplies.delete(event.id)
     }
     if (counters !== undefined) snapshots.set(rootId, laterDate(counters.last_reply_at, event.deleted_at))
-    return updateRoot(rootId, (root) => settle(rebase(root, effective)))
+    const applied = updateRoot(rootId, (root) => settle(rebase(root, effective)))
+    if (!applied && event.parent_id === null) {
+      unloadedDeletions.add(event.id)
+      if (unloadedDeletions.size > MAX_UNLOADED_DELETIONS) {
+        const oldest = unloadedDeletions.values().next().value as number
+        unloadedDeletions.delete(oldest)
+        removals.delete(oldest)
+      }
+    }
+    return applied
   },
 
   async catchUp() {
-    const { channelId, loading } = get()
-    if (channelId === null || loading) return
+    const { channelId } = get()
+    if (channelId === null) return
     const mine = generation
     const since = removalSeq
     const lastLoadedId = get().messages.at(-1)?.id ?? null
@@ -345,7 +358,8 @@ export const useMessagesStore = create<MessagesState>()((set, get) => ({
       const oldest = Math.min(...rawRoots.map((message) => message.id))
       const live = [...current.values()].filter((message) => message.id > oldest && !rawRoots.some((root) => root.id === message.id))
       const fresh = fromServer(rawRoots, since).map((message) => keepNewerContent(message, current.get(message.id)))
-      set({ messages: sortedById([...fresh, ...live]), nextCursor: newestCursor })
+      set({ messages: sortedById([...fresh, ...live]), nextCursor: newestCursor, loadingMore: false })
+      listVersion++
       return
     }
     const fetchedIds = new Set(rawRoots.map((message) => message.id))

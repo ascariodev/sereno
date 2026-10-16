@@ -148,3 +148,51 @@ describe('messages store thread counters', () => {
     expect(list[0].attachments).toEqual([]);
   });
 });
+
+describe('messages store catch-up and guards', () => {
+  it('catches up while the first page is still loading', async () => {
+    const first = deferred();
+    let calls = 0;
+    globalThis.fetch = jest.fn(() => (++calls === 1 ? first.promise : Promise.resolve(page([message(5)])))) as never;
+    const opening = useMessagesStore.getState().open(50);
+    await useMessagesStore.getState().catchUp();
+
+    expect(calls).toBe(2);
+    expect(useMessagesStore.getState().messages.map((m) => m.id)).toEqual([5]);
+    first.resolve(page([message(1)]));
+    await opening;
+    expect(useMessagesStore.getState().messages.map((m) => m.id)).toEqual([1, 5]);
+  });
+
+  it('keeps a deletion marker for roots evicted from the unloaded-deletions cap', () => {
+    useMessagesStore.setState({ channelId: 50 });
+    for (let id = 1; id <= 201; id++) {
+      useMessagesStore.getState().remove({ id, channel_id: 50, parent_id: null, deleted_at: '2026-01-02T00:00:00Z' });
+    }
+
+    expect(useMessagesStore.getState().insert(message(1, { replies_count: 2 }))).toBe(true);
+    expect(root(1).deleted_at).toBe('2026-01-02T00:00:00Z');
+  });
+
+  it('discards an older page that was in flight when catch-up replaced the list', async () => {
+    const older = deferred();
+    let calls = 0;
+    globalThis.fetch = jest.fn(() => {
+      calls++;
+      if (calls === 1) return Promise.resolve(page([message(5)], 'c1'));
+      if (calls === 2) return older.promise;
+      return Promise.resolve(page([message(100 - calls)], `c${calls}`));
+    }) as never;
+    await useMessagesStore.getState().open(50);
+    const loading = useMessagesStore.getState().loadOlder();
+    await useMessagesStore.getState().catchUp();
+    older.resolve(page([message(2)]));
+    await loading;
+
+    const state = useMessagesStore.getState();
+    expect(state.messages.some((m) => m.id === 2)).toBe(false);
+    expect(state.messages.every((m) => m.id > 5)).toBe(true);
+    expect(state.nextCursor).toBe('c3');
+    expect(state.loadingMore).toBe(false);
+  });
+});

@@ -342,9 +342,9 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-25: Ocultar el compositor en canales archivados (`archived_at` de `ChannelResource`, pasarlo a la pantalla del canal), como la web. Complejidad baja, sonnet.
 - [ ] M-26: Envolver el canal en `KeyboardAvoidingView` (o el equivalente de Expo) si en el teléfono el teclado tapa el compositor. Complejidad baja, sonnet.
 - [ ] M-27: Tests de `app/src/projects/members.ts` (TTL, dedupe en vuelo, vaciado al cambiar de organización). Complejidad baja, sonnet.
-- [ ] M-28: `catchUp` sale si `loading`; la web solo si `hasNewer`. Si la carga de `open` falla y hay reconexión, no se recupera nada. Complejidad baja, sonnet.
+- [x] M-28: `catchUp` sale si `loading`; la web solo si `hasNewer`. Si la carga de `open` falla y hay reconexión, no se recupera nada. Complejidad baja, sonnet.
 - [ ] M-29: Tests de errores 404/422/429 del borrado y del `catchUp` en 404 (borrar y editar) en `messageActions.test.tsx`; tipar `t` de `deleteMessage` con `TFunction`. Complejidad baja, sonnet.
-- [ ] M-30: Store de mensajes: separar el tope de 200 de `deletedRoots` (al expulsar una entrada un snapshot tardío puede resucitar la raíz; la web solo limita `unloadedDeletions`) y sumar la guarda `listVersion` en `loadOlder` como la web. Complejidad baja, sonnet.
+- [x] M-30: Store de mensajes: separar el tope de 200 de `deletedRoots` (al expulsar una entrada un snapshot tardío puede resucitar la raíz; la web solo limita `unloadedDeletions`) y sumar la guarda `listVersion` en `loadOlder` como la web. Complejidad baja, sonnet.
 - [x] M-31: `settle` debe vaciar `attachments` al borrar, como `asDeleted` de la web (cuando lleguen los adjuntos, fase 24). Complejidad baja, sonnet.
 - [x] M-32: `threadStore.catchUp` relanza errores que no son `ApiError`/`AbortError` y se llama con `void`: tragarlos como la web para evitar rechazos sin capturar. Complejidad baja, sonnet.
 - [ ] M-33: Conservar el borrador de la respuesta del hilo entre aperturas de la misma raíz (`draft` de la web) y usar selectores en `thread.tsx`. Complejidad baja, sonnet.
@@ -373,3 +373,4 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-56: si la carga de organizaciones falla, el toque del aviso se consume sin avisar; reintentar o avisar. Baja, sonnet.
 - [ ] M-57: acortar el comentario de `pushDestination` en `app/src/push/open.ts`, que repite el nombre. Baja, sonnet.
 - [ ] M-58: `autoIncrement` también en el perfil `preview` de `app/eas.json`, para que un preview no choque por downgrade con un production más nuevo. Baja, sonnet.
+- [ ] M-59: `messages/store.ts` `insert`: al insertar una raíz que estaba en `unloadedDeletions`, quitarla del set como hace la web (si no, al expulsarla se pierde el rebase de contadores). Complejidad baja, sonnet.
