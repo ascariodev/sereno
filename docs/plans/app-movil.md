@@ -315,7 +315,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
       scripts `ios` y `web`, y dependencias sin uso (`react-native-web`, `react-dom`, `expo-glass-effect`, `expo-symbols`,
       `@expo/ui`, `expo-web-browser`, `expo-image` si nadie la usa). Verificar con typecheck, tests y `expo lint`.
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-7: `app/.vscode/settings.json` reordena imports y miembros al guardar para todos: dejar solo `extensions.json`.
+- [x] M-7: `app/.vscode/settings.json` reordena imports y miembros al guardar para todos: dejar solo `extensions.json`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-8: Cliente HTTP de la app: tests de timeout y cancelación con un `AbortSignal` real y de `buildUrl` con `?` en el path;
       mover `FieldErrors` a `src/api/types.ts` cuando existan más tipos.
