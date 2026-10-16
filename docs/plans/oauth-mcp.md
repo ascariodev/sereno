@@ -2,7 +2,7 @@
 
 **Objetivo:** que Sereno se pueda agregar como conector MCP en claude.ai con OAuth 2.1 (registro dinámico, PKCE y
 consentimiento en la web eligiendo organización), sin romper los tokens de acceso Bearer actuales de `/mcp`.
-**Estado:** en curso · Fase actual: 4
+**Estado:** en curso · Fase actual: 5
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -48,7 +48,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - **Archivos:** `api/config/mcp.php`, `api/bootstrap/app.php`, `api/app/Providers/AppServiceProvider.php`.
 - **Terminado cuando:** tests del DCR: acepta un `redirect_uri` de claude.ai, rechaza otro dominio y limita por IP.
 
-### [ ] Fase 4 — Vínculo de cliente OAuth con organización [riesgo]
+### [x] Fase 4 — Vínculo de cliente OAuth con organización [riesgo]
 - **Alcance:** tabla `mcp_oauth_grants` (`client_id`, `user_id`, `organization_id`, único `(client_id, user_id)`) con
   modelo; la escribe el consentimiento y la lee `/mcp`. Un cliente de DCR es una conexión de claude.ai, así que el par
   cliente-usuario fija la organización.
@@ -136,6 +136,10 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   `startsWith(dominio + '/')`: el URI exacto no sirve como entrada; se acepta cualquier ruta bajo `/api/mcp/` de claude.ai).
   `Passport::ignoreRoutes()`: solo queda `/oauth/token`, registrado en `routes/ai.php` (`AccessTokenController@issueToken`,
   nombre `passport.token`). Throttle por IP: `oauth-register` 10/min y `oauth-token` 60/min; `oauth/*` responde en JSON.
+- 2026-10-16 — Fase 4: `McpOauthGrant` sin `BelongsToOrganization` (como `personal_access_tokens`: `/mcp` lo busca antes de
+  haber organización activa), así que toda consulta filtra por cliente y usuario a mano. `$guarded = ['*']`: escribir con
+  `firstOrNew` + asignar por propiedad + `save`, no `updateOrCreate`. Revocar en Passport solo marca `revoked` (no borra el
+  cliente ni dispara la cascada). Sin `User::mcpOauthGrants()` todavía.
 
 ## Notas para la próxima sesión
 - Los revisores no ven `vendor/` en el worktree: leer Passport y laravel/mcp desde un contenedor con el volumen
