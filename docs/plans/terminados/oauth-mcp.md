@@ -222,7 +222,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   Modelo: sonnet. Origen: revisor fase 5 e implementador fase 6.
 - [x] M-10: `PassportGuards::hasPublicKey()` solo mira la clave pública; con pública sin privada `/oauth/token` falla. Comprobar
   ambas o avisar al arrancar. Complejidad: baja. Modelo: sonnet. Origen: revisor fase 6.
-- M-11: Destacar el host del `redirect_uri` en el consentimiento (línea propia o negrita, "Volverás a: claude.ai"): el nombre
+- [x] M-11: Destacar el host del `redirect_uri` en el consentimiento (línea propia o negrita, "Volverás a: claude.ai"): el nombre
   del cliente lo elige el cliente y Claude pide mostrar el host con claridad. Complejidad: baja. Modelo: sonnet. Origen:
   revisor fase 7.
 - M-12: Accesibilidad del consentimiento (L-25): foco al `h1` al cargar y región `aria-live` siempre presente para "Volviendo

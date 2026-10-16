@@ -150,7 +150,10 @@ onUnmounted(() => {
 
       <template v-else-if="authorization">
         <h1>{{ t('oauthAuthorize.title', { client: clientName }) }}</h1>
-        <p data-test="description">{{ t('oauthAuthorize.description', { client: clientName, host }) }}</p>
+        <p data-test="description">{{ t('oauthAuthorize.description', { client: clientName }) }}</p>
+        <p class="oauth__return" data-test="return-to">
+          {{ t('oauthAuthorize.returnTo') }} <strong class="oauth__host" data-test="redirect-host">{{ host }}</strong>
+        </p>
         <p class="oauth__scope" data-test="scope">{{ t('oauthAuthorize.scope') }}</p>
 
         <p v-if="!authorization.organizations.length" role="alert" data-test="no-organizations">
@@ -226,6 +229,11 @@ onUnmounted(() => {
 }
 .oauth__card p {
   margin: 0;
+}
+.oauth__host {
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  font-weight: 700;
 }
 .oauth__scope {
   color: var(--ink-2);
