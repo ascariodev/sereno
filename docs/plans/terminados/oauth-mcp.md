@@ -225,7 +225,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - [x] M-11: Destacar el host del `redirect_uri` en el consentimiento (línea propia o negrita, "Volverás a: claude.ai"): el nombre
   del cliente lo elige el cliente y Claude pide mostrar el host con claridad. Complejidad: baja. Modelo: sonnet. Origen:
   revisor fase 7.
-- M-12: Accesibilidad del consentimiento (L-25): foco al `h1` al cargar y región `aria-live` siempre presente para "Volviendo
+- [x] M-12: Accesibilidad del consentimiento (L-25): foco al `h1` al cargar y región `aria-live` siempre presente para "Volviendo
   a...". Complejidad: baja. Modelo: sonnet. Origen: revisor fase 7.
 - [x] M-13: Carrera entre un `approve` de OAuth y la expulsión del miembro: `ApproveAuthorizationRequest` valida la membresía sin
   bloqueo, así que un grant podría crearse justo al sacar al usuario. Validar la membresía bajo el lock de la organización.
