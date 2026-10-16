@@ -3,10 +3,10 @@
 namespace App\Actions;
 
 use App\Events\TaskUpdated;
-use App\Http\Controllers\Api\TaskController;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\TaskLocks;
 use Illuminate\Support\Facades\DB;
 
 class UpdateTask
@@ -22,12 +22,12 @@ class UpdateTask
             && (int) $data['assignee_id'] !== $task->assignee_id ? (int) $data['assignee_id'] : null;
 
         DB::transaction(function () use ($project, $task, $data, $newAssigneeId) {
-            TaskController::lockAssigneeAccess($project, $newAssigneeId);
-            TaskController::lockActiveProject($project, __('This project is archived and its tasks cannot be edited.'));
+            TaskLocks::lockAssigneeAccess($project, $newAssigneeId);
+            TaskLocks::lockActiveProject($project, __('This project is archived and its tasks cannot be edited.'));
             $task->fill($data)->save();
         });
 
-        $task->load(Task::RELATIONS)->loadCount(TaskController::counts())->setRelation('project', $project);
+        $task->load(Task::RELATIONS)->loadCount(Task::counts())->setRelation('project', $project);
         TaskUpdated::dispatch($task);
         if ($newAssigneeId !== null) {
             ($this->notifyAssignee)($task, $actor);

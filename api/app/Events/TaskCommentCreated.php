@@ -2,8 +2,8 @@
 
 namespace App\Events;
 
-use App\Http\Controllers\Api\TaskController;
 use App\Http\Resources\TaskCommentResource;
+use App\Models\Task;
 use App\Models\TaskComment;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -33,7 +33,7 @@ class TaskCommentCreated implements ShouldBroadcast, ShouldDispatchAfterCommit
         $this->organizationId = $comment->organization_id;
         $this->projectId = $projectId;
         $this->comment = (new TaskCommentResource($comment->loadMissing(TaskComment::RELATIONS)))->resolve();
-        $this->commentsCount = (int) $comment->task()->withoutGlobalScopes()->withCount(TaskController::counts())->value('comments_count');
+        $this->commentsCount = (int) $comment->task()->withoutGlobalScopes()->withCount(Task::counts())->value('comments_count');
     }
 
     public function broadcastOn(): PrivateChannel

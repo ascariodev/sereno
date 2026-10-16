@@ -245,6 +245,9 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
   sin cambios de configuración (401 sin token, `tools/list` 200 con token). Claude Code (servidor `sereno`, scope user)
   listó proyectos y comentó una tarea en producción. Conexión documentada en `CLAUDE.md` (transversal). Un token por
   máquina; el creado en el Mac quedó expuesto en el chat y se reemplazó por uno de Windows.
+- 2026-10-15 — Mejoras: `TaskController` queda solo con sus endpoints. Los locks están en `App\Support\TaskLocks`,
+  `counts()` en `Task::counts()`, `RELATIONS` en `Task` y `TaskComment`, `MAX_DONE_LIMIT` y la consulta del tablero en
+  `ListBoardTasks`; la lógica de log en `ListLogGroups` y `LoadLogGroupDetail`; `update` en `UpdateTask`.
 
 ## Notas para la próxima sesión
 - Tests de tools: `app(CurrentOrganization::class)->set(...)` antes de `SerenoServer::actingAs(...)->tool(...)`;
@@ -284,7 +287,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - [x] M-12: alinear el orden de autorización de `create-task` con el REST (`create` antes que `view`) y test de la tool
       para el 422 lanzado dentro de los locks (proyecto archivado o acceso perdido entre validación e insert).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-13: llevar los locks (`lockActiveProject`, `lockAssigneeAccess`), `RELATIONS` y `counts()` de `TaskController`
+- [x] M-13: llevar los locks (`lockActiveProject`, `lockAssigneeAccess`), `RELATIONS` y `counts()` de `TaskController`
       a un soporte compartido, para que `CreateTask`, `MoveTask`, `UpdateTask` y `ListBoardTasks` no dependan del controller.
       Complejidad: media · Archivos: 5 · Riesgo: concurrencia → opus
 - [ ] M-14: si se cambia de organización con un `createAccessToken` en vuelo, el token se crea pero no se muestra; avisar

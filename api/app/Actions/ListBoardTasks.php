@@ -3,7 +3,6 @@
 namespace App\Actions;
 
 use App\Enums\TaskStatus;
-use App\Http\Controllers\Api\TaskController;
 use App\Models\Project;
 use App\Models\Task;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,6 +10,9 @@ use Illuminate\Support\Collection;
 
 class ListBoardTasks
 {
+    /** Done tasks listed when the board asks for a bounded Done column (`done_limit`). */
+    public const MAX_DONE_LIMIT = 500;
+
     /**
      * Board order: active tasks by column and position, then the done column (optionally only its last `$doneLimit`).
      *
@@ -39,7 +41,7 @@ class ListBoardTasks
         $active = $base()
             ->where('status', '!=', TaskStatus::Done)
             ->with(Task::RELATIONS)
-            ->withCount(TaskController::counts())
+            ->withCount(Task::counts())
             ->orderByRaw($order, $bindings)
             ->orderBy('position')
             ->orderBy('id')
@@ -52,7 +54,7 @@ class ListBoardTasks
         // cut is contiguous, which keeps drag & drop neighbors adjacent; it is returned in column order.
         $done = $doneQuery
             ->with(Task::RELATIONS)
-            ->withCount(TaskController::counts())
+            ->withCount(Task::counts())
             ->orderByDesc('position')
             ->orderByDesc('id')
             ->when($doneLimit !== null, fn (Builder $query) => $query->limit($doneLimit))

@@ -4,10 +4,11 @@ namespace App\Models;
 
 use App\Enums\TaskStatus;
 use App\Events\TaskUpdated;
-use App\Http\Controllers\Api\TaskController;
 use App\Models\Concerns\BelongsToOrganization;
 use App\Models\Concerns\EnsuresProjectInOrganization;
+use Closure;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,6 +23,18 @@ class Task extends Model
     public const DESCRIPTION_MAX_LENGTH = 10000;
 
     public const RELATIONS = ['assignee:id,name', 'logGroup:id,level,title,status,events_count'];
+
+    /**
+     * Counts loaded next to Task::RELATIONS wherever a TaskResource is built. Comments are counted without their organization
+     * scope (it needs an active organization, and unassignUser runs without one): the composite foreign key
+     * already ties each comment to the organization of its task.
+     *
+     * @return array<string, Closure(Builder): Builder>
+     */
+    public static function counts(): array
+    {
+        return ['comments' => fn (Builder $query) => $query->withoutGlobalScopes()];
+    }
 
     protected function casts(): array
     {
@@ -43,7 +56,7 @@ class Task extends Model
             ->where('assignee_id', $userId)
             ->when($projectId !== null, fn ($query) => $query->where('project_id', $projectId))
             ->with(Task::RELATIONS)
-            ->withCount(TaskController::counts())
+            ->withCount(Task::counts())
             ->lockForUpdate()
             ->get();
 

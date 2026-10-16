@@ -4,7 +4,6 @@ namespace App\Mcp\Tools;
 
 use App\Actions\ListBoardTasks;
 use App\Enums\TaskStatus;
-use App\Http\Controllers\Api\TaskController;
 use App\Http\Resources\TaskResource;
 use App\Models\Organization;
 use App\Models\Project;
@@ -40,7 +39,7 @@ class ListTasksTool extends Tool
             'search' => $schema->string()
                 ->description('Only tasks whose title contains this text, ignoring case.'),
             'done_limit' => $schema->integer()
-                ->description('Maximum number of done tasks to return (the most recent ones). Defaults to all of them; at most '.TaskController::MAX_DONE_LIMIT.'.'),
+                ->description('Maximum number of done tasks to return (the most recent ones). Defaults to all of them; at most '.ListBoardTasks::MAX_DONE_LIMIT.'.'),
         ];
     }
 
@@ -55,7 +54,7 @@ class ListTasksTool extends Tool
             'status' => ['nullable', Rule::enum(TaskStatus::class)],
             'assignee_id' => ['nullable', 'integer', 'min:1'],
             'search' => ['nullable', 'string', 'max:'.Task::TITLE_MAX_LENGTH],
-            'done_limit' => ['nullable', 'integer', 'min:1', 'max:'.TaskController::MAX_DONE_LIMIT],
+            'done_limit' => ['nullable', 'integer', 'min:1', 'max:'.ListBoardTasks::MAX_DONE_LIMIT],
         ]);
 
         $board = app(ListBoardTasks::class)($project, $filters, $filters['done_limit'] ?? null);

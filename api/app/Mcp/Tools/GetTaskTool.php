@@ -2,7 +2,6 @@
 
 namespace App\Mcp\Tools;
 
-use App\Http\Controllers\Api\TaskController;
 use App\Http\Requests\TaskComment\ListTaskCommentsRequest;
 use App\Http\Resources\TaskCommentResource;
 use App\Http\Resources\TaskResource;
@@ -60,7 +59,7 @@ class GetTaskTool extends Tool
 
         $arguments = $request->validate((new ListTaskCommentsRequest)->rules());
 
-        $task->load(Task::RELATIONS)->loadCount(TaskController::counts())->setRelation('project', $project);
+        $task->load(Task::RELATIONS)->loadCount(Task::counts())->setRelation('project', $project);
 
         $page = $task->comments()
             ->with(TaskComment::RELATIONS)

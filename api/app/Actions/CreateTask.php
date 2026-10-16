@@ -4,12 +4,12 @@ namespace App\Actions;
 
 use App\Enums\TaskStatus;
 use App\Events\TaskCreated;
-use App\Http\Controllers\Api\TaskController;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\TaskLocks;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -29,8 +29,8 @@ class CreateTask
     ): Task {
         try {
             $task = DB::transaction(function () use ($project, $actor, $title, $description, $status, $assigneeId, $logGroupId) {
-                TaskController::lockAssigneeAccess($project, $assigneeId);
-                TaskController::lockActiveProject($project, __('This project is archived and cannot have new tasks.'));
+                TaskLocks::lockAssigneeAccess($project, $assigneeId);
+                TaskLocks::lockActiveProject($project, __('This project is archived and cannot have new tasks.'));
 
                 // Locks the project row until commit, so numbers and positions of the project are serialized.
                 $number = DB::selectOne(
@@ -74,7 +74,7 @@ class CreateTask
             ]);
         }
 
-        $task->load(Task::RELATIONS)->loadCount(TaskController::counts())->setRelation('project', $project);
+        $task->load(Task::RELATIONS)->loadCount(Task::counts())->setRelation('project', $project);
         TaskCreated::dispatch($task);
         ($this->notifyAssignee)($task, $actor);
 
