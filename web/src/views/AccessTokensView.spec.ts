@@ -195,6 +195,22 @@ describe('AccessTokensView', () => {
     expect(toasts.value.map((item) => item.kind)).toEqual(['success'])
   })
 
+  it('moves focus to the neighbouring revoke button after revoking, or the title when none is left', async () => {
+    mockGet([token(1), token(2)])
+    vi.spyOn(api, 'delete').mockResolvedValue(undefined)
+    await mountView()
+    await wrapper!.findAll('[data-test=revoke]')[0].trigger('click')
+    await flushPromises()
+    q<HTMLButtonElement>('[data-test=confirm]')!.click()
+    await flushPromises()
+    expect(document.activeElement).toBe(q('[data-token-id="2"] [data-test=revoke]'))
+    await wrapper!.find('[data-test=revoke]').trigger('click')
+    await flushPromises()
+    q<HTMLButtonElement>('[data-test=confirm]')!.click()
+    await flushPromises()
+    expect(document.activeElement).toBe(q('h1'))
+  })
+
   it('cancelling keeps the token and does not call the API', async () => {
     mockGet([token(1)])
     const revoke = vi.spyOn(api, 'delete')
@@ -381,6 +397,22 @@ describe('AccessTokensView', () => {
       expect(revoke).toHaveBeenCalledWith('/api/oauth-connections/1')
       expect(wrapper!.findAll('[data-test=connection-name]').map((el) => el.text())).toEqual(['Claude 2'])
       expect(toasts.value.map((item) => item.kind)).toEqual(['success'])
+    })
+
+    it('moves focus to the neighbouring disconnect button, or the heading when none is left', async () => {
+      mockGet([], [connection(1), connection(2)])
+      vi.spyOn(api, 'delete').mockResolvedValue(undefined)
+      await mountView()
+      await wrapper!.findAll('[data-test=disconnect]')[0].trigger('click')
+      await flushPromises()
+      q<HTMLButtonElement>('[data-test=disconnect-confirm]')!.click()
+      await flushPromises()
+      expect(document.activeElement).toBe(q('[data-connection-id="2"] [data-test=disconnect]'))
+      await wrapper!.find('[data-test=disconnect]').trigger('click')
+      await flushPromises()
+      q<HTMLButtonElement>('[data-test=disconnect-confirm]')!.click()
+      await flushPromises()
+      expect(document.activeElement).toBe(q('h2'))
     })
 
     it('cancelling does not call the API', async () => {
