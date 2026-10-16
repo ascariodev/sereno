@@ -65,9 +65,13 @@ export async function openPushResponse(response: Notifications.NotificationRespo
   const destination = pushDestination(response.notification.request.content.data)
   if (destination === null) return
 
-  const { activeId, select } = useOrganizationStore.getState()
-  if (activeId !== destination.organizationId) {
-    await select(destination.organizationId)
+  const organizationState = useOrganizationStore.getState()
+  if (organizationState.activeId !== destination.organizationId) {
+    if (!organizationState.loaded || organizationState.loadError) {
+      await organizationState.load()
+      if (useAuthStore.getState().token === null) return
+    }
+    await useOrganizationStore.getState().select(destination.organizationId)
     if (useAuthStore.getState().token === null) return
     if (useOrganizationStore.getState().activeId !== destination.organizationId) return
   }

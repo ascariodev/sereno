@@ -120,6 +120,22 @@ describe('openPushResponse', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it('retries loading the organizations when they failed before switching', async () => {
+    const load = useOrganizationStore.getState().load;
+    useOrganizationStore.setState({
+      organizations: [],
+      loaded: false,
+      loadError: true,
+      load: async () => {
+        useOrganizationStore.setState({ organizations, loaded: true, loadError: false });
+      },
+    });
+    await openPushResponse(response({ url: taskUrl, organizationId: 2 }));
+    useOrganizationStore.setState({ load });
+    expect(useOrganizationStore.getState().activeId).toBe(2);
+    expect(push).toHaveBeenCalledWith({ pathname: '/task', params: { projectId: '7', id: '42' } });
+  });
+
   it('does nothing without a session, without switching organization', async () => {
     useAuthStore.setState({ token: null });
     await openPushResponse(response({ url: taskUrl, organizationId: 2 }));
