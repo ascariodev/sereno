@@ -302,5 +302,6 @@
     "The notification type is not valid.": "The notification type is not valid.",
     "Push notifications are not configured.": "Push notifications are not configured.",
     "You are not allowed to do this.": "You are not allowed to do this.",
-    "Not found.": "Not found."
+    "Not found.": "Not found.",
+    "Each allowed origin must be an exact origin like https://example.com, without path or trailing slash; plain http is only allowed for localhost and 127.0.0.1.": "Each allowed origin must be an exact origin like https://example.com, without path or trailing slash; plain http is only allowed for localhost and 127.0.0.1."
 }

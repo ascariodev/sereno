@@ -6,6 +6,8 @@ const source: LogSource = {
   id: 7,
   project_id: 3,
   name: 'posveapi',
+  kind: 'server',
+  allowed_origins: null,
   key_prefix: 'wsk_ab12',
   last_used_at: null,
   revoked_at: null,

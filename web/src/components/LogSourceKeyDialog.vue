@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LogSourceWithKey } from '../api/types'
 import { config } from '../config'
 import AppDialog from './ui/AppDialog.vue'
+import AppSegmented from './ui/AppSegmented.vue'
 import CopyButton from './ui/CopyButton.vue'
 
 const source = defineModel<LogSourceWithKey | null>('source', { default: null })
@@ -34,6 +35,84 @@ const curlExample = computed(
     `  -H "Content-Type: application/json" \\\n` +
     `  -d '{"events":[{"level":"error","message":"Test event"}]}'`,
 )
+
+type TabId = 'laravel' | 'php' | 'node' | 'python' | 'browser' | 'curl'
+
+interface Snippet {
+  id: string
+  label: string
+  copyLabel: string
+  text: string
+}
+
+const SERVER_TABS: TabId[] = ['laravel', 'php', 'node', 'python', 'curl']
+const BROWSER_TABS: TabId[] = ['browser']
+
+const tabIds = computed<TabId[]>(() => (source.value?.kind === 'browser' ? BROWSER_TABS : SERVER_TABS))
+const selectedTab = ref<TabId>('laravel')
+const activeTab = computed<TabId>(() => (tabIds.value.includes(selectedTab.value) ? selectedTab.value : tabIds.value[0]))
+
+const tabOptions = computed(() =>
+  tabIds.value.map((id) => ({ value: id, label: t(`keyDialog.tab.${id}`) })),
+)
+
+function selectTab(value: string): void {
+  selectedTab.value = value as TabId
+}
+
+const phpCode = computed(
+  () =>
+    `<?php\n\nrequire __DIR__.'/vendor/autoload.php';\n\nuse Sereno\\Sereno;\n\n` +
+    `$logger = Sereno::init(); // reads SERENO_KEY and SERENO_URL from the environment\n\n` +
+    `$logger->error('Payment failed', ['order_id' => 42]);`,
+)
+
+const nodeCode = computed(
+  () =>
+    `import { init, captureException, log } from '@ascariodev/sereno-node';\n\n` +
+    `init(); // reads SERENO_URL and SERENO_KEY from the environment\n\n` +
+    `log('warning', 'Payment is slow', { order_id: 42 });`,
+)
+
+const pythonCode = computed(
+  () =>
+    `import logging\nimport sereno\n\n` +
+    `sereno.init()  # reads SERENO_URL and SERENO_KEY from the environment\n\n` +
+    `logging.getLogger(__name__).warning("Payment is slow", extra={"order_id": 42})`,
+)
+
+const browserCode = computed(
+  () =>
+    `import { init, captureException, log } from '@ascariodev/sereno-browser';\n\n` +
+    `init({\n  url: '${config.apiUrl}',\n  key: '${source.value?.key ?? ''}',\n});\n\n` +
+    `log('warning', 'Checkout is slow', { step: 'payment' });`,
+)
+
+const vueCode = `import { SerenoVue } from '@ascariodev/sereno-browser/vue';\n\napp.use(SerenoVue);`
+
+const snippets = computed<Snippet[]>(() => {
+  const env: Snippet = { id: 'env', label: t('keyDialog.env'), copyLabel: t('keyDialog.copyEnv'), text: envBlock.value }
+  const code = (text: string): Snippet => ({ id: 'code', label: t('keyDialog.code'), copyLabel: t('keyDialog.copyCode'), text })
+  const install = (text: string): Snippet => ({ id: 'install', label: t('keyDialog.install'), copyLabel: t('keyDialog.copyInstall'), text })
+  switch (activeTab.value) {
+    case 'laravel':
+      return [install(installCommand.value), env]
+    case 'php':
+      return [install('composer require ascariodev/sereno-php'), env, code(phpCode.value)]
+    case 'node':
+      return [install('npm install @ascariodev/sereno-node'), env, code(nodeCode.value)]
+    case 'python':
+      return [install('pip install sereno-sdk'), env, code(pythonCode.value)]
+    case 'browser':
+      return [
+        install('npm install @ascariodev/sereno-browser'),
+        code(browserCode.value),
+        { id: 'vue', label: t('keyDialog.vue'), copyLabel: t('keyDialog.copyVue'), text: vueCode },
+      ]
+    default:
+      return [{ id: 'curl', label: t('keyDialog.curl'), copyLabel: t('keyDialog.copyCurl'), text: curlExample.value }]
+  }
+})
 </script>
 
 <template>
@@ -52,14 +131,6 @@ const curlExample = computed(
       </p>
 
       <section class="key-dialog__block">
-        <h3 class="key-dialog__label">{{ t('keyDialog.install') }}</h3>
-        <div class="key-dialog__row">
-          <pre class="key-dialog__code" data-test="install">{{ installCommand }}</pre>
-          <CopyButton :text="installCommand" :label="t('keyDialog.copyInstall')" />
-        </div>
-      </section>
-
-      <section class="key-dialog__block">
         <h3 class="key-dialog__label">{{ t('keyDialog.key', { name: source.name }) }}</h3>
         <div class="key-dialog__row">
           <code class="key-dialog__code" data-test="key">{{ source.key }}</code>
@@ -75,19 +146,18 @@ const curlExample = computed(
         </div>
       </section>
 
-      <section class="key-dialog__block">
-        <h3 class="key-dialog__label">{{ t('keyDialog.env') }}</h3>
-        <div class="key-dialog__row">
-          <pre class="key-dialog__code" data-test="env">{{ envBlock }}</pre>
-          <CopyButton :text="envBlock" :label="t('keyDialog.copyEnv')" />
-        </div>
-      </section>
+      <AppSegmented :model-value="activeTab" :options="tabOptions" :label="t('keyDialog.languages')" @update:model-value="selectTab" />
 
-      <section class="key-dialog__block">
-        <h3 class="key-dialog__label">{{ t('keyDialog.curl') }}</h3>
+      <p v-if="activeTab === 'browser'" class="key-dialog__origins" data-test="origin-notice">
+        {{ t('keyDialog.browserOrigin') }}
+        <code v-if="source.allowed_origins?.length">{{ source.allowed_origins.join(', ') }}</code>
+      </p>
+
+      <section v-for="snippet in snippets" :key="`${activeTab}-${snippet.id}`" class="key-dialog__block">
+        <h3 class="key-dialog__label">{{ snippet.label }}</h3>
         <div class="key-dialog__row">
-          <pre class="key-dialog__code" data-test="curl">{{ curlExample }}</pre>
-          <CopyButton :text="curlExample" :label="t('keyDialog.copyCurl')" />
+          <pre class="key-dialog__code" :data-test="snippet.id">{{ snippet.text }}</pre>
+          <CopyButton :text="snippet.text" :label="snippet.copyLabel" />
         </div>
       </section>
 
@@ -126,6 +196,11 @@ const curlExample = computed(
   border-color: var(--level-info-fg);
   background: var(--level-info-bg);
   color: var(--level-info-fg);
+}
+.key-dialog__origins {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 13px;
 }
 .key-dialog__block {
   display: flex;

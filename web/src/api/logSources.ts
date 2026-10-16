@@ -1,13 +1,20 @@
 import { api } from './client'
-import type { DataEnvelope, LogSource, LogSourceWithKey } from './types'
+import type { DataEnvelope, LogSource, LogSourceKind, LogSourceWithKey } from './types'
 
 export async function listLogSources(projectId: number, signal?: AbortSignal): Promise<LogSource[]> {
   const response = await api.get<DataEnvelope<LogSource[]>>(`/api/projects/${projectId}/log-sources`, { signal })
   return response.data
 }
 
-export async function createLogSource(projectId: number, name: string): Promise<LogSourceWithKey> {
-  const response = await api.post<DataEnvelope<LogSourceWithKey>>(`/api/projects/${projectId}/log-sources`, { name })
+export interface CreateLogSourceInput {
+  name: string
+  kind?: LogSourceKind
+  allowed_origins?: string[]
+}
+
+export async function createLogSource(projectId: number, input: string | CreateLogSourceInput): Promise<LogSourceWithKey> {
+  const body = typeof input === 'string' ? { name: input } : input
+  const response = await api.post<DataEnvelope<LogSourceWithKey>>(`/api/projects/${projectId}/log-sources`, body)
   return response.data
 }
 

@@ -20,6 +20,8 @@ function source(id: number, overrides: Record<string, unknown> = {}) {
     id,
     project_id: 7,
     name: `Source ${id}`,
+    kind: 'server',
+    allowed_origins: null,
     key_prefix: `wsk_ab${id}`,
     last_used_at: null,
     revoked_at: null,
@@ -100,6 +102,24 @@ describe('IntegrationsView', () => {
     expect(rows[0].find('[data-test=revoked]').exists()).toBe(false)
     expect(rows[1].find('[data-test=last-used]').text()).toBe('Never')
     expect(rows[1].find('[data-test=revoked]').exists()).toBe(true)
+  })
+
+  it('shows the kind of each source and the origins of browser sources compactly', async () => {
+    stubGet(() => ({
+      data: [
+        source(1),
+        source(2, {
+          kind: 'browser',
+          allowed_origins: ['https://a.example.com', 'https://b.example.com', 'http://localhost:5173'],
+        }),
+      ],
+    }))
+    await mountView(['admin'])
+    const rows = wrapper!.findAll('[data-test=source]')
+    expect(rows[0].find('[data-test=kind]').text()).toBe('Server')
+    expect(rows[0].find('[data-test=origins]').exists()).toBe(false)
+    expect(rows[1].find('[data-test=kind]').text()).toBe('Browser')
+    expect(rows[1].find('[data-test=origins]').text()).toBe('https://a.example.com, https://b.example.com +1 more')
   })
 
   it('shows the empty state', async () => {

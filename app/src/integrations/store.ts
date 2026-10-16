@@ -1,11 +1,14 @@
 import { create } from 'zustand'
 
 import { api, ApiError } from '@/api/client'
+import type { SourceKind } from '@/integrations/snippets'
 
 export interface LogSource {
   id: number
   project_id: number
   name: string
+  kind: SourceKind
+  allowed_origins: string[] | null
   key_prefix: string
   last_used_at: string | null
   revoked_at: string | null
