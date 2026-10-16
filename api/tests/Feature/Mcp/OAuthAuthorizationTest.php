@@ -77,6 +77,16 @@ it('shows the client, the redirect host and the user organizations', function ()
         ]);
 });
 
+it('rejects a request without redirect_uri when the client has several registered', function () {
+    $client = app(ClientRepository::class)
+        ->createAuthorizationCodeGrantClient('Claude', [OAUTH_CONSENT_CALLBACK, 'https://claude.ai/api/mcp/other'], false);
+
+    $this->getJson(oauthConsentQuery($client, ['redirect_uri' => null]))
+        ->assertStatus(400)
+        ->assertJsonPath('error', 'invalid_client')
+        ->assertJsonMissingPath('redirect_host');
+});
+
 it('asks for the mcp scope when the request has none', function () {
     $this->getJson(oauthConsentQuery($this->client, ['scope' => null]))
         ->assertOk()

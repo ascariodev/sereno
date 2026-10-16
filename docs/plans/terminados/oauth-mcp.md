@@ -211,7 +211,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - M-5: Rechazar `..` (o normalizar la ruta) en los `redirect_uris` del DCR: hoy `https://claude.ai/api/mcp/../x` pasa el
   prefijo (mismo host, riesgo mínimo); para exigir el URI exacto habría que sobrescribir el controller del DCR.
   Complejidad: media (seguridad, 2 archivos). Modelo: sonnet. Origen: revisor fase 3.
-- M-6: En el GET de `/api/oauth/authorize`, si la petición no trae `redirect_uri` y el cliente tiene varias, `redirect_host`
+- [x] M-6: En el GET de `/api/oauth/authorize`, si la petición no trae `redirect_uri` y el cliente tiene varias, `redirect_host`
   muestra la primera; exigir `redirect_uri` o calcular el host igual que league. Complejidad: baja. Modelo: sonnet. Origen:
   revisor fase 5.
 - M-7: Sin throttle propio en `/api/oauth/authorize` (solo `auth:sanctum`). Complejidad: baja. Modelo: sonnet. Origen:
