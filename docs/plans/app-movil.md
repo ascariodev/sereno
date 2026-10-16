@@ -370,7 +370,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-53: test de que un fallo al escribir la marca `sereno.pushPrompted` no pide el permiso y se reintenta al volver. Baja, sonnet.
 - [ ] M-54: los íconos de la barra de pestañas se ven como cuadros vacíos (tofu) en el dev build de Android; revisar la fuente o el paquete de símbolos que usan. Media, sonnet.
 - [ ] M-55: abrir el push de chat en el mensaje concreto (`?message=`) con scroll, y pasar el nombre del canal en el payload para el título. Media, sonnet.
-- [ ] M-56: si la carga de organizaciones falla, el toque del aviso se consume sin avisar; reintentar o avisar. Baja, sonnet.
+- [x] M-56: si la carga de organizaciones falla, el toque del aviso se consume sin avisar; reintentar o avisar. Baja, sonnet.
 - [ ] M-57: acortar el comentario de `pushDestination` en `app/src/push/open.ts`, que repite el nombre. Baja, sonnet.
 - [ ] M-58: `autoIncrement` también en el perfil `preview` de `app/eas.json`, para que un preview no choque por downgrade con un production más nuevo. Baja, sonnet.
 - [ ] M-59: `messages/store.ts` `insert`: al insertar una raíz que estaba en `unloadedDeletions`, quitarla del set como hace la web (si no, al expulsarla se pierde el rebase de contadores). Complejidad baja, sonnet.
