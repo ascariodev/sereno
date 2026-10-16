@@ -168,6 +168,12 @@ una organización con ability `mcp` y solo valen en `/mcp` (403 en el resto). Co
 web, más `--scope user` para que valga en todos los proyectos: `claude mcp add --transport http --scope user sereno https://sereno-api.ascario.dev/mcp --header "Authorization: Bearer <token>"`.
 Un token por máquina; `claude mcp add` no reemplaza un nombre existente (antes `claude mcp remove sereno -s user`). En esta
 PC el CLI no está en el PATH de PowerShell: lo corre una sesión de Code con el binario de la app.
+OAuth para claude.ai (plan `oauth-mcp`) hecho: Passport junto a Sanctum (de Passport solo queda `/oauth/token`), discovery en
+`/.well-known/oauth-*`, registro dinámico restringido a `https://claude.ai/api/mcp/`, consentimiento en la web (`/oauth/authorize`,
+elige la organización y la guarda en `mcp_oauth_grants`) y conexiones revocables en "Tokens de acceso". En claude.ai se agrega como
+conector personalizado con `https://sereno-api.ascario.dev/mcp`, sin client ID. Claves `PASSPORT_PRIVATE_KEY`/`PASSPORT_PUBLIC_KEY`
+en el `.env`: en producción las genera el usuario con `openssl` en el servidor; en desarrollo `php artisan passport:keys` (archivos
+en `api/storage/`, ignorados). Sin claves `/mcp` solo acepta los tokens Bearer. Rotarlas invalida todas las conexiones.
 
 (No confundir con las fases de un plan de `docs/plans/`.)
 
