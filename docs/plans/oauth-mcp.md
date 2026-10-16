@@ -2,7 +2,7 @@
 
 **Objetivo:** que Sereno se pueda agregar como conector MCP en claude.ai con OAuth 2.1 (registro dinámico, PKCE y
 consentimiento en la web eligiendo organización), sin romper los tokens de acceso Bearer actuales de `/mcp`.
-**Estado:** en curso · Fase actual: 1
+**Estado:** en curso · Fase actual: 2
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -25,7 +25,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 
 ## Fases
 
-### [ ] Fase 1 — Instalar Passport junto a Sanctum [riesgo]
+### [x] Fase 1 — Instalar Passport junto a Sanctum [riesgo]
 - **Alcance:** `composer require laravel/passport`, migraciones de Passport, guard `api` (driver `passport`), traits de
   `User` sin choque con `HasApiTokens` de Sanctum (`insteadof`: lo de Sanctum sigue mandando en el resto del API), claves
   por `PASSPORT_PRIVATE_KEY`/`PASSPORT_PUBLIC_KEY` o `storage/oauth-*.key`, `Passport::tokensCan(['mcp:use' => ...])`.
@@ -113,9 +113,23 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - 2026-10-15 — La organización se fija en el consentimiento y se guarda por cliente y usuario (`mcp_oauth_grants`); los
   tokens de Passport no llevan `organization_id`.
 - 2026-10-15 — Los tokens de acceso Bearer de integracion-mcp siguen igual (Claude Code); OAuth es otro camino a `/mcp`.
+- 2026-10-16 — Fase 1: sin `insteadof`. Los `HasApiTokens` de Sanctum y Passport declaran `$accessToken` con tipos distintos
+  (fatal al componerlos): `User` queda solo con el de Sanctum; el guard de Passport usa `withAccessToken()` y el `tokenCan()`
+  de Sanctum sirve con el `AccessToken` de Passport. `$user->tokens()` es de Sanctum: las fases 8 y 9 consultan
+  `Laravel\Passport\Token` directo, no `TokenRepository`.
+- 2026-10-16 — Migraciones de Passport publicadas tal cual (`oauth_clients` con UUID, excepción anotada en database.md); claves
+  por la config por defecto de Passport, sin publicar `config/passport.php`.
 
 ## Notas para la próxima sesión
-- Fase 1: verificar en `vendor/laravel/passport` (13.x) los métodos de `HasApiTokens` que chocan con los de Sanctum y
-  cómo usa Passport el guard; no tocar el flujo de login de la web.
+- En el worktree, `vendor/` vive en el volumen `workspace_oauthmcp_vendor` (con Passport): los comandos llevan además
+  `-v workspace_oauthmcp_vendor:/var/www/api/vendor` y, desde `api/` del worktree, `--env-file ../../../../api/.env`. Al
+  cerrar el worktree, borrar el volumen; tras el merge a main, `composer install` en el vendor compartido y `restart queue`.
+- Passport registra sus rutas (`/oauth/authorize` con sesión, device, `/oauth/token`): la fase 2 o 3 decide
+  `Passport::ignoreRoutes()` o deshabilitar las que sobran, y el throttle de `/oauth/token`.
+- `ResolveTokenOrganization` y el limiter `mcp` asumen `PersonalAccessToken` de Sanctum (fase 6).
 
 ## Mejoras propuestas
+- M-1: Revisar si `api/.env.example` debe documentar `PASSPORT_PRIVATE_KEY`/`PASSPORT_PUBLIC_KEY` (hoy solo en database.md).
+  Complejidad: baja (1 archivo, solución evidente). Modelo: sonnet. Origen: revisor fase 1.
+- M-2: Acortar a una línea el comentario de `User.php` sobre el trait de Passport (ya está en database.md y Decisiones).
+  Complejidad: baja. Modelo: sonnet. Origen: revisor fase 1.

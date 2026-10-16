@@ -27,6 +27,8 @@ use Spatie\Permission\Traits\HasRoles;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements HasLocalePreference
 {
+    // Only Sanctum's HasApiTokens: Passport's declares $accessToken with another type, so both traits cannot be
+    // composed. The passport guard only calls withAccessToken(), and tokenCan() works with its AccessToken too.
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
