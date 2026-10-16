@@ -276,7 +276,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - [x] M-9: extraer la validación del cursor de `CursorPaginatedRequest::validCursor` (privada, copiada en
       `ListChannelMessagesTool`) a un método compartido; tests de hilo con raíz borrada y de `per_page` fuera de rango.
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-10: extraer a una acción compartida la lógica de `LogGroupController::index`/`show` (y `levelsAtLeast`) que
+- [x] M-10: extraer a una acción compartida la lógica de `LogGroupController::index`/`show` (y `levelsAtLeast`) que
       duplican las tools de log; tests de `get-log-group` con eventos fuera de retención o sobre el límite y de `page`
       inválido. Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
 - [ ] M-11: mover `TaskCommentController::RELATIONS` (y el equivalente de tareas) al modelo, para que las acciones no

@@ -2,9 +2,8 @@
 
 namespace App\Mcp\Tools;
 
-use App\Http\Controllers\Api\LogGroupController;
+use App\Actions\LoadLogGroupDetail;
 use App\Http\Resources\LogGroupResource;
-use App\Models\LogEvent;
 use App\Models\LogGroup;
 use App\Models\Organization;
 use App\Models\Project;
@@ -51,16 +50,7 @@ class GetLogGroupTool extends Tool
         throw_unless($group->project_id === $project->id, ModelNotFoundException::class);
         $this->authorize($user, 'view', $group);
 
-        $group->setRelation('events', LogEvent::query()
-            ->with('source:id,name')
-            ->where('log_group_id', $group->id)
-            ->where('received_at', '>=', now()->subDays(config('workspace.log.retention_days')))
-            ->orderByDesc('received_at')
-            ->orderByDesc('id')
-            ->limit(LogGroupController::DETAIL_EVENTS_LIMIT)
-            ->get());
-
-        $group->load('task')->task?->setRelation('project', $project);
+        $group = app(LoadLogGroupDetail::class)($project, $group);
 
         return $this->structured(['data' => (new LogGroupResource($group))->resolve()]);
     }
