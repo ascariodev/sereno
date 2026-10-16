@@ -26,6 +26,7 @@ it('serves the authorization server metadata with the web authorization endpoint
         'code_challenge_methods_supported' => ['S256'],
         'scopes_supported' => ['mcp:use'],
         'grant_types_supported' => ['authorization_code', 'refresh_token'],
+        'token_endpoint_auth_methods_supported' => ['none'],
     ];
 
     $this->getJson('/.well-known/oauth-authorization-server')->assertOk()->assertJson($expected);

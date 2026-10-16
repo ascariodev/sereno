@@ -50,6 +50,17 @@ async function mountConsent(path = PATH) {
   return { wrapper, router }
 }
 
+async function mountAttached(path = PATH) {
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  const router = createAppRouter(createMemoryHistory())
+  await router.push(path)
+  await router.isReady()
+  const wrapper = mount({ template: '<RouterView />' }, { global: { plugins: [pinia, i18n, router] }, attachTo: document.body })
+  await flushPromises()
+  return wrapper
+}
+
 describe('OAuthAuthorizeView', () => {
   const assign = vi.fn()
 
@@ -73,7 +84,9 @@ describe('OAuthAuthorizeView', () => {
     const call = get.mock.calls.find(([path]) => path === '/api/oauth/authorize')
     expect(call?.[1]).toMatchObject({ query: EXPECTED_QUERY })
     expect(wrapper.find('h1').text()).toBe('Connect Claude to Sereno')
-    expect(wrapper.find('[data-test=description]').text()).toContain('claude.ai')
+    expect(wrapper.find('[data-test=description]').text()).toContain('Claude')
+    expect(wrapper.find('[data-test=return-to]').text()).toBe('You will be sent back to: claude.ai')
+    expect(wrapper.find('strong[data-test=redirect-host]').text()).toBe('claude.ai')
     expect(wrapper.findAll('option').map((option) => option.text())).toEqual(['Own', 'Acme'])
     expect((wrapper.find('select').element as HTMLSelectElement).value).toBe('1')
   })
@@ -202,6 +215,42 @@ describe('OAuthAuthorizeView', () => {
     await flushPromises()
 
     expect(assign).not.toHaveBeenCalled()
+  })
+
+  it('moves focus to the heading once loaded', async () => {
+    mockGet()
+    const wrapper = await mountAttached()
+
+    expect(document.activeElement).toBe(wrapper.find('h1').element)
+    expect(wrapper.find('h1').attributes('tabindex')).toBe('-1')
+    wrapper.unmount()
+  })
+
+  it('moves focus to the heading of the invalid state', async () => {
+    mockGet(() => {
+      throw new ApiError(400, 'The authorization request is invalid.')
+    })
+    const wrapper = await mountAttached()
+
+    expect(document.activeElement).toBe(wrapper.find('h1').element)
+    wrapper.unmount()
+  })
+
+  it('keeps a polite live region that announces the redirect', async () => {
+    mockGet()
+    vi.spyOn(api, 'post').mockResolvedValue({ redirect_url: 'https://claude.ai/api/mcp/auth_callback?code=c' })
+    const { wrapper } = await mountConsent()
+
+    const region = wrapper.find('[data-test=redirecting]')
+    expect(region.attributes('aria-live')).toBe('polite')
+    expect(region.attributes('role')).toBe('status')
+    expect(region.text()).toBe('')
+
+    await wrapper.find('[data-test=approve]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test=redirecting]').element).toBe(region.element)
+    expect(region.text()).toContain('claude.ai')
   })
 
   it('without a session goes to login keeping the whole OAuth query, and returns to it', async () => {

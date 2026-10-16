@@ -823,7 +823,8 @@
   },
   "oauthAuthorize": {
     "title": "Conectar {client} a Sereno",
-    "description": "{client} pide usar Sereno en tu nombre mediante MCP. Volverás a {host}.",
+    "description": "{client} pide usar Sereno en tu nombre mediante MCP.",
+    "returnTo": "Volverás a:",
     "unknownClient": "Esta aplicación",
     "unknownHost": "la aplicación",
     "scope": "Podrá leer proyectos, tareas, mensajes y avisos de log, y comentar, crear y mover tareas como tú. No puede borrar nada.",

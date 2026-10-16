@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { ApiError } from '../api/client'
@@ -39,6 +39,7 @@ const organizationId = ref('')
 const acting = ref<'approve' | 'deny' | null>(null)
 const redirecting = ref(false)
 const actionError = ref<string | null>(null)
+const heading = ref<HTMLElement | null>(null)
 let generation = 0
 let controller: AbortController | null = null
 
@@ -73,7 +74,11 @@ async function load(): Promise<void> {
     loadError.value = error.status === 400 ? 'invalid' : 'failed'
     loadMessage.value = error.status === 400 ? error.message : null
   } finally {
-    if (current === generation) loading.value = false
+    if (current === generation) {
+      loading.value = false
+      await nextTick()
+      if (current === generation) heading.value?.focus()
+    }
   }
 }
 
@@ -139,18 +144,21 @@ onUnmounted(() => {
       <p v-if="loading" data-test="loading">{{ t('common.loading') }}</p>
 
       <template v-else-if="loadError === 'invalid'">
-        <h1>{{ t('oauthAuthorize.invalid') }}</h1>
+        <h1 ref="heading" tabindex="-1">{{ t('oauthAuthorize.invalid') }}</h1>
         <p v-if="loadMessage" role="alert" data-test="invalid">{{ loadMessage }}</p>
       </template>
 
       <template v-else-if="loadError === 'failed'">
-        <h1>{{ t('oauthAuthorize.loadFailed') }}</h1>
+        <h1 ref="heading" tabindex="-1">{{ t('oauthAuthorize.loadFailed') }}</h1>
         <AppButton type="button" data-test="retry" @click="load">{{ t('oauthAuthorize.retry') }}</AppButton>
       </template>
 
       <template v-else-if="authorization">
-        <h1>{{ t('oauthAuthorize.title', { client: clientName }) }}</h1>
-        <p data-test="description">{{ t('oauthAuthorize.description', { client: clientName, host }) }}</p>
+        <h1 ref="heading" tabindex="-1">{{ t('oauthAuthorize.title', { client: clientName }) }}</h1>
+        <p data-test="description">{{ t('oauthAuthorize.description', { client: clientName }) }}</p>
+        <p class="oauth__return" data-test="return-to">
+          {{ t('oauthAuthorize.returnTo') }} <strong class="oauth__host" data-test="redirect-host">{{ host }}</strong>
+        </p>
         <p class="oauth__scope" data-test="scope">{{ t('oauthAuthorize.scope') }}</p>
 
         <p v-if="!authorization.organizations.length" role="alert" data-test="no-organizations">
@@ -170,7 +178,6 @@ onUnmounted(() => {
         </AppSelect>
 
         <AppFormError v-if="actionError" data-test="action-error">{{ actionError }}</AppFormError>
-        <p v-if="redirecting" role="status" data-test="redirecting">{{ t('oauthAuthorize.redirecting', { host }) }}</p>
 
         <div class="oauth__actions">
           <AppButton type="button" variant="secondary" :disabled="busy" data-test="deny" @click="act('deny')">
@@ -181,6 +188,10 @@ onUnmounted(() => {
           </AppButton>
         </div>
       </template>
+
+      <p role="status" aria-live="polite" data-test="redirecting">
+        <template v-if="redirecting">{{ t('oauthAuthorize.redirecting', { host }) }}</template>
+      </p>
     </section>
   </main>
 </template>
@@ -226,6 +237,14 @@ onUnmounted(() => {
 }
 .oauth__card p {
   margin: 0;
+}
+.oauth__card h1:focus {
+  outline: none;
+}
+.oauth__host {
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  font-weight: 700;
 }
 .oauth__scope {
   color: var(--ink-2);

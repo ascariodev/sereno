@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Http\Requests\OAuth\ApproveAuthorizationRequest;
 use App\Models\McpOauthGrant;
 use App\Models\Organization;
 use App\Models\User;
@@ -28,7 +29,7 @@ function oauthConsentQuery(Client $client, array $overrides = []): string
         'code_challenge_method' => 'S256',
         'scope' => 'mcp:use',
         'state' => 'state-123',
-        'resource' => 'http://localhost/mcp',
+        'resource' => url('/mcp'),
     ], $overrides);
 
     return '/api/oauth/authorize?'.http_build_query(array_filter($params, fn ($value) => $value !== null));
@@ -75,6 +76,16 @@ it('shows the client, the redirect host and the user organizations', function ()
                 ['id' => $this->organization->id, 'name' => 'Beta'],
             ],
         ]);
+});
+
+it('rejects a request without redirect_uri when the client has several registered', function () {
+    $client = app(ClientRepository::class)
+        ->createAuthorizationCodeGrantClient('Claude', [OAUTH_CONSENT_CALLBACK, 'https://claude.ai/api/mcp/other'], false);
+
+    $this->getJson(oauthConsentQuery($client, ['redirect_uri' => null]))
+        ->assertStatus(400)
+        ->assertJsonPath('error', 'invalid_client')
+        ->assertJsonMissingPath('redirect_host');
 });
 
 it('asks for the mcp scope when the request has none', function () {
@@ -197,6 +208,32 @@ it('rejects scopes other than mcp:use', function (string $method, string $scope)
     oauthConsentNothingIssued();
 })->with(['get', 'post', 'delete'])->with(['*', 'mcp:use admin', 'admin']);
 
+it('accepts the mcp resource of the discovery with or without trailing slash, or no resource', function (?string $resource) {
+    $this->getJson('/.well-known/oauth-protected-resource/mcp')->assertJsonPath('resource', url('/mcp'));
+
+    $this->getJson(oauthConsentQuery($this->client, ['resource' => $resource]))->assertOk();
+})->with([
+    'discovery value' => fn () => url('/mcp'),
+    'trailing slash' => fn () => url('/mcp').'/',
+    'missing' => [null],
+]);
+
+it('rejects a resource other than the mcp server', function (string $method, string $case) {
+    $query = match ($case) {
+        'another server' => oauthConsentQuery($this->client, ['resource' => 'https://evil.com/mcp']),
+        'the api root' => oauthConsentQuery($this->client, ['resource' => url('/')]),
+        'another path' => oauthConsentQuery($this->client, ['resource' => url('/mcp/other')]),
+        'empty' => oauthConsentQuery($this->client, ['resource' => '']),
+        'several' => oauthConsentQuery($this->client, ['resource' => null]).'&resource[]='.urlencode(url('/mcp')),
+    };
+
+    oauthConsentCall($method, $query, $this->organization)
+        ->assertStatus(400)
+        ->assertExactJson(['error' => 'invalid_target', 'message' => 'The authorization request is invalid.']);
+
+    oauthConsentNothingIssued();
+})->with(['get', 'post', 'delete'])->with(['another server', 'the api root', 'another path', 'empty', 'several']);
+
 it('rejects an organization of someone else like a missing one', function () {
     $foreign = $this->postJson(oauthConsentQuery($this->client), ['organization_id' => $this->foreign->id])
         ->assertUnprocessable()
@@ -206,6 +243,20 @@ it('rejects an organization of someone else like a missing one', function () {
 
     expect($foreign->json())->toBe($missing->json());
     $this->postJson(oauthConsentQuery($this->client), [])->assertJsonValidationErrors('organization_id');
+    oauthConsentNothingIssued();
+});
+
+it('rejects the approval when the user is removed after the request was validated', function () {
+    $this->app->afterResolving(ApproveAuthorizationRequest::class, function (ApproveAuthorizationRequest $request) {
+        if ($request->validated('organization_id') !== null) {
+            $this->organization->removeMember($this->user);
+        }
+    });
+
+    $this->postJson(oauthConsentQuery($this->client), ['organization_id' => $this->organization->id])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('organization_id');
+
     oauthConsentNothingIssued();
 });
 
@@ -222,4 +273,14 @@ it('translates the errors', function () {
     $this->getJson(oauthConsentQuery($this->client, ['code_challenge_method' => 'plain']))
         ->assertStatus(400)
         ->assertJsonPath('message', 'La solicitud de autorización no es válida.');
+});
+
+it('limits the consent endpoints per user and answers in json', function () {
+    foreach (range(1, 30) as $i) {
+        $this->getJson(oauthConsentQuery($this->client))->assertOk();
+    }
+
+    $this->getJson(oauthConsentQuery($this->client))
+        ->assertTooManyRequests()
+        ->assertJsonStructure(['message']);
 });

@@ -202,37 +202,45 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - M-1: Revisar si `api/.env.example` debe documentar `PASSPORT_PRIVATE_KEY`/`PASSPORT_PUBLIC_KEY` (hoy solo en database.md),
   aclarando que sin `PASSPORT_PUBLIC_KEY` `/mcp` queda solo con tokens de acceso.
   Complejidad: baja (1 archivo, solución evidente). Modelo: sonnet. Origen: revisor fase 1.
-- M-2: Acortar a una línea el comentario de `User.php` sobre el trait de Passport (ya está en database.md y Decisiones).
+- [x] M-2: Acortar a una línea el comentario de `User.php` sobre el trait de Passport (ya está en database.md y Decisiones).
   Complejidad: baja. Modelo: sonnet. Origen: revisor fase 1.
 - M-3: Documentar `MCP_AUTHORIZATION_SERVER` (opcional) en `api/.env.example`. Complejidad: baja. Modelo: sonnet. Origen:
   revisor fase 2 (puede ir junto con M-1).
-- M-4: Fijar `token_endpoint_auth_methods_supported => ['none']` en el `$expected` de `OAuthDiscoveryTest`. Complejidad: baja.
+- [x] M-4: Fijar `token_endpoint_auth_methods_supported => ['none']` en el `$expected` de `OAuthDiscoveryTest`. Complejidad: baja.
   Modelo: sonnet. Origen: revisor fase 2.
-- M-5: Rechazar `..` (o normalizar la ruta) en los `redirect_uris` del DCR: hoy `https://claude.ai/api/mcp/../x` pasa el
+- [x] M-5: Rechazar `..` (o normalizar la ruta) en los `redirect_uris` del DCR: hoy `https://claude.ai/api/mcp/../x` pasa el
   prefijo (mismo host, riesgo mínimo); para exigir el URI exacto habría que sobrescribir el controller del DCR.
   Complejidad: media (seguridad, 2 archivos). Modelo: sonnet. Origen: revisor fase 3.
-- M-6: En el GET de `/api/oauth/authorize`, si la petición no trae `redirect_uri` y el cliente tiene varias, `redirect_host`
+- [x] M-6: En el GET de `/api/oauth/authorize`, si la petición no trae `redirect_uri` y el cliente tiene varias, `redirect_host`
   muestra la primera; exigir `redirect_uri` o calcular el host igual que league. Complejidad: baja. Modelo: sonnet. Origen:
   revisor fase 5.
-- M-7: Sin throttle propio en `/api/oauth/authorize` (solo `auth:sanctum`). Complejidad: baja. Modelo: sonnet. Origen:
+- [x] M-7: Sin throttle propio en `/api/oauth/authorize` (solo `auth:sanctum`). Complejidad: baja. Modelo: sonnet. Origen:
   implementador fase 5.
-- M-8: Passport hace `report()` del `OAuthServerException` de cada token inválido o vencido que llega al guard `api` en
+- [x] M-8: Passport hace `report()` del `OAuthServerException` de cada token inválido o vencido que llega al guard `api` en
   `/mcp`; evaluar `dontReport`. Complejidad: baja. Modelo: sonnet. Origen: implementador fase 6.
-- M-9: Validar el parámetro `resource` (RFC 8707) del authorize contra la URL de `/mcp`. Complejidad: media (seguridad).
+- [x] M-9: Validar el parámetro `resource` (RFC 8707) del authorize contra la URL de `/mcp`. Complejidad: media (seguridad).
   Modelo: sonnet. Origen: revisor fase 5 e implementador fase 6.
-- M-10: `PassportGuards::hasPublicKey()` solo mira la clave pública; con pública sin privada `/oauth/token` falla. Comprobar
+- [x] M-10: `PassportGuards::hasPublicKey()` solo mira la clave pública; con pública sin privada `/oauth/token` falla. Comprobar
   ambas o avisar al arrancar. Complejidad: baja. Modelo: sonnet. Origen: revisor fase 6.
-- M-11: Destacar el host del `redirect_uri` en el consentimiento (línea propia o negrita, "Volverás a: claude.ai"): el nombre
+- [x] M-11: Destacar el host del `redirect_uri` en el consentimiento (línea propia o negrita, "Volverás a: claude.ai"): el nombre
   del cliente lo elige el cliente y Claude pide mostrar el host con claridad. Complejidad: baja. Modelo: sonnet. Origen:
   revisor fase 7.
-- M-12: Accesibilidad del consentimiento (L-25): foco al `h1` al cargar y región `aria-live` siempre presente para "Volviendo
+- [x] M-12: Accesibilidad del consentimiento (L-25): foco al `h1` al cargar y región `aria-live` siempre presente para "Volviendo
   a...". Complejidad: baja. Modelo: sonnet. Origen: revisor fase 7.
-- M-13: Carrera entre un `approve` de OAuth y la expulsión del miembro: `ApproveAuthorizationRequest` valida la membresía sin
+- [x] M-13: Carrera entre un `approve` de OAuth y la expulsión del miembro: `ApproveAuthorizationRequest` valida la membresía sin
   bloqueo, así que un grant podría crearse justo al sacar al usuario. Validar la membresía bajo el lock de la organización.
   Complejidad: media (seguridad). Modelo: sonnet. Origen: revisor fase 8.
-- M-14: En `AccessTokensView`, ignorar `AbortError` en `loadConnections` y en la carga de tokens (rechazos sin capturar al
+- [x] M-14: En `AccessTokensView`, ignorar `AbortError` en `loadConnections` y en la carga de tokens (rechazos sin capturar al
   abortar). Complejidad: baja. Modelo: sonnet. Origen: revisor fase 10.
-- M-15: Foco tras desconectar o revocar (L-65): al quitar la fila, el foco va al vecino o al encabezado, en tokens y
+- [x] M-15: Foco tras desconectar o revocar (L-65): al quitar la fila, el foco va al vecino o al encabezado, en tokens y
   conexiones, con spec. Complejidad: baja. Modelo: sonnet. Origen: revisor fase 10.
-- M-16: "Reintentar" de conexiones recarga solo las conexiones, sin borrar los tokens ni cerrar diálogos. Complejidad: baja.
+- [x] M-16: "Reintentar" de conexiones recarga solo las conexiones, sin borrar los tokens ni cerrar diálogos. Complejidad: baja.
   Modelo: sonnet. Origen: revisor fase 10.
+- M-17: Alinear el discovery raíz `/.well-known/oauth-protected-resource` (hoy `resource = url('/')`) para que publique
+  `url('/mcp')` con una ruta propia (como `oauth-authorization-server` en `routes/ai.php`): desde M-9 el authorize rechaza
+  `url('/')`. Complejidad: baja. Modelo: sonnet. Origen: revisor M-9.
+- M-18: Si un grant pasa de la organización A a la B mientras se expulsa al usuario de A, `revokeOauthConnections` puede leer
+  la versión vieja y borrar el grant ya movido (revoca de más, sin acceso indebido): bloquear o releer los grants bajo el
+  lock. Complejidad: baja. Modelo: sonnet. Origen: revisor M-13.
+- M-19: Tras "Reintentar" de conexiones el botón desaparece y se pierde el foco: llevarlo a `connectionsTitle` al terminar
+  (como M-15). Complejidad: baja. Modelo: sonnet. Origen: revisor M-16.

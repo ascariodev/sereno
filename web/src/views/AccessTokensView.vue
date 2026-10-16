@@ -45,6 +45,11 @@ const formError = ref<string | null>(null)
 const nameInput = ref<InstanceType<typeof AppInput> | null>(null)
 let generation = 0
 let controller: AbortController | null = null
+let connectionsController: AbortController | null = null
+const root = ref<HTMLElement | null>(null)
+const tokensTitle = ref<HTMLElement | null>(null)
+const connectionsTitle = ref<HTMLElement | null>(null)
+let focusAfterRemoval: (() => HTMLElement | null) | null = null
 
 const mcpUrl = computed(() => `${config.apiUrl}/mcp`)
 const connectCommand = computed(
@@ -96,6 +101,10 @@ function resetForm(): void {
   formError.value = null
 }
 
+function isAbort(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError'
+}
+
 async function loadConnections(current: number, signal: AbortSignal): Promise<void> {
   connectionsFailed.value = false
   connectionsLoading.value = true
@@ -104,6 +113,7 @@ async function loadConnections(current: number, signal: AbortSignal): Promise<vo
     if (current !== generation) return
     connections.value = result
   } catch (error) {
+    if (isAbort(error)) return
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
     connectionsFailed.value = true
@@ -112,9 +122,18 @@ async function loadConnections(current: number, signal: AbortSignal): Promise<vo
   }
 }
 
+function retryConnections(): void {
+  if (connectionsLoading.value) return
+  connectionsController?.abort()
+  connectionsController = new AbortController()
+  void loadConnections(generation, connectionsController.signal)
+}
+
 async function load(): Promise<void> {
   const current = ++generation
   controller?.abort()
+  connectionsController?.abort()
+  connectionsController = null
   controller = new AbortController()
   const { signal } = controller
   tokens.value = []
@@ -132,6 +151,7 @@ async function load(): Promise<void> {
     if (current !== generation) return
     tokens.value = result
   } catch (error) {
+    if (isAbort(error)) return
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
     failed.value = true
@@ -150,6 +170,7 @@ watch(createOpen, (value) => {
 onUnmounted(() => {
   generation++
   controller?.abort()
+  connectionsController?.abort()
 })
 
 function setExpiry(value: string): void {
@@ -190,6 +211,26 @@ async function submit(): Promise<void> {
   }
 }
 
+function neighborOf<T extends { id: number }>(items: T[], id: number): T | undefined {
+  const index = items.findIndex((item) => item.id === id)
+  return items[index + 1] ?? items[index - 1]
+}
+
+function planFocusAfterRemoval(neighborId: number | undefined, rowAttr: string, buttonTest: string, title: typeof tokensTitle): void {
+  focusAfterRemoval = () =>
+    (neighborId === undefined ? null : root.value?.querySelector<HTMLElement>(`[${rowAttr}="${neighborId}"] [data-test="${buttonTest}"]`)) ??
+    title.value
+}
+
+function returnFocus(event: Event): void {
+  const resolve = focusAfterRemoval
+  focusAfterRemoval = null
+  const target = resolve?.()
+  if (!target) return
+  event.preventDefault()
+  target.focus()
+}
+
 async function confirmRevoke(): Promise<void> {
   const target = pending.value
   if (!target || revoking.value) return
@@ -198,12 +239,14 @@ async function confirmRevoke(): Promise<void> {
   try {
     await revokeAccessToken(target.id)
     if (current !== generation) return
+    planFocusAfterRemoval(neighborOf(tokens.value, target.id)?.id, 'data-token-id', 'revoke', tokensTitle)
     tokens.value = tokens.value.filter((token) => token.id !== target.id)
     toast.success(t('accessTokens.revoked', { name: target.name }))
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
     if (error.status === 404) {
+      planFocusAfterRemoval(neighborOf(tokens.value, target.id)?.id, 'data-token-id', 'revoke', tokensTitle)
       tokens.value = tokens.value.filter((token) => token.id !== target.id)
       toast.info(t('accessTokens.revokeGone'))
     } else {
@@ -223,12 +266,14 @@ async function confirmDisconnect(): Promise<void> {
   try {
     await revokeOauthConnection(target.id)
     if (current !== generation) return
+    planFocusAfterRemoval(neighborOf(connections.value, target.id)?.id, 'data-connection-id', 'disconnect', connectionsTitle)
     connections.value = connections.value.filter((connection) => connection.id !== target.id)
     toast.success(t('accessTokens.disconnected', { name: target.client.name }))
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
     if (current !== generation) return
     if (error.status === 404) {
+      planFocusAfterRemoval(neighborOf(connections.value, target.id)?.id, 'data-connection-id', 'disconnect', connectionsTitle)
       connections.value = connections.value.filter((connection) => connection.id !== target.id)
       toast.info(t('accessTokens.disconnectGone'))
     } else {
@@ -242,9 +287,9 @@ async function confirmDisconnect(): Promise<void> {
 </script>
 
 <template>
-  <section class="tokens">
+  <section ref="root" class="tokens">
     <header class="tokens__header">
-      <h1 class="tokens__title">{{ t('accessTokens.title') }}</h1>
+      <h1 ref="tokensTitle" class="tokens__title" tabindex="-1">{{ t('accessTokens.title') }}</h1>
       <AppButton type="button" size="md" data-test="create" :disabled="loading" @click="createOpen = true">
         {{ t('accessTokens.create') }}
       </AppButton>
@@ -257,7 +302,7 @@ async function confirmDisconnect(): Promise<void> {
     </p>
     <p v-else-if="tokens.length === 0" class="tokens__empty" data-test="empty">{{ t('accessTokens.empty') }}</p>
     <ul v-else class="tokens__list">
-      <li v-for="token in tokens" :key="token.id" class="tokens__item" data-test="token">
+      <li v-for="token in tokens" :key="token.id" class="tokens__item" data-test="token" :data-token-id="token.id">
         <div class="tokens__main">
           <strong class="tokens__name" data-test="name">{{ token.name }}</strong>
           <span v-if="isExpired(token)" class="tokens__expired" data-test="expired">{{ t('accessTokens.expired') }}</span>
@@ -285,18 +330,18 @@ async function confirmDisconnect(): Promise<void> {
     </ul>
 
     <section class="tokens__connections" data-test="connections">
-      <h2 class="tokens__subtitle">{{ t('accessTokens.connections') }}</h2>
+      <h2 ref="connectionsTitle" class="tokens__subtitle" tabindex="-1">{{ t('accessTokens.connections') }}</h2>
       <p class="tokens__description">{{ t('accessTokens.connectionsDescription') }}</p>
       <p v-if="connectionsLoading" data-test="connections-loading">{{ t('common.loading') }}</p>
       <p v-else-if="connectionsFailed" role="alert" data-test="connections-load-failed">
         {{ t('accessTokens.connectionsLoadFailed') }}
-        <button type="button" name="retry-connections" @click="load">{{ t('common.retry') }}</button>
+        <button type="button" name="retry-connections" @click="retryConnections">{{ t('common.retry') }}</button>
       </p>
       <p v-else-if="connections.length === 0" class="tokens__empty" data-test="connections-empty">
         {{ t('accessTokens.connectionsEmpty') }}
       </p>
       <ul v-else class="tokens__list">
-        <li v-for="connection in connections" :key="connection.id" class="tokens__item" data-test="connection">
+        <li v-for="connection in connections" :key="connection.id" class="tokens__item" data-test="connection" :data-connection-id="connection.id">
           <div class="tokens__main">
             <strong class="tokens__name" data-test="connection-name">{{ connection.client.name }}</strong>
           </div>
@@ -382,7 +427,7 @@ async function confirmDisconnect(): Promise<void> {
       </div>
     </AppDialog>
 
-    <AppDialog v-model:open="confirmOpen" :title="t('accessTokens.revokeTitle')" :close-label="t('accessTokens.cancel')">
+    <AppDialog v-model:open="confirmOpen" :title="t('accessTokens.revokeTitle')" :close-label="t('accessTokens.cancel')" @close-auto-focus="returnFocus">
       <p v-if="pending" data-test="confirm-text">{{ t('accessTokens.revokeConfirm', { name: pending.name }) }}</p>
       <div class="tokens__actions">
         <button type="button" class="tokens__cancel" data-test="revoke-cancel" :disabled="revoking" @click="pending = null">
@@ -394,7 +439,7 @@ async function confirmDisconnect(): Promise<void> {
       </div>
     </AppDialog>
 
-    <AppDialog v-model:open="disconnectOpen" :title="t('accessTokens.disconnectTitle')" :close-label="t('accessTokens.cancel')">
+    <AppDialog v-model:open="disconnectOpen" :title="t('accessTokens.disconnectTitle')" :close-label="t('accessTokens.cancel')" @close-auto-focus="returnFocus">
       <p v-if="pendingConnection" data-test="disconnect-text">
         {{ t('accessTokens.disconnectConfirm', { name: pendingConnection.client.name }) }}
       </p>

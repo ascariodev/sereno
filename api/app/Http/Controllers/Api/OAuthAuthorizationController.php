@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OAuth\ApproveAuthorizationRequest;
 use App\Models\McpOauthGrant;
+use App\Models\Organization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -55,12 +56,19 @@ class OAuthAuthorizationController extends Controller
             $authRequest->setAuthorizationApproved(true);
 
             $response = DB::transaction(function () use ($authRequest, $user, $request, $psrResponse) {
+                $organizationId = (int) $request->validated('organization_id');
+
+                // Same lock as Organization::removeMember: the membership is checked again under it, so a removal
+                // either revokes this grant or is seen here before it is created.
+                Organization::query()->whereKey($organizationId)->lockForUpdate()->first();
+                validator(['organization_id' => $organizationId], $request->rules())->validate();
+
                 $clientId = $authRequest->getClient()->getIdentifier();
                 $grant = McpOauthGrant::query()->where('client_id', $clientId)->where('user_id', $user->getKey())->first()
                     ?? new McpOauthGrant;
                 $grant->client_id = $clientId;
                 $grant->user_id = $user->getKey();
-                $grant->organization_id = (int) $request->validated('organization_id');
+                $grant->organization_id = $organizationId;
                 $grant->save();
 
                 return $this->server->completeAuthorizationRequest($authRequest, $psrResponse);
@@ -117,7 +125,29 @@ class OAuthAuthorizationController extends Controller
             throw OAuthServerException::invalidScope(implode(' ', $scopes));
         }
 
+        $this->ensureResourceIsMcp($query);
+
         return $authRequest;
+    }
+
+    /**
+     * RFC 8707: "resource" must be /mcp, the value of its protected resource metadata, so a client cannot be led to
+     * believe the token is bound to another server. It stays optional, as in the RFC, because the tokens only work
+     * on /mcp anyway.
+     *
+     * @param  array<string, mixed>  $query
+     */
+    private function ensureResourceIsMcp(array $query): void
+    {
+        if (! array_key_exists('resource', $query)) {
+            return;
+        }
+
+        $resource = $query['resource'];
+
+        if (! is_string($resource) || rtrim($resource, '/') !== url('/mcp')) {
+            throw new OAuthServerException('The requested resource is not this MCP server.', 3, 'invalid_target', 400);
+        }
     }
 
     private function redirectUri(AuthorizationRequestInterface $authRequest): string

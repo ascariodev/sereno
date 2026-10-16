@@ -195,6 +195,22 @@ describe('AccessTokensView', () => {
     expect(toasts.value.map((item) => item.kind)).toEqual(['success'])
   })
 
+  it('moves focus to the neighbouring revoke button after revoking, or the title when none is left', async () => {
+    mockGet([token(1), token(2)])
+    vi.spyOn(api, 'delete').mockResolvedValue(undefined)
+    await mountView()
+    await wrapper!.findAll('[data-test=revoke]')[0].trigger('click')
+    await flushPromises()
+    q<HTMLButtonElement>('[data-test=confirm]')!.click()
+    await flushPromises()
+    expect(document.activeElement).toBe(q('[data-token-id="2"] [data-test=revoke]'))
+    await wrapper!.find('[data-test=revoke]').trigger('click')
+    await flushPromises()
+    q<HTMLButtonElement>('[data-test=confirm]')!.click()
+    await flushPromises()
+    expect(document.activeElement).toBe(q('h1'))
+  })
+
   it('cancelling keeps the token and does not call the API', async () => {
     mockGet([token(1)])
     const revoke = vi.spyOn(api, 'delete')
@@ -263,6 +279,20 @@ describe('AccessTokensView', () => {
     wrapper = undefined
     expect(signals).toHaveLength(2)
     expect(signals.every((signal) => signal.aborted)).toBe(true)
+  })
+
+  it('ignores an AbortError from the token and connection loads', async () => {
+    vi.spyOn(api, 'get').mockImplementation(async (_path: string, options?: { signal?: AbortSignal }) => {
+      return new Promise((_resolve, reject) => {
+        options?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+      })
+    })
+    await mountView()
+    switchOrganization()
+    await flushPromises()
+    wrapper!.unmount()
+    wrapper = undefined
+    await flushPromises()
   })
 
   it('discards a late create response after the organization changes', async () => {
@@ -354,6 +384,30 @@ describe('AccessTokensView', () => {
       expect(wrapper!.findAll('[data-test=connection]')).toHaveLength(1)
     })
 
+    it('retrying the connections reloads only them and keeps open dialogs and tokens', async () => {
+      let fail = true
+      const get = vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/access-tokens') return { data: [token(1)] }
+        if (path === '/api/oauth-connections') {
+          if (fail) throw new ApiError(500, 'boom', {})
+          return { data: [connection(1)] }
+        }
+        throw new Error(`unexpected GET ${path}`)
+      })
+      await mountView()
+      await wrapper!.find('[data-test=revoke]').trigger('click')
+      await flushPromises()
+      expect(q('[data-test=confirm-text]')).not.toBeNull()
+      get.mockClear()
+      fail = false
+      await wrapper!.find('button[name=retry-connections]').trigger('click')
+      await flushPromises()
+      expect(get.mock.calls.map((call) => call[0])).toEqual(['/api/oauth-connections'])
+      expect(wrapper!.findAll('[data-test=token]')).toHaveLength(1)
+      expect(wrapper!.findAll('[data-test=connection]')).toHaveLength(1)
+      expect(q('[data-test=confirm-text]')).not.toBeNull()
+    })
+
     it('asks for confirmation, disconnects and removes the row', async () => {
       mockGet([], [connection(1), connection(2)])
       const revoke = vi.spyOn(api, 'delete').mockResolvedValue(undefined)
@@ -367,6 +421,22 @@ describe('AccessTokensView', () => {
       expect(revoke).toHaveBeenCalledWith('/api/oauth-connections/1')
       expect(wrapper!.findAll('[data-test=connection-name]').map((el) => el.text())).toEqual(['Claude 2'])
       expect(toasts.value.map((item) => item.kind)).toEqual(['success'])
+    })
+
+    it('moves focus to the neighbouring disconnect button, or the heading when none is left', async () => {
+      mockGet([], [connection(1), connection(2)])
+      vi.spyOn(api, 'delete').mockResolvedValue(undefined)
+      await mountView()
+      await wrapper!.findAll('[data-test=disconnect]')[0].trigger('click')
+      await flushPromises()
+      q<HTMLButtonElement>('[data-test=disconnect-confirm]')!.click()
+      await flushPromises()
+      expect(document.activeElement).toBe(q('[data-connection-id="2"] [data-test=disconnect]'))
+      await wrapper!.find('[data-test=disconnect]').trigger('click')
+      await flushPromises()
+      q<HTMLButtonElement>('[data-test=disconnect-confirm]')!.click()
+      await flushPromises()
+      expect(document.activeElement).toBe(q('h2'))
     })
 
     it('cancelling does not call the API', async () => {
