@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 27
+**Estado:** en curso · Fase actual: 28
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -191,7 +191,7 @@ fragmentos por lenguaje en el diálogo de la key.
   `web/src/`, `web/src/i18n/{es,en}.json`
 - **Terminado cuando:** specs del diálogo (envío con tipo y orígenes, validación) y typecheck pasan.
 
-### [ ] Fase 27 — sereno-browser: captura global [riesgo]
+### [x] Fase 27 — sereno-browser: captura global [riesgo]
 - **Alcance:** `packages/browser`: `init({key, url})`, `window.onerror` y `unhandledrejection`, deduplicación por
   fingerprint (una vez cada 60 s) y tope por página, vaciado con `fetch` `keepalive` en `pagehide`/`visibilitychange`
   (verificar que el preflight con `Authorization` funciona con `keepalive` en Chrome, Firefox y Safari; si no, decidir
@@ -270,9 +270,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 24: LogSource::KEY_PREFIX e isWellFormedPlainKey eliminados; kindOfPlainKey(string): ?LogSourceKind y acceptsOrigin(?string) (igualdad exacta, sin normalizar el Origin entrante). El prefijo debe coincidir con kind. Limiter log-ingest: 600/min por fuente (log-source:{id}) y, para browser, 30/min por IP y fuente (log-source-ip:{id}|{ip}, AppServiceProvider::LOG_INGEST_BROWSER_REQUESTS_PER_IP_PER_MINUTE); los rechazos cuentan en log-ingest-auth-failures por IP.
 - 2026-10-15 — Fase 25: bootstrap/app.php prepend([HandleCors::class, RejectOversizedIngestBody::class]); array_unique de getGlobalMiddleware deja HandleCors una sola vez y primero. Sin cabeceras CORS a mano.
 - 2026-10-15 — Fase 26: web LogSource {kind: 'server'|'browser', allowed_origins: string[]|null}; createLogSource(projectId, string | {name, kind?, allowed_origins?}); server envía solo {name}. Validación y normalización de orígenes en el cliente replican StoreLogSourceRequest.
+- 2026-10-15 — Fase 27: @ascariodev/sereno-browser init(InitOptions = ClientOptions & {keepalive?: 'unload'|'never', handlers?}) nunca lanza (opciones inválidas dan un cliente inerte con INVALID_OPTIONS_NOTICE); BrowserClient extiende Client de core y aplica dedupe (fingerprint del context, o clase y ubicación; 60 s) y tope (MAX_EVENTS_PER_PAGE=100 por init) dentro de log. keepalive va por un envoltorio de fetch (no fetchOptions) solo en modo salida (pagehide o hidden; se apaga en pageshow o visible), presupuesto KEEPALIVE_BUDGET_BYTES=60000. Cliente activo en globalThis[Symbol.for('@ascariodev/sereno-browser.active')]. Solo ESM y CJS con tipos, sin bundle IIFE. En Chrome 152, keepalive con preflight de Authorization funciona.
 
 ## Notas para la próxima sesión
-- Fase 26 cerrada: CreateLogSourceDialog con tipo (servidor/navegador) y orígenes validados y normalizados como el API; Integraciones muestra tipo y orígenes. Sigue la fase 27 (sereno-browser captura global [riesgo]) en sereno-js packages/browser. Ojo: el API del checkout principal (8003) no tiene las fases 23 a 25; la prueba real de wsp_ necesita un API levantado desde el worktree.
+- Fase 27 cerrada (sereno-js 55222a1): init/captureException/log/flush/close/getClient en @ascariodev/sereno-browser, dedupe 60 s, tope 100 por init, keepalive solo al salir. Prueba real en Chrome 152 contra un API del worktree (8093, workspace_test): 202 con preflight, keepalive con Authorization funciona y el vaciado en pagehide llega. Sigue la fase 28 (plugin de Vue) usando getClient().log para heredar dedupe y tope.
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -315,3 +316,5 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-27: GenerateVapidKeysCommandTest falla en main desde app-movil fase 3 (6948bb0): config push suma expo_access_token y el test espera solo las tres claves VAPID [simple, haiku]
 - [ ] M-28: CreateLogSourceDialog: Enter con el borrador de origen vacío debería enviar el formulario en vez de no hacer nada [simple, haiku]
 - [ ] M-29: IntegrationsView originsSummary: una sola clave i18n con parámetros en vez de concatenar, para idiomas con otro orden [simple, haiku]
+- [ ] M-30: README de browser: documentar que el aviso de descarte por presupuesto sale durante la salida y que los eventos recortados cuentan como enviados en FlushResult [simple, haiku]
+- [ ] M-31: Probar keepalive con preflight en Firefox y Safari (solo verificado en Chrome 152) [media, sonnet]
