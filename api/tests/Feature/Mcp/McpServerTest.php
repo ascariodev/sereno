@@ -104,7 +104,7 @@ it('lists the registered tools', function () {
     $this->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list'], ($this->bearer)($token))
         ->assertOk()
         ->assertJsonPath('id', 2)
-        ->assertJsonCount(9, 'result.tools')
+        ->assertJsonCount(11, 'result.tools')
         ->assertJsonPath('result.tools.0.name', 'list-projects')
         ->assertJsonPath('result.tools.1.name', 'list-tasks')
         ->assertJsonPath('result.tools.2.name', 'get-task')
@@ -113,7 +113,9 @@ it('lists the registered tools', function () {
         ->assertJsonPath('result.tools.5.name', 'get-log-group')
         ->assertJsonPath('result.tools.6.name', 'comment-on-task')
         ->assertJsonPath('result.tools.7.name', 'create-task')
-        ->assertJsonPath('result.tools.8.name', 'move-task');
+        ->assertJsonPath('result.tools.8.name', 'move-task')
+        ->assertJsonPath('result.tools.9.name', 'update-task')
+        ->assertJsonPath('result.tools.10.name', 'list-project-members');
 });
 
 it('throttles each access token on its own', function () {

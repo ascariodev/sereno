@@ -257,7 +257,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
       Complejidad: alta · Archivos: 8+ · Riesgo: seguridad → plan nuevo
-- [ ] M-2: tool `update-task` (título, descripción, asignado) y `list-project-members` para elegir asignado.
+- [x] M-2: tool `update-task` (título, descripción, asignado) y `list-project-members` para elegir asignado.
       Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
 - [ ] M-3: marcar el origen "vía MCP" en comentarios y tareas creadas por Claude.
       Complejidad: media · Archivos: 5 · Riesgo: BD → opus
@@ -285,7 +285,9 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       para el 422 lanzado dentro de los locks (proyecto archivado o acceso perdido entre validación e insert).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-13: llevar los locks (`lockActiveProject`, `lockAssigneeAccess`), `RELATIONS` y `counts()` de `TaskController`
-      a un soporte compartido, para que `CreateTask` y `MoveTask` no dependan del controller.
+      a un soporte compartido, para que `CreateTask`, `MoveTask` y `UpdateTask` no dependan del controller.
       Complejidad: media · Archivos: 5 · Riesgo: concurrencia → opus
 - [ ] M-14: si se cambia de organización con un `createAccessToken` en vuelo, el token se crea pero no se muestra; avisar
       con un toast o revocarlo. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-15: tests de `update-task` con un usuario que ve el proyecto pero no puede actualizar la tarea (policy `update`) y
+      de que `list-project-members` excluye a un `member` no asignado. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

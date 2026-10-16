@@ -5,10 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Actions\CreateTask;
 use App\Actions\DeleteTask;
 use App\Actions\MoveTask;
-use App\Actions\NotifyTaskAssignee;
+use App\Actions\UpdateTask;
 use App\Enums\TaskStatus;
 use App\Events\TaskDeleted;
-use App\Events\TaskUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Task\DeleteTaskRequest;
 use App\Http\Requests\Task\MoveTaskRequest;
@@ -128,25 +127,9 @@ class TaskController extends Controller
         return (new TaskResource($task))->response()->setStatusCode(201);
     }
 
-    public function update(UpdateTaskRequest $request, Project $project, Task $task, NotifyTaskAssignee $notifyAssignee): TaskResource
+    public function update(UpdateTaskRequest $request, Project $project, Task $task, UpdateTask $updateTask): TaskResource
     {
-        $data = $request->validated();
-        $newAssigneeId = array_key_exists('assignee_id', $data) && $data['assignee_id'] !== null
-            && (int) $data['assignee_id'] !== $task->assignee_id ? (int) $data['assignee_id'] : null;
-
-        DB::transaction(function () use ($project, $task, $data, $newAssigneeId) {
-            self::lockAssigneeAccess($project, $newAssigneeId);
-            self::lockActiveProject($project, __('This project is archived and its tasks cannot be edited.'));
-            $task->fill($data)->save();
-        });
-
-        $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
-        TaskUpdated::dispatch($task);
-        if ($newAssigneeId !== null) {
-            $notifyAssignee($task, $request->user());
-        }
-
-        return new TaskResource($task);
+        return new TaskResource($updateTask($project, $task, $request->user(), $request->validated()));
     }
 
     public function destroy(DeleteTaskRequest $request, Project $project, Task $task, DeleteTask $deleteTask): Response

@@ -8,9 +8,11 @@ use App\Mcp\Tools\GetLogGroupTool;
 use App\Mcp\Tools\GetTaskTool;
 use App\Mcp\Tools\ListChannelMessagesTool;
 use App\Mcp\Tools\ListLogGroupsTool;
+use App\Mcp\Tools\ListProjectMembersTool;
 use App\Mcp\Tools\ListProjectsTool;
 use App\Mcp\Tools\ListTasksTool;
 use App\Mcp\Tools\MoveTaskTool;
+use App\Mcp\Tools\UpdateTaskTool;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
@@ -34,6 +36,8 @@ class SerenoServer extends Server
         CommentOnTaskTool::class,
         CreateTaskTool::class,
         MoveTaskTool::class,
+        UpdateTaskTool::class,
+        ListProjectMembersTool::class,
     ];
 
     protected array $resources = [];
