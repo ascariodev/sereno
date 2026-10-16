@@ -206,6 +206,25 @@ describe('tasks store', () => {
     expect(store.setCommentsCount(99, 1)).toBe(false)
   })
 
+  it('a count set while a refresh is in flight survives its older snapshot', async () => {
+    const store = await opened([task(1), task(2)])
+    const pending = deferred()
+    vi.spyOn(api, 'get').mockReturnValueOnce(pending.promise as never)
+    const result = store.refresh()
+    store.setCommentsCount(2, 5)
+    pending.resolve(envelope([task(1), task(2, { comments_count: 1 })]))
+    expect(await result).toBe(true)
+    expect(store.find(2)?.comments_count).toBe(5)
+  })
+
+  it('a refresh that started after the count takes the server value', async () => {
+    const store = await opened([task(1), task(2)])
+    store.setCommentsCount(2, 5)
+    vi.spyOn(api, 'get').mockResolvedValueOnce(envelope([task(1), task(2, { comments_count: 6 })]))
+    expect(await store.refresh()).toBe(true)
+    expect(store.find(2)?.comments_count).toBe(6)
+  })
+
   it('a deleted task does not come back with a late event or load', async () => {
     const store = await opened([task(1), task(2)])
     expect(store.remove({ id: 1, project_id: 7 })).toBe(true)

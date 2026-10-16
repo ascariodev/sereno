@@ -85,6 +85,9 @@ export const useTasksStore = defineStore('tasks', () => {
   let loadSeq = 0
   let controller = new AbortController()
   let tombstones = new Set<number>()
+  /** Live comment counts with the stamp they arrived at: a load that started before cannot overwrite a newer one. */
+  let countStamp = 0
+  let liveCounts = new Map<number, { stamp: number; count: number }>()
   let latestLoad: Promise<boolean> = Promise.resolve(false)
   /** Whether a load of the open project ever succeeded: until then a failed load (open or refresh) sets `error`. */
   let everLoaded = false
@@ -158,6 +161,12 @@ export const useTasksStore = defineStore('tasks', () => {
 
   /** Absolute comment count from `task.comment.created`; leaves `updated_at` and the order untouched. */
   function setCommentsCount(taskId: number, count: number): boolean {
+    liveCounts.delete(taskId)
+    liveCounts.set(taskId, { stamp: ++countStamp, count })
+    if (liveCounts.size > MAX_TOMBSTONES) {
+      const oldest = liveCounts.keys().next()
+      if (!oldest.done) liveCounts.delete(oldest.value)
+    }
     const index = tasks.value.findIndex((task) => task.id === taskId)
     if (index < 0) return false
     const next = tasks.value.slice()
@@ -172,6 +181,7 @@ export const useTasksStore = defineStore('tasks', () => {
     controller.abort()
     controller = new AbortController()
     tombstones = new Set()
+    liveCounts = new Map()
     everLoaded = false
     projectId.value = null
     tasks.value = []
@@ -192,6 +202,7 @@ export const useTasksStore = defineStore('tasks', () => {
     const seq = ++loadSeq
     const id = projectId.value as number
     const knownAtStart = new Set(tasks.value.map((task) => task.id))
+    const countsFrom = countStamp
     try {
       const page = await listTasks(id, controller.signal, doneLimit)
       const list = page.tasks
@@ -204,7 +215,9 @@ export const useTasksStore = defineStore('tasks', () => {
         if (!accepts(task) || fetched.has(task.id)) continue
         fetched.add(task.id)
         const live = byId.get(task.id)
-        merged.push(live !== undefined && isStale(task, live) ? live : task)
+        const picked = live !== undefined && isStale(task, live) ? live : task
+        const counted = liveCounts.get(task.id)
+        merged.push(counted !== undefined && counted.stamp > countsFrom ? { ...picked, comments_count: counted.count } : picked)
       }
       for (const task of tasks.value) {
         if (!fetched.has(task.id) && !knownAtStart.has(task.id)) merged.push(task)
