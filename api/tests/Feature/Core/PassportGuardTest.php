@@ -8,17 +8,6 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Passport\ClientRepository;
 use Laravel\Passport\PersonalAccessTokenFactory;
 
-function usePassportTestKeys(): void
-{
-    $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
-    openssl_pkey_export($key, $privateKey);
-
-    config([
-        'passport.private_key' => $privateKey,
-        'passport.public_key' => openssl_pkey_get_details($key)['key'],
-    ]);
-}
-
 function issuePassportToken(User $user, array $scopes = ['mcp:use']): string
 {
     app(ClientRepository::class)->createPersonalAccessGrantClient('Test', 'users');

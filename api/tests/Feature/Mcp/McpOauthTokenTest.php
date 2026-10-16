@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Passport\Client;
 use Laravel\Passport\ClientRepository;
 use Laravel\Passport\Passport;
+use Laravel\Passport\RefreshToken;
 use Laravel\Passport\Token;
 use Laravel\Sanctum\Sanctum;
 
@@ -172,4 +173,36 @@ it('throttles each OAuth token on its own', function () {
 
     $this->postJson('/mcp', $this->listProjects, ($this->headers)($other))
         ->assertOk();
+});
+
+it('revokes the OAuth connections of a removed member in that organization only', function () {
+    $otherClient = app(ClientRepository::class)
+        ->createAuthorizationCodeGrantClient('Claude desktop', [MCP_OAUTH_CALLBACK], false);
+    $colleague = User::factory()->create();
+    $this->organization->addMember($colleague, [Role::Owner]);
+
+    $removedToken = mcpOauthToken($this->client, $this->user, $this->organization);
+    $keptToken = mcpOauthToken($otherClient, $this->user, $this->other);
+    $colleagueToken = mcpOauthToken($this->client, $colleague, $this->organization);
+
+    $this->organization->removeMember($this->user);
+
+    $revoked = fn (User $user, Client $client): array => [
+        Token::query()->where('user_id', $user->id)->where('client_id', $client->getKey())->sole()->revoked,
+        RefreshToken::query()
+            ->whereIn('access_token_id', Token::query()->where('user_id', $user->id)->where('client_id', $client->getKey())->select('id'))
+            ->sole()->revoked,
+    ];
+
+    expect($revoked($this->user, $this->client))->toBe([true, true])
+        ->and($revoked($this->user, $otherClient))->toBe([false, false])
+        ->and($revoked($colleague, $this->client))->toBe([false, false])
+        ->and(McpOauthGrant::query()->where('user_id', $this->user->id)->pluck('organization_id')->all())->toBe([$this->other->id])
+        ->and(McpOauthGrant::query()->where('user_id', $colleague->id)->count())->toBe(1);
+
+    app('auth')->forgetGuards();
+    $this->postJson('/mcp', $this->listProjects, ($this->headers)($removedToken))->assertUnauthorized();
+
+    app('auth')->forgetGuards();
+    $this->postJson('/mcp', $this->listProjects, ($this->headers)($keptToken))->assertOk()->assertSee('Foreign');
 });

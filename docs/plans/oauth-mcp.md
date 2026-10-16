@@ -2,7 +2,7 @@
 
 **Objetivo:** que Sereno se pueda agregar como conector MCP en claude.ai con OAuth 2.1 (registro dinámico, PKCE y
 consentimiento en la web eligiendo organización), sin romper los tokens de acceso Bearer actuales de `/mcp`.
-**Estado:** en curso · Fase actual: 8
+**Estado:** en curso · Fase actual: 9
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -82,7 +82,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - **Terminado cuando:** specs: carga, aprobar con la organización elegida, rechazar, error de petición inválida y
   redirección al login conservando la query.
 
-### [ ] Fase 8 — Revocar conexiones OAuth al salir de la organización
+### [x] Fase 8 — Revocar conexiones OAuth al salir de la organización
 - **Alcance:** `Organization::removeMember` (como M-4 de integracion-mcp) borra los grants del usuario en esa organización y
   revoca sus tokens y refresh tokens de Passport de esos clientes.
 - **Archivos:** `api/app/Models/Organization.php` (+ tests).
@@ -155,8 +155,16 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - 2026-10-16 — Fase 7: `/oauth/authorize` en la SPA fuera de `AppLayout`, con sesión obligatoria (el guard manda al login con
   `redirect=fullPath`; `safeRedirect` ya lo admitía). La query se reenvía tal cual; organización preseleccionada = la activa si
   está en la lista, si no la primera. La redirección final solo usa el `redirect_url` del API y solo si es http(s).
+- 2026-10-16 — Fase 8: `Organization::removeMember` llama a `revokeOauthConnections` (privado) dentro de la transacción de
+  `mutateMembership`: revoca `Token` y `RefreshToken` de los clientes de los grants del usuario en esa organización y borra los
+  grants. Un cliente apunta a una sola organización por usuario (grant único por par), así que filtrar por cliente y usuario
+  equivale a filtrar por organización.
 
 ## Notas para la próxima sesión
+- Fase 9: extraer la revocación de `Organization::revokeOauthConnections` (hoy privada) para reusarla en el DELETE de
+  conexiones.
+- En el worktree cada test da warning por el `.env` ausente: validar las corridas con `--display-warnings` y grep de
+  "redeclare"/"runner warning", porque un archivo que no carga cuenta como warning y no como fallo.
 - Tests de la web en el worktree (el servicio `web` monta el checkout principal), desde `web/` del worktree:
   `MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W):/app" -v workspace_web-node-modules:/app/node_modules -w /app node:24 npx vitest --run <specs>`
   (`npm run typecheck` igual).
@@ -204,3 +212,6 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   revisor fase 7.
 - M-12: Accesibilidad del consentimiento (L-25): foco al `h1` al cargar y región `aria-live` siempre presente para "Volviendo
   a...". Complejidad: baja. Modelo: sonnet. Origen: revisor fase 7.
+- M-13: Carrera entre un `approve` de OAuth y la expulsión del miembro: `ApproveAuthorizationRequest` valida la membresía sin
+  bloqueo, así que un grant podría crearse justo al sacar al usuario. Validar la membresía bajo el lock de la organización.
+  Complejidad: media (seguridad). Modelo: sonnet. Origen: revisor fase 8.
