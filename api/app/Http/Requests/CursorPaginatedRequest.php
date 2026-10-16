@@ -22,11 +22,20 @@ abstract class CursorPaginatedRequest extends FormRequest
 
     private function validCursor(string $attribute, mixed $value, Closure $fail): void
     {
-        $id = Cursor::fromEncoded($value)?->toArray()['id'] ?? null;
-
-        if (! is_int($id) || $id < 1) {
+        if (! static::isValidCursor($value)) {
             $fail(__('The cursor is invalid.'));
         }
+    }
+
+    public static function isValidCursor(mixed $value): bool
+    {
+        if (! is_string($value)) {
+            return false;
+        }
+
+        $id = Cursor::fromEncoded($value)?->toArray()['id'] ?? null;
+
+        return is_int($id) && $id >= 1;
     }
 
     public function perPage(): int

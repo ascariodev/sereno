@@ -75,6 +75,29 @@ it('rejects an invalid cursor', function () {
         ->assertHasErrors();
 });
 
+it('rejects a per_page out of range', function () {
+    foreach ([0, 101] as $perPage) {
+        ($this->call)($this->member, ['project_id' => $this->project->id, 'per_page' => $perPage])
+            ->assertHasErrors();
+    }
+});
+
+it('reads the replies of a thread whose root was deleted', function () {
+    $root = ($this->post)('thread root');
+    ($this->post)('thread reply', ['parent_id' => $root->id]);
+    $root->forceFill(['replies_count' => 1, 'deleted_at' => now()])->save();
+
+    ($this->call)($this->member, ['project_id' => $this->project->id, 'thread_id' => $root->id])
+        ->assertOk()
+        ->assertSee('thread reply')
+        ->assertDontSee('thread root')
+        ->assertStructuredContent(fn ($json) => $json
+            ->has('data', 1)
+            ->where('meta.root.id', $root->id)
+            ->where('meta.root.body', null)
+            ->etc());
+});
+
 it('reads a thread with its root in meta', function () {
     $root = ($this->post)('thread root');
     ($this->post)('thread reply', ['parent_id' => $root->id]);

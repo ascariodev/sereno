@@ -273,7 +273,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [x] M-8: extraer la consulta del tablero (orden por CASE y límite de hechas) que comparten `TaskController::index` y
       `ListTasksTool`, para no mantenerla en dos sitios. Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
-- [ ] M-9: extraer la validación del cursor de `CursorPaginatedRequest::validCursor` (privada, copiada en
+- [x] M-9: extraer la validación del cursor de `CursorPaginatedRequest::validCursor` (privada, copiada en
       `ListChannelMessagesTool`) a un método compartido; tests de hilo con raíz borrada y de `per_page` fuera de rango.
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-10: extraer a una acción compartida la lógica de `LogGroupController::index`/`show` (y `levelsAtLeast`) que
@@ -291,3 +291,5 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       con un toast o revocarlo. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-15: tests de `update-task` con un usuario que ve el proyecto pero no puede actualizar la tarea (policy `update`) y
       de que `list-project-members` excluye a un `member` no asignado. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
+- [ ] M-16: `ListTaskCommentsRequest`, `ListChannelsRequest` y `ListInvitationsRequest` tienen su copia privada de
+      `validCursor`; usar `CursorPaginatedRequest::isValidCursor`. Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
