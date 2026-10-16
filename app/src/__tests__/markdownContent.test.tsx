@@ -47,7 +47,7 @@ describe('MarkdownContent', () => {
   });
 
   it('does not make links of schemes outside http, https and mailto', async () => {
-    await render(<MarkdownContent source="[file](file:///etc/passwd) [ftp](ftp://host/x) [js](javascript:alert(1))" />);
+    await render(<MarkdownContent source="[file](file:///etc/passwd) [ftp](ftp://host/x) [js](javascript:alert(1)) [intent](intent://scan#Intent;scheme=zxing;end) [data](data:text/html,x)" />);
     expect(screen.queryAllByRole('link')).toHaveLength(0);
     fireEvent.press(screen.getByText('ftp'));
     expect(Linking.openURL).not.toHaveBeenCalled();

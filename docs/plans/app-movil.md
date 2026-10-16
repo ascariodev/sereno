@@ -334,7 +334,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-17: Portar `useMembershipWatch` de la web (revocación de acceso, cambio de rol, `onChannelDenied`): la app hoy solo recarga proyectos. Complejidad media, sonnet.
 - [x] M-18: Documentar `EXPO_PUBLIC_REVERB_APP_KEY`, `_HOST`, `_PORT` y `_SCHEME` de la app (en `app/.env.example` o en CLAUDE.md, sección App móvil): sin la clave Echo queda null en silencio. Complejidad baja, sonnet.
 - [ ] M-19: Tablas de markdown: la app las pinta como texto suelto y la web las descarta (DOMPurify). Decidir y alinear (p. ej. `md.disable('table')` en ambos lados). Complejidad baja, sonnet.
-- [ ] M-20: Sumar `intent:` y `data:` al test de esquemas no permitidos de `markdownContent.test.tsx`; tipar `Message.mentions` como opcional o confirmar que la API siempre lo manda. Complejidad baja, sonnet.
+- [x] M-20: Sumar `intent:` y `data:` al test de esquemas no permitidos de `markdownContent.test.tsx`; tipar `Message.mentions` como opcional o confirmar que la API siempre lo manda. Complejidad baja, sonnet. Confirmado: `MessageController` y los eventos `MessageCreated`/`MessageUpdated` cargan `mentionedUsers`, así que el tipo queda obligatorio.
 - [ ] M-21: Quitar el aviso de `act(...)` que deja `loadOlder` en `channel.test.tsx`. Complejidad baja, sonnet.
 - [ ] M-22: Sparkline de eventos por hora en la tarjeta del aviso (`/log-groups/hourly`), como `SystemNotice.vue`; no está en ninguna fase. Complejidad media, sonnet.
 - [ ] M-23: Avisos de sistema: quitar la clave sin uso `channel.notice`, tests de `status_changed` sin título y de nivel o estado desconocido, y confirmar contra la web qué se muestra con un aviso con `deleted_at`. Complejidad baja, sonnet.
