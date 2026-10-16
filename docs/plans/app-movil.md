@@ -330,7 +330,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [x] M-13: `register.closedError` repite el texto de `register.closed` en `en.json` y `es.json`: dejar una sola clave. Complejidad baja, sonnet.
 - [ ] M-14: Reintentar una carga fallida de organizaciones con sesión deja la pantalla en blanco (`_layout` devuelve null) hasta que se resuelve: mostrar un indicador de carga. Complejidad baja, sonnet.
 - [ ] M-15: Toggle `tasks_resolve_log_groups` en el formulario del proyecto, como `ProjectHeader.vue`. Complejidad baja, sonnet.
-- [ ] M-16: Tests de error de `archive` (403 y red) en `projectForm.test.tsx`. Complejidad baja, sonnet.
+- [x] M-16: Tests de error de `archive` (403 y red) en `projectForm.test.tsx`. Complejidad baja, sonnet.
 - [ ] M-17: Portar `useMembershipWatch` de la web (revocación de acceso, cambio de rol, `onChannelDenied`): la app hoy solo recarga proyectos. Complejidad media, sonnet.
 - [x] M-18: Documentar `EXPO_PUBLIC_REVERB_APP_KEY`, `_HOST`, `_PORT` y `_SCHEME` de la app (en `app/.env.example` o en CLAUDE.md, sección App móvil): sin la clave Echo queda null en silencio. Complejidad baja, sonnet.
 - [ ] M-19: Tablas de markdown: la app las pinta como texto suelto y la web las descarta (DOMPurify). Decidir y alinear (p. ej. `md.disable('table')` en ambos lados). Complejidad baja, sonnet.

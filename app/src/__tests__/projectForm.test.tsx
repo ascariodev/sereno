@@ -161,4 +161,28 @@ describe('edit and archive', () => {
     expect(calls.find((call) => call.method === 'POST')?.url).toContain('/api/projects/1/archive');
     expect(useProjectsStore.getState().projects).toEqual([]);
   });
+
+  it('shows the forbidden message and keeps the project when archiving gets a 403', async () => {
+    await render(<ProjectForm />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Archive project' }));
+    mockApi((method) => (method === 'POST' ? json({ message: 'no' }, 403) : null));
+    await fireEvent.press(screen.getByRole('button', { name: 'Yes, archive' }));
+
+    expect(await screen.findByText('You do not have permission to manage projects.')).toBeOnTheScreen();
+    expect(router.back).not.toHaveBeenCalled();
+    expect(useProjectsStore.getState().projects).toHaveLength(1);
+  });
+
+  it('shows the network message and keeps the project when archiving cannot reach the server', async () => {
+    await render(<ProjectForm />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Archive project' }));
+    globalThis.fetch = jest.fn(async () => {
+      throw new TypeError('Network request failed');
+    }) as never;
+    await fireEvent.press(screen.getByRole('button', { name: 'Yes, archive' }));
+
+    expect(await screen.findByText('Could not reach the server.')).toBeOnTheScreen();
+    expect(router.back).not.toHaveBeenCalled();
+    expect(useProjectsStore.getState().projects).toHaveLength(1);
+  });
 });
