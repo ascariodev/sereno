@@ -146,6 +146,13 @@ puede silenciar las notificaciones del navegador.
 Tras cambiar el `.env` del servidor (desde `api/` en producción, con `sudo docker compose -p sereno-prod-api -f docker-compose.prod.yml`):
 `exec -u app app php artisan optimize` (la config está cacheada), `restart app queue scheduler reverb` y luego
 `restart nginx`, que resuelve la IP de `app` al arrancar y sin reiniciarlo da 502. Un redeploy hace todo eso.
+Servidor MCP (plan `integracion-mcp`) hecho: `POST /mcp` (laravel/mcp, `api/routes/ai.php`) con tools para leer
+proyectos, tareas, mensajes y avisos de log, y para comentar, crear y mover tareas (nada de borrar). Claude actúa como el
+dueño del token. Los tokens de acceso los crea cada persona en la web (menú de usuario, "Tokens de acceso"), van ligados a
+una organización con ability `mcp` y solo valen en `/mcp` (403 en el resto). Conectar Claude Code con el comando que da la
+web, más `--scope user` para que valga en todos los proyectos: `claude mcp add --transport http --scope user sereno https://sereno-api.ascario.dev/mcp --header "Authorization: Bearer <token>"`.
+Un token por máquina; `claude mcp add` no reemplaza un nombre existente (antes `claude mcp remove sereno -s user`). En esta
+PC el CLI no está en el PATH de PowerShell: lo corre una sesión de Code con el binario de la app.
 
 (No confundir con las fases de un plan de `docs/plans/`.)
 

@@ -3,7 +3,7 @@
 **Objetivo:** que Claude Code se conecte a Sereno por MCP (HTTP, token Bearer de acceso personal ligado a una organización)
 y pueda ver proyectos, tareas, mensajes de canal y avisos de log, comentar tareas, crearlas y moverlas, actuando como el
 usuario dueño del token y con sus permisos. Los tokens se crean, listan y revocan desde la web.
-**Estado:** en curso · Fase actual: 16
+**Estado:** terminado · 16/16 fases
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -153,7 +153,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - **Archivos:** `web/src/router/index.ts`, `web/src/components/UserMenu.vue`, `web/src/i18n/{en,es}.json`.
 - **Terminado cuando:** spec del menú navega a la vista; prueba en el navegador de crear, copiar y revocar.
 
-### [ ] Fase 16 — Producción y documentación [manual] [riesgo]
+### [x] Fase 16 — Producción y documentación [manual] [riesgo]
 - **Alcance:** deploy; comprobar que `https://<api>/mcp` llega a PHP a través del proxy de producción (el nginx del stack
   ya manda todo a `index.php`) y que el límite de tamaño y tiempos no cortan la respuesta. Conectar Claude Code contra
   producción con un token real. Documentar en `CLAUDE.md` (sección del MVP o transversal) cómo conectarse.
@@ -241,16 +241,18 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - 2026-10-15 — Se ejecuta en el worktree `.claude/worktrees/integracion-mcp`; los comandos del API corren desde la raíz
   del worktree con `MSYS_NO_PATHCONV=1 docker compose -p workspace run --rm --no-deps api ...` (monta el `api/` del
   worktree; `vendor/` es el volumen compartido con el checkout principal).
+- 2026-10-15 — Fase 16: desplegado con el merge `b9a7bcc`. `https://sereno-api.ascario.dev/mcp` llega a PHP por el proxy
+  sin cambios de configuración (401 sin token, `tools/list` 200 con token). Claude Code (servidor `sereno`, scope user)
+  listó proyectos y comentó una tarea en producción. Conexión documentada en `CLAUDE.md` (transversal). Un token por
+  máquina; el creado en el Mac quedó expuesto en el chat y se reemplazó por uno de Windows.
 
 ## Notas para la próxima sesión
 - Tests de tools: `app(CurrentOrganization::class)->set(...)` antes de `SerenoServer::actingAs(...)->tool(...)`;
   aserciones `assertSee`, `assertDontSee`, `assertStructuredContent`, `assertHasErrors`. `tool()` solo ejecuta tools
   registradas en el servidor. Usar Edit (no sed) para los `use`: sed comió barras invertidas. `replies_count` no es
   fillable: en tests, `forceFill(...)->save()`. Pint reescribe los CRLF que deja Python en Windows: escribir con Edit.
-- Fase 16 (manual, riesgo): falta mergear `feat/integracion-mcp` a `main` y desplegar (push solo con pedido del
-  usuario), comprobar `/mcp` detrás del proxy de producción, conectar Claude Code con un token real y documentar en
-  `CLAUDE.md`. En local siguen el API del worktree en 8013 (registrado como `sereno-dev` en Claude Code, scope user) y
-  la BD de desarrollo con la migración de la fase 1.
+- Plan terminado. En local quedaban el API del worktree en 8013 (registrado como `sereno-dev` en Claude Code, scope user)
+  y la BD de desarrollo con la migración de la fase 1; las mejoras pendientes se aplican con `/aplicar-mejoras`.
 
 ## Mejoras propuestas
 - [ ] M-1: OAuth 2.1 (`Mcp::oauthRoutes` con Passport) para usar Sereno como conector en claude.ai.
