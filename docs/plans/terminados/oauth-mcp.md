@@ -202,7 +202,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - M-1: Revisar si `api/.env.example` debe documentar `PASSPORT_PRIVATE_KEY`/`PASSPORT_PUBLIC_KEY` (hoy solo en database.md),
   aclarando que sin `PASSPORT_PUBLIC_KEY` `/mcp` queda solo con tokens de acceso.
   Complejidad: baja (1 archivo, solución evidente). Modelo: sonnet. Origen: revisor fase 1.
-- M-2: Acortar a una línea el comentario de `User.php` sobre el trait de Passport (ya está en database.md y Decisiones).
+- [x] M-2: Acortar a una línea el comentario de `User.php` sobre el trait de Passport (ya está en database.md y Decisiones).
   Complejidad: baja. Modelo: sonnet. Origen: revisor fase 1.
 - M-3: Documentar `MCP_AUTHORIZATION_SERVER` (opcional) en `api/.env.example`. Complejidad: baja. Modelo: sonnet. Origen:
   revisor fase 2 (puede ir junto con M-1).
