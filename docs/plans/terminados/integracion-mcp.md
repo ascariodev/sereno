@@ -271,7 +271,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - [x] M-7: tests de `ResolveTokenOrganization`: usuario de dos organizaciones que manda `X-Organization-Id` de la otra
       (queda la del token), y en el de ex miembro fijar antes otra organización para que pruebe de verdad L-02.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
-- [ ] M-8: extraer la consulta del tablero (orden por CASE y límite de hechas) que comparten `TaskController::index` y
+- [x] M-8: extraer la consulta del tablero (orden por CASE y límite de hechas) que comparten `TaskController::index` y
       `ListTasksTool`, para no mantenerla en dos sitios. Complejidad: media · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-9: extraer la validación del cursor de `CursorPaginatedRequest::validCursor` (privada, copiada en
       `ListChannelMessagesTool`) a un método compartido; tests de hilo con raíz borrada y de `per_page` fuera de rango.
@@ -285,7 +285,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       para el 422 lanzado dentro de los locks (proyecto archivado o acceso perdido entre validación e insert).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-13: llevar los locks (`lockActiveProject`, `lockAssigneeAccess`), `RELATIONS` y `counts()` de `TaskController`
-      a un soporte compartido, para que `CreateTask`, `MoveTask` y `UpdateTask` no dependan del controller.
+      a un soporte compartido, para que `CreateTask`, `MoveTask`, `UpdateTask` y `ListBoardTasks` no dependan del controller.
       Complejidad: media · Archivos: 5 · Riesgo: concurrencia → opus
 - [ ] M-14: si se cambia de organización con un `createAccessToken` en vuelo, el token se crea pero no se muestra; avisar
       con un toast o revocarlo. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

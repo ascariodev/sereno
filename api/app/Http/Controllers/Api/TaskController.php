@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\CreateTask;
 use App\Actions\DeleteTask;
+use App\Actions\ListBoardTasks;
 use App\Actions\MoveTask;
 use App\Actions\UpdateTask;
-use App\Enums\TaskStatus;
 use App\Events\TaskDeleted;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Task\DeleteTaskRequest;
@@ -48,7 +48,7 @@ class TaskController extends Controller
     /** Done tasks listed when the board asks for a bounded Done column (`done_limit`). */
     public const MAX_DONE_LIMIT = 500;
 
-    public function index(Request $request, Project $project): AnonymousResourceCollection
+    public function index(Request $request, Project $project, ListBoardTasks $listBoardTasks): AnonymousResourceCollection
     {
         Gate::authorize('view', $project);
 
@@ -56,48 +56,11 @@ class TaskController extends Controller
             'done_limit' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_DONE_LIMIT],
         ])['done_limit'] ?? null;
 
-        $cases = array_values(array_filter(TaskStatus::cases(), fn (TaskStatus $status) => $status !== TaskStatus::Done));
-        $order = 'CASE status'.str_repeat(' WHEN ? THEN ?', count($cases)).' END';
-        $bindings = [];
-        foreach ($cases as $index => $status) {
-            array_push($bindings, $status->value, $index);
-        }
+        $board = $listBoardTasks($project, [], $doneLimit);
 
-        $active = Task::query()
-            ->where('project_id', $project->id)
-            ->where('status', '!=', TaskStatus::Done)
-            ->with(self::RELATIONS)
-            ->withCount(self::counts())
-            ->orderByRaw($order, $bindings)
-            ->orderBy('position')
-            ->orderBy('id')
-            ->get();
-
-        $doneQuery = Task::query()
-            ->where('project_id', $project->id)
-            ->where('status', TaskStatus::Done);
-        $doneTotal = (clone $doneQuery)->count();
-
-        // New and moved tasks land at the end of the column, so the last ones by position are the most recent. The
-        // cut is contiguous, which keeps drag & drop neighbors adjacent; it is returned in column order.
-        $done = $doneQuery
-            ->with(self::RELATIONS)
-            ->withCount(self::counts())
-            ->orderByDesc('position')
-            ->orderByDesc('id')
-            ->when($doneLimit !== null, fn ($query) => $query->limit($doneLimit))
-            ->get()
-            ->reverse()
-            ->values();
-
-        $tasks = $active->concat($done)->values();
-
-        // key() reads the project: share the one already loaded instead of one query per task.
-        $tasks->each(fn (Task $task) => $task->setRelation('project', $project));
-
-        return TaskResource::collection($tasks)->additional(['meta' => [
-            'done_total' => $doneTotal,
-            'has_more_done' => $done->count() < $doneTotal,
+        return TaskResource::collection($board['tasks'])->additional(['meta' => [
+            'done_total' => $board['done_total'],
+            'has_more_done' => $board['has_more_done'],
         ]]);
     }
 
