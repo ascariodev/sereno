@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\LogSourceController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OAuthAuthorizationController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectMemberController;
@@ -40,6 +41,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('me/expo-push-tokens', [ExpoPushTokenController::class, 'destroy']);
     Route::get('organizations', [OrganizationController::class, 'index']);
     Route::post('organizations', [OrganizationController::class, 'store']);
+    Route::get('oauth/authorize', [OAuthAuthorizationController::class, 'show']);
+    Route::post('oauth/authorize', [OAuthAuthorizationController::class, 'approve']);
+    Route::delete('oauth/authorize', [OAuthAuthorizationController::class, 'deny']);
 });
 
 Route::get('invitations/{token}', [InvitationController::class, 'show'])->middleware('throttle:invitation-preview');

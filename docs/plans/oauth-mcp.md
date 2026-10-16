@@ -2,7 +2,7 @@
 
 **Objetivo:** que Sereno se pueda agregar como conector MCP en claude.ai con OAuth 2.1 (registro dinámico, PKCE y
 consentimiento en la web eligiendo organización), sin romper los tokens de acceso Bearer actuales de `/mcp`.
-**Estado:** en curso · Fase actual: 5
+**Estado:** en curso · Fase actual: 6
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -55,7 +55,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - **Archivos:** migración, `api/app/Models/McpOauthGrant.php`, `.claude/rules/database.md`.
 - **Terminado cuando:** tests del modelo (único, cascadas al borrar usuario, organización o cliente).
 
-### [ ] Fase 5 — Endpoint JSON de autorización [riesgo]
+### [x] Fase 5 — Endpoint JSON de autorización [riesgo]
 - **Alcance:** `GET /api/oauth/authorize` (Sanctum, sesión): valida la petición con `AuthorizationServer` de league
   (cliente, `redirect_uri`, PKCE S256, scope) y devuelve nombre del cliente y organizaciones del usuario.
   `POST /api/oauth/authorize` (aprobar con `organization_id`, membresía validada): guarda el grant y devuelve la
@@ -140,8 +140,17 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   haber organización activa), así que toda consulta filtra por cliente y usuario a mano. `$guarded = ['*']`: escribir con
   `firstOrNew` + asignar por propiedad + `save`, no `updateOrCreate`. Revocar en Passport solo marca `revoked` (no borra el
   cliente ni dispara la cascada). Sin `User::mcpOauthGrants()` todavía.
+- 2026-10-16 — Fase 5 (contrato para la fase 7): GET/POST/DELETE `/api/oauth/authorize` llevan la query OAuth intacta y la
+  revalidan con `AuthorizationServer`; POST solo `organization_id` en el body, DELETE sin body. GET devuelve
+  `{client:{id,name}, redirect_host, scopes, organizations:[{id,name}]}`; POST y DELETE `{redirect_url}`, sin envoltorio `data`.
+  Errores OAuth: 400 `{error, message}` traducidos, nunca 401 (desloguearía la SPA). S256 obligatorio; scope exactamente
+  `mcp:use` (si falta, se asume solo en este controller; `Passport::defaultScopes` descartado porque se aplica también a los
+  personal access tokens). Re-aprobar mueve el grant (y con él los tokens ya emitidos de ese cliente y usuario) a la nueva
+  organización.
 
 ## Notas para la próxima sesión
+- Fase 6: un token OAuth toma la organización del grant actual (puede haber cambiado por re-aprobación); el parámetro
+  `resource` del authorize no se valida (revisar si hace falta).
 - Los revisores no ven `vendor/` en el worktree: leer Passport y laravel/mcp desde un contenedor con el volumen
   `workspace_oauthmcp_vendor` montado.
 - El comando docker del worktree se pasa directo, sin `sh -c` (lo bloquea la comprobación de seguridad).
@@ -164,3 +173,8 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - M-5: Rechazar `..` (o normalizar la ruta) en los `redirect_uris` del DCR: hoy `https://claude.ai/api/mcp/../x` pasa el
   prefijo (mismo host, riesgo mínimo); para exigir el URI exacto habría que sobrescribir el controller del DCR.
   Complejidad: media (seguridad, 2 archivos). Modelo: sonnet. Origen: revisor fase 3.
+- M-6: En el GET de `/api/oauth/authorize`, si la petición no trae `redirect_uri` y el cliente tiene varias, `redirect_host`
+  muestra la primera; exigir `redirect_uri` o calcular el host igual que league. Complejidad: baja. Modelo: sonnet. Origen:
+  revisor fase 5.
+- M-7: Sin throttle propio en `/api/oauth/authorize` (solo `auth:sanctum`). Complejidad: baja. Modelo: sonnet. Origen:
+  implementador fase 5.
