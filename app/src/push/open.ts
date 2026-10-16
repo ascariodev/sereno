@@ -26,7 +26,7 @@ function positiveId(value: unknown): number | null {
   return Number.isInteger(id) && id > 0 ? id : null
 }
 
-// The API sends the web URL (PushPayload::mobile): /projects/{id}/plan?task={id} or /channels/{id}?message={id}|thread={id}.
+// The API sends the web URL (PushPayload::mobile), not an app route.
 export function pushDestination(data: unknown): PushDestination | null {
   if (typeof data !== 'object' || data === null) return null
   const { url, organizationId: rawOrganizationId } = data as { url?: unknown; organizationId?: unknown }
