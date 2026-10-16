@@ -372,7 +372,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-55: abrir el push de chat en el mensaje concreto (`?message=`) con scroll, y pasar el nombre del canal en el payload para el título. Media, sonnet.
 - [x] M-56: si la carga de organizaciones falla, el toque del aviso se consume sin avisar; reintentar o avisar. Baja, sonnet.
 - [ ] M-57: acortar el comentario de `pushDestination` en `app/src/push/open.ts`, que repite el nombre. Baja, sonnet.
-- [ ] M-58: `autoIncrement` también en el perfil `preview` de `app/eas.json`, para que un preview no choque por downgrade con un production más nuevo. Baja, sonnet.
+- [x] M-58: `autoIncrement` también en el perfil `preview` de `app/eas.json`, para que un preview no choque por downgrade con un production más nuevo. Baja, sonnet.
 - [ ] M-59: `messages/store.ts` `insert`: al insertar una raíz que estaba en `unloadedDeletions`, quitarla del set como hace la web (si no, al expulsarla se pierde el rebase de contadores). Complejidad baja, sonnet.
 - [ ] M-60: Web: portar el arreglo de `setCommentsCount` con una recarga en vuelo (sello de contadores en `web/src/stores` del plan, como `app/src/tasks/store.ts`); hoy la web tiene la misma carrera. Complejidad baja, sonnet.
 - [ ] M-61: Log: un `loadMore` que llega con un `refresh` en vuelo se descarta (M-48) y hay que volver a hacer scroll; encolarlo y correrlo al terminar el refresh. Complejidad baja, sonnet.
