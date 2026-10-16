@@ -48,8 +48,8 @@ class CreateTaskTool extends Tool
         $projectId = $request->validate(['project_id' => ['required', 'integer', 'min:1']])['project_id'];
 
         $project = Project::query()->findOrFail($projectId);
-        $this->authorize($user, 'view', $project);
         $this->authorize($user, 'create', Task::class);
+        $this->authorize($user, 'view', $project);
 
         $input = $request->toArray();
         $data = Validator::make($input, (new StoreTaskRequest)->rules())

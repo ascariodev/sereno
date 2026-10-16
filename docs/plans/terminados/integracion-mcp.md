@@ -281,7 +281,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       inválido. Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
 - [x] M-11: mover `TaskCommentController::RELATIONS` (y el equivalente de tareas) al modelo, para que las acciones no
       importen un controller. Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
-- [ ] M-12: alinear el orden de autorización de `create-task` con el REST (`create` antes que `view`) y test de la tool
+- [x] M-12: alinear el orden de autorización de `create-task` con el REST (`create` antes que `view`) y test de la tool
       para el 422 lanzado dentro de los locks (proyecto archivado o acceso perdido entre validación e insert).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-13: llevar los locks (`lockActiveProject`, `lockAssigneeAccess`), `RELATIONS` y `counts()` de `TaskController`
