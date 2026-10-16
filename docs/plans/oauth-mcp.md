@@ -2,7 +2,7 @@
 
 **Objetivo:** que Sereno se pueda agregar como conector MCP en claude.ai con OAuth 2.1 (registro dinámico, PKCE y
 consentimiento en la web eligiendo organización), sin romper los tokens de acceso Bearer actuales de `/mcp`.
-**Estado:** en curso · Fase actual: 9
+**Estado:** en curso · Fase actual: 10
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -88,7 +88,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - **Archivos:** `api/app/Models/Organization.php` (+ tests).
 - **Terminado cuando:** test: al sacar al miembro el token OAuth deja de servir y los de otras organizaciones siguen.
 
-### [ ] Fase 9 — API de conexiones OAuth
+### [x] Fase 9 — API de conexiones OAuth
 - **Alcance:** `GET/DELETE /api/oauth-connections`: grants del usuario en la organización activa (cliente, organización,
   fecha); revocar borra el grant y revoca sus tokens y refresh tokens.
 - **Archivos:** controller, resource, `api/routes/api.php`.
@@ -159,8 +159,14 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   `mutateMembership`: revoca `Token` y `RefreshToken` de los clientes de los grants del usuario en esa organización y borra los
   grants. Un cliente apunta a una sola organización por usuario (grant único por par), así que filtrar por cliente y usuario
   equivale a filtrar por organización.
+- 2026-10-16 — Fase 9 (contrato para la fase 10): `GET /api/oauth-connections` (auth:sanctum + organization, sin paginar, más
+  nuevo primero) devuelve `{data:[{id (del grant), client:{id (uuid), name}, organization:{id, name}, created_at}]}` del
+  usuario en la organización activa; `DELETE /api/oauth-connections/{id}` 204, ajeno/otra organización/inexistente 404 igual.
+  `$grant->revoke()` (instancia) revoca `Token` y `RefreshToken` de su usuario y cliente y borra el grant; lo usan el
+  controller (en `DB::transaction`) y `Organization::revokeOauthConnections`.
 
 ## Notas para la próxima sesión
+- El comando docker del worktree va sin `--network` (con él, 6 tests de notificaciones y push fallan por entorno).
 - Fase 9: extraer la revocación de `Organization::revokeOauthConnections` (hoy privada) para reusarla en el DELETE de
   conexiones.
 - En el worktree cada test da warning por el `.env` ausente: validar las corridas con `--display-warnings` y grep de
