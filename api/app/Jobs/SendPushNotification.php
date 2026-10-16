@@ -117,15 +117,23 @@ class SendPushNotification implements ShouldQueue
         $failedExpoTokens = [];
 
         if ($subscriptions->isNotEmpty() && $this->webPushConfigured()) {
-            $failedSubscriptions = $this->settle($sender->send($subscriptions, $webPayload), PushSubscription::class, 'subscriptions');
+            try {
+                $failedSubscriptions = $this->settle($sender->send($subscriptions, $webPayload), PushSubscription::class, 'subscriptions');
+            } catch (Throwable $e) {
+                report($e);
+            }
         }
 
         if ($expoTokens->isNotEmpty()) {
-            $failedExpoTokens = $this->settle(
-                $mobileSender->send($expoTokens, PushPayload::mobile($notification, $user)),
-                ExpoPushToken::class,
-                'expo_tokens',
-            );
+            try {
+                $failedExpoTokens = $this->settle(
+                    $mobileSender->send($expoTokens, PushPayload::mobile($notification, $user)),
+                    ExpoPushToken::class,
+                    'expo_tokens',
+                );
+            } catch (Throwable $e) {
+                report($e);
+            }
         }
 
         $this->retry($failedSubscriptions, $failedExpoTokens);

@@ -423,6 +423,48 @@ it('runs a retry queued before Expo push existed, also sending to the Expo token
         ->and($this->mobileSender->calls)->toBe([['ExponentPushToken[android]']]);
 });
 
+it('reports a throwing web sender and still retries the Expo tokens that failed', function () {
+    Queue::fake();
+    Exceptions::fake();
+    $this->mobileSender->outcomes['ExponentPushToken[flaky]'] = PushSender::FAILED;
+    $flaky = expoToken('ExponentPushToken[flaky]');
+    $row = pushNotificationRow();
+    $throwing = new class implements PushSender
+    {
+        public function send(iterable $subscriptions, string $payload): array
+        {
+            throw new RuntimeException('invalid VAPID keys');
+        }
+    };
+
+    (new SendPushNotification($row->uuid))->handle($throwing, $this->mobileSender);
+
+    Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'invalid VAPID keys');
+    expect($this->mobileSender->calls)->toBe([['ExponentPushToken[flaky]']]);
+    Queue::assertPushed(SendPushNotification::class, fn (SendPushNotification $job) => $job->subscriptionIds === []
+        && $job->expoTokenIds === [$flaky->id]
+        && $job->attempt === 2);
+});
+
+it('reports a throwing Expo sender and still settles the web subscriptions', function () {
+    Exceptions::fake();
+    expoToken('ExponentPushToken[android]');
+    $row = pushNotificationRow();
+    $throwing = new class implements MobilePushSender
+    {
+        public function send(iterable $tokens, array $message): array
+        {
+            throw new RuntimeException('expo down');
+        }
+    };
+
+    (new SendPushNotification($row->uuid))->handle($this->sender, $throwing);
+
+    Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'expo down');
+    expect($this->sender->calls)->toHaveCount(1)
+        ->and($this->phone->fresh()->last_used_at)->not->toBeNull();
+});
+
 it('does not push again to the web when only an Expo token failed', function () {
     Queue::fake();
     $this->mobileSender->outcomes['ExponentPushToken[flaky]'] = PushSender::FAILED;

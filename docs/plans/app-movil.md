@@ -306,7 +306,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
       Complejidad: alta · Archivos: 5+ (migración, job programado, emisor) · Riesgo: BD → plan nuevo
 - [x] M-3: `ExpoPushSender`: tratar un ticket ausente (200 truncado) como FAILED y no REJECTED; test de `MismatchSenderId`.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-4: `SendPushNotification`: envolver cada canal (web y Expo) en try/catch con `report`, para que una excepción de un
+- [x] M-4: `SendPushNotification`: envolver cada canal (web y Expo) en try/catch con `report`, para que una excepción de un
       emisor (p. ej. claves VAPID inválidas en `makeWebPush`) no deje sin enviar el otro ni pierda sus FAILED. Con test.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-5: Log "gave up" de `SendPushNotification`: omitir la lista del canal que no falló (hoy sale `subscriptions: []`).
