@@ -4,7 +4,7 @@
 Python (logging, Django, FastAPI) y JS en navegador (Vue, React), con captura automática de errores, envío por lotes,
 reintento, ids idempotentes y fingerprint como `ascariodev/sereno-laravel`; keys públicas para navegador en el API y
 fragmentos por lenguaje en el diálogo de la key.
-**Estado:** en curso · Fase actual: 30
+**Estado:** en curso · Fase actual: 31
 
 ## Contexto mínimo
 - Repos: monorepo (`api/`, `web/`, `app/`, `docs/`) y repos hermanos nuevos `../sereno-php`, `../sereno-js` y
@@ -210,7 +210,7 @@ fragmentos por lenguaje en el diálogo de la key.
 - **Archivos:** `packages/browser/src/react.tsx`, `packages/browser/test/react.test.tsx`, `packages/browser/package.json`
 - **Terminado cuando:** test con un hijo que lanza: evento enviado y fallback renderizado.
 
-### [ ] Fase 30 — sereno-browser: README
+### [x] Fase 30 — sereno-browser: README
 - **Alcance:** key pública y orígenes, `init`, Vue, React, deduplicación y límites. Tag local `browser-v0.1.0`.
 - **Archivos:** `packages/browser/README.md`
 - **Terminado cuando:** una app Vite + Vue nueva siguiendo solo el README envía un error al API local.
@@ -273,9 +273,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 27: @ascariodev/sereno-browser init(InitOptions = ClientOptions & {keepalive?: 'unload'|'never', handlers?}) nunca lanza (opciones inválidas dan un cliente inerte con INVALID_OPTIONS_NOTICE); BrowserClient extiende Client de core y aplica dedupe (fingerprint del context, o clase y ubicación; 60 s) y tope (MAX_EVENTS_PER_PAGE=100 por init) dentro de log. keepalive va por un envoltorio de fetch (no fetchOptions) solo en modo salida (pagehide o hidden; se apaga en pageshow o visible), presupuesto KEEPALIVE_BUDGET_BYTES=60000. Cliente activo en globalThis[Symbol.for('@ascariodev/sereno-browser.active')]. Solo ESM y CJS con tipos, sin bundle IIFE. En Chrome 152, keepalive con preflight de Authorization funciona.
 - 2026-10-15 — Fase 28: SerenoVue (app.use(SerenoVue, {client?, init?})); sin client ni init resuelve getClient() en cada error; context {component, info}; sin handler previo hace console.error(error) sin relanzar (como Vue); con previo lo llama después de enviar. Tipos propios VueErrorHandler y VueAppLike; vue >=3 peer opcional. README (fase 30): explicar que con el plugin Vue deja de emitir su aviso de dev.
 - 2026-10-15 — Fase 29: SerenoErrorBoundary (props children, fallback ReactNode | ({error, reset}) => ReactNode, onError después de enviar e ignorado si lanza, client; sin client usa getClient()); componentStack sin recorte propio (lo recorta el formateador). react >=18 peer opcional; react.tsx no usa JSX y el dist solo importa Component de react.
+- 2026-10-15 — Fase 30: una key wsk_ es aceptada desde el navegador (acceptsOrigin es true para fuentes server); el README de browser advierte no usarla en el front. Solo hay builds ESM y CJS para bundlers, sin bundle para <script>.
 
 ## Notas para la próxima sesión
-- Fase 29 cerrada (sereno-js 3a892fd): SerenoErrorBoundary en @ascariodev/sereno-browser/react con fallback (nodo o función {error, reset}), onError, client y componentStack en el context. Sigue la fase 30 (README de browser y prueba con una app Vite + Vue nueva siguiendo solo el README).
+- Fase 30 cerrada (sereno-js ea8f720, tag local browser-v0.1.0): README probado con una app Vite + Vue nueva siguiendo solo el README (3 eventos aceptados, 202). Bloque sereno-browser terminado. Sigue la fase 31 (web: fragmentos por lenguaje en LogSourceKeyDialog).
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -324,3 +325,5 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-33: SerenoVue: marcar el handler envuelto para no encadenarlo dos veces si el plugin se instala de nuevo [simple, haiku]
 - [ ] M-34: Declarar @types/react como peer opcional de sereno-browser (o documentarlo) para quien use TypeScript con ./react [simple, haiku]
 - [ ] M-35: Tests de SerenoErrorBoundary: error dentro de fallback, reset con un hijo que sigue fallando y una corrida con React 18 [simple, sonnet]
+- [ ] M-36: README de browser, sección React: decir que sin init previo (o client) el boundary no envía nada, aclarar 'tested with React 19' y usar ({ reset }) en el ejemplo [simple, haiku]
+- [ ] M-37: API: rechazar keys wsk_ que llegan con cabecera Origin, para que una key de servidor pegada en el front falle en vez de funcionar expuesta (cambia comportamiento: decidir antes) [media, opus]
