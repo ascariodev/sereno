@@ -220,6 +220,6 @@ describe('create in an archived project', () => {
 
     expect(screen.getByText('This project is archived; you cannot create tasks.')).toBeOnTheScreen();
     expect(screen.queryByLabelText('Title')).toBeNull();
-    useProjectsStore.getState().clear();
+    await act(async () => useProjectsStore.getState().clear());
   });
 });

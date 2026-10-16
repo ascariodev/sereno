@@ -221,6 +221,37 @@ describe('Tasks live on the board', () => {
     expect(useTasksStore.getState().tasks.find((item) => item.id === 1)?.title).toBe('Server');
   });
 
+  it('keeps the live comment count that arrives while a refresh is in flight', async () => {
+    globalThis.fetch = jest.fn(async () => json({ data: [task(1, 'todo', 1)], meta: {} })) as never;
+    await useTasksStore.getState().open(3);
+
+    const pending = deferred<Response>();
+    globalThis.fetch = jest.fn(() => pending.promise) as never;
+    let refreshed!: Promise<boolean>;
+    await act(async () => {
+      refreshed = useTasksStore.getState().refresh();
+    });
+    useTasksStore.getState().setCommentsCount(1, 4);
+    await act(async () => {
+      pending.resolve(json({ data: [task(1, 'todo', 1, { comments_count: 2 })], meta: {} }));
+      await refreshed;
+    });
+
+    expect(useTasksStore.getState().tasks[0].comments_count).toBe(4);
+  });
+
+  it('does not bring back a deleted task the server still returns', async () => {
+    globalThis.fetch = jest.fn(async () => json({ data: [task(1, 'todo', 1), task(2, 'todo', 2)], meta: {} })) as never;
+    await useTasksStore.getState().open(3);
+
+    useTasksStore.getState().remove(3, 2);
+    await act(async () => {
+      await useTasksStore.getState().refresh();
+    });
+
+    expect(ids()).toEqual([1]);
+  });
+
   it('refreshes tasks and comments once on reconnection, even with two screens mounted', async () => {
     const fetchMock = jest.fn(async (url: string) =>
       url.includes('/comments') ? json({ data: [], meta: { next_cursor: null } }) : json({ data: [task(1, 'todo', 1)], meta: {} }),

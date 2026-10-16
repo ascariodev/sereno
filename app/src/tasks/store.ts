@@ -137,6 +137,8 @@ let loadSeq = 0
 let everLoaded = false
 let latestLoad: Promise<boolean> = Promise.resolve(false)
 let tombstones = new Set<number>()
+let countStamp = 0
+let liveCounts = new Map<number, { stamp: number; count: number }>()
 
 export const useTasksStore = create<TasksState>()((set, get) => {
   function fetchAll(projectId: number, current: number): Promise<boolean> {
@@ -148,6 +150,7 @@ export const useTasksStore = create<TasksState>()((set, get) => {
   // tasks loaded before it started and missing from it were deleted.
   async function runFetch(projectId: number, current: number, seq: number): Promise<boolean> {
     const knownAtStart = new Set(get().tasks.map((task) => task.id))
+    const countsFrom = countStamp
     try {
       const response = await api.get<TaskListResponse>(`/api/projects/${projectId}/tasks`, {
         query: { done_limit: doneLimit },
@@ -162,7 +165,9 @@ export const useTasksStore = create<TasksState>()((set, get) => {
         if (task.project_id !== projectId || !isTaskStatus(task.status) || tombstones.has(task.id) || fetched.has(task.id)) continue
         fetched.add(task.id)
         const known = byId.get(task.id)
-        merged.push(known !== undefined && isStale(task, known) ? known : task)
+        const picked = known !== undefined && isStale(task, known) ? known : task
+        const counted = liveCounts.get(task.id)
+        merged.push(counted !== undefined && counted.stamp > countsFrom ? { ...picked, comments_count: counted.count } : picked)
       }
       for (const task of live) {
         if (!fetched.has(task.id) && !knownAtStart.has(task.id)) merged.push(task)
@@ -227,6 +232,7 @@ export const useTasksStore = create<TasksState>()((set, get) => {
       loadSeq++
       everLoaded = false
       tombstones = new Set()
+      liveCounts = new Map()
       doneLimit = DONE_PAGE_SIZE
       const current = generation
       set({ projectId, tasks: [], loading: true, failed: false, hasMoreDone: false, doneTotal: null, loadingMoreDone: false })
@@ -317,6 +323,12 @@ export const useTasksStore = create<TasksState>()((set, get) => {
       forget(projectId, taskId)
     },
     setCommentsCount(taskId, count) {
+      liveCounts.delete(taskId)
+      liveCounts.set(taskId, { stamp: ++countStamp, count })
+      if (liveCounts.size > MAX_TOMBSTONES) {
+        const oldest = liveCounts.keys().next()
+        if (!oldest.done) liveCounts.delete(oldest.value)
+      }
       const { tasks } = get()
       const index = tasks.findIndex((task) => task.id === taskId)
       if (index < 0) return
@@ -329,6 +341,7 @@ export const useTasksStore = create<TasksState>()((set, get) => {
       loadSeq++
       everLoaded = false
       tombstones = new Set()
+      liveCounts = new Map()
       doneLimit = DONE_PAGE_SIZE
       set({
         projectId: null,

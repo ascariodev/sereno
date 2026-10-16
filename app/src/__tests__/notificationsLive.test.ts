@@ -228,6 +228,40 @@ describe('live notifications', () => {
     expect(state().unreadCount).toBe(1);
   });
 
+  it('does not bring back a removed mention on a later page', async () => {
+    const fn = jest.fn(async (url: string) =>
+      url.includes('cursor') ? page([mention(2, 91), mention(1, 90)], 2) : page([mention(3, 92)], 3, 'c1'),
+    );
+    globalThis.fetch = fn as never;
+    state().start(1);
+    await flush();
+
+    const more = state().loadMore();
+    await act(async () => realtime.emit('.mention.removed', { organization_id: 7, message_id: 90 }));
+    await act(async () => more);
+    await flush();
+
+    expect(ids()).toEqual([3, 2]);
+  });
+
+  it('refreshes on organization change only while started', async () => {
+    const fn = jest.fn(async () => page([mention(1, 90)], 1));
+    globalThis.fetch = fn as never;
+    state().start(1);
+    await flush();
+    fn.mockClear();
+
+    await act(async () => useOrganizationStore.setState({ activeId: 8 }));
+    await flush();
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    state().stop();
+    fn.mockClear();
+    await act(async () => useOrganizationStore.setState({ activeId: 7 }));
+    await flush();
+    expect(fn).not.toHaveBeenCalled();
+  });
+
   it('refreshes after a reconnection', async () => {
     let rows = [mention(1, 90)];
     const fn = jest.fn(async () => page(rows, rows.length));

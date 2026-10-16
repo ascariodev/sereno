@@ -44,6 +44,7 @@ let stopLive: (() => void) | null = null
 const liveArrivals = new Map<number, number>()
 // Chat messages whose mention was removed, with the sequence at that moment, so a page fetched before cannot bring the row back.
 const removedMentions = new Map<number, number>()
+const MAX_REMOVED_MENTIONS = 200
 
 function toApiError(caught: unknown): ApiError {
   return caught instanceof ApiError ? caught : new ApiError(0, String(caught))
@@ -118,7 +119,12 @@ export const useNotificationsStore = create<NotificationsState>()((set, get) => 
 
   function onMentionRemoved(payload: MentionRemovedPayload): void {
     if (payload.organizationId !== useOrganizationStore.getState().activeId) return
+    removedMentions.delete(payload.messageId)
     removedMentions.set(payload.messageId, ++liveSequence)
+    if (removedMentions.size > MAX_REMOVED_MENTIONS) {
+      const oldest = removedMentions.keys().next()
+      if (!oldest.done) removedMentions.delete(oldest.value)
+    }
     const removed = get().notifications.filter(
       (row) => row.type === 'chat_mention' && row.data.message_id === payload.messageId,
     )
@@ -294,5 +300,5 @@ export const useNotificationsStore = create<NotificationsState>()((set, get) => 
 useOrganizationStore.subscribe((state, previous) => {
   if (state.activeId === previous.activeId) return
   useNotificationsStore.getState().clear()
-  if (state.activeId !== null) void useNotificationsStore.getState().refresh()
+  if (stopLive !== null && state.activeId !== null) void useNotificationsStore.getState().refresh()
 })
