@@ -265,7 +265,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [x] M-5: `ExpoPushTokenController` y `ExpoPushToken` importan el `PersonalAccessToken` de Sanctum; apuntarlos al modelo
       propio por coherencia. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-6: corregir el comentario de `RejectAccessTokens` ("public routes trigger no token lookup" no es exacto por
+- [x] M-6: corregir el comentario de `RejectAccessTokens` ("public routes trigger no token lookup" no es exacto por
       `SetLocale`) y agregar un test de token de acceso en una ruta pública (p. ej. `/api/auth/registration`).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-7: tests de `ResolveTokenOrganization`: usuario de dos organizaciones que manda `X-Organization-Id` de la otra
