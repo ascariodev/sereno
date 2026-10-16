@@ -222,7 +222,7 @@ fragmentos por lenguaje en el diálogo de la key.
   `web/src/i18n/{es,en}.json`
 - **Terminado cuando:** spec de cada pestaña con la key y la URL interpoladas, y typecheck.
 
-### [ ] Fase 32 — App móvil: fragmentos y tipo de fuente
+### [x] Fase 32 — App móvil: fragmentos y tipo de fuente
 - **Alcance:** `integrations.tsx` muestra el tipo y los mismos fragmentos que la web.
 - **Archivos:** `app/src/app/integrations.tsx`, `app/src/i18n/{es,en}.json`, su test
 - **Terminado cuando:** test de la pantalla y `npm run typecheck` en `app/`.
@@ -275,9 +275,10 @@ fragmentos por lenguaje en el diálogo de la key.
 - 2026-10-15 — Fase 29: SerenoErrorBoundary (props children, fallback ReactNode | ({error, reset}) => ReactNode, onError después de enviar e ignorado si lanza, client; sin client usa getClient()); componentStack sin recorte propio (lo recorta el formateador). react >=18 peer opcional; react.tsx no usa JSX y el dist solo importa Component de react.
 - 2026-10-15 — Fase 30: una key wsk_ es aceptada desde el navegador (acceptsOrigin es true para fuentes server); el README de browser advierte no usarla en el front. Solo hay builds ESM y CJS para bundlers, sin bundle para <script>.
 - 2026-10-15 — Fase 31: LogSourceKeyDialog usa AppSegmented; server muestra Laravel (por defecto), PHP, Node.js, Python y curl; browser solo Navegador con aviso de orígenes y sin curl. Paquetes: ascariodev/sereno-laravel, ascariodev/sereno-php, @ascariodev/sereno-node, sereno-sdk (import sereno), @ascariodev/sereno-browser (/vue). URL interpolada = config.apiUrl, base sin /api.
+- 2026-10-15 — Fase 32: app/src/integrations/snippets.ts (tabsFor, snippetsFor) replica los fragmentos de la web; sin clipboard, los fragmentos son Text selectable; la app no crea fuentes de navegador.
 
 ## Notas para la próxima sesión
-- Fase 31 cerrada: LogSourceKeyDialog con pestañas Laravel, PHP, Node.js, Python y curl (server) o solo Navegador (browser), fragmentos tomados de cada README. Sigue la fase 32 (app móvil: tipo de fuente y fragmentos), última del plan.
+- Fase 32 cerrada: la app muestra el tipo y los orígenes de cada fuente y los fragmentos por pestaña en el aviso de la key (mismo contenido que la web). Todas las fases hechas; falta la suite completa del API y cerrar el plan.
 
 ## Mejoras propuestas
 - [ ] M-1: sereno-laravel depende de sereno-php para el formateo y el transporte, en vez de duplicarlos.
@@ -329,3 +330,5 @@ fragmentos por lenguaje en el diálogo de la key.
 - [ ] M-36: README de browser, sección React: decir que sin init previo (o client) el boundary no envía nada, aclarar 'tested with React 19' y usar ({ reset }) en el ejemplo [simple, haiku]
 - [ ] M-37: API: rechazar keys wsk_ que llegan con cabecera Origin, para que una key de servidor pegada en el front falle en vez de funcionar expuesta (cambia comportamiento: decidir antes) [media, opus]
 - [ ] M-38: LogSourceKeyDialog: título 'Environment variables' sin '(.env)' en PHP, Node y Python (no leen .env), y volver a Laravel al abrir una key nueva [simple, haiku]
+- [ ] M-39: App móvil: pestañas de fragmentos con altura táctil de 44 dp y accessibilityLabel explícito [simple, haiku]
+- [ ] M-40: App móvil: alta de fuentes de navegador (selector de tipo y lista de orígenes), hoy solo en la web [media, sonnet]

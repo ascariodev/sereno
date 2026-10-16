@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, Text
 
 import { ApiError } from '@/api/client';
 import { config } from '@/config';
+import { snippetsFor, type SnippetTab, tabsFor } from '@/integrations/snippets';
 import { type ActionError, type IssuedSource, type LogSource, useIntegrationsStore } from '@/integrations/store';
 import { useOrganizationStore } from '@/organization/store';
 import { useProjectsStore } from '@/projects/store';
@@ -15,8 +16,10 @@ const NAME_MAX_LENGTH = 255;
 function KeyNotice({ issued, connected }: { issued: IssuedSource; connected: boolean }) {
   const { t } = useTranslation();
   const ingestUrl = `${config.apiUrl}/api/ingest/events`;
-  const installCommand = `composer require ascariodev/sereno-laravel && php artisan sereno:install ${issued.key} --url=${config.apiUrl}`;
-  const envBlock = `SERENO_KEY=${issued.key}\nSERENO_URL=${config.apiUrl}`;
+  const tabs = tabsFor(issued.kind);
+  const [selected, setSelected] = useState<SnippetTab>(tabs[0]);
+  const activeTab = tabs.includes(selected) ? selected : tabs[0];
+  const blocks = snippetsFor(activeTab, issued.key, config.apiUrl);
   return (
     <View style={styles.notice}>
       <Text accessibilityRole="header" style={styles.noticeTitle}>
@@ -30,18 +33,36 @@ function KeyNotice({ issued, connected }: { issued: IssuedSource; connected: boo
       <Text selectable testID="issued-key" style={styles.code}>
         {issued.key}
       </Text>
-      <Text style={styles.label}>{t('integrations.install')}</Text>
-      <Text selectable style={styles.code}>
-        {installCommand}
-      </Text>
-      <Text style={styles.label}>{t('integrations.env')}</Text>
-      <Text selectable style={styles.code}>
-        {envBlock}
-      </Text>
       <Text style={styles.label}>{t('integrations.endpoint')}</Text>
       <Text selectable style={styles.code}>
         {ingestUrl}
       </Text>
+      <View accessibilityRole="tablist" style={styles.tabs}>
+        {tabs.map((tab) => (
+          <Pressable
+            key={tab}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === activeTab }}
+            onPress={() => setSelected(tab)}
+            style={[styles.tab, tab === activeTab && styles.tabActive]}
+          >
+            <Text style={[styles.tabText, tab === activeTab && styles.tabTextActive]}>{t(`integrations.tab.${tab}`)}</Text>
+          </Pressable>
+        ))}
+      </View>
+      {activeTab === 'browser' ? (
+        <Text testID="origin-notice" style={styles.meta}>
+          {t('integrations.browserOrigin')} {issued.allowed_origins?.join(', ')}
+        </Text>
+      ) : null}
+      {blocks.map((block) => (
+        <View key={`${activeTab}-${block.id}`} style={styles.block}>
+          <Text style={styles.label}>{t(`integrations.block.${block.id}`)}</Text>
+          <Text selectable testID={`snippet-${block.id}`} style={styles.code}>
+            {block.text}
+          </Text>
+        </View>
+      ))}
       <Pressable accessibilityRole="button" onPress={() => useIntegrationsStore.getState().dismissIssued()} style={styles.primary}>
         <Text style={styles.primaryText}>{t('integrations.done')}</Text>
       </Pressable>
@@ -74,6 +95,14 @@ function SourceRow({ source, canChange, busy }: { source: LogSource; canChange: 
     <View style={styles.row}>
       <Text style={styles.sourceName}>{source.name}</Text>
       <Text style={styles.meta}>{source.key_prefix}…</Text>
+      <Text testID="source-kind" style={styles.meta}>
+        {t('integrations.kind')}: {source.kind === 'browser' ? t('integrations.kindBrowser') : t('integrations.kindServer')}
+      </Text>
+      {source.kind === 'browser' && source.allowed_origins?.length ? (
+        <Text testID="source-origins" style={styles.meta}>
+          {t('integrations.origins')}: {source.allowed_origins.join(', ')}
+        </Text>
+      ) : null}
       <Text style={styles.meta}>
         {t('integrations.lastUsed')}: {source.last_used_at ? format(source.last_used_at) : t('integrations.neverUsed')}
       </Text>
@@ -297,5 +326,10 @@ const styles = StyleSheet.create({
   noticeTitle: { fontSize: 16, fontWeight: '700' },
   warning: { fontSize: 13.5 },
   status: { fontSize: 13.5, fontWeight: '600' },
+  tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tab: { minHeight: 36, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#888' },
+  tabActive: { backgroundColor: '#111', borderColor: '#111' },
+  tabText: { fontSize: 14 },
+  tabTextActive: { color: '#fff', fontWeight: '600' },
   code: { padding: 8, borderRadius: 6, backgroundColor: '#f2f2f2', fontFamily: 'monospace', fontSize: 12.5 },
 });

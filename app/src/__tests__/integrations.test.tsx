@@ -5,6 +5,7 @@ import '@/i18n';
 
 import { api } from '@/api/client';
 import Integrations from '@/app/integrations';
+import { config } from '@/config';
 import { useIntegrationsStore } from '@/integrations/store';
 import { useOrganizationStore } from '@/organization/store';
 import { useProjectsStore } from '@/projects/store';
@@ -40,6 +41,8 @@ function source(id: number, extra: Record<string, unknown> = {}) {
     id,
     project_id: 3,
     name: `Source ${id}`,
+    kind: 'server',
+    allowed_origins: null,
     key_prefix: `srn_${id}abc`,
     last_used_at: null,
     revoked_at: null,
@@ -203,6 +206,79 @@ describe('Integrations', () => {
     });
     expect((await screen.findByTestId('issued-key')).props.children).toBe(NEW_KEY);
     expect(screen.getByText('srn_new…')).toBeTruthy();
+  });
+
+  it('shows the type of each source and the origins of the browser ones', async () => {
+    setProject();
+    globalThis.fetch = jest.fn(async () =>
+      json({ data: [source(1), source(2, { kind: 'browser', allowed_origins: ['https://a.example.com', 'http://localhost:5173'] })] }),
+    ) as never;
+    await renderScreen();
+    await screen.findByText('Source 1');
+    const kinds = screen.getAllByTestId('source-kind').map((node) => node.props.children.join(''));
+    expect(kinds).toEqual(['Type: Server', 'Type: Browser']);
+    expect(screen.getAllByTestId('source-origins')).toHaveLength(1);
+    expect(screen.getByText('Origins: https://a.example.com, http://localhost:5173')).toBeTruthy();
+  });
+
+  async function rotateWith(issued: Record<string, unknown>) {
+    setProject();
+    globalThis.fetch = jest.fn(async (url: string, init?: RequestInit) => {
+      if (isWrite(init)) return json({ data: { ...issued, key: issued.key_prefix } });
+      return json({ data: [source(1)] });
+    }) as never;
+    await renderScreen();
+    await screen.findByText('Source 1');
+    await fireEvent.press(screen.getByLabelText('Rotate key Source 1'));
+    await act(async () => {
+      pressConfirm(1);
+    });
+    await screen.findByTestId('issued-key');
+  }
+
+  it('shows every tab but Browser for a server key, with the key and the url in each snippet', async () => {
+    await rotateWith(source(1, { key_prefix: 'wsk_SERVERKEY' }));
+    expect(screen.getAllByRole('tab')).toHaveLength(5);
+    for (const label of ['Laravel', 'PHP', 'Node.js', 'Python', 'curl']) expect(screen.getByText(label)).toBeTruthy();
+    expect(screen.queryByText('Browser')).toBeNull();
+    const url = config.apiUrl;
+    expect(screen.getByTestId('snippet-install').props.children).toBe(
+      `composer require ascariodev/sereno-laravel && php artisan sereno:install wsk_SERVERKEY --url=${url}`,
+    );
+    expect(screen.getByTestId('snippet-env').props.children).toBe(`SERENO_KEY=wsk_SERVERKEY
+SERENO_URL=${url}`);
+
+    await fireEvent.press(screen.getByText('PHP'));
+    expect(screen.getByTestId('snippet-install').props.children).toBe('composer require ascariodev/sereno-php');
+    expect(screen.getByTestId('snippet-env').props.children).toContain('SERENO_KEY=wsk_SERVERKEY');
+    expect(screen.getByTestId('snippet-code').props.children).toContain('Sereno::init()');
+
+    await fireEvent.press(screen.getByText('Node.js'));
+    expect(screen.getByTestId('snippet-install').props.children).toBe('npm install @ascariodev/sereno-node');
+    expect(screen.getByTestId('snippet-env').props.children).toContain(`SERENO_URL=${url}`);
+
+    await fireEvent.press(screen.getByText('Python'));
+    expect(screen.getByTestId('snippet-install').props.children).toBe('pip install sereno-sdk');
+    expect(screen.getByTestId('snippet-code').props.children).toContain('sereno.init()');
+
+    await fireEvent.press(screen.getByText('curl'));
+    expect(screen.getByTestId('snippet-curl').props.children).toContain(`curl -X POST ${url}/api/ingest/events`);
+    expect(screen.getByTestId('snippet-curl').props.children).toContain('Bearer wsk_SERVERKEY');
+  });
+
+  it('shows only the Browser tab for a browser key, with the key, the url and the origin notice', async () => {
+    await rotateWith(source(1, { kind: 'browser', allowed_origins: ['https://app.example.com'], key_prefix: 'wsp_PUBLICKEY' }));
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
+    expect(screen.getByText('Browser')).toBeTruthy();
+    expect(screen.queryByText('Laravel')).toBeNull();
+    expect(screen.getByTestId('snippet-install').props.children).toBe('npm install @ascariodev/sereno-browser');
+    const code = screen.getByTestId('snippet-code').props.children as string;
+    expect(code).toContain(`url: '${config.apiUrl}'`);
+    expect(code).toContain("key: 'wsp_PUBLICKEY'");
+    expect(screen.getByTestId('snippet-vue').props.children).toContain('SerenoVue');
+    expect(screen.queryByTestId('snippet-env')).toBeNull();
+    expect(screen.queryByTestId('snippet-curl')).toBeNull();
+    expect(screen.getByTestId('origin-notice').props.children.join('')).toContain('https://app.example.com');
   });
 
   it('reloads the list when the rotation conflicts', async () => {
