@@ -3,7 +3,6 @@
 namespace App\Actions;
 
 use App\Events\TaskCommentCreated;
-use App\Http\Controllers\Api\TaskCommentController;
 use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TaskCommentAttachment;
@@ -27,7 +26,7 @@ class CreateTaskComment
             $this->linkAttachments($comment, $attachmentIds, $author->id);
         });
 
-        $comment->load(TaskCommentController::RELATIONS);
+        $comment->load(TaskComment::RELATIONS);
         TaskCommentCreated::dispatch($comment, $task->project_id);
 
         return $comment;

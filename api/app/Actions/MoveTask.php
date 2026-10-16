@@ -91,10 +91,10 @@ class MoveTask
             return $task;
         });
 
-        $task->load(TaskController::RELATIONS)->loadCount(TaskController::counts())->setRelation('project', $project);
+        $task->load(Task::RELATIONS)->loadCount(TaskController::counts())->setRelation('project', $project);
         TaskUpdated::dispatch($task);
 
-        Task::query()->with(TaskController::RELATIONS)->withCount(TaskController::counts())->whereKey($renumbered)->get()->each(
+        Task::query()->with(Task::RELATIONS)->withCount(TaskController::counts())->whereKey($renumbered)->get()->each(
             fn (Task $neighbor) => TaskUpdated::dispatch($neighbor->setRelation('project', $project))
         );
 

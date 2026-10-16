@@ -21,6 +21,8 @@ class Task extends Model
 
     public const DESCRIPTION_MAX_LENGTH = 10000;
 
+    public const RELATIONS = ['assignee:id,name', 'logGroup:id,level,title,status,events_count'];
+
     protected function casts(): array
     {
         return [
@@ -40,7 +42,7 @@ class Task extends Model
             ->where('organization_id', $organizationId)
             ->where('assignee_id', $userId)
             ->when($projectId !== null, fn ($query) => $query->where('project_id', $projectId))
-            ->with(TaskController::RELATIONS)
+            ->with(Task::RELATIONS)
             ->withCount(TaskController::counts())
             ->lockForUpdate()
             ->get();

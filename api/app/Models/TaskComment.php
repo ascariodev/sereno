@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['body'])]
 class TaskComment extends Model
 {
+    public const RELATIONS = ['user:id,name', 'mentionedUsers', 'attachments'];
+
     /** @use HasFactory<TaskCommentFactory> */
     use BelongsToOrganization, HasFactory;
 

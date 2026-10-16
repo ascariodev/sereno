@@ -2,7 +2,6 @@
 
 namespace App\Events;
 
-use App\Http\Controllers\Api\TaskCommentController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Resources\TaskCommentResource;
 use App\Models\TaskComment;
@@ -14,7 +13,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 /**
  * Holds the serialized comment instead of the model: the queue worker has no active organization. Loads what
- * TaskCommentController::index loads (L-66).
+ * TaskComment::RELATIONS loads (L-66).
  */
 class TaskCommentCreated implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
@@ -33,7 +32,7 @@ class TaskCommentCreated implements ShouldBroadcast, ShouldDispatchAfterCommit
     {
         $this->organizationId = $comment->organization_id;
         $this->projectId = $projectId;
-        $this->comment = (new TaskCommentResource($comment->loadMissing(TaskCommentController::RELATIONS)))->resolve();
+        $this->comment = (new TaskCommentResource($comment->loadMissing(TaskComment::RELATIONS)))->resolve();
         $this->commentsCount = (int) $comment->task()->withoutGlobalScopes()->withCount(TaskController::counts())->value('comments_count');
     }
 

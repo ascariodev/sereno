@@ -38,7 +38,7 @@ class ListBoardTasks
 
         $active = $base()
             ->where('status', '!=', TaskStatus::Done)
-            ->with(TaskController::RELATIONS)
+            ->with(Task::RELATIONS)
             ->withCount(TaskController::counts())
             ->orderByRaw($order, $bindings)
             ->orderBy('position')
@@ -51,7 +51,7 @@ class ListBoardTasks
         // New and moved tasks land at the end of the column, so the last ones by position are the most recent. The
         // cut is contiguous, which keeps drag & drop neighbors adjacent; it is returned in column order.
         $done = $doneQuery
-            ->with(TaskController::RELATIONS)
+            ->with(Task::RELATIONS)
             ->withCount(TaskController::counts())
             ->orderByDesc('position')
             ->orderByDesc('id')

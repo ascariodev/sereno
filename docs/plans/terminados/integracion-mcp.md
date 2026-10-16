@@ -279,7 +279,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - [x] M-10: extraer a una acción compartida la lógica de `LogGroupController::index`/`show` (y `levelsAtLeast`) que
       duplican las tools de log; tests de `get-log-group` con eventos fuera de retención o sobre el límite y de `page`
       inválido. Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
-- [ ] M-11: mover `TaskCommentController::RELATIONS` (y el equivalente de tareas) al modelo, para que las acciones no
+- [x] M-11: mover `TaskCommentController::RELATIONS` (y el equivalente de tareas) al modelo, para que las acciones no
       importen un controller. Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
 - [ ] M-12: alinear el orden de autorización de `create-task` con el REST (`create` antes que `view`) y test de la tool
       para el 422 lanzado dentro de los locks (proyecto archivado o acceso perdido entre validación e insert).
@@ -293,3 +293,5 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       de que `list-project-members` excluye a un `member` no asignado. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-16: `ListTaskCommentsRequest`, `ListChannelsRequest` y `ListInvitationsRequest` tienen su copia privada de
       `validCursor`; usar `CursorPaginatedRequest::isValidCursor`. Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
+- [ ] M-17: mover `MessageController::RELATIONS` al modelo `Message` (lo usan `MessageUpdated` y `ListChannelMessagesTool`),
+      como M-11 con tareas. Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet

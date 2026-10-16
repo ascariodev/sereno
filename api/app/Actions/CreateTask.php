@@ -74,7 +74,7 @@ class CreateTask
             ]);
         }
 
-        $task->load(TaskController::RELATIONS)->loadCount(TaskController::counts())->setRelation('project', $project);
+        $task->load(Task::RELATIONS)->loadCount(TaskController::counts())->setRelation('project', $project);
         TaskCreated::dispatch($task);
         ($this->notifyAssignee)($task, $actor);
 

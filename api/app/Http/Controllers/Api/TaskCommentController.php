@@ -28,12 +28,10 @@ use Throwable;
 
 class TaskCommentController extends Controller
 {
-    public const RELATIONS = ['user:id,name', 'mentionedUsers', 'attachments'];
-
     public function index(ListTaskCommentsRequest $request, Project $project, Task $task): AnonymousResourceCollection
     {
         $page = $task->comments()
-            ->with(self::RELATIONS)
+            ->with(TaskComment::RELATIONS)
             ->orderByDesc('id')
             ->cursorPaginate($request->perPage())
             ->withQueryString();
@@ -73,7 +71,7 @@ class TaskCommentController extends Controller
             $addedMentionIds = $syncMentions($comment, $task, $request->user()->id);
         });
 
-        $comment->load(self::RELATIONS);
+        $comment->load(TaskComment::RELATIONS);
 
         if ($edited || $addedMentionIds !== []) {
             TaskCommentUpdated::dispatch($comment, $project->id, $addedMentionIds);

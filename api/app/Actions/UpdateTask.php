@@ -27,7 +27,7 @@ class UpdateTask
             $task->fill($data)->save();
         });
 
-        $task->load(TaskController::RELATIONS)->loadCount(TaskController::counts())->setRelation('project', $project);
+        $task->load(Task::RELATIONS)->loadCount(TaskController::counts())->setRelation('project', $project);
         TaskUpdated::dispatch($task);
         if ($newAssigneeId !== null) {
             ($this->notifyAssignee)($task, $actor);

@@ -31,10 +31,8 @@ use Illuminate\Validation\ValidationException;
 
 class TaskController extends Controller
 {
-    public const RELATIONS = ['assignee:id,name', 'logGroup:id,level,title,status,events_count'];
-
     /**
-     * Counts loaded next to RELATIONS wherever a TaskResource is built. Comments are counted without their organization
+     * Counts loaded next to Task::RELATIONS wherever a TaskResource is built. Comments are counted without their organization
      * scope (it needs an active organization, and Task::unassignUser runs without one): the composite foreign key
      * already ties each comment to the organization of its task.
      *
@@ -70,7 +68,7 @@ class TaskController extends Controller
         throw_unless($task->project_id === $project->id, ModelNotFoundException::class);
         Gate::authorize('view', $task);
 
-        $task->load(self::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
+        $task->load(Task::RELATIONS)->loadCount(self::counts())->setRelation('project', $project);
 
         return new TaskResource($task);
     }
