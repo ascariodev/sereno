@@ -214,7 +214,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - [x] M-6: En el GET de `/api/oauth/authorize`, si la petición no trae `redirect_uri` y el cliente tiene varias, `redirect_host`
   muestra la primera; exigir `redirect_uri` o calcular el host igual que league. Complejidad: baja. Modelo: sonnet. Origen:
   revisor fase 5.
-- M-7: Sin throttle propio en `/api/oauth/authorize` (solo `auth:sanctum`). Complejidad: baja. Modelo: sonnet. Origen:
+- [x] M-7: Sin throttle propio en `/api/oauth/authorize` (solo `auth:sanctum`). Complejidad: baja. Modelo: sonnet. Origen:
   implementador fase 5.
 - M-8: Passport hace `report()` del `OAuthServerException` de cada token inválido o vencido que llega al guard `api` en
   `/mcp`; evaluar `dontReport`. Complejidad: baja. Modelo: sonnet. Origen: implementador fase 6.

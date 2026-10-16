@@ -54,6 +54,8 @@ class AppServiceProvider extends ServiceProvider
     // Claude connectors refresh from shared egress IPs, so the token endpoint gets a wider budget than registration.
     public const OAUTH_TOKEN_REQUESTS_PER_MINUTE = 60;
 
+    public const OAUTH_AUTHORIZE_REQUESTS_PER_MINUTE = 30;
+
     /**
      * Register any application services.
      */
@@ -158,6 +160,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('oauth-token', fn (Request $request) => Limit::perMinute(self::OAUTH_TOKEN_REQUESTS_PER_MINUTE)
             ->by('ip:'.$request->ip())
+            ->response($this->tooManyAttemptsResponse(...)));
+
+        RateLimiter::for('oauth-authorize', fn (Request $request) => Limit::perMinute(self::OAUTH_AUTHORIZE_REQUESTS_PER_MINUTE)
+            ->by('user:'.$request->user()->getKey())
             ->response($this->tooManyAttemptsResponse(...)));
 
         RateLimiter::for('invitation-preview', fn (Request $request) => Limit::perMinute(self::INVITATION_PREVIEWS_PER_MINUTE)

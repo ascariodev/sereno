@@ -233,3 +233,13 @@ it('translates the errors', function () {
         ->assertStatus(400)
         ->assertJsonPath('message', 'La solicitud de autorización no es válida.');
 });
+
+it('limits the consent endpoints per user and answers in json', function () {
+    foreach (range(1, 30) as $i) {
+        $this->getJson(oauthConsentQuery($this->client))->assertOk();
+    }
+
+    $this->getJson(oauthConsentQuery($this->client))
+        ->assertTooManyRequests()
+        ->assertJsonStructure(['message']);
+});
