@@ -744,7 +744,14 @@
     "env": "Environment variables (.env)",
     "curl": "Test with curl",
     "languages": "Language",
-    "tab": { "laravel": "Laravel", "php": "PHP", "node": "Node.js", "python": "Python", "browser": "Browser", "curl": "curl" },
+    "tab": {
+      "laravel": "Laravel",
+      "php": "PHP",
+      "node": "Node.js",
+      "python": "Python",
+      "browser": "Browser",
+      "curl": "curl"
+    },
     "code": "Code",
     "vue": "Vue (optional)",
     "copyCode": "Copy code",
@@ -800,5 +807,24 @@
     "copyCommand": "Copy command",
     "close": "Close",
     "done": "Done"
+  },
+  "oauthAuthorize": {
+    "title": "Connect {client} to Sereno",
+    "description": "{client} is asking to use Sereno on your behalf through MCP. You will be sent back to {host}.",
+    "unknownClient": "This application",
+    "unknownHost": "the application",
+    "scope": "It will be able to read projects, tasks, messages and log alerts, and to comment, create and move tasks as you. It cannot delete anything.",
+    "organization": "Organization",
+    "noOrganizations": "You do not belong to any organization, so you cannot connect an application.",
+    "approve": "Allow",
+    "approving": "Allowing...",
+    "deny": "Deny",
+    "denying": "Denying...",
+    "redirecting": "Returning to {host}...",
+    "invalid": "This connection request is not valid.",
+    "loadFailed": "Could not load the connection request.",
+    "actionFailed": "Could not complete the request. Try again.",
+    "network": "Could not reach the server.",
+    "retry": "Try again"
   }
 }

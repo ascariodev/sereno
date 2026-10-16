@@ -2,7 +2,7 @@
 
 **Objetivo:** que Sereno se pueda agregar como conector MCP en claude.ai con OAuth 2.1 (registro dinámico, PKCE y
 consentimiento en la web eligiendo organización), sin romper los tokens de acceso Bearer actuales de `/mcp`.
-**Estado:** en curso · Fase actual: 7
+**Estado:** en curso · Fase actual: 8
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -74,7 +74,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - **Terminado cuando:** tests: token OAuth lista proyectos de su organización; sin grant, sin scope o ex miembro dan 403;
   los tokens de acceso Bearer siguen pasando todos los tests de `tests/Feature/Mcp`.
 
-### [ ] Fase 7 — Pantalla de consentimiento en la web
+### [x] Fase 7 — Pantalla de consentimiento en la web
 - **Alcance:** ruta `/oauth/authorize` en la SPA (sin sesión, al login y de vuelta con la query intacta), muestra el
   cliente y un selector de organización, aprueba o rechaza con la API de la fase 5 y redirige a la `redirect_url`.
 - **Archivos:** `web/src/views/OAuthAuthorizeView.vue`, `web/src/router/index.ts`, `web/src/api/oauth.ts`,
@@ -152,8 +152,15 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   claves, `/mcp` sigue con tokens Bearer y responde 401, no 500. OAuth sin scope `mcp:use` = `access_token_required`, sin
   grant = `organization_forbidden`. Throttle `mcp-oauth:<oauth_access_token_id>` / `mcp-token:<id>`. Las claves de test
   salen de `usePassportTestKeys()` (`tests/Pest.php`), solo en los tests OAuth.
+- 2026-10-16 — Fase 7: `/oauth/authorize` en la SPA fuera de `AppLayout`, con sesión obligatoria (el guard manda al login con
+  `redirect=fullPath`; `safeRedirect` ya lo admitía). La query se reenvía tal cual; organización preseleccionada = la activa si
+  está en la lista, si no la primera. La redirección final solo usa el `redirect_url` del API y solo si es http(s).
 
 ## Notas para la próxima sesión
+- Tests de la web en el worktree (el servicio `web` monta el checkout principal), desde `web/` del worktree:
+  `MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W):/app" -v workspace_web-node-modules:/app/node_modules -w /app node:24 npx vitest --run <specs>`
+  (`npm run typecheck` igual).
+- Fase 11: el nginx de la web debe servir la SPA en `/oauth/authorize`. El registro desde el login del flujo OAuth no se probó.
 - Tras mergear a main: OAuth en desarrollo necesita `php artisan passport:keys` (o `PASSPORT_*`); sin claves solo valen
   los tokens Bearer.
 - Fase 6: un token OAuth toma la organización del grant actual (puede haber cambiado por re-aprobación); el parámetro
@@ -192,3 +199,8 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   Modelo: sonnet. Origen: revisor fase 5 e implementador fase 6.
 - M-10: `PassportGuards::hasPublicKey()` solo mira la clave pública; con pública sin privada `/oauth/token` falla. Comprobar
   ambas o avisar al arrancar. Complejidad: baja. Modelo: sonnet. Origen: revisor fase 6.
+- M-11: Destacar el host del `redirect_uri` en el consentimiento (línea propia o negrita, "Volverás a: claude.ai"): el nombre
+  del cliente lo elige el cliente y Claude pide mostrar el host con claridad. Complejidad: baja. Modelo: sonnet. Origen:
+  revisor fase 7.
+- M-12: Accesibilidad del consentimiento (L-25): foco al `h1` al cargar y región `aria-live` siempre presente para "Volviendo
+  a...". Complejidad: baja. Modelo: sonnet. Origen: revisor fase 7.
