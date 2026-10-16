@@ -34,7 +34,7 @@ it('requires authentication', function () {
     $this->postJson('/mcp', $this->initialize, ['Accept' => 'application/json, text/event-stream'])
         ->assertUnauthorized()
         ->assertExactJson(['message' => 'Unauthenticated.'])
-        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", error="invalid_token"');
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="'.url('/.well-known/oauth-protected-resource/mcp').'"');
 });
 
 it('rejects a session token', function () {

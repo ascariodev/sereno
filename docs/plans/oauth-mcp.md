@@ -2,7 +2,7 @@
 
 **Objetivo:** que Sereno se pueda agregar como conector MCP en claude.ai con OAuth 2.1 (registro dinámico, PKCE y
 consentimiento en la web eligiendo organización), sin romper los tokens de acceso Bearer actuales de `/mcp`.
-**Estado:** en curso · Fase actual: 2
+**Estado:** en curso · Fase actual: 3
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -34,7 +34,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - **Terminado cuando:** la suite del API pasa y un test emite un token de Passport y lo resuelve con `auth:api`, mientras
   `auth:sanctum` sigue resolviendo tokens de sesión y de acceso.
 
-### [ ] Fase 2 — Discovery de OAuth
+### [x] Fase 2 — Discovery de OAuth
 - **Alcance:** `Mcp::oauthRoutes()` y `config/mcp.php` (`authorization_server`); discovery del authorization server
   propio (ruta GET exacta, que el paquete no pisa) con `authorization_endpoint` en la web (`<web>/oauth/authorize`) y
   `token_endpoint` en Passport.
@@ -120,7 +120,14 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - 2026-10-16 — Migraciones de Passport publicadas tal cual (`oauth_clients` con UUID, excepción anotada en database.md); claves
   por la config por defecto de Passport, sin publicar `config/passport.php`.
 
+- 2026-10-16 — Fase 2: discovery propio en `OAuthDiscoveryController`; la ruta exacta `/.well-known/oauth-authorization-server`
+  va antes de `Mcp::oauthRoutes()` (el paquete la omite si existe) y la variante `/{path}` después (reemplaza la del paquete por
+  URI). `issuer` = `url('/')` (sobrescribible con `MCP_AUTHORIZATION_SERVER`), `token_endpoint_auth_methods_supported` = `['none']`
+  (DCR crea clientes públicos). `config/mcp.php` propio se fusiona con `mergeConfigFrom` (superficial): una clave presente
+  reemplaza la del paquete entera, así que la fase 3 define `redirect_domains` completo.
+
 ## Notas para la próxima sesión
+- El comando docker del worktree se pasa directo, sin `sh -c` (lo bloquea la comprobación de seguridad).
 - En el worktree, `vendor/` vive en el volumen `workspace_oauthmcp_vendor` (con Passport): los comandos llevan además
   `-v workspace_oauthmcp_vendor:/var/www/api/vendor` y, desde `api/` del worktree, `--env-file ../../../../api/.env`. Al
   cerrar el worktree, borrar el volumen; tras el merge a main, `composer install` en el vendor compartido y `restart queue`.
@@ -133,3 +140,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   Complejidad: baja (1 archivo, solución evidente). Modelo: sonnet. Origen: revisor fase 1.
 - M-2: Acortar a una línea el comentario de `User.php` sobre el trait de Passport (ya está en database.md y Decisiones).
   Complejidad: baja. Modelo: sonnet. Origen: revisor fase 1.
+- M-3: Documentar `MCP_AUTHORIZATION_SERVER` (opcional) en `api/.env.example`. Complejidad: baja. Modelo: sonnet. Origen:
+  revisor fase 2 (puede ir junto con M-1).
+- M-4: Fijar `token_endpoint_auth_methods_supported => ['none']` en el `$expected` de `OAuthDiscoveryTest`. Complejidad: baja.
+  Modelo: sonnet. Origen: revisor fase 2.
