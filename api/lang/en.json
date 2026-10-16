@@ -303,5 +303,8 @@
     "Push notifications are not configured.": "Push notifications are not configured.",
     "You are not allowed to do this.": "You are not allowed to do this.",
     "Not found.": "Not found.",
-    "Each allowed origin must be an exact origin like https://example.com, without path or trailing slash; plain http is only allowed for localhost and 127.0.0.1.": "Each allowed origin must be an exact origin like https://example.com, without path or trailing slash; plain http is only allowed for localhost and 127.0.0.1."
+    "Each allowed origin must be an exact origin like https://example.com, without path or trailing slash; plain http is only allowed for localhost and 127.0.0.1.": "Each allowed origin must be an exact origin like https://example.com, without path or trailing slash; plain http is only allowed for localhost and 127.0.0.1.",
+    "The application is not registered or its return address does not match.": "The application is not registered or its return address does not match.",
+    "The application asked for permissions that are not allowed.": "The application asked for permissions that are not allowed.",
+    "The authorization request is invalid.": "The authorization request is invalid."
 }

@@ -19,9 +19,20 @@ function token(id: number, overrides: Record<string, unknown> = {}) {
   }
 }
 
-function mockGet(tokens: unknown[]) {
+function connection(id: number, overrides: Record<string, unknown> = {}) {
+  return {
+    id,
+    client: { id: `uuid-${id}`, name: `Claude ${id}` },
+    organization: { id: 1, name: 'Acme' },
+    created_at: '2026-10-10T12:00:00Z',
+    ...overrides,
+  }
+}
+
+function mockGet(tokens: unknown[], connections: unknown[] = []) {
   return vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
     if (path === '/api/access-tokens') return { data: tokens }
+    if (path === '/api/oauth-connections') return { data: connections }
     throw new Error(`unexpected GET ${path}`)
   })
 }
@@ -110,12 +121,14 @@ describe('AccessTokensView', () => {
   it('shows an error with retry when the list fails', async () => {
     const get = vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
       if (path === '/api/access-tokens') throw new ApiError(500, 'boom', {})
+      if (path === '/api/oauth-connections') return { data: [] }
       throw new Error(`unexpected GET ${path}`)
     })
     await mountView()
     expect(wrapper!.find('[data-test=load-failed]').exists()).toBe(true)
     get.mockImplementation(async (path: string) => {
       if (path === '/api/access-tokens') return { data: [token(1)] }
+      if (path === '/api/oauth-connections') return { data: [] }
       throw new Error(`unexpected GET ${path}`)
     })
     await wrapper!.find('button[name=retry]').trigger('click')
@@ -217,12 +230,15 @@ describe('AccessTokensView', () => {
       activeId: 2,
     })
     await flushPromises()
-    expect(get).toHaveBeenCalledTimes(2)
+    expect(get).toHaveBeenCalledTimes(4)
   })
   it('discards a late list response after the organization changes', async () => {
     const stale = deferred<{ data: unknown[] }>()
     let calls = 0
-    vi.spyOn(api, 'get').mockImplementation(async () => (++calls === 1 ? stale.promise : { data: [token(2)] }))
+    vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+      if (path === '/api/oauth-connections') return { data: [] }
+      return ++calls === 1 ? stale.promise : { data: [token(2)] }
+    })
     const pinia = createPinia()
     setActivePinia(pinia)
     organization = useOrganizationStore()
@@ -245,8 +261,8 @@ describe('AccessTokensView', () => {
     await mountView()
     wrapper!.unmount()
     wrapper = undefined
-    expect(signals).toHaveLength(1)
-    expect(signals[0].aborted).toBe(true)
+    expect(signals).toHaveLength(2)
+    expect(signals.every((signal) => signal.aborted)).toBe(true)
   })
 
   it('discards a late create response after the organization changes', async () => {
@@ -299,5 +315,130 @@ describe('AccessTokensView', () => {
     late.resolve(undefined)
     await flushPromises()
     expect(toasts.value).toHaveLength(0)
+  })
+
+  describe('connections', () => {
+    it('lists the OAuth connections with the client name and date', async () => {
+      const get = mockGet([], [connection(1), connection(2)])
+      await mountView()
+      expect(get).toHaveBeenCalledWith('/api/oauth-connections', { signal: expect.any(AbortSignal) })
+      const rows = wrapper!.findAll('[data-test=connection]')
+      expect(rows.map((row) => row.find('[data-test=connection-name]').text())).toEqual(['Claude 1', 'Claude 2'])
+      expect(rows[0].find('[data-test=connection-date]').text()).not.toBe('')
+      expect(wrapper!.find('[data-test=connections-empty]').exists()).toBe(false)
+    })
+
+    it('shows the empty state', async () => {
+      mockGet([token(1)], [])
+      await mountView()
+      expect(wrapper!.find('[data-test=connections-empty]').exists()).toBe(true)
+      expect(wrapper!.findAll('[data-test=token]')).toHaveLength(1)
+    })
+
+    it('keeps the tokens when only the connections fail, and retries', async () => {
+      let fail = true
+      vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/access-tokens') return { data: [token(1)] }
+        if (path === '/api/oauth-connections') {
+          if (fail) throw new ApiError(500, 'boom', {})
+          return { data: [connection(1)] }
+        }
+        throw new Error(`unexpected GET ${path}`)
+      })
+      await mountView()
+      expect(wrapper!.find('[data-test=connections-load-failed]').exists()).toBe(true)
+      expect(wrapper!.findAll('[data-test=token]')).toHaveLength(1)
+      fail = false
+      await wrapper!.find('button[name=retry-connections]').trigger('click')
+      await flushPromises()
+      expect(wrapper!.findAll('[data-test=connection]')).toHaveLength(1)
+    })
+
+    it('asks for confirmation, disconnects and removes the row', async () => {
+      mockGet([], [connection(1), connection(2)])
+      const revoke = vi.spyOn(api, 'delete').mockResolvedValue(undefined)
+      await mountView()
+      await wrapper!.findAll('[data-test=disconnect]')[0].trigger('click')
+      await flushPromises()
+      expect(q('[data-test=disconnect-text]')!.textContent).toContain('Claude 1')
+      expect(revoke).not.toHaveBeenCalled()
+      q<HTMLButtonElement>('[data-test=disconnect-confirm]')!.click()
+      await flushPromises()
+      expect(revoke).toHaveBeenCalledWith('/api/oauth-connections/1')
+      expect(wrapper!.findAll('[data-test=connection-name]').map((el) => el.text())).toEqual(['Claude 2'])
+      expect(toasts.value.map((item) => item.kind)).toEqual(['success'])
+    })
+
+    it('cancelling does not call the API', async () => {
+      mockGet([], [connection(1)])
+      const revoke = vi.spyOn(api, 'delete')
+      await mountView()
+      await wrapper!.find('[data-test=disconnect]').trigger('click')
+      await flushPromises()
+      q<HTMLButtonElement>('[data-test=disconnect-cancel]')!.click()
+      await flushPromises()
+      expect(revoke).not.toHaveBeenCalled()
+      expect(wrapper!.findAll('[data-test=connection]')).toHaveLength(1)
+    })
+
+    it('drops a connection that is already gone on 404', async () => {
+      mockGet([], [connection(1)])
+      vi.spyOn(api, 'delete').mockRejectedValue(new ApiError(404, 'gone', {}))
+      await mountView()
+      await wrapper!.find('[data-test=disconnect]').trigger('click')
+      await flushPromises()
+      q<HTMLButtonElement>('[data-test=disconnect-confirm]')!.click()
+      await flushPromises()
+      expect(wrapper!.findAll('[data-test=connection]')).toHaveLength(0)
+      expect(toasts.value.map((item) => item.kind)).toEqual(['info'])
+    })
+
+    it('keeps the connection and reports an error when disconnecting fails', async () => {
+      mockGet([], [connection(1)])
+      vi.spyOn(api, 'delete').mockRejectedValue(new ApiError(500, 'boom', {}))
+      await mountView()
+      await wrapper!.find('[data-test=disconnect]').trigger('click')
+      await flushPromises()
+      q<HTMLButtonElement>('[data-test=disconnect-confirm]')!.click()
+      await flushPromises()
+      expect(wrapper!.findAll('[data-test=connection]')).toHaveLength(1)
+      expect(toasts.value.map((item) => item.kind)).toEqual(['error'])
+    })
+
+    it('discards a late connections response after the organization changes', async () => {
+      const stale = deferred<{ data: unknown[] }>()
+      let calls = 0
+      vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/access-tokens') return { data: [] }
+        return ++calls === 1 ? stale.promise : { data: [connection(2)] }
+      })
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      organization = useOrganizationStore()
+      organization.$patch({ organizations: [{ id: 1, name: 'Acme', slug: 'acme', settings: null, roles: ['member'] }], activeId: 1, loaded: true })
+      wrapper = mount(AccessTokensView, { attachTo: document.body, global: { plugins: [pinia, i18n] } })
+      switchOrganization()
+      await flushPromises()
+      stale.resolve({ data: [connection(1)] })
+      await flushPromises()
+      expect(wrapper.findAll('[data-test=connection-name]').map((el) => el.text())).toEqual(['Claude 2'])
+      expect(wrapper.find('[data-test=connections-loading]').exists()).toBe(false)
+    })
+
+    it('discards a late disconnect response after the organization changes', async () => {
+      mockGet([], [connection(1)])
+      const late = deferred<undefined>()
+      vi.spyOn(api, 'delete').mockImplementation(async () => late.promise)
+      await mountView()
+      await wrapper!.find('[data-test=disconnect]').trigger('click')
+      await flushPromises()
+      q<HTMLButtonElement>('[data-test=disconnect-confirm]')!.click()
+      await flushPromises()
+      switchOrganization()
+      await flushPromises()
+      late.resolve(undefined)
+      await flushPromises()
+      expect(toasts.value).toHaveLength(0)
+    })
   })
 })

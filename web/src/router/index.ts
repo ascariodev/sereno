@@ -19,6 +19,7 @@ import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import MembersView from '../views/MembersView.vue'
 import NotificationsView from '../views/NotificationsView.vue'
+import OAuthAuthorizeView from '../views/OAuthAuthorizeView.vue'
 import PlanView from '../views/PlanView.vue'
 import ProjectsView from '../views/ProjectsView.vue'
 import SessionErrorView from '../views/SessionErrorView.vue'
@@ -53,6 +54,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
       { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
       { path: '/register', name: 'register', component: RegisterView, meta: { public: true } },
       { path: '/session-error', name: 'session-error', component: SessionErrorView },
+      { path: '/oauth/authorize', name: 'oauth-authorize', component: OAuthAuthorizeView },
       { path: '/invite/:token', name: 'invite', component: InviteView, meta: { anySession: true } },
       {
         path: '/',

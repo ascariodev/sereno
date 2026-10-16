@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { createAccessToken, listAccessTokens, revokeAccessToken } from '../api/accessTokens'
+import {
+  createAccessToken,
+  listAccessTokens,
+  listOauthConnections,
+  revokeAccessToken,
+  revokeOauthConnection,
+} from '../api/accessTokens'
 import { ApiError } from '../api/client'
-import type { AccessToken, AccessTokenExpiryDays } from '../api/types'
+import type { AccessToken, AccessTokenExpiryDays, OauthConnection } from '../api/types'
 import AppButton from '../components/ui/AppButton.vue'
 import AppDialog from '../components/ui/AppDialog.vue'
 import AppFormError from '../components/ui/AppFormError.vue'
@@ -24,6 +30,11 @@ const loading = ref(false)
 const failed = ref(false)
 const pending = ref<AccessToken | null>(null)
 const revoking = ref(false)
+const connections = ref<OauthConnection[]>([])
+const connectionsLoading = ref(false)
+const connectionsFailed = ref(false)
+const pendingConnection = ref<OauthConnection | null>(null)
+const disconnecting = ref(false)
 const createOpen = ref(false)
 const issued = ref<string | null>(null)
 const name = ref('')
@@ -44,6 +55,13 @@ const confirmOpen = computed({
   get: () => pending.value !== null,
   set: (open: boolean) => {
     if (!open && !revoking.value) pending.value = null
+  },
+})
+
+const disconnectOpen = computed({
+  get: () => pendingConnection.value !== null,
+  set: (open: boolean) => {
+    if (!open && !disconnecting.value) pendingConnection.value = null
   },
 })
 
@@ -78,19 +96,39 @@ function resetForm(): void {
   formError.value = null
 }
 
+async function loadConnections(current: number, signal: AbortSignal): Promise<void> {
+  connectionsFailed.value = false
+  connectionsLoading.value = true
+  try {
+    const result = await listOauthConnections(signal)
+    if (current !== generation) return
+    connections.value = result
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error
+    if (current !== generation) return
+    connectionsFailed.value = true
+  } finally {
+    if (current === generation) connectionsLoading.value = false
+  }
+}
+
 async function load(): Promise<void> {
   const current = ++generation
   controller?.abort()
   controller = new AbortController()
+  const { signal } = controller
   tokens.value = []
+  connections.value = []
   pending.value = null
+  pendingConnection.value = null
   createOpen.value = false
   issued.value = null
   resetForm()
   failed.value = false
   loading.value = true
+  void loadConnections(current, signal)
   try {
-    const result = await listAccessTokens(controller.signal)
+    const result = await listAccessTokens(signal)
     if (current !== generation) return
     tokens.value = result
   } catch (error) {
@@ -176,6 +214,31 @@ async function confirmRevoke(): Promise<void> {
     if (current === generation) pending.value = null
   }
 }
+
+async function confirmDisconnect(): Promise<void> {
+  const target = pendingConnection.value
+  if (!target || disconnecting.value) return
+  const current = generation
+  disconnecting.value = true
+  try {
+    await revokeOauthConnection(target.id)
+    if (current !== generation) return
+    connections.value = connections.value.filter((connection) => connection.id !== target.id)
+    toast.success(t('accessTokens.disconnected', { name: target.client.name }))
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error
+    if (current !== generation) return
+    if (error.status === 404) {
+      connections.value = connections.value.filter((connection) => connection.id !== target.id)
+      toast.info(t('accessTokens.disconnectGone'))
+    } else {
+      toast.error(t('accessTokens.disconnectFailed'))
+    }
+  } finally {
+    disconnecting.value = false
+    if (current === generation) pendingConnection.value = null
+  }
+}
 </script>
 
 <template>
@@ -220,6 +283,41 @@ async function confirmRevoke(): Promise<void> {
         </button>
       </li>
     </ul>
+
+    <section class="tokens__connections" data-test="connections">
+      <h2 class="tokens__subtitle">{{ t('accessTokens.connections') }}</h2>
+      <p class="tokens__description">{{ t('accessTokens.connectionsDescription') }}</p>
+      <p v-if="connectionsLoading" data-test="connections-loading">{{ t('common.loading') }}</p>
+      <p v-else-if="connectionsFailed" role="alert" data-test="connections-load-failed">
+        {{ t('accessTokens.connectionsLoadFailed') }}
+        <button type="button" name="retry-connections" @click="load">{{ t('common.retry') }}</button>
+      </p>
+      <p v-else-if="connections.length === 0" class="tokens__empty" data-test="connections-empty">
+        {{ t('accessTokens.connectionsEmpty') }}
+      </p>
+      <ul v-else class="tokens__list">
+        <li v-for="connection in connections" :key="connection.id" class="tokens__item" data-test="connection">
+          <div class="tokens__main">
+            <strong class="tokens__name" data-test="connection-name">{{ connection.client.name }}</strong>
+          </div>
+          <dl class="tokens__details">
+            <div>
+              <dt>{{ t('accessTokens.connectedOn') }}</dt>
+              <dd data-test="connection-date">{{ formatDate(connection.created_at) }}</dd>
+            </div>
+          </dl>
+          <button
+            type="button"
+            class="tokens__revoke"
+            data-test="disconnect"
+            :aria-label="`${t('accessTokens.disconnect')} ${connection.client.name}`"
+            @click="pendingConnection = connection"
+          >
+            {{ t('accessTokens.disconnect') }}
+          </button>
+        </li>
+      </ul>
+    </section>
 
     <AppDialog v-model:open="createDialogOpen" :title="t('accessTokens.createTitle')" :close-label="t('accessTokens.cancel')">
       <form class="tokens__form" novalidate @submit.prevent="submit">
@@ -295,6 +393,20 @@ async function confirmRevoke(): Promise<void> {
         </button>
       </div>
     </AppDialog>
+
+    <AppDialog v-model:open="disconnectOpen" :title="t('accessTokens.disconnectTitle')" :close-label="t('accessTokens.cancel')">
+      <p v-if="pendingConnection" data-test="disconnect-text">
+        {{ t('accessTokens.disconnectConfirm', { name: pendingConnection.client.name }) }}
+      </p>
+      <div class="tokens__actions">
+        <button type="button" class="tokens__cancel" data-test="disconnect-cancel" :disabled="disconnecting" @click="pendingConnection = null">
+          {{ t('accessTokens.cancel') }}
+        </button>
+        <button type="button" class="tokens__confirm" data-test="disconnect-confirm" :disabled="disconnecting" @click="confirmDisconnect">
+          {{ disconnecting ? t('accessTokens.disconnecting') : t('accessTokens.disconnectAction') }}
+        </button>
+      </div>
+    </AppDialog>
   </section>
 </template>
 
@@ -325,6 +437,19 @@ async function confirmRevoke(): Promise<void> {
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.tokens__connections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.tokens__subtitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 .tokens__description {

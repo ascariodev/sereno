@@ -303,5 +303,8 @@
     "Push notifications are not configured.": "Las notificaciones push no están configuradas.",
     "You are not allowed to do this.": "No tienes permiso para hacer esto.",
     "Not found.": "No encontrado.",
-    "Each allowed origin must be an exact origin like https://example.com, without path or trailing slash; plain http is only allowed for localhost and 127.0.0.1.": "Cada origen permitido debe ser un origen exacto como https://example.com, sin ruta ni barra final; http sin cifrar solo se admite para localhost y 127.0.0.1."
+    "Each allowed origin must be an exact origin like https://example.com, without path or trailing slash; plain http is only allowed for localhost and 127.0.0.1.": "Cada origen permitido debe ser un origen exacto como https://example.com, sin ruta ni barra final; http sin cifrar solo se admite para localhost y 127.0.0.1.",
+    "The application is not registered or its return address does not match.": "La aplicación no está registrada o su dirección de retorno no coincide.",
+    "The application asked for permissions that are not allowed.": "La aplicación pidió permisos que no están permitidos.",
+    "The authorization request is invalid.": "La solicitud de autorización no es válida."
 }

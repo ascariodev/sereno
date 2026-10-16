@@ -507,3 +507,11 @@ export interface CreatedAccessToken {
   data: AccessToken
   token: string
 }
+
+/** An application (for example Claude) authorized through OAuth to use MCP as the user in one organization. */
+export interface OauthConnection {
+  id: number
+  client: { id: string; name: string }
+  organization: { id: number; name: string }
+  created_at: string
+}

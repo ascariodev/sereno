@@ -174,7 +174,7 @@ class Organization extends Model
     }
 
     /**
-     * Detaches the member, deletes their roles, project assignments, task assignments and access tokens in this organization only.
+     * Detaches the member, deletes their roles, project assignments, task assignments, access tokens and OAuth connections (grants, access and refresh tokens) in this organization only.
      *
      * @throws LastOwnerException when the user is the last owner
      * @throws ModelNotFoundException when the user is not a member
@@ -207,6 +207,8 @@ class Organization extends Model
                 ->where('organization_id', $this->id)
                 ->delete();
 
+            $this->revokeOauthConnections($user);
+
             Project::query()
                 ->withoutGlobalScopes()
                 ->whereIn('id', $projectIds)
@@ -217,6 +219,15 @@ class Organization extends Model
             OrganizationMembersChanged::dispatch($this->id, $user->id);
             TerminateUserConnections::scheduleAfterCommit($user->id);
         });
+    }
+
+    private function revokeOauthConnections(User $user): void
+    {
+        McpOauthGrant::query()
+            ->where('organization_id', $this->id)
+            ->where('user_id', $user->id)
+            ->get()
+            ->each->revoke();
     }
 
     /**
