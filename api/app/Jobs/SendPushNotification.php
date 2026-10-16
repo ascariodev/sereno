@@ -195,11 +195,11 @@ class SendPushNotification implements ShouldQueue
         }
 
         if ($this->attempt >= self::MAX_ATTEMPTS) {
-            Log::warning('Push gave up after '.self::MAX_ATTEMPTS.' attempts.', [
+            Log::warning('Push gave up after '.self::MAX_ATTEMPTS.' attempts.', array_filter([
                 'notification' => $this->notificationUuid,
                 'subscriptions' => $failedSubscriptions,
                 'expo_tokens' => $failedExpoTokens,
-            ]);
+            ], fn ($value) => $value !== []));
 
             return;
         }

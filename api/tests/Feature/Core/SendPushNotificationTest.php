@@ -218,7 +218,8 @@ it('retries only the subscriptions that failed, up to the attempt limit', functi
         ['https://push.test/laptop'],
         ['https://push.test/laptop'],
     ])->and(PushSubscription::query()->count())->toBe(2);
-    Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => str_contains($message, 'gave up'))->once();
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context) => str_contains($message, 'gave up')
+        && $context === ['notification' => $row->uuid, 'subscriptions' => [$this->laptop->id]])->once();
 });
 
 it('delays the retry of the failed subscriptions', function () {

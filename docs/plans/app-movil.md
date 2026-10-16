@@ -309,7 +309,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [x] M-4: `SendPushNotification`: envolver cada canal (web y Expo) en try/catch con `report`, para que una excepción de un
       emisor (p. ej. claves VAPID inválidas en `makeWebPush`) no deje sin enviar el otro ni pierda sus FAILED. Con test.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-5: Log "gave up" de `SendPushNotification`: omitir la lista del canal que no falló (hoy sale `subscriptions: []`).
+- [x] M-5: Log "gave up" de `SendPushNotification`: omitir la lista del canal que no falló (hoy sale `subscriptions: []`).
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-6: Quitar restos de la plantilla de Expo que no se usan: `assets/expo.icon/`, `ios.icon` y `web.output` en `app.json`,
       scripts `ios` y `web`, y dependencias sin uso (`react-native-web`, `react-dom`, `expo-glass-effect`, `expo-symbols`,
