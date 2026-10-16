@@ -2,7 +2,7 @@
 
 **Objetivo:** que Sereno se pueda agregar como conector MCP en claude.ai con OAuth 2.1 (registro dinámico, PKCE y
 consentimiento en la web eligiendo organización), sin romper los tokens de acceso Bearer actuales de `/mcp`.
-**Estado:** en curso · Fase actual: 11
+**Estado:** terminado
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -99,7 +99,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - **Archivos:** `web/src/api/accessTokens.ts`, `web/src/api/types.ts`, `web/src/views/AccessTokensView.vue`, i18n de la web.
 - **Terminado cuando:** specs de la vista: lista, vacío, revocar y respuesta tardía.
 
-### [ ] Fase 11 — Producción y documentación [manual] [riesgo]
+### [x] Fase 11 — Producción y documentación [manual] [riesgo]
 - **Alcance:** claves de Passport en el `.env` del servidor (las carga el usuario) compartidas por `app`, `queue` y
   `reverb`; deploy; agregar Sereno como conector personalizado en claude.ai y probar listar proyectos y comentar una
   tarea; documentar en `CLAUDE.md`.
@@ -167,6 +167,8 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - 2026-10-16 — Fase 10: las conexiones tienen estado propio en `AccessTokensView` y cargan en paralelo con los tokens en el
   mismo `load()` (misma generación y AbortController); si falla una lista, la otra se muestra. Textos: "aplicaciones" y
   "Desconectar".
+- 2026-10-16 — Fase 11: claves de Passport generadas con `openssl` en el servidor y cargadas en el `.env` de producción; deploy
+  con las 6 migraciones; claude.ai conectó por OAuth, listó proyectos y comentó una tarea. Documentado en `CLAUDE.md`.
 
 ## Notas para la próxima sesión
 - Fase 11 (manual): mergear `feat/oauth-mcp` a main, `composer install` en el vendor compartido, `restart queue`, `migrate`,
