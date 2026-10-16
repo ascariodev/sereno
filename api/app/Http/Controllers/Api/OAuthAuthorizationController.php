@@ -117,7 +117,29 @@ class OAuthAuthorizationController extends Controller
             throw OAuthServerException::invalidScope(implode(' ', $scopes));
         }
 
+        $this->ensureResourceIsMcp($query);
+
         return $authRequest;
+    }
+
+    /**
+     * RFC 8707: "resource" must be /mcp, the value of its protected resource metadata, so a client cannot be led to
+     * believe the token is bound to another server. It stays optional, as in the RFC, because the tokens only work
+     * on /mcp anyway.
+     *
+     * @param  array<string, mixed>  $query
+     */
+    private function ensureResourceIsMcp(array $query): void
+    {
+        if (! array_key_exists('resource', $query)) {
+            return;
+        }
+
+        $resource = $query['resource'];
+
+        if (! is_string($resource) || rtrim($resource, '/') !== url('/mcp')) {
+            throw new OAuthServerException('The requested resource is not this MCP server.', 3, 'invalid_target', 400);
+        }
     }
 
     private function redirectUri(AuthorizationRequestInterface $authRequest): string

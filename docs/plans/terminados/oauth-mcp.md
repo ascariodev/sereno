@@ -218,7 +218,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   implementador fase 5.
 - [x] M-8: Passport hace `report()` del `OAuthServerException` de cada token inválido o vencido que llega al guard `api` en
   `/mcp`; evaluar `dontReport`. Complejidad: baja. Modelo: sonnet. Origen: implementador fase 6.
-- M-9: Validar el parámetro `resource` (RFC 8707) del authorize contra la URL de `/mcp`. Complejidad: media (seguridad).
+- [x] M-9: Validar el parámetro `resource` (RFC 8707) del authorize contra la URL de `/mcp`. Complejidad: media (seguridad).
   Modelo: sonnet. Origen: revisor fase 5 e implementador fase 6.
 - M-10: `PassportGuards::hasPublicKey()` solo mira la clave pública; con pública sin privada `/oauth/token` falla. Comprobar
   ambas o avisar al arrancar. Complejidad: baja. Modelo: sonnet. Origen: revisor fase 6.
@@ -236,3 +236,6 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   conexiones, con spec. Complejidad: baja. Modelo: sonnet. Origen: revisor fase 10.
 - M-16: "Reintentar" de conexiones recarga solo las conexiones, sin borrar los tokens ni cerrar diálogos. Complejidad: baja.
   Modelo: sonnet. Origen: revisor fase 10.
+- M-17: Alinear el discovery raíz `/.well-known/oauth-protected-resource` (hoy `resource = url('/')`) para que publique
+  `url('/mcp')` con una ruta propia (como `oauth-authorization-server` en `routes/ai.php`): desde M-9 el authorize rechaza
+  `url('/')`. Complejidad: baja. Modelo: sonnet. Origen: revisor M-9.
