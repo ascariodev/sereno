@@ -290,7 +290,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - [x] M-13: llevar los locks (`lockActiveProject`, `lockAssigneeAccess`), `RELATIONS` y `counts()` de `TaskController`
       a un soporte compartido, para que `CreateTask`, `MoveTask`, `UpdateTask` y `ListBoardTasks` no dependan del controller.
       Complejidad: media · Archivos: 5 · Riesgo: concurrencia → opus
-- [ ] M-14: si se cambia de organización con un `createAccessToken` en vuelo, el token se crea pero no se muestra; avisar
+- [x] M-14: si se cambia de organización con un `createAccessToken` en vuelo, el token se crea pero no se muestra; avisar
       con un toast o revocarlo. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-15: tests de `update-task` con un usuario que ve el proyecto pero no puede actualizar la tarea (policy `update`) y
       de que `list-project-members` excluye a un `member` no asignado. Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet

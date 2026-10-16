@@ -127,7 +127,10 @@ async function submit(): Promise<void> {
   try {
     const days = expiry.value === 'never' ? null : (Number(expiry.value) as AccessTokenExpiryDays)
     const created = await createAccessToken(name.value.trim(), days)
-    if (current !== generation) return
+    if (current !== generation) {
+      toast.info(t('accessTokens.createdElsewhere', { name: created.data.name }))
+      return
+    }
     tokens.value = [created.data, ...tokens.value]
     issued.value = created.token
     createOpen.value = false
