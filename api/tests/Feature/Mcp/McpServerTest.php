@@ -67,6 +67,7 @@ it('translates the rejection', function () {
 it('rejects the access token of a former member', function () {
     $token = $this->user->createAccessToken($this->organization, 'Claude Code')->plainTextToken;
     $this->organization->users()->detach($this->user->id);
+    app(CurrentOrganization::class)->set(Organization::factory()->create());
 
     $this->postJson('/mcp', $this->initialize, ($this->bearer)($token))
         ->assertForbidden()
@@ -76,6 +77,17 @@ it('rejects the access token of a former member', function () {
         ]);
 
     expect(app(CurrentOrganization::class)->id())->toBeNull();
+});
+
+it('ignores the organization header and keeps the one of the token', function () {
+    $other = Organization::factory()->create();
+    $other->addMember($this->user, [Role::Member]);
+    $token = $this->user->createAccessToken($this->organization, 'Claude Code')->plainTextToken;
+
+    $this->postJson('/mcp', $this->initialize, [...($this->bearer)($token), 'X-Organization-Id' => (string) $other->id])
+        ->assertOk();
+
+    expect(app(CurrentOrganization::class)->id())->toBe($this->organization->id);
 });
 
 it('rejects an expired access token', function () {

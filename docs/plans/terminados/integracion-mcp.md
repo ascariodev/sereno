@@ -268,7 +268,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
 - [x] M-6: corregir el comentario de `RejectAccessTokens` ("public routes trigger no token lookup" no es exacto por
       `SetLocale`) y agregar un test de token de acceso en una ruta pública (p. ej. `/api/auth/registration`).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
-- [ ] M-7: tests de `ResolveTokenOrganization`: usuario de dos organizaciones que manda `X-Organization-Id` de la otra
+- [x] M-7: tests de `ResolveTokenOrganization`: usuario de dos organizaciones que manda `X-Organization-Id` de la otra
       (queda la del token), y en el de ex miembro fijar antes otra organización para que pruebe de verdad L-02.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → sonnet
 - [ ] M-8: extraer la consulta del tablero (orden por CASE y límite de hechas) que comparten `TaskController::index` y
