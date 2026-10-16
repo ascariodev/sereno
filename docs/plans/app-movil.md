@@ -346,7 +346,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-29: Tests de errores 404/422/429 del borrado y del `catchUp` en 404 (borrar y editar) en `messageActions.test.tsx`; tipar `t` de `deleteMessage` con `TFunction`. Complejidad baja, sonnet.
 - [ ] M-30: Store de mensajes: separar el tope de 200 de `deletedRoots` (al expulsar una entrada un snapshot tardío puede resucitar la raíz; la web solo limita `unloadedDeletions`) y sumar la guarda `listVersion` en `loadOlder` como la web. Complejidad baja, sonnet.
 - [x] M-31: `settle` debe vaciar `attachments` al borrar, como `asDeleted` de la web (cuando lleguen los adjuntos, fase 24). Complejidad baja, sonnet.
-- [ ] M-32: `threadStore.catchUp` relanza errores que no son `ApiError`/`AbortError` y se llama con `void`: tragarlos como la web para evitar rechazos sin capturar. Complejidad baja, sonnet.
+- [x] M-32: `threadStore.catchUp` relanza errores que no son `ApiError`/`AbortError` y se llama con `void`: tragarlos como la web para evitar rechazos sin capturar. Complejidad baja, sonnet.
 - [ ] M-33: Conservar el borrador de la respuesta del hilo entre aperturas de la misma raíz (`draft` de la web) y usar selectores en `thread.tsx`. Complejidad baja, sonnet.
 - [ ] M-34: Un 422 de `attachment_ids` al enviar muestra el mensaje genérico: mostrar `errors.attachment_ids[0]`; test directo de `attachment_ids` en `send` del store del canal. Complejidad baja, sonnet.
 - [ ] M-35: `TaskCreateModal`: lista de miembros en un `ScrollView` con altura máxima y comprobar en el teléfono que el teclado no tapa el modal. Complejidad baja, sonnet.

@@ -204,6 +204,17 @@ describe('thread store', () => {
     expect(thread().replies).toEqual([]);
   });
 
+  it('swallows non-API errors during catch up', async () => {
+    globalThis.fetch = jest.fn(async () => page([reply(2)], null, message(1))) as never;
+    await thread().open(50, 1);
+    globalThis.fetch = jest.fn(async () => {
+      throw new TypeError('Network request failed');
+    }) as never;
+
+    await expect(thread().catchUp()).resolves.toBeUndefined();
+    expect(ids()).toEqual([2]);
+  });
+
   it('skips catch up when the open failed', async () => {
     const fetchMock = jest.fn(async () => json({}, 500));
     globalThis.fetch = fetchMock as never;

@@ -261,8 +261,7 @@ export const useThreadStore = create<ThreadState>()((set, get) => {
           cursor = page.meta.next_cursor
           joined = lastLoadedId === null || cursor === null || page.data.some((reply) => reply.id <= lastLoadedId)
         }
-      } catch (error) {
-        if (!(error instanceof ApiError) && !(error instanceof Error && error.name === 'AbortError')) throw error
+      } catch {
         return
       }
       if (newest === null) return
