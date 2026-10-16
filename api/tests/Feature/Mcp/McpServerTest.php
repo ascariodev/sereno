@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Providers\AppServiceProvider;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\RateLimiter;
+use Laravel\Passport\Passport;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -146,4 +147,40 @@ it('throttles each access token on its own', function () {
 
     $this->postJson('/mcp', $this->initialize, ($this->bearer)($other))
         ->assertOk();
+});
+
+it('keeps answering without Passport keys', function () {
+    config(['passport.private_key' => null, 'passport.public_key' => null]);
+    Passport::loadKeysFrom(storage_path('framework/testing/missing-passport-keys'));
+    $metadata = 'Bearer realm="mcp", resource_metadata="'.url('/.well-known/oauth-protected-resource/mcp').'"';
+
+    try {
+        expect(Passport::keyPath('oauth-public.key'))->not->toBeFile();
+
+        $this->postJson('/mcp', $this->initialize, ['Accept' => 'application/json, text/event-stream'])
+            ->assertUnauthorized()
+            ->assertHeader('WWW-Authenticate', $metadata);
+
+        foreach (['not-a-token', 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln', '999|unknown'] as $invalid) {
+            $this->app['auth']->forgetGuards();
+
+            $this->postJson('/mcp', $this->initialize, ($this->bearer)($invalid))
+                ->assertUnauthorized()
+                ->assertExactJson(['message' => 'Unauthenticated.'])
+                ->assertHeader('WWW-Authenticate', $metadata);
+        }
+
+        $this->app['auth']->forgetGuards();
+
+        $this->postJson('/mcp', $this->initialize, ($this->bearer)($this->user->createAccessToken($this->organization, 'Claude Code')->plainTextToken))
+            ->assertOk();
+
+        $this->app['auth']->forgetGuards();
+
+        $this->postJson('/mcp', $this->initialize, ($this->bearer)($this->user->createToken('browser')->plainTextToken))
+            ->assertForbidden()
+            ->assertJsonPath('code', 'access_token_required');
+    } finally {
+        Passport::$keyPath = null;
+    }
 });

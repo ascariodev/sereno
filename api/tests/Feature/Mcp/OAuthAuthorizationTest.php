@@ -50,9 +50,7 @@ function oauthConsentNothingIssued(): void
 }
 
 beforeEach(function () {
-    $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
-    openssl_pkey_export($key, $privateKey);
-    config(['passport.private_key' => $privateKey, 'passport.public_key' => openssl_pkey_get_details($key)['key']]);
+    usePassportTestKeys();
 
     $this->client = app(ClientRepository::class)
         ->createAuthorizationCodeGrantClient('Claude', [OAUTH_CONSENT_CALLBACK], false);

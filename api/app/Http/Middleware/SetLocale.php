@@ -3,15 +3,17 @@
 namespace App\Http\Middleware;
 
 use App\Enums\Locale;
+use App\Support\PassportGuards;
 use Closure;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class SetLocale
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string ...$guards): Response
     {
-        $locale = $this->resolve($request);
+        $locale = $this->resolve($request, $guards ?: ['sanctum']);
 
         app()->setLocale($locale->value);
 
@@ -35,11 +37,14 @@ class SetLocale
         $response->headers->set('Vary', [...$vary, 'Accept-Language']);
     }
 
-    private function resolve(Request $request): Locale
+    /**
+     * @param  list<string>  $guards
+     */
+    private function resolve(Request $request, array $guards): Locale
     {
         $preferred = str_starts_with((string) $request->bearerToken(), 'wsk_')
             ? null
-            : $request->user('sanctum')?->locale;
+            : $this->user($request, $guards)?->locale;
 
         if ($preferred instanceof Locale) {
             return $preferred;
@@ -48,5 +53,19 @@ class SetLocale
         $fromHeader = $request->getPreferredLanguage(Locale::values());
 
         return Locale::tryFrom((string) $fromHeader) ?? Locale::default();
+    }
+
+    /**
+     * @param  list<string>  $guards
+     */
+    private function user(Request $request, array $guards): ?Authenticatable
+    {
+        foreach (PassportGuards::usable($guards) as $guard) {
+            if ($user = $request->user($guard)) {
+                return $user;
+            }
+        }
+
+        return null;
     }
 }

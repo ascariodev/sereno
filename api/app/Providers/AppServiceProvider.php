@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Passport\AccessToken;
 use Laravel\Passport\Passport;
 use Laravel\Sanctum\Sanctum;
 
@@ -139,10 +140,17 @@ class AppServiceProvider extends ServiceProvider
             ->by('user:'.$request->user()->getKey())
             ->response($this->tooManyAttemptsResponse(...)));
 
-        // Keyed on the access token, so each Claude Code connection has its own budget.
-        RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute(self::MCP_REQUESTS_PER_MINUTE)
-            ->by('mcp-token:'.$request->user()->currentAccessToken()->getKey())
-            ->response($this->tooManyAttemptsResponse(...)));
+        // Keyed on the access or OAuth token, so each Claude connection has its own budget.
+        RateLimiter::for('mcp', function (Request $request) {
+            $token = $request->user()->currentAccessToken();
+            $key = $token instanceof AccessToken
+                ? 'mcp-oauth:'.$token->oauth_access_token_id
+                : 'mcp-token:'.$token->getKey();
+
+            return Limit::perMinute(self::MCP_REQUESTS_PER_MINUTE)
+                ->by($key)
+                ->response($this->tooManyAttemptsResponse(...));
+        });
 
         RateLimiter::for('oauth-register', fn (Request $request) => Limit::perMinute(self::OAUTH_REGISTRATIONS_PER_MINUTE)
             ->by('ip:'.$request->ip())

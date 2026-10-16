@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\OAuthDiscoveryController;
+use App\Http\Middleware\AuthenticateMcp;
 use App\Http\Middleware\ResolveTokenOrganization;
 use App\Http\Middleware\SetLocale;
 use App\Mcp\Servers\SerenoServer;
@@ -27,10 +28,11 @@ Route::get('/.well-known/oauth-authorization-server/{path}', [OAuthDiscoveryCont
     ->where('path', '.*')
     ->name('mcp.oauth.authorization-server.nested');
 
-// laravel/mcp loads this file outside the api group, so RejectAccessTokens does not run here.
+// laravel/mcp loads this file outside the api group, so RejectAccessTokens does not run here. Sanctum goes first:
+// Passport's guard blanks the Authorization header when it fails to parse a token.
 Mcp::web('/mcp', SerenoServer::class)->middleware([
-    SetLocale::class,
-    'auth:sanctum',
+    SetLocale::class.':sanctum,api',
+    AuthenticateMcp::class.':sanctum,api',
     ResolveTokenOrganization::class,
     'throttle:mcp',
 ]);

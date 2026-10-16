@@ -2,7 +2,7 @@
 
 **Objetivo:** que Sereno se pueda agregar como conector MCP en claude.ai con OAuth 2.1 (registro dinámico, PKCE y
 consentimiento en la web eligiendo organización), sin romper los tokens de acceso Bearer actuales de `/mcp`.
-**Estado:** en curso · Fase actual: 6
+**Estado:** en curso · Fase actual: 7
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -65,7 +65,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   `code_verifier` y recibir access y refresh token; casos de PKCE inválido, cliente o `redirect_uri` ajenos y organización
   ajena.
 
-### [ ] Fase 6 — `/mcp` acepta tokens OAuth [riesgo]
+### [x] Fase 6 — `/mcp` acepta tokens OAuth [riesgo]
 - **Alcance:** `auth:sanctum,api` en `/mcp`; `ResolveTokenOrganization` con rama Passport (scope `mcp:use`, organización
   desde `mcp_oauth_grants`, revalidar membresía, L-02); `throttle:mcp` por token en ambos tipos; comprobar `SetLocale` y el
   401 con `resource_metadata`.
@@ -147,8 +147,15 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   `mcp:use` (si falta, se asume solo en este controller; `Passport::defaultScopes` descartado porque se aplica también a los
   personal access tokens). Re-aprobar mueve el grant (y con él los tokens ya emitidos de ese cliente y usuario) a la nueva
   organización.
+- 2026-10-16 — Fase 6: `/mcp` usa `AuthenticateMcp:sanctum,api` (Sanctum primero: el guard de Passport borra el header si no
+  lee el token) y `SetLocale:sanctum,api`. `PassportGuards::usable()` omite los guards `passport` sin clave pública: sin
+  claves, `/mcp` sigue con tokens Bearer y responde 401, no 500. OAuth sin scope `mcp:use` = `access_token_required`, sin
+  grant = `organization_forbidden`. Throttle `mcp-oauth:<oauth_access_token_id>` / `mcp-token:<id>`. Las claves de test
+  salen de `usePassportTestKeys()` (`tests/Pest.php`), solo en los tests OAuth.
 
 ## Notas para la próxima sesión
+- Tras mergear a main: OAuth en desarrollo necesita `php artisan passport:keys` (o `PASSPORT_*`); sin claves solo valen
+  los tokens Bearer.
 - Fase 6: un token OAuth toma la organización del grant actual (puede haber cambiado por re-aprobación); el parámetro
   `resource` del authorize no se valida (revisar si hace falta).
 - Los revisores no ven `vendor/` en el worktree: leer Passport y laravel/mcp desde un contenedor con el volumen
@@ -162,7 +169,8 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - `ResolveTokenOrganization` y el limiter `mcp` asumen `PersonalAccessToken` de Sanctum (fase 6).
 
 ## Mejoras propuestas
-- M-1: Revisar si `api/.env.example` debe documentar `PASSPORT_PRIVATE_KEY`/`PASSPORT_PUBLIC_KEY` (hoy solo en database.md).
+- M-1: Revisar si `api/.env.example` debe documentar `PASSPORT_PRIVATE_KEY`/`PASSPORT_PUBLIC_KEY` (hoy solo en database.md),
+  aclarando que sin `PASSPORT_PUBLIC_KEY` `/mcp` queda solo con tokens de acceso.
   Complejidad: baja (1 archivo, solución evidente). Modelo: sonnet. Origen: revisor fase 1.
 - M-2: Acortar a una línea el comentario de `User.php` sobre el trait de Passport (ya está en database.md y Decisiones).
   Complejidad: baja. Modelo: sonnet. Origen: revisor fase 1.
@@ -178,3 +186,9 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   revisor fase 5.
 - M-7: Sin throttle propio en `/api/oauth/authorize` (solo `auth:sanctum`). Complejidad: baja. Modelo: sonnet. Origen:
   implementador fase 5.
+- M-8: Passport hace `report()` del `OAuthServerException` de cada token inválido o vencido que llega al guard `api` en
+  `/mcp`; evaluar `dontReport`. Complejidad: baja. Modelo: sonnet. Origen: implementador fase 6.
+- M-9: Validar el parámetro `resource` (RFC 8707) del authorize contra la URL de `/mcp`. Complejidad: media (seguridad).
+  Modelo: sonnet. Origen: revisor fase 5 e implementador fase 6.
+- M-10: `PassportGuards::hasPublicKey()` solo mira la clave pública; con pública sin privada `/oauth/token` falla. Comprobar
+  ambas o avisar al arrancar. Complejidad: baja. Modelo: sonnet. Origen: revisor fase 6.

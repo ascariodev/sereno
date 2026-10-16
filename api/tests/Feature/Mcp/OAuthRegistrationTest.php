@@ -40,9 +40,7 @@ it('limits registration per ip', function () {
 });
 
 it('limits the token endpoint per ip and answers in json', function () {
-    $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
-    openssl_pkey_export($key, $privateKey);
-    config(['passport.private_key' => $privateKey, 'passport.public_key' => openssl_pkey_get_details($key)['key']]);
+    usePassportTestKeys();
 
     foreach (range(1, 60) as $i) {
         $this->post('/oauth/token', ['grant_type' => 'authorization_code'])->assertStatus(400)->assertJson(['error' => 'invalid_request']);
