@@ -13,7 +13,8 @@ import {
   View,
 } from 'react-native';
 
-import { ApiError, type FieldErrors } from '@/api/client';
+import { ApiError } from '@/api/client';
+import type { FieldErrors } from '@/api/types';
 import { useAuthStore } from '@/session/auth';
 
 export default function Login() {

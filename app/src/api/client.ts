@@ -1,6 +1,5 @@
 import { config } from '@/config'
-
-export type FieldErrors = Record<string, string[]>
+import type { FieldErrors } from '@/api/types'
 
 export class ApiError extends Error {
   readonly status: number

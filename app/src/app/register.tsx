@@ -13,7 +13,8 @@ import {
   View,
 } from 'react-native';
 
-import { api, ApiError, type FieldErrors } from '@/api/client';
+import { api, ApiError } from '@/api/client';
+import type { FieldErrors } from '@/api/types';
 import { useAuthStore } from '@/session/auth';
 
 type Status = 'loading' | 'open' | 'closed' | 'failed';

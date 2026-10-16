@@ -317,7 +317,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
       Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
 - [x] M-7: `app/.vscode/settings.json` reordena imports y miembros al guardar para todos: dejar solo `extensions.json`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
-- [ ] M-8: Cliente HTTP de la app: tests de timeout y cancelación con un `AbortSignal` real y de `buildUrl` con `?` en el path;
+- [x] M-8: Cliente HTTP de la app: tests de timeout y cancelación con un `AbortSignal` real y de `buildUrl` con `?` en el path;
       mover `FieldErrors` a `src/api/types.ts` cuando existan más tipos.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → haiku
 - [ ] M-9: `login` de la app: si falla la escritura del token, borrarlo de disco solo si `mine === generation` o no hay token en

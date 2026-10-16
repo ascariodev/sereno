@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
-import { api, ApiError, type FieldErrors } from '@/api/client'
+import { api, ApiError } from '@/api/client'
+import type { FieldErrors } from '@/api/types'
 import { useOrganizationStore } from '@/organization/store'
 
 export type InvitationRole = 'owner' | 'admin' | 'member'

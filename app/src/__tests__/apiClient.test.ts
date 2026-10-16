@@ -128,6 +128,66 @@ describe('api client', () => {
     await expect(client.get('/api/me')).rejects.toBe(abort)
   })
 
+  it('appends the query with & when the path already has a ?', async () => {
+    const { client, fetchMock } = setup(json({}))
+
+    await client.get('/api/items?sort=asc', { query: { page: 2 } })
+
+    expect(call(fetchMock).url).toBe('http://api.test/api/items?sort=asc&page=2')
+  })
+
+  describe('with a real AbortSignal', () => {
+    function abortableClient() {
+      const fetchMock = jest.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () => {
+              reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))
+            })
+          }),
+      )
+      return { fetchMock, client: createApiClient({ baseUrl: 'http://api.test', fetch: fetchMock as never }) }
+    }
+
+    it('passes the signal to fetch and rejects with AbortError on cancel', async () => {
+      const { client, fetchMock } = abortableClient()
+      const controller = new AbortController()
+
+      const pending = client.get('/api/me', { signal: controller.signal })
+      controller.abort()
+
+      const error = await pending.catch((e) => e)
+      expect(fetchMock.mock.calls[0][1].signal).toBe(controller.signal)
+      expect(error).not.toBeInstanceOf(ApiError)
+      expect(error).toMatchObject({ name: 'AbortError' })
+    })
+
+    it('rejects with AbortError when the signal times out', async () => {
+      const { client } = abortableClient()
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 10)
+
+      const error = await client.get('/api/me', { signal: controller.signal }).catch((e) => e)
+      clearTimeout(timer)
+
+      expect(error).not.toBeInstanceOf(ApiError)
+      expect(error).toMatchObject({ name: 'AbortError' })
+    })
+
+    it('does not notify handlers when the request is cancelled', async () => {
+      const { client } = abortableClient()
+      const unauthorized = jest.fn()
+      client.setUnauthorizedHandler(unauthorized)
+      const controller = new AbortController()
+
+      const pending = client.get('/api/me', { signal: controller.signal })
+      controller.abort()
+      await pending.catch(() => undefined)
+
+      expect(unauthorized).not.toHaveBeenCalled()
+    })
+  })
+
   it('notifies the unauthorized handler on 401 and still throws', async () => {
     const { client } = setup(json({ message: 'Unauthenticated.' }, 401))
     client.setTokenProvider(() => 'abc')
