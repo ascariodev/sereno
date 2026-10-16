@@ -89,7 +89,7 @@ class ExpoPushSender implements MobilePushSender
         if (! is_array($ticket)) {
             Log::warning('Expo push response without a ticket for a message.');
 
-            return PushSender::REJECTED;
+            return PushSender::FAILED;
         }
 
         if (($ticket['status'] ?? null) === 'ok') {

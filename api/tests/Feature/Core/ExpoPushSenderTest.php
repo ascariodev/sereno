@@ -82,10 +82,20 @@ it('maps each ticket error to its outcome', function () {
         2 => PushSender::FAILED,
         3 => PushSender::REJECTED,
         4 => PushSender::SENT,
-        5 => PushSender::REJECTED,
+        5 => PushSender::FAILED,
     ]);
     Log::shouldHaveReceived('warning')->with('Expo push ticket rejected.', ['error' => 'MessageTooBig'])->once();
     Log::shouldHaveReceived('warning')->with('Expo push response without a ticket for a message.')->once();
+});
+
+it('rejects a ticket with a sender id mismatch', function () {
+    Log::spy();
+    Http::fake([ExpoPushSender::URL => Http::response(['data' => [
+        ['status' => 'error', 'message' => 'wrong credentials', 'details' => ['error' => 'MismatchSenderId']],
+    ]])]);
+
+    expect((new ExpoPushSender)->send(expoSenderTokens(1), expoSenderMessage()))->toBe([1 => PushSender::REJECTED]);
+    Log::shouldHaveReceived('warning')->with('Expo push ticket rejected.', ['error' => 'MismatchSenderId'])->once();
 });
 
 it('marks the whole batch as failed on a 5xx or 429 so it can be retried', function (int $status) {

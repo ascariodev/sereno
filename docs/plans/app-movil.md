@@ -304,7 +304,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-2: Consultar los recibos de Expo (`/push/getReceipts`, a los ~15 min) guardando los ids de ticket, para purgar tokens
       con `DeviceNotRegistered` que el ticket no reporta. Sin esto los tokens muertos se purgan poco.
       Complejidad: alta · Archivos: 5+ (migración, job programado, emisor) · Riesgo: BD → plan nuevo
-- [ ] M-3: `ExpoPushSender`: tratar un ticket ausente (200 truncado) como FAILED y no REJECTED; test de `MismatchSenderId`.
+- [x] M-3: `ExpoPushSender`: tratar un ticket ausente (200 truncado) como FAILED y no REJECTED; test de `MismatchSenderId`.
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
 - [ ] M-4: `SendPushNotification`: envolver cada canal (web y Expo) en try/catch con `report`, para que una excepción de un
       emisor (p. ej. claves VAPID inválidas en `makeWebPush`) no deje sin enviar el otro ni pierda sus FAILED. Con test.
