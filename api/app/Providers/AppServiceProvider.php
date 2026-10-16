@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Enums\LogSourceKind;
+use App\Http\Controllers\OAuthRegisterController;
 use App\Http\Middleware\AuthenticateLogSource;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController as BaseOAuthRegisterController;
 use Laravel\Passport\AccessToken;
 use Laravel\Passport\Passport;
 use Laravel\Sanctum\Sanctum;
@@ -66,6 +68,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(CurrentOrganization::class);
         $this->app->bind(PushSender::class, WebPushSender::class);
         $this->app->bind(MobilePushSender::class, ExpoPushSender::class);
+        $this->app->bind(BaseOAuthRegisterController::class, OAuthRegisterController::class);
     }
 
     /**

@@ -25,7 +25,23 @@ it('rejects every other redirect uri', function (string $uri) {
     'http' => 'http://claude.ai/api/mcp/auth_callback',
     'loopback' => 'http://localhost:3000/callback',
     'custom scheme' => 'cursor://anysphere.cursor-retrieval/oauth',
+    'dot dot segment' => 'https://claude.ai/api/mcp/../x',
+    'dot segment' => 'https://claude.ai/api/mcp/./auth_callback',
+    'trailing dot dot' => 'https://claude.ai/api/mcp/auth_callback/..',
+    'encoded dot dot' => 'https://claude.ai/api/mcp/%2e%2e/x',
+    'uppercase encoded dot dot' => 'https://claude.ai/api/mcp/%2E%2E/x',
+    'mixed encoded dot dot' => 'https://claude.ai/api/mcp/.%2e/x',
+    'encoded dot' => 'https://claude.ai/api/mcp/%2e/auth_callback',
+    'backslash dot dot' => 'https://claude.ai/api/mcp/..\\x',
 ]);
+
+it('accepts dots that are not whole path segments', function () {
+    $uri = 'https://claude.ai/api/mcp/auth..callback/.well';
+
+    $this->postJson('/oauth/register', ['redirect_uris' => [$uri]])
+        ->assertCreated()
+        ->assertJson(['redirect_uris' => [$uri]]);
+});
 
 it('limits registration per ip', function () {
     RateLimiter::clear('oauth-register');
