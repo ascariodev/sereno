@@ -72,6 +72,32 @@ it('rejects an invalid token or platform', function (array $overrides, string $f
     'bad platform' => [['platform' => 'windows'], 'platform'],
 ]);
 
+it('rejects registration with a transient token', function () {
+    $this->actingAs(User::factory()->create(), 'web');
+
+    $this->postJson('/api/me/expo-push-tokens', expoPayload())->assertForbidden();
+
+    expect(ExpoPushToken::count())->toBe(0);
+});
+
+it('accepts a null device name', function () {
+    [, $headers] = bearer(User::factory()->create());
+
+    $this->postJson('/api/me/expo-push-tokens', expoPayload(['device_name' => null]), $headers)
+        ->assertCreated()
+        ->assertJsonPath('data.device_name', null);
+});
+
+it('limits the device name to 255 characters', function () {
+    [, $headers] = bearer(User::factory()->create());
+
+    $this->postJson('/api/me/expo-push-tokens', expoPayload(['device_name' => str_repeat('a', 256)]), $headers)
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('device_name');
+    $this->postJson('/api/me/expo-push-tokens', expoPayload(['device_name' => str_repeat('a', 255)]), $headers)
+        ->assertCreated();
+});
+
 it('deletes the own token by query string and by body', function () {
     $user = User::factory()->create();
     [, $headers] = bearer($user);

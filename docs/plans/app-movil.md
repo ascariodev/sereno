@@ -299,7 +299,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 
 ## Mejoras propuestas
 <!-- Sugerencias que surgieron y NO se implementaron. Se aplican después con /aplicar-mejoras. -->
-- [ ] M-1: Tests de `ExpoPushTokenApiTest` para la rama 403 con token transitorio y para `device_name` nulo y `max:255`.
+- [x] M-1: Tests de `ExpoPushTokenApiTest` para la rama 403 con token transitorio y para `device_name` nulo y `max:255`.
       Complejidad: baja · Archivos: 1 · Riesgo: ninguno → haiku
 - [ ] M-2: Consultar los recibos de Expo (`/push/getReceipts`, a los ~15 min) guardando los ids de ticket, para purgar tokens
       con `DeviceNotRegistered` que el ticket no reporta. Sin esto los tokens muertos se purgan poco.
