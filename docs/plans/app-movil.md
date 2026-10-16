@@ -376,7 +376,7 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [x] M-59: `messages/store.ts` `insert`: al insertar una raíz que estaba en `unloadedDeletions`, quitarla del set como hace la web (si no, al expulsarla se pierde el rebase de contadores). Complejidad baja, sonnet.
 - [x] M-60: Web: portar el arreglo de `setCommentsCount` con una recarga en vuelo (sello de contadores en `web/src/stores` del plan, como `app/src/tasks/store.ts`); hoy la web tiene la misma carrera. Complejidad baja, sonnet.
 - [x] M-61: Log: un `loadMore` que llega con un `refresh` en vuelo se descarta (M-48) y hay que volver a hacer scroll; encolarlo y correrlo al terminar el refresh. Complejidad baja, sonnet.
-- [ ] M-62: `TaskComments`: un 422 de `attachment_ids` muestra el mensaje genérico; mostrar `errors.attachment_ids[0]` como `MessageComposer` (M-34). Baja, sonnet.
+- [x] M-62: `TaskComments`: un 422 de `attachment_ids` muestra el mensaje genérico; mostrar `errors.attachment_ids[0]` como `MessageComposer` (M-34). Baja, sonnet.
 - [ ] M-63: Quitar las dependencias de plantilla sin uso de `app/package.json` (`@expo/ui`, `expo-glass-effect`, `expo-symbols`, `expo-web-browser`, `react-native-web`) tras verificar con grep, typecheck y lint; es cambio nativo: subir `version` y hacer build nuevo. Media, sonnet.
 - [ ] M-64: `session/auth.ts`: quitar la rama de `explicitLocale` de `startSession` y el `Promise<boolean>` de `login`/`register`, que quedaron muertos tras M-10; test de `clear()` del log con un `loadMore` encolado. Baja, sonnet.
 - [ ] M-65: Tests de la app: los avisos de expo-router `[Layout children]: No route named ...` (thread, tasks, log, etc.) que imprime la suite; ajustar el layout simulado o las rutas del test. Baja, sonnet.

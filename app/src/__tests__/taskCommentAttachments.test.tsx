@@ -123,6 +123,25 @@ describe('task comment attachments', () => {
     expect(screen.getAllByText('Report.pdf')).toHaveLength(1);
   });
 
+  it('shows the attachment_ids error when the server rejects the attachments on send', async () => {
+    mockApi((url, init) => {
+      if (url.endsWith('/api/projects/3/tasks/5/attachments')) return json({ data: attachment(31, 'Report.pdf') }, 201);
+      if (init?.method === 'POST') {
+        return json({ message: 'bad', errors: { attachment_ids: ['The attachment is no longer available.'] } }, 422);
+      }
+      return page([]);
+    });
+    await mount();
+    await pickDocument('Report.pdf');
+    expect(await screen.findByText('Report.pdf')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Add a comment'), 'See file');
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: 'Comment' }));
+    });
+
+    expect(await screen.findByText('The attachment is no longer available.')).toBeOnTheScreen();
+  });
+
   it('blocks sending while an upload is in flight and sends no ids when there are none', async () => {
     let finish!: (response: Response) => void;
     const fn = mockApi((url, init) => {

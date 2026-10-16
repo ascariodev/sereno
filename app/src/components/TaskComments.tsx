@@ -318,7 +318,7 @@ export function TaskComments({ projectId, taskId }: { projectId: number; taskId:
     } catch (caught) {
       if (!(caught instanceof ApiError)) throw caught;
       if (!mounted.current) return;
-      if (caught.status === 422) setErrorText(caught.errors.body?.[0] ?? caught.message);
+      if (caught.status === 422) setErrorText(caught.errors.body?.[0] ?? caught.errors.attachment_ids?.[0] ?? caught.message);
       else if (caught.status === 429) setErrorText(t('taskComments.tooManyAttempts'));
       else if (caught.status === 0) setErrorText(t('taskComments.network'));
       else setErrorText(t('taskComments.sendFailed'));
