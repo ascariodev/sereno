@@ -378,6 +378,17 @@ describe('TaskAside', () => {
     expect(q('[data-test="origin-link"]')).toBeNull()
   })
 
+  it('marks a task created through MCP', async () => {
+    await mountAside({ ...base, source: 'mcp' })
+    expect(q('[data-test="task-source"]')?.textContent).toBe('via Claude')
+  })
+
+  it('has no MCP mark for a task created from the web', async () => {
+    await mountAside({ ...base, source: null })
+    expect(q('.task-aside')).not.toBeNull()
+    expect(q('[data-test="task-source"]')).toBeNull()
+  })
+
   it('loads a task that is not on the board and shows it', async () => {
     const get = vi.spyOn(tasksApi, 'getTask').mockResolvedValue(base)
     const { wrapper } = await mountAside(null)

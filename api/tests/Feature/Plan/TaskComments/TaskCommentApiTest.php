@@ -48,9 +48,10 @@ it('creates a comment authored by the caller', function () {
         ->assertCreated()
         ->assertJsonPath('data.body', 'Hello **world**')
         ->assertJsonPath('data.user.id', $this->member->id)
-        ->assertJsonPath('data.task_id', $this->task->id);
+        ->assertJsonPath('data.task_id', $this->task->id)
+        ->assertJsonPath('data.source', null);
 
-    expect(TaskComment::query()->where('task_id', $this->task->id)->count())->toBe(1);
+    expect(TaskComment::query()->where('task_id', $this->task->id)->sole()->source)->toBeNull();
 });
 
 it('returns a null edited_at for a new comment', function () {

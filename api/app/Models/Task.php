@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ContentSource;
 use App\Enums\TaskStatus;
 use App\Events\TaskUpdated;
 use App\Models\Concerns\BelongsToOrganization;
@@ -40,6 +41,7 @@ class Task extends Model
     {
         return [
             'status' => TaskStatus::class,
+            'source' => ContentSource::class,
             'number' => 'integer',
             'position' => 'float',
         ];

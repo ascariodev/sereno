@@ -88,6 +88,8 @@ export function isTaskStatus(value: unknown): value is TaskStatus {
   return typeof value === 'string' && (TASK_STATUSES as readonly string[]).includes(value)
 }
 
+export type ContentSource = 'mcp'
+
 /** Task as returned by `TaskResource`. Dates are ISO UTC with microseconds (`2026-10-10T00:41:21.927755Z`). */
 export interface Task {
   id: number
@@ -100,6 +102,8 @@ export interface Task {
   /** Order inside the column. A float: can be zero or negative (moved to the top) and fractional. */
   position: number
   created_by: number | null
+  /** `mcp` when created by Claude through the MCP server; null from the web or the app. */
+  source?: ContentSource | null
   /** Null when unassigned; absent only if the API does not load the relation. */
   assignee?: TaskAssignee | null
   /** Origin notice; null when the task has none or the group was deleted. */
@@ -429,6 +433,8 @@ export interface TaskComment {
   id: number
   task_id: number
   body: string
+  /** `mcp` when written by Claude through the MCP server; null from the web or the app. */
+  source?: ContentSource | null
   user: Pick<User, 'id' | 'name'> | null
   mentions: { id: number; name: string }[]
   attachments: MessageAttachment[]

@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Enums\ContentSource;
 use App\Events\TaskCommentCreated;
 use App\Models\Task;
 use App\Models\TaskComment;
@@ -15,10 +16,11 @@ class CreateTaskComment
     public function __construct(private readonly SyncTaskCommentMentions $syncMentions) {}
 
     /** @param  list<int>  $attachmentIds */
-    public function __invoke(Task $task, User $author, string $body, array $attachmentIds = []): TaskComment
+    public function __invoke(Task $task, User $author, string $body, array $attachmentIds = [], ?ContentSource $source = null): TaskComment
     {
         $comment = $task->comments()->make(['body' => $body]);
         $comment->user_id = $author->id;
+        $comment->source = $source;
 
         DB::transaction(function () use ($comment, $task, $author, $attachmentIds) {
             $comment->save();

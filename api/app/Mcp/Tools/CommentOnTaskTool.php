@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Actions\CreateTaskComment;
+use App\Enums\ContentSource;
 use App\Http\Requests\TaskComment\StoreTaskCommentRequest;
 use App\Http\Resources\TaskCommentResource;
 use App\Models\Organization;
@@ -53,7 +54,7 @@ class CommentOnTaskTool extends Tool
 
         $arguments = $request->validate(['body' => (new StoreTaskCommentRequest)->rules()['body']]);
 
-        $comment = app(CreateTaskComment::class)($task, $user, $arguments['body']);
+        $comment = app(CreateTaskComment::class)($task, $user, $arguments['body'], source: ContentSource::Mcp);
 
         return $this->structured(['data' => (new TaskCommentResource($comment))->resolve()]);
     }

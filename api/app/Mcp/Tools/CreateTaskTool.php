@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Actions\CreateTask;
+use App\Enums\ContentSource;
 use App\Enums\TaskStatus;
 use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Resources\TaskResource;
@@ -66,6 +67,7 @@ class CreateTaskTool extends Tool
             TaskStatus::tryFrom($data['status'] ?? '') ?? TaskStatus::Todo,
             $data['assignee_id'] ?? null,
             $data['log_group_id'] ?? null,
+            ContentSource::Mcp,
         );
 
         return $this->structured(['data' => (new TaskResource($task))->resolve()]);

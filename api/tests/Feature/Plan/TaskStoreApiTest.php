@@ -62,6 +62,7 @@ it('creates a task with the creator, the full resource and status 201', function
         ->assertJsonPath('data.description', 'It happens at night.')
         ->assertJsonPath('data.status', 'in_progress')
         ->assertJsonPath('data.created_by', $this->member->id)
+        ->assertJsonPath('data.source', null)
         ->assertJsonPath('data.assignee.id', $this->member->id)
         ->assertJsonPath('data.assignee.name', $this->member->name)
         ->assertJsonPath('data.log_group.id', $group->id)
@@ -70,7 +71,8 @@ it('creates a task with the creator, the full resource and status 201', function
     $task = storedTasks($this->project)->sole();
     expect($task->organization_id)->toBe($this->organization->id)
         ->and($task->created_by)->toBe($this->member->id)
-        ->and($task->log_group_id)->toBe($group->id);
+        ->and($task->log_group_id)->toBe($group->id)
+        ->and($task->fresh()->source)->toBeNull();
 });
 
 it('posts a system notice in the project channel when the task comes from a log group', function () {

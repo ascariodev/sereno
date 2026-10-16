@@ -2,7 +2,8 @@
   "common": {
     "localeSaveFailed": "No se pudo guardar tu idioma. Se aplicó solo en este dispositivo.",
     "loading": "Cargando...",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "viaClaude": "vía Claude"
   },
   "toast": {
     "region": "Notificaciones",

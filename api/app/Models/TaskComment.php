@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ContentSource;
 use App\Models\Concerns\BelongsToOrganization;
 use Database\Factories\TaskCommentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -25,6 +26,7 @@ class TaskComment extends Model
     {
         return [
             'edited_at' => 'datetime',
+            'source' => ContentSource::class,
         ];
     }
 

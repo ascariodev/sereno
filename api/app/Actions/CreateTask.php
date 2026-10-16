@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Enums\ContentSource;
 use App\Enums\TaskStatus;
 use App\Events\TaskCreated;
 use App\Models\Channel;
@@ -26,9 +27,10 @@ class CreateTask
         TaskStatus $status,
         ?int $assigneeId,
         ?int $logGroupId,
+        ?ContentSource $source = null,
     ): Task {
         try {
-            $task = DB::transaction(function () use ($project, $actor, $title, $description, $status, $assigneeId, $logGroupId) {
+            $task = DB::transaction(function () use ($project, $actor, $title, $description, $status, $assigneeId, $logGroupId, $source) {
                 TaskLocks::lockAssigneeAccess($project, $assigneeId);
                 TaskLocks::lockActiveProject($project, __('This project is archived and cannot have new tasks.'));
 
@@ -54,6 +56,7 @@ class CreateTask
                 $task->assignee_id = $assigneeId;
                 $task->log_group_id = $logGroupId;
                 $task->created_by = $actor->id;
+                $task->source = $source;
                 $task->save();
 
                 if ($task->log_group_id !== null) {

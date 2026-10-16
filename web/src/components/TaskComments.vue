@@ -301,6 +301,7 @@ async function submit(): Promise<void> {
         <div class="task-comments__main">
           <p class="task-comments__meta">
             <span class="task-comments__author" data-test="comment-author">{{ comment.user?.name ?? t('taskComments.deletedUser') }}</span>
+            <span v-if="comment.source === 'mcp'" class="task-comments__source" data-test="comment-source">{{ t('common.viaClaude') }}</span>
             <time :datetime="comment.created_at" :title="fullDate(comment.created_at)">{{ when(comment.created_at) }}</time>
             <AppTooltip v-if="comment.edited_at" :text="t('message.editedAt', { date: fullDate(comment.edited_at) })">
               <span class="task-comments__edited" data-test="comment-edited"><span aria-hidden="true">{{ t('message.edited') }}</span><span class="task-comments__sr">{{ t('message.editedAt', { date: fullDate(comment.edited_at) }) }}</span></span>
@@ -506,6 +507,14 @@ async function submit(): Promise<void> {
 .task-comments__edited {
   font-size: 12px;
   color: var(--ink-3);
+}
+.task-comments__source {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 600;
 }
 .task-comments__tools {
   margin-left: auto;

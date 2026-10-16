@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ContentSource;
 use App\Enums\NotificationType;
 use App\Enums\Role;
 use App\Events\TaskAssigned;
@@ -49,12 +50,14 @@ it('creates the task, emits the event and numbers it', function () {
         ->assertStructuredContent(fn ($json) => $json
             ->where('data.title', 'Fix login')
             ->where('data.status', 'in_progress')
+            ->where('data.source', 'mcp')
             ->etc());
 
     $task = Task::query()->sole();
     expect($task->created_by)->toBe($this->member->id)
         ->and($task->number)->toBe(1)
-        ->and($task->description)->toBe('Details');
+        ->and($task->description)->toBe('Details')
+        ->and($task->source)->toBe(ContentSource::Mcp);
     Event::assertDispatched(TaskCreated::class);
 });
 

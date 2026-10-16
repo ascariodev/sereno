@@ -262,7 +262,7 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       Complejidad: alta · Archivos: 8+ · Riesgo: seguridad → plan nuevo
 - [x] M-2: tool `update-task` (título, descripción, asignado) y `list-project-members` para elegir asignado.
       Complejidad: media · Archivos: 4 · Riesgo: ninguno → sonnet
-- [ ] M-3: marcar el origen "vía MCP" en comentarios y tareas creadas por Claude.
+- [x] M-3: marcar el origen "vía MCP" en comentarios y tareas creadas por Claude.
       Complejidad: media · Archivos: 5 · Riesgo: BD → opus
 - [x] M-4: revocar los tokens de acceso de un usuario al sacarlo de la organización (hoy solo dejan de funcionar).
       Complejidad: baja · Archivos: 2 · Riesgo: ninguno → sonnet
@@ -298,3 +298,5 @@ usuario dueño del token y con sus permisos. Los tokens se crean, listan y revoc
       `validCursor`; usar `CursorPaginatedRequest::isValidCursor`. Complejidad: baja · Archivos: 3 · Riesgo: ninguno → sonnet
 - [ ] M-17: mover `MessageController::RELATIONS` al modelo `Message` (lo usan `MessageUpdated` y `ListChannelMessagesTool`),
       como M-11 con tareas. Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
+- [ ] M-18: mostrar la marca "vía Claude" (`source = mcp`) en la app móvil: tipos de `app/src/tasks/store.ts` y
+      `app/src/tasks/comments.ts`, y la etiqueta en el detalle y los comentarios. Complejidad: baja · Archivos: 4 · Riesgo: ninguno → sonnet
