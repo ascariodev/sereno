@@ -274,6 +274,7 @@ describe('Log group detail', () => {
       fireEvent.press(await screen.findByText('Resolve'));
     });
     await screen.findByText('Marked as resolved');
+    await waitFor(() => expect(useLogStore.getState().groups.map((item) => item.id)).toEqual([2, 3]));
     await act(async () => {
       await useLogStore.getState().loadMore();
     });

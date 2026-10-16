@@ -98,6 +98,7 @@ const initial = {
 }
 
 let generation = 0
+let refreshing: number | null = null
 
 export const useLogStore = create<LogState>()((set, get) => ({
   ...initial,
@@ -133,7 +134,7 @@ export const useLogStore = create<LogState>()((set, get) => ({
 
   async loadMore() {
     const { projectId, status, level, page, lastPage, loading, loadingMore } = get()
-    if (projectId === null || loading || loadingMore || page >= lastPage) return
+    if (projectId === null || loading || loadingMore || refreshing !== null || page >= lastPage) return
     const current = ++generation
     set({ loadingMore: true, actionFailed: false })
     try {
@@ -155,6 +156,7 @@ export const useLogStore = create<LogState>()((set, get) => ({
     const { projectId, status, level, page, everLoaded } = get()
     if (projectId === null) return
     const current = ++generation
+    refreshing = current
     if (!everLoaded) set({ loading: true, failed: false, notFound: false })
     try {
       let groups: LogGroup[] = []
@@ -174,6 +176,8 @@ export const useLogStore = create<LogState>()((set, get) => ({
       if (isNotFound(caught)) set({ groups: [], loading: false, loadingMore: false, notFound: true })
       else if (everLoaded) set({ loading: false, loadingMore: false })
       else set({ loading: false, failed: true })
+    } finally {
+      if (refreshing === current) refreshing = null
     }
   },
 
