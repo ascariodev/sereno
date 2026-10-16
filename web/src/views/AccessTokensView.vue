@@ -45,6 +45,7 @@ const formError = ref<string | null>(null)
 const nameInput = ref<InstanceType<typeof AppInput> | null>(null)
 let generation = 0
 let controller: AbortController | null = null
+let connectionsController: AbortController | null = null
 const root = ref<HTMLElement | null>(null)
 const tokensTitle = ref<HTMLElement | null>(null)
 const connectionsTitle = ref<HTMLElement | null>(null)
@@ -121,9 +122,18 @@ async function loadConnections(current: number, signal: AbortSignal): Promise<vo
   }
 }
 
+function retryConnections(): void {
+  if (connectionsLoading.value) return
+  connectionsController?.abort()
+  connectionsController = new AbortController()
+  void loadConnections(generation, connectionsController.signal)
+}
+
 async function load(): Promise<void> {
   const current = ++generation
   controller?.abort()
+  connectionsController?.abort()
+  connectionsController = null
   controller = new AbortController()
   const { signal } = controller
   tokens.value = []
@@ -160,6 +170,7 @@ watch(createOpen, (value) => {
 onUnmounted(() => {
   generation++
   controller?.abort()
+  connectionsController?.abort()
 })
 
 function setExpiry(value: string): void {
@@ -324,7 +335,7 @@ async function confirmDisconnect(): Promise<void> {
       <p v-if="connectionsLoading" data-test="connections-loading">{{ t('common.loading') }}</p>
       <p v-else-if="connectionsFailed" role="alert" data-test="connections-load-failed">
         {{ t('accessTokens.connectionsLoadFailed') }}
-        <button type="button" name="retry-connections" @click="load">{{ t('common.retry') }}</button>
+        <button type="button" name="retry-connections" @click="retryConnections">{{ t('common.retry') }}</button>
       </p>
       <p v-else-if="connections.length === 0" class="tokens__empty" data-test="connections-empty">
         {{ t('accessTokens.connectionsEmpty') }}

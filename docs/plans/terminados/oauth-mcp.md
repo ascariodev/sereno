@@ -234,7 +234,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   abortar). Complejidad: baja. Modelo: sonnet. Origen: revisor fase 10.
 - [x] M-15: Foco tras desconectar o revocar (L-65): al quitar la fila, el foco va al vecino o al encabezado, en tokens y
   conexiones, con spec. Complejidad: baja. Modelo: sonnet. Origen: revisor fase 10.
-- M-16: "Reintentar" de conexiones recarga solo las conexiones, sin borrar los tokens ni cerrar diálogos. Complejidad: baja.
+- [x] M-16: "Reintentar" de conexiones recarga solo las conexiones, sin borrar los tokens ni cerrar diálogos. Complejidad: baja.
   Modelo: sonnet. Origen: revisor fase 10.
 - M-17: Alinear el discovery raíz `/.well-known/oauth-protected-resource` (hoy `resource = url('/')`) para que publique
   `url('/mcp')` con una ruta propia (como `oauth-authorization-server` en `routes/ai.php`): desde M-9 el authorize rechaza
@@ -242,3 +242,5 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - M-18: Si un grant pasa de la organización A a la B mientras se expulsa al usuario de A, `revokeOauthConnections` puede leer
   la versión vieja y borrar el grant ya movido (revoca de más, sin acceso indebido): bloquear o releer los grants bajo el
   lock. Complejidad: baja. Modelo: sonnet. Origen: revisor M-13.
+- M-19: Tras "Reintentar" de conexiones el botón desaparece y se pierde el foco: llevarlo a `connectionsTitle` al terminar
+  (como M-15). Complejidad: baja. Modelo: sonnet. Origen: revisor M-16.

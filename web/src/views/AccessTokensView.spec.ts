@@ -384,6 +384,30 @@ describe('AccessTokensView', () => {
       expect(wrapper!.findAll('[data-test=connection]')).toHaveLength(1)
     })
 
+    it('retrying the connections reloads only them and keeps open dialogs and tokens', async () => {
+      let fail = true
+      const get = vi.spyOn(api, 'get').mockImplementation(async (path: string) => {
+        if (path === '/api/access-tokens') return { data: [token(1)] }
+        if (path === '/api/oauth-connections') {
+          if (fail) throw new ApiError(500, 'boom', {})
+          return { data: [connection(1)] }
+        }
+        throw new Error(`unexpected GET ${path}`)
+      })
+      await mountView()
+      await wrapper!.find('[data-test=revoke]').trigger('click')
+      await flushPromises()
+      expect(q('[data-test=confirm-text]')).not.toBeNull()
+      get.mockClear()
+      fail = false
+      await wrapper!.find('button[name=retry-connections]').trigger('click')
+      await flushPromises()
+      expect(get.mock.calls.map((call) => call[0])).toEqual(['/api/oauth-connections'])
+      expect(wrapper!.findAll('[data-test=token]')).toHaveLength(1)
+      expect(wrapper!.findAll('[data-test=connection]')).toHaveLength(1)
+      expect(q('[data-test=confirm-text]')).not.toBeNull()
+    })
+
     it('asks for confirmation, disconnects and removes the row', async () => {
       mockGet([], [connection(1), connection(2)])
       const revoke = vi.spyOn(api, 'delete').mockResolvedValue(undefined)
