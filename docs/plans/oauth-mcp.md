@@ -2,7 +2,7 @@
 
 **Objetivo:** que Sereno se pueda agregar como conector MCP en claude.ai con OAuth 2.1 (registro dinámico, PKCE y
 consentimiento en la web eligiendo organización), sin romper los tokens de acceso Bearer actuales de `/mcp`.
-**Estado:** en curso · Fase actual: 3
+**Estado:** en curso · Fase actual: 4
 <!-- El hook plan-state busca "en curso" en esta línea. Al terminar el plan: "terminado". -->
 
 ## Contexto mínimo
@@ -42,7 +42,7 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
 - **Terminado cuando:** tests del discovery: protected resource y authorization server con endpoints, S256 y `mcp:use`; el
   401 de `/mcp` trae `resource_metadata`.
 
-### [ ] Fase 3 — Registro dinámico restringido
+### [x] Fase 3 — Registro dinámico restringido
 - **Alcance:** `redirect_domains` solo de claude.ai/claude.com (verificar los dominios de callback reales), throttle en
   `/oauth/register` y `/oauth/token`, errores en JSON.
 - **Archivos:** `api/config/mcp.php`, `api/bootstrap/app.php`, `api/app/Providers/AppServiceProvider.php`.
@@ -132,8 +132,14 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   requisitos de Claude para fases 5, 6 y 11: `/oauth/token` con form-urlencoded, `invalid_grant` al refresh inválido, rotar
   refresh tokens (clientes públicos), respuesta en menos de 10 s, `resource` del protected resource igual a la URL que se
   pega en claude.ai (con `/mcp`), y la pantalla de consentimiento muestra el host del `redirect_uri`.
+- 2026-10-16 — Fase 3: `redirect_domains` = `['https://claude.ai/api/mcp/']` y `custom_schemes` = `[]` (el paquete valida con
+  `startsWith(dominio + '/')`: el URI exacto no sirve como entrada; se acepta cualquier ruta bajo `/api/mcp/` de claude.ai).
+  `Passport::ignoreRoutes()`: solo queda `/oauth/token`, registrado en `routes/ai.php` (`AccessTokenController@issueToken`,
+  nombre `passport.token`). Throttle por IP: `oauth-register` 10/min y `oauth-token` 60/min; `oauth/*` responde en JSON.
 
 ## Notas para la próxima sesión
+- Los revisores no ven `vendor/` en el worktree: leer Passport y laravel/mcp desde un contenedor con el volumen
+  `workspace_oauthmcp_vendor` montado.
 - El comando docker del worktree se pasa directo, sin `sh -c` (lo bloquea la comprobación de seguridad).
 - En el worktree, `vendor/` vive en el volumen `workspace_oauthmcp_vendor` (con Passport): los comandos llevan además
   `-v workspace_oauthmcp_vendor:/var/www/api/vendor` y, desde `api/` del worktree, `--env-file ../../../../api/.env`. Al
@@ -151,3 +157,6 @@ consentimiento en la web eligiendo organización), sin romper los tokens de acce
   revisor fase 2 (puede ir junto con M-1).
 - M-4: Fijar `token_endpoint_auth_methods_supported => ['none']` en el `$expected` de `OAuthDiscoveryTest`. Complejidad: baja.
   Modelo: sonnet. Origen: revisor fase 2.
+- M-5: Rechazar `..` (o normalizar la ruta) en los `redirect_uris` del DCR: hoy `https://claude.ai/api/mcp/../x` pasa el
+  prefijo (mismo host, riesgo mínimo); para exigir el URI exacto habría que sobrescribir el controller del DCR.
+  Complejidad: media (seguridad, 2 archivos). Modelo: sonnet. Origen: revisor fase 3.

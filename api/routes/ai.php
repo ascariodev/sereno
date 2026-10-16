@@ -6,6 +6,7 @@ use App\Http\Middleware\SetLocale;
 use App\Mcp\Servers\SerenoServer;
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Facades\Mcp;
+use Laravel\Passport\Http\Controllers\AccessTokenController;
 
 // The package skips its own authorization-server document when an exact GET route exists, and its nested
 // route is overridden below, so every discovery path serves ours (authorization_endpoint lives in the web app).
@@ -13,6 +14,14 @@ Route::get('/.well-known/oauth-authorization-server', [OAuthDiscoveryController:
     ->name('mcp.oauth.authorization-server');
 
 Mcp::oauthRoutes();
+
+Route::getRoutes()->refreshNameLookups();
+Route::getRoutes()->getByName('mcp.oauth.register')->middleware('throttle:oauth-register');
+
+// Passport's own routes are ignored (AppServiceProvider); only the token endpoint is exposed, outside the web group.
+Route::post('/oauth/token', [AccessTokenController::class, 'issueToken'])
+    ->middleware('throttle:oauth-token')
+    ->name('passport.token');
 
 Route::get('/.well-known/oauth-authorization-server/{path}', [OAuthDiscoveryController::class, 'authorizationServer'])
     ->where('path', '.*')

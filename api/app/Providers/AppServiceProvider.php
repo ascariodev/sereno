@@ -48,11 +48,18 @@ class AppServiceProvider extends ServiceProvider
 
     public const MCP_REQUESTS_PER_MINUTE = 120;
 
+    public const OAUTH_REGISTRATIONS_PER_MINUTE = 10;
+
+    // Claude connectors refresh from shared egress IPs, so the token endpoint gets a wider budget than registration.
+    public const OAUTH_TOKEN_REQUESTS_PER_MINUTE = 60;
+
     /**
      * Register any application services.
      */
     public function register(): void
     {
+        // Only /oauth/token is kept (routes/ai.php); the session-based authorize and device routes do not fit a SPA.
+        Passport::ignoreRoutes();
         $this->app->scoped(CurrentOrganization::class);
         $this->app->bind(PushSender::class, WebPushSender::class);
         $this->app->bind(MobilePushSender::class, ExpoPushSender::class);
@@ -135,6 +142,14 @@ class AppServiceProvider extends ServiceProvider
         // Keyed on the access token, so each Claude Code connection has its own budget.
         RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute(self::MCP_REQUESTS_PER_MINUTE)
             ->by('mcp-token:'.$request->user()->currentAccessToken()->getKey())
+            ->response($this->tooManyAttemptsResponse(...)));
+
+        RateLimiter::for('oauth-register', fn (Request $request) => Limit::perMinute(self::OAUTH_REGISTRATIONS_PER_MINUTE)
+            ->by('ip:'.$request->ip())
+            ->response($this->tooManyAttemptsResponse(...)));
+
+        RateLimiter::for('oauth-token', fn (Request $request) => Limit::perMinute(self::OAUTH_TOKEN_REQUESTS_PER_MINUTE)
+            ->by('ip:'.$request->ip())
             ->response($this->tooManyAttemptsResponse(...)));
 
         RateLimiter::for('invitation-preview', fn (Request $request) => Limit::perMinute(self::INVITATION_PREVIEWS_PER_MINUTE)
