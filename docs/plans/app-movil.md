@@ -366,8 +366,8 @@ ajustes) y push nativo, distribuida al equipo como APK interno por EAS. iOS qued
 - [ ] M-49: Integraciones: botón "Copiar" para la key y los comandos (requiere `npx expo install expo-clipboard`, con aprobación del usuario), curl de ejemplo como la web, test del botón "Integrations" de la tarjeta y ocultar la key al pasar a segundo plano (FLAG_SECURE o similar). Complejidad media, sonnet.
 - [ ] M-50: Cablear `onMembersChanged` a `useMemberDirectoryStore.invalidate` en las pantallas de canal, tareas y log, como `ChannelView.vue:340`, `PlanView.vue:151` y `LogView.vue:238` (hoy menciones y asignados tardan hasta 5 min); tests de `clear()` e `invalidate()` sin id. Complejidad baja, sonnet.
 - [ ] M-51: App: centralizar los colores en un tema (`app/src/theme.ts`) alineado con `web/src/style.css` y quitar `ios.icon` de plantilla (`./assets/expo.icon`) de `app.json`. Complejidad media, sonnet.
-- [ ] M-52: `pushDevice.test.tsx`: resetear `secureStore.getItemAsync` en el `beforeEach` (`mockReset().mockResolvedValue(null)`); hoy el `'1'` de un test se filtra a los siguientes. Baja, sonnet.
-- [ ] M-53: test de que un fallo al escribir la marca `sereno.pushPrompted` no pide el permiso y se reintenta al volver. Baja, sonnet.
+- [x] M-52: `pushDevice.test.tsx`: resetear `secureStore.getItemAsync` en el `beforeEach` (`mockReset().mockResolvedValue(null)`); hoy el `'1'` de un test se filtra a los siguientes. Baja, sonnet.
+- [x] M-53: test de que un fallo al escribir la marca `sereno.pushPrompted` no pide el permiso y se reintenta al volver. Baja, sonnet.
 - [ ] M-54: los íconos de la barra de pestañas se ven como cuadros vacíos (tofu) en el dev build de Android; revisar la fuente o el paquete de símbolos que usan. Media, sonnet.
 - [ ] M-55: abrir el push de chat en el mensaje concreto (`?message=`) con scroll, y pasar el nombre del canal en el payload para el título. Media, sonnet.
 - [x] M-56: si la carga de organizaciones falla, el toque del aviso se consume sin avisar; reintentar o avisar. Baja, sonnet.

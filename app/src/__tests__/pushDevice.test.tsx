@@ -73,6 +73,7 @@ beforeEach(async () => {
   jest.replaceProperty(Platform, 'OS', 'android');
   mockTokenListeners.length = 0;
   jest.clearAllMocks();
+  secureStore.getItemAsync.mockReset().mockResolvedValue(null);
   notifications.getPermissionsAsync.mockResolvedValue(granted as never);
   notifications.requestPermissionsAsync.mockResolvedValue(granted as never);
   notifications.getExpoPushTokenAsync.mockResolvedValue({ type: 'expo', data: 'ExponentPushToken[one]' });
@@ -149,6 +150,35 @@ describe('push registration', () => {
     expect(secureStore.setItemAsync).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(usePushStore.getState().state).toBe('inactive');
+  });
+
+  it('does not ask when the mark cannot be written, and retries on resume', async () => {
+    const appStateListeners: ((state: string) => void)[] = [];
+    jest.spyOn(AppState, 'addEventListener').mockImplementation(((_type: string, listener: (state: string) => void) => {
+      appStateListeners.push(listener);
+      return { remove: jest.fn() };
+    }) as never);
+    notifications.getPermissionsAsync.mockResolvedValue(undetermined as never);
+    secureStore.setItemAsync.mockRejectedValueOnce(new Error('storage unavailable'));
+    const fetchMock = mockApi(() => json({ data: {} }, 201));
+
+    await act(async () => {
+      render(<Probe signedIn />);
+    });
+    await flush();
+
+    expect(secureStore.setItemAsync).toHaveBeenCalledTimes(1);
+    expect(notifications.requestPermissionsAsync).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      appStateListeners.forEach((listener) => listener('active'));
+    });
+    await flush();
+
+    expect(secureStore.setItemAsync).toHaveBeenCalledTimes(2);
+    expect(notifications.requestPermissionsAsync).toHaveBeenCalledTimes(1);
+    expect(calls(fetchMock)).toEqual(['POST /api/me/expo-push-tokens']);
   });
 
   it('registers without asking when already granted', async () => {
